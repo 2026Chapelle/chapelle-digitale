@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Cathédrale royale baignée de lumière dorée">
+  <defs>
+    <radialGradient id="bgRad" cx="50%" cy="35%" r="80%">
+      <stop offset="0%" stop-color="#1a0533" stop-opacity="1"/>
+      <stop offset="55%" stop-color="#0a0613" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#050308" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#F5E6A7" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#F5E6A7" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#D4AF37" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="archStone" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1a1227" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0a0613" stop-opacity="1"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="40%" r="40%">
+      <stop offset="0%" stop-color="#F5E6A7" stop-opacity="0.5"/>
+      <stop offset="40%" stop-color="#D4AF37" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="floorGlow" cx="50%" cy="100%" r="60%">
+      <stop offset="0%" stop-color="#D4AF37" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+    <pattern id="dots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="0.6" fill="#F5E6A7" opacity="0.2"/>
+    </pattern>
+  </defs>
+
+  <!-- Sky / depth -->
+  <rect width="1920" height="1080" fill="url(#bgRad)"/>
+  <rect width="1920" height="1080" fill="url(#dots)"/>
+
+  <!-- Outer purple haze -->
+  <ellipse cx="280" cy="200" rx="450" ry="320" fill="#4B0082" opacity="0.25" filter="url(#glow)"/>
+  <ellipse cx="1640" cy="280" rx="380" ry="280" fill="#4B0082" opacity="0.20" filter="url(#glow)"/>
+
+  <!-- Central halo behind central arch -->
+  <ellipse cx="960" cy="430" rx="700" ry="500" fill="url(#halo)"/>
+
+  <!-- Three gothic arches (back row, smaller) -->
+  <g opacity="0.55">
+    <path d="M 240 1080 L 240 600 Q 240 460 360 460 Q 480 460 480 600 L 480 1080 Z" fill="url(#archStone)"/>
+    <path d="M 1440 1080 L 1440 600 Q 1440 460 1560 460 Q 1680 460 1680 600 L 1680 1080 Z" fill="url(#archStone)"/>
+  </g>
+
+  <!-- Mid arches -->
+  <g opacity="0.78">
+    <path d="M 540 1080 L 540 540 Q 540 360 690 360 Q 840 360 840 540 L 840 1080 Z" fill="url(#archStone)" stroke="#D4AF37" stroke-width="1" stroke-opacity="0.18"/>
+    <path d="M 1080 1080 L 1080 540 Q 1080 360 1230 360 Q 1380 360 1380 540 L 1380 1080 Z" fill="url(#archStone)" stroke="#D4AF37" stroke-width="1" stroke-opacity="0.18"/>
+  </g>
+
+  <!-- Central main arch -->
+  <path d="M 800 1080 L 800 480 Q 800 240 960 240 Q 1120 240 1120 480 L 1120 1080 Z" fill="url(#archStone)" stroke="#D4AF37" stroke-width="1.5" stroke-opacity="0.4"/>
+
+  <!-- Inner arched window of central arch -->
+  <path d="M 850 1080 L 850 510 Q 850 320 960 320 Q 1070 320 1070 510 L 1070 1080 Z" fill="#070512" opacity="0.85"/>
+
+  <!-- Stained-glass golden glow inside central arch -->
+  <ellipse cx="960" cy="500" rx="100" ry="180" fill="url(#halo)" opacity="0.9"/>
+
+  <!-- Vertical light beam from above -->
+  <polygon points="930,0 990,0 1040,1080 880,1080" fill="url(#beam)" opacity="0.55"/>
+
+  <!-- Secondary thin beams -->
+  <polygon points="660,0 685,0 720,1080 615,1080" fill="url(#beam)" opacity="0.18"/>
+  <polygon points="1235,0 1260,0 1305,1080 1200,1080" fill="url(#beam)" opacity="0.18"/>
+
+  <!-- Floor glow / mist -->
+  <rect x="0" y="800" width="1920" height="280" fill="url(#floorGlow)"/>
+
+  <!-- Particles / dust -->
+  <g fill="#F5E6A7" opacity="0.7">
+    <circle cx="320" cy="280" r="1.5"/>
+    <circle cx="480" cy="180" r="1"/>
+    <circle cx="700" cy="340" r="1.2"/>
+    <circle cx="840" cy="220" r="0.8"/>
+    <circle cx="1080" cy="180" r="1.4"/>
+    <circle cx="1240" cy="290" r="1"/>
+    <circle cx="1450" cy="240" r="1.2"/>
+    <circle cx="1620" cy="380" r="0.8"/>
+    <circle cx="180" cy="420" r="1"/>
+    <circle cx="540" cy="500" r="0.9"/>
+    <circle cx="960" cy="160" r="1.6"/>
+    <circle cx="1380" cy="540" r="1"/>
+    <circle cx="1750" cy="500" r="0.8"/>
+    <circle cx="380" cy="660" r="1.1"/>
+    <circle cx="1480" cy="700" r="1.2"/>
+  </g>
+  <g fill="#D4AF37" opacity="0.5" filter="url(#soft)">
+    <circle cx="960" cy="540" r="6"/>
+    <circle cx="800" cy="700" r="4"/>
+    <circle cx="1120" cy="680" r="5"/>
+  </g>
+
+  <!-- Bottom vignette -->
+  <rect x="0" y="900" width="1920" height="180" fill="#050308" opacity="0.45"/>
+</svg>

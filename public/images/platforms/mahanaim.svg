@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Mahanaïm — intercession et prière">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#050308"/>
+    </radialGradient>
+    <radialGradient id="sky" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hand" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EDE9FE"/>
+      <stop offset="100%" stop-color="#5B21B6"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#F5E6A7" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#F5E6A7" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg)"/>
+  <ellipse cx="400" cy="240" rx="400" ry="240" fill="url(#sky)"/>
+
+  <!-- Light from above -->
+  <polygon points="380,0 420,0 460,250 340,250" fill="url(#beam)"/>
+
+  <!-- Praying hands (palms together, pointing up) -->
+  <g transform="translate(400 320)">
+    <!-- Sleeves / wrists -->
+    <path d="M -65 80 L -35 80 L -25 200 L -75 200 Z" fill="#4c1d95"/>
+    <path d="M 35 80 L 65 80 L 75 200 L 25 200 Z" fill="#4c1d95"/>
+    <!-- Left hand -->
+    <path d="M -50 -160 Q -75 -150 -78 -100 L -75 80 L -25 80 L -22 -90 Q -22 -150 -50 -160 Z" fill="url(#hand)"/>
+    <!-- Right hand -->
+    <path d="M 50 -160 Q 75 -150 78 -100 L 75 80 L 25 80 L 22 -90 Q 22 -150 50 -160 Z" fill="url(#hand)"/>
+    <!-- Finger separations -->
+    <g stroke="#6D28D9" stroke-width="1.5" opacity="0.5">
+      <line x1="-60" y1="-130" x2="-60" y2="60"/>
+      <line x1="-40" y1="-150" x2="-40" y2="60"/>
+      <line x1="60" y1="-130" x2="60" y2="60"/>
+      <line x1="40" y1="-150" x2="40" y2="60"/>
+    </g>
+    <!-- Center divider -->
+    <line x1="0" y1="-140" x2="0" y2="80" stroke="#0a0613" stroke-width="2"/>
+    <!-- Glow halo behind hands -->
+    <ellipse cx="0" cy="-100" rx="90" ry="100" fill="#F5E6A7" opacity="0.12"/>
+  </g>
+
+  <!-- Stars -->
+  <g fill="#C4B5FD" opacity="0.8">
+    <circle cx="120" cy="80" r="1.5"/><circle cx="680" cy="100" r="1.5"/>
+    <circle cx="200" cy="40" r="1"/><circle cx="600" cy="40" r="1"/>
+    <circle cx="80" cy="200" r="1"/><circle cx="720" cy="200" r="1"/>
+    <circle cx="280" cy="60" r="1.2"/><circle cx="520" cy="60" r="1.2"/>
+  </g>
+  <g fill="#F5E6A7" opacity="0.7">
+    <circle cx="160" cy="160" r="2"/>
+    <circle cx="640" cy="140" r="2"/>
+    <circle cx="100" cy="280" r="1.5"/>
+    <circle cx="700" cy="300" r="1.5"/>
+  </g>
+</svg>

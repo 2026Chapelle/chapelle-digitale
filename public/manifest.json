@@ -1,0 +1,38 @@
+{
+  "name": "La Chapelle Internationale des Élus du Royaume",
+  "short_name": "CIER",
+  "description": "Une Église Ouverte au Monde — Communauté chrétienne francophone mondiale",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait-primary",
+  "categories": ["religion", "education", "social"],
+  "lang": "fr",
+  "icons": [
+    { "src": "/icon", "sizes": "32x32", "type": "image/png" },
+    { "src": "/apple-icon", "sizes": "180x180", "type": "image/png" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live & Cultes",
+      "short_name": "Live",
+      "description": "Rejoindre le culte en direct",
+      "url": "/live"
+    },
+    {
+      "name": "Prière",
+      "short_name": "Prière",
+      "description": "Mur de prière",
+      "url": "/priere"
+    },
+    {
+      "name": "Formations",
+      "short_name": "Former",
+      "description": "Centre de formation",
+      "url": "/formations"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

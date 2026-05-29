@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Foule en adoration sous des projecteurs dorés">
+  <defs>
+    <radialGradient id="stageGlow" cx="50%" cy="20%" r="65%">
+      <stop offset="0%" stop-color="#F5E6A7" stop-opacity="0.55"/>
+      <stop offset="35%" stop-color="#D4AF37" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0a0613" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bgRad" cx="50%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#1a0533" stop-opacity="1"/>
+      <stop offset="65%" stop-color="#0a0613" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#050308" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="crowdShade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a0613" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#050308" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="lightCone" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#F5E6A7" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="bloom" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="url(#bgRad)"/>
+
+  <!-- Stage halo -->
+  <ellipse cx="960" cy="220" rx="900" ry="450" fill="url(#stageGlow)"/>
+
+  <!-- Volumetric light cones -->
+  <polygon points="700,80 760,80 880,720 580,720" fill="url(#lightCone)" opacity="0.65"/>
+  <polygon points="1160,80 1220,80 1340,720 1040,720" fill="url(#lightCone)" opacity="0.65"/>
+  <polygon points="940,40 980,40 1010,640 910,640" fill="url(#lightCone)" opacity="0.7"/>
+
+  <!-- Bokeh / floating particles -->
+  <g opacity="0.6">
+    <circle cx="280" cy="280" r="8" fill="#F5E6A7" filter="url(#bloom)"/>
+    <circle cx="1640" cy="320" r="10" fill="#F5E6A7" filter="url(#bloom)"/>
+    <circle cx="540" cy="180" r="6" fill="#D4AF37" filter="url(#bloom)"/>
+    <circle cx="1360" cy="220" r="7" fill="#D4AF37" filter="url(#bloom)"/>
+    <circle cx="180" cy="500" r="5" fill="#F5E6A7" filter="url(#bloom)"/>
+    <circle cx="1740" cy="540" r="6" fill="#F5E6A7" filter="url(#bloom)"/>
+    <circle cx="780" cy="340" r="4" fill="#F5E6A7" filter="url(#bloom)"/>
+    <circle cx="1140" cy="380" r="5" fill="#D4AF37" filter="url(#bloom)"/>
+  </g>
+
+  <!-- Distant crowd silhouette band -->
+  <path d="M 0 760 Q 240 720 480 750 Q 720 740 960 745 Q 1200 750 1440 740 Q 1680 730 1920 760 L 1920 1080 L 0 1080 Z" fill="url(#crowdShade)"/>
+
+  <!-- Crowd silhouettes (heads + raised hands) -->
+  <g fill="#050308">
+    <!-- Row 1 (back) -->
+    <g opacity="0.85">
+      <circle cx="120" cy="780" r="26"/><rect x="100" y="800" width="40" height="80" rx="6"/>
+      <circle cx="220" cy="775" r="24"/><rect x="200" y="795" width="40" height="80" rx="6"/>
+      <circle cx="320" cy="785" r="26"/><rect x="300" y="805" width="40" height="80" rx="6"/>
+      <circle cx="430" cy="770" r="24"/><rect x="410" y="790" width="40" height="80" rx="6"/>
+      <circle cx="540" cy="780" r="26"/><rect x="520" y="800" width="40" height="80" rx="6"/>
+      <circle cx="650" cy="775" r="25"/><rect x="630" y="795" width="40" height="80" rx="6"/>
+      <circle cx="760" cy="785" r="27"/><rect x="740" y="805" width="40" height="80" rx="6"/>
+      <circle cx="870" cy="770" r="25"/><rect x="850" y="790" width="40" height="80" rx="6"/>
+      <circle cx="980" cy="780" r="26"/><rect x="960" y="800" width="40" height="80" rx="6"/>
+      <circle cx="1090" cy="775" r="24"/><rect x="1070" y="795" width="40" height="80" rx="6"/>
+      <circle cx="1200" cy="785" r="26"/><rect x="1180" y="805" width="40" height="80" rx="6"/>
+      <circle cx="1310" cy="770" r="25"/><rect x="1290" y="790" width="40" height="80" rx="6"/>
+      <circle cx="1420" cy="780" r="26"/><rect x="1400" y="800" width="40" height="80" rx="6"/>
+      <circle cx="1530" cy="775" r="24"/><rect x="1510" y="795" width="40" height="80" rx="6"/>
+      <circle cx="1640" cy="785" r="26"/><rect x="1620" y="805" width="40" height="80" rx="6"/>
+      <circle cx="1750" cy="770" r="25"/><rect x="1730" y="790" width="40" height="80" rx="6"/>
+      <circle cx="1860" cy="780" r="26"/><rect x="1840" y="800" width="40" height="80" rx="6"/>
+    </g>
+
+    <!-- Row 2 (front, larger) with raised arms -->
+    <g>
+      <!-- Person with raised hands #1 -->
+      <circle cx="180" cy="900" r="36"/>
+      <rect x="150" y="930" width="60" height="150" rx="10"/>
+      <rect x="138" y="780" width="14" height="170" rx="6" transform="rotate(-12 145 870)"/>
+      <rect x="208" y="780" width="14" height="170" rx="6" transform="rotate(12 215 870)"/>
+
+      <!-- #2 -->
+      <circle cx="360" cy="890" r="34"/>
+      <rect x="332" y="918" width="56" height="162" rx="10"/>
+
+      <!-- #3 raised -->
+      <circle cx="540" cy="900" r="36"/>
+      <rect x="510" y="930" width="60" height="150" rx="10"/>
+      <rect x="498" y="775" width="14" height="180" rx="6" transform="rotate(-10 505 870)"/>
+      <rect x="568" y="775" width="14" height="180" rx="6" transform="rotate(10 575 870)"/>
+
+      <!-- #4 -->
+      <circle cx="720" cy="895" r="35"/>
+      <rect x="691" y="924" width="58" height="156" rx="10"/>
+
+      <!-- #5 raised one hand -->
+      <circle cx="900" cy="890" r="38"/>
+      <rect x="868" y="922" width="64" height="158" rx="10"/>
+      <rect x="936" y="745" width="14" height="200" rx="6" transform="rotate(15 943 845)"/>
+
+      <!-- #6 -->
+      <circle cx="1080" cy="900" r="34"/>
+      <rect x="1052" y="928" width="56" height="152" rx="10"/>
+
+      <!-- #7 raised -->
+      <circle cx="1260" cy="895" r="36"/>
+      <rect x="1230" y="925" width="60" height="155" rx="10"/>
+      <rect x="1218" y="780" width="14" height="170" rx="6" transform="rotate(-12 1225 870)"/>
+      <rect x="1288" y="780" width="14" height="170" rx="6" transform="rotate(12 1295 870)"/>
+
+      <!-- #8 -->
+      <circle cx="1440" cy="900" r="35"/>
+      <rect x="1411" y="930" width="58" height="150" rx="10"/>
+
+      <!-- #9 raised -->
+      <circle cx="1620" cy="895" r="36"/>
+      <rect x="1590" y="925" width="60" height="155" rx="10"/>
+      <rect x="1578" y="775" width="14" height="180" rx="6" transform="rotate(-10 1585 870)"/>
+      <rect x="1648" y="775" width="14" height="180" rx="6" transform="rotate(10 1655 870)"/>
+
+      <!-- #10 -->
+      <circle cx="1800" cy="905" r="34"/>
+      <rect x="1772" y="933" width="56" height="147" rx="10"/>
+    </g>
+  </g>
+
+  <!-- Top atmospheric haze -->
+  <rect x="0" y="0" width="1920" height="280" fill="#050308" opacity="0.35"/>
+
+  <!-- Bottom vignette -->
+  <rect x="0" y="900" width="1920" height="180" fill="#050308" opacity="0.5"/>
+</svg>

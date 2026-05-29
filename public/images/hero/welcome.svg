@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Portes du Royaume — bienvenue">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#1a0533"/>
+      <stop offset="65%" stop-color="#0a0613"/>
+      <stop offset="100%" stop-color="#050308"/>
+    </radialGradient>
+    <radialGradient id="doorLight" cx="50%" cy="60%" r="55%">
+      <stop offset="0%" stop-color="#F5E6A7" stop-opacity="0.95"/>
+      <stop offset="50%" stop-color="#D4AF37" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#D4AF37" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="doorFrame" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F5E6A7"/>
+      <stop offset="100%" stop-color="#92721A"/>
+    </linearGradient>
+    <linearGradient id="floor" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#F5E6A7" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#F5E6A7" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+
+  <!-- Distant light through opening -->
+  <ellipse cx="800" cy="540" rx="560" ry="380" fill="url(#doorLight)"/>
+
+  <!-- Outer arch frame -->
+  <path d="M 480 900 L 480 380 Q 480 140 800 140 Q 1120 140 1120 380 L 1120 900 Z"
+    fill="#070512" stroke="url(#doorFrame)" stroke-width="4"/>
+
+  <!-- Inner ornate molding -->
+  <path d="M 510 900 L 510 390 Q 510 170 800 170 Q 1090 170 1090 390 L 1090 900 Z"
+    fill="none" stroke="url(#doorFrame)" stroke-width="1.5" stroke-opacity="0.6" stroke-dasharray="4 6"/>
+
+  <!-- Light spilling from interior -->
+  <path d="M 540 900 L 540 410 Q 540 220 800 220 Q 1060 220 1060 410 L 1060 900 Z"
+    fill="url(#doorLight)" opacity="0.85"/>
+
+  <!-- Light beam projecting forward (perspective floor light) -->
+  <polygon points="540,900 1060,900 1340,900 260,900" fill="url(#floor)" opacity="0.6"/>
+
+  <!-- Open doors (slightly ajar, gold) -->
+  <g>
+    <!-- Left door panel -->
+    <path d="M 540 410 Q 540 220 800 220 L 800 880 L 580 880 L 540 870 Z"
+      fill="#0a0613" opacity="0.4"/>
+    <path d="M 540 410 Q 540 220 800 220 L 800 880 L 580 880 L 540 870 Z"
+      fill="none" stroke="url(#doorFrame)" stroke-width="2" stroke-opacity="0.5"/>
+    <!-- Door handle left -->
+    <circle cx="710" cy="540" r="6" fill="url(#doorFrame)"/>
+  </g>
+
+  <!-- Cross at apex -->
+  <g transform="translate(800 110)" fill="url(#doorFrame)">
+    <rect x="-4" y="-50" width="8" height="80" rx="2"/>
+    <rect x="-22" y="-22" width="44" height="8" rx="2"/>
+  </g>
+
+  <!-- Floating particles inside door -->
+  <g fill="#F5E6A7" opacity="0.85">
+    <circle cx="780" cy="380" r="2"/>
+    <circle cx="820" cy="420" r="1.5"/>
+    <circle cx="760" cy="500" r="1.5"/>
+    <circle cx="830" cy="540" r="2"/>
+    <circle cx="790" cy="620" r="1.5"/>
+    <circle cx="820" cy="680" r="2"/>
+    <circle cx="780" cy="340" r="1"/>
+    <circle cx="800" cy="280" r="1.2"/>
+  </g>
+
+  <!-- Outer star particles -->
+  <g fill="#F5E6A7" opacity="0.6">
+    <circle cx="200" cy="180" r="1.5"/><circle cx="1400" cy="180" r="1.5"/>
+    <circle cx="120" cy="320" r="1"/><circle cx="1480" cy="320" r="1"/>
+    <circle cx="240" cy="440" r="1.5"/><circle cx="1360" cy="440" r="1.5"/>
+    <circle cx="80" cy="540" r="1"/><circle cx="1520" cy="540" r="1"/>
+    <circle cx="320" cy="120" r="1.2"/><circle cx="1280" cy="120" r="1.2"/>
+    <circle cx="160" cy="680" r="1.5"/><circle cx="1440" cy="680" r="1.5"/>
+  </g>
+
+  <!-- Side purple atmosphere -->
+  <ellipse cx="240" cy="500" rx="220" ry="350" fill="#4B0082" opacity="0.18"/>
+  <ellipse cx="1360" cy="500" rx="220" ry="350" fill="#4B0082" opacity="0.18"/>
+
+  <!-- Bottom vignette -->
+  <rect x="0" y="800" width="1600" height="100" fill="#050308" opacity="0.5"/>
+</svg>
