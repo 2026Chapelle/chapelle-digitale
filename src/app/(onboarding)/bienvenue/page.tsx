@@ -459,7 +459,7 @@ export default function BienventuePage() {
                           ease: [0.16, 1, 0.3, 1],
                         }}
                       >
-                        {['✦', '⭐', '🌟', '💫', '✨'][i % 5]}
+                        {['✨', '⭐', '🌟', '💫', '🙏'][i % 5]}
                       </motion.span>
                     ))}
                   </div>

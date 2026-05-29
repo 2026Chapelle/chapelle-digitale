@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, User, BookOpen, Play, FileText,
@@ -34,6 +35,20 @@ export function MemberSidebar() {
     <aside className="flex flex-col h-full py-6 px-3">
       {/* Logo section */}
       <div className="px-3 mb-6">
+        <Link href="/" className="flex items-center gap-2.5 mb-3 group">
+          <div className="relative w-9 h-9">
+            <div className="absolute inset-0 rounded-full opacity-40 group-hover:opacity-70 blur-lg transition-opacity duration-500"
+              style={{ background: 'radial-gradient(circle, #D4AF37 0%, transparent 70%)' }} />
+            <Image
+              src="/images/logo-mark.png"
+              alt="CIER"
+              width={36}
+              height={36}
+              className="relative w-9 h-9 object-contain drop-shadow-[0_2px_8px_rgba(212,175,55,0.4)]"
+            />
+          </div>
+          <span className="font-cinzel font-bold text-sm tracking-[0.15em] text-gold">CIER</span>
+        </Link>
         <div className="text-xs font-bold tracking-[0.2em] uppercase text-pearl/20 font-inter">
           Espace Membre
         </div>
