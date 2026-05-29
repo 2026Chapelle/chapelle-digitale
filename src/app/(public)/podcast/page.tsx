@@ -11,7 +11,7 @@ import { PremiumImage } from '@/components/ui/PremiumImage'
 import { HERO_IMAGES } from '@/lib/images'
 
 const SERIES = [
-  { id: 'all', label: 'Tous', count: 48, color: '#D4AF37', emoji: '✦' },
+  { id: 'all', label: 'Tous', count: 48, color: '#D4AF37', emoji: '✨' },
   { id: 'fondements', label: 'Fondements Spirituels', count: 12, color: '#D4AF37', emoji: '🌱' },
   { id: 'leaders', label: 'École de Leaders', count: 8, color: '#8B5CF6', emoji: '👑' },
   { id: 'famille', label: 'Vie de Famille', count: 9, color: '#22C55E', emoji: '💚' },

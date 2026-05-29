@@ -1,4 +1,5 @@
 'use client'
+import Image from 'next/image'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 
 /**
@@ -24,7 +25,7 @@ export function DemoBanner() {
       role="status"
       aria-live="polite"
     >
-      <span className="text-gold text-base" aria-hidden>✦</span>
+      <Image src="/images/logo-mark.png" alt="" aria-hidden width={18} height={18} className="w-[18px] h-[18px] object-contain" />
       Mode Démo — Configurez <code className="bg-white/10 px-1.5 py-0.5 rounded text-[11px]">.env.local</code> pour activer Supabase
     </div>
   )
