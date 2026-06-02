@@ -8,18 +8,23 @@
 import { NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { IS_DEMO_MODE } from '@/lib/supabase'
+import { SITE_URL } from '@/lib/site-url'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/member/dashboard'
+  const nextParam = searchParams.get('next') ?? '/member/dashboard'
+  // On n'autorise que des chemins internes (anti open-redirect).
+  const next = nextParam.startsWith('/') ? nextParam : '/member/dashboard'
 
   if (code && !IS_DEMO_MODE) {
     const supabase = createRouteClient()
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(`${origin}${next}`)
+  // Redirection TOUJOURS vers le domaine canonique de la Citadelle —
+  // jamais vers le host d'hébergement interne (node76-eu.n0c.com).
+  return NextResponse.redirect(`${SITE_URL}${next}`)
 }

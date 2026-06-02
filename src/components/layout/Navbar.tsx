@@ -8,6 +8,7 @@ import { Menu, X, ChevronDown, Bell, Search, Tv, BookOpen, Users, Heart, Calenda
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { GlobalSearchModal } from '@/components/ui/GlobalSearchModal'
+import { NotificationBell } from '@/components/features/notifications/NotificationBell'
 
 const NAV_ITEMS = [
   { label: 'Accueil', href: '/', icon: Home },
@@ -227,14 +228,7 @@ export function Navbar() {
 
               {user ? (
                 <>
-                  <button
-                    className="relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200"
-                    style={{ color: isDarkPage ? 'rgba(255,255,255,0.4)' : '#9CA3AF' }}
-                  >
-                    <Bell className="w-4 h-4" />
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 border-2"
-                      style={{ borderColor: isDarkPage ? '#050505' : '#FFFFFF' }} />
-                  </button>
+                  <NotificationBell endpoint="/api/member/notifications" storageKey="notif_read_member" realtimeTable="app_notifications" markEndpoint="/api/member/notifications" />
                   <Link
                     href="/member/dashboard"
                     className="flex items-center gap-2 px-4 py-2 rounded-xl font-inter text-xs font-semibold transition-all duration-200"

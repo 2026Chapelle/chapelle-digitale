@@ -37,10 +37,13 @@ export async function GET(req: NextRequest) {
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: '70px 84px',
+          // NB : Satori (next/og) ne supporte pas la syntaxe ellipse à deux
+          // tailles « radial-gradient(1100px 700px at …) » → on reste sur des
+          // gradients « circle/ellipse at » compatibles pour éviter un 500.
           background:
-            'radial-gradient(1100px 700px at 80% -10%, rgba(75,0,130,0.35), transparent 60%),' +
-            'radial-gradient(900px 600px at -10% 30%, rgba(212,175,55,0.18), transparent 60%),' +
-            'radial-gradient(1100px 900px at 50% 110%, rgba(75,0,130,0.25), transparent 65%),' +
+            'radial-gradient(ellipse at 80% -10%, rgba(75,0,130,0.35), transparent 60%),' +
+            'radial-gradient(ellipse at -10% 30%, rgba(212,175,55,0.18), transparent 60%),' +
+            'radial-gradient(ellipse at 50% 110%, rgba(75,0,130,0.25), transparent 65%),' +
             'linear-gradient(180deg, #050307 0%, #0A0613 50%, #050308 100%)',
           color: '#F5E6D8',
           fontFamily: 'Inter, sans-serif',
@@ -129,11 +132,9 @@ export async function GET(req: NextRequest) {
             letterSpacing: 1,
           }}
         >
-          <div>cier.org</div>
+          <div>chapelleduroyaume.org</div>
           <div style={{ display: 'flex', gap: 24 }}>
-            <span>120+ Nations</span>
-            <span style={{ color: 'rgba(245,230,216,0.25)' }}>·</span>
-            <span>127 000+ Membres</span>
+            <span>Une Église Ouverte au Monde</span>
           </div>
         </div>
       </div>

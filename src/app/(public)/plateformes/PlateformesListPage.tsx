@@ -1,19 +1,8 @@
 'use client'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, Users } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { PLATEFORMES } from '@/lib/constants'
-
-const MEMBRES_MAP: Record<string, number> = {
-  cier: 1840,
-  jeunesse: 892,
-  'chapelle-familiale': 524,
-  'femmes-exceptions': 743,
-  'cite-refuge': 312,
-  cfic: 1240,
-  mahanaim: 248,
-  'familles-chapelle': 567,
-}
 
 export default function PlateformesListPage() {
   const plateformes = Object.values(PLATEFORMES)
@@ -37,11 +26,9 @@ export default function PlateformesListPage() {
             La Chapelle Internationale des Élus du Royaume est un écosystème de 8 ministères complémentaires, chacun répondant à un appel spirituel spécifique.
           </p>
           <div className="flex items-center justify-center gap-6 text-sm font-inter text-gray-400">
-            <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />4 127+ membres</span>
-            <span>·</span>
-            <span>86 pays représentés</span>
-            <span>·</span>
             <span>8 ministères actifs</span>
+            <span>·</span>
+            <span>Une famille internationale</span>
           </div>
         </motion.div>
       </section>
@@ -86,11 +73,7 @@ export default function PlateformesListPage() {
                   </p>
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-1 text-xs font-inter text-gray-400">
-                      <Users className="w-3 h-3" />
-                      {(MEMBRES_MAP[p.id] || 0).toLocaleString()} membres
-                    </div>
+                  <div className="flex items-center justify-end mt-auto pt-3 border-t border-gray-100">
                     <div
                       className="flex items-center gap-1 text-xs font-inter font-semibold group-hover:gap-2 transition-all"
                       style={{ color: p.couleur_primaire }}

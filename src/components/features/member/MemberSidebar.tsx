@@ -5,31 +5,45 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, User, BookOpen, Play, FileText,
   Calendar, Heart, Flame, Bell, ChevronRight, LogOut, DollarSign, Users,
-  MessageCircle, Settings, Compass
+  MessageCircle, Settings, Compass, GraduationCap, UserPlus, BookMarked, Newspaper, HeartHandshake, ShoppingBag
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { isFormateur, isIntegration } from '@/lib/roles'
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Tableau de bord', href: '/member/dashboard', color: '#D4AF37' },
   { icon: User, label: 'Mon Profil', href: '/member/dashboard/profil', color: '#0EA5E9' },
   { icon: BookOpen, label: 'Mes Formations', href: '/member/dashboard/formations', color: '#8B5CF6' },
+  { icon: BookMarked, label: 'La Bible', href: '/member/dashboard/bible', color: '#D4AF37' },
+  { icon: GraduationCap, label: 'Enseignements', href: '/enseignements', color: '#8B5CF6' },
+  { icon: Newspaper, label: 'Articles', href: '/articles', color: '#0EA5E9' },
   { icon: Play, label: 'Mes Lives', href: '/member/dashboard/lives', color: '#EF4444' },
   { icon: FileText, label: 'Mes Ressources', href: '/member/dashboard/ressources', color: '#22C55E' },
   { icon: Calendar, label: 'Mes Événements', href: '/member/dashboard/evenements', color: '#F59E0B' },
   { icon: Heart, label: 'Mes Prières', href: '/member/dashboard/prieres', color: '#EC4899' },
+  { icon: HeartHandshake, label: 'Cure d\'âme', href: '/member/dashboard/delivrance', color: '#14B8A6' },
   { icon: Users, label: 'Mes Groupes', href: '/member/dashboard/groupes', color: '#F97316' },
   { icon: DollarSign, label: 'Mes Dons', href: '/member/dashboard/dons', color: '#22C55E' },
+  { icon: ShoppingBag, label: 'Mes Achats', href: '/member/dashboard/achats', color: '#EAB308' },
   { icon: Compass, label: 'Mon Parcours', href: '/member/dashboard/parcours', color: '#EC4899' },
   { icon: Flame, label: 'Mon Engagement', href: '/member/dashboard/engagement', color: '#F97316' },
-  { icon: Bell, label: 'Notifications', href: '/member/dashboard/notifications', color: '#6366F1', badge: 3 },
+  { icon: Bell, label: 'Notifications', href: '/member/dashboard/notifications', color: '#6366F1' },
   { icon: MessageCircle, label: 'Messages', href: '/member/dashboard/messages', color: '#0EA5E9' },
   { icon: Settings, label: 'Paramètres', href: '/member/dashboard/parametres', color: '#6B7280' },
 ]
 
 export function MemberSidebar() {
   const pathname = usePathname()
-  const { signOut } = useAuth()
+  const { signOut, role } = useAuth()
+
+  // Liens spécialisés visibles selon le rôle (RBAC).
+  const roleItems = [
+    isFormateur(role) && { icon: GraduationCap, label: 'Espace Formateur', href: '/member/dashboard/formateur', color: '#8B5CF6' },
+    isIntegration(role) && { icon: UserPlus, label: 'Espace Intégration', href: '/member/dashboard/integration', color: '#F59E0B' },
+    ['super_admin', 'nation_pastor', 'platform_admin', 'admin', 'pasteur'].includes(String(role)) && { icon: Compass, label: 'Tableau national', href: '/member/dashboard/nation', color: '#22C55E' },
+  ].filter(Boolean) as { icon: typeof User; label: string; href: string; color: string; badge?: number }[]
+  const items: { icon: typeof User; label: string; href: string; color: string; badge?: number }[] = [...NAV_ITEMS, ...roleItems]
 
   return (
     <aside className="flex flex-col h-full py-6 px-3">
@@ -56,7 +70,7 @@ export function MemberSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/member/dashboard' && pathname.startsWith(item.href))
           return (
             <Link

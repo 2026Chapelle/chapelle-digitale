@@ -1,17 +1,11 @@
 'use client'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
-import { BookOpen, Clock, Star, Users, ArrowRight, Award, Lock, Play, GraduationCap } from 'lucide-react'
+import { BookOpen, Clock, Star, ArrowRight, Lock, Play, GraduationCap } from 'lucide-react'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
-const FEATURED_FORMATIONS = [
-  { id: '1', titre: 'Fondements de la Foi', description: 'Le parcours de base pour chaque nouveau croyant. Identité en Christ, nouvelle vie, fondements bibliques.', niveau: 'Débutant', duree: '8h', inscrits: 2840, note: 4.9, modules: 6, gratuit: true, emoji: '🌱', couleur: '#22C55E', plateforme: 'CIER' },
-  { id: '2', titre: 'École de Prière', description: 'Apprenez à vraiment prier. Intercession, prière prophétique, jeûne, guerre spirituelle.', niveau: 'Intermédiaire', duree: '12h', inscrits: 1950, note: 4.8, modules: 8, gratuit: false, emoji: '🙏', couleur: '#0EA5E9', plateforme: 'Mahanaïm' },
-  { id: '3', titre: 'Leader de Demain', description: "Formation complète pour les leaders émergents. Vision, caractère, gestion d'équipe, ministère.", niveau: 'Avancé', duree: '20h', inscrits: 1240, note: 4.9, modules: 12, gratuit: false, emoji: '👑', couleur: '#D4AF37', plateforme: 'CFIC', featured: true },
-  { id: '4', titre: 'La Famille Selon Dieu', description: "Construction d'une famille chrétienne solide. Couple, parentalité, finances, communication divine.", niveau: 'Intermédiaire', duree: '10h', inscrits: 2100, note: 4.7, modules: 7, gratuit: false, emoji: '👨‍👩‍👧‍👦', couleur: '#F97316', plateforme: 'Chapelle Familiale' },
-  { id: '5', titre: 'Femme de Valeur', description: 'Découvrir son identité, sa valeur et son appel en tant que femme selon le cœur de Dieu.', niveau: 'Tous niveaux', duree: '9h', inscrits: 3200, note: 5.0, modules: 7, gratuit: false, emoji: '💎', couleur: '#EC4899', plateforme: "Femmes d'Exceptions" },
-  { id: '6', titre: 'Herméneutique Biblique', description: "Méthodes d'interprétation et d'étude de la Bible. Pour étudier, prêcher et enseigner la Parole.", niveau: 'Avancé', duree: '18h', inscrits: 890, note: 4.9, modules: 10, gratuit: false, emoji: '📖', couleur: '#8B5CF6', plateforme: 'CFIC' },
-]
+interface FormationCard { slug: string; titre: string; description: string; niveau: string; duree: string; modules: number; gratuit: boolean; emoji: string; couleur: string; plateforme: string; featured?: boolean }
 
 const NIVEAU_COLORS: Record<string, string> = {
   'Débutant': '#22C55E',
@@ -23,6 +17,38 @@ const NIVEAU_COLORS: Record<string, string> = {
 export function FormationsSection() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
+
+  // Formations RÉELLES (table formations). Aucune donnée inventée.
+  const [formations, setFormations] = useState<FormationCard[]>([])
+  const [loaded, setLoaded] = useState(false)
+  useEffect(() => {
+    if (IS_DEMO_MODE) { setLoaded(true); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('formations').select('*').limit(6)
+        if (cancelled) return
+        setFormations((data || []).map((f: any) => {
+          const niveau = f.niveau || 'Tous niveaux'
+          return {
+            slug: f.slug || f.id,
+            titre: f.titre || f.title || 'Formation',
+            description: f.description || '',
+            niveau,
+            duree: f.duree_heures ? `${f.duree_heures}h` : (f.duree || ''),
+            modules: Number(f.nb_modules || f.modules || 0),
+            gratuit: f.gratuit === true || Number(f.prix) === 0,
+            emoji: f.emoji || '📖',
+            couleur: f.couleur || NIVEAU_COLORS[niveau] || '#D4AF37',
+            plateforme: f.plateforme || f.categorie || '',
+          }
+        }))
+      } catch { /* liste vide */ }
+      finally { if (!cancelled) setLoaded(true) }
+    })()
+    return () => { cancelled = true }
+  }, [])
+  const FEATURED_FORMATIONS = formations
 
   return (
     <section ref={ref} className="section-cinematic">
@@ -54,7 +80,7 @@ export function FormationsSection() {
           >
             <p className="font-inter text-sm max-w-xs md:text-right leading-relaxed"
               style={{ color: 'rgba(245,230,216,0.45)' }}>
-              50+ formations disponibles, certifications reconnues, instructeurs experts
+              Des formations bibliques, des certifications et des instructeurs au service de votre croissance
             </p>
             <Link href="/formations" className="btn-gold-cinematic group">
               Toutes les formations
@@ -63,54 +89,25 @@ export function FormationsSection() {
           </motion.div>
         </div>
 
-        {/* Stats bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ delay: 0.15 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-12"
-        >
-          {[
-            { label: 'Formations', value: '50+', icon: BookOpen, color: '#D4AF37' },
-            { label: 'Étudiants', value: '15K+', icon: Users, color: '#0EA5E9' },
-            { label: 'Certifications', value: '3K+', icon: Award, color: '#22C55E' },
-            { label: 'Note moyenne', value: '4.9★', icon: Star, color: '#F59E0B' },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="card-cinematic flex items-center gap-3 px-4 py-4"
-            >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: `${stat.color}15`,
-                  border: `1px solid ${stat.color}30`,
-                }}
-              >
-                <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
-              </div>
-              <div>
-                <div className="font-cinzel font-black text-lg" style={{ color: stat.color }}>
-                  {stat.value}
-                </div>
-                <div className="text-[11px] font-inter uppercase tracking-wider"
-                  style={{ color: 'rgba(245,230,216,0.45)' }}>{stat.label}</div>
-              </div>
-            </div>
-          ))}
-        </motion.div>
+        {/* État vide honnête tant qu'aucune formation publiée n'existe */}
+        {loaded && FEATURED_FORMATIONS.length === 0 && (
+          <div className="card-cinematic text-center py-14">
+            <GraduationCap className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+            <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.5)' }}>Nos formations seront bientôt disponibles ici.</p>
+          </div>
+        )}
 
         {/* Formations grid — Netflix-style premium cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {FEATURED_FORMATIONS.map((f, i) => (
             <motion.div
-              key={f.id}
+              key={f.slug}
               initial={{ opacity: 0, y: 32 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.1 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
             >
               <Link
-                href={`/formations/${f.id}`}
+                href={`/formations/${f.slug}`}
                 className="block h-full card-cinematic overflow-hidden group"
               >
                 {/* Cover */}
@@ -194,16 +191,10 @@ export function FormationsSection() {
                     style={{ color: 'rgba(245,230,216,0.4)' }}>
                     <div className="flex items-center gap-1"><Clock className="w-3 h-3" />{f.duree}</div>
                     <div className="flex items-center gap-1"><BookOpen className="w-3 h-3" />{f.modules} mod.</div>
-                    <div className="flex items-center gap-1"><Users className="w-3 h-3" />{f.inscrits.toLocaleString()}</div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-3"
+                  <div className="flex items-center justify-end pt-3"
                     style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className="flex items-center gap-1 text-xs"
-                      style={{ color: '#F59E0B' }}>
-                      <Star className="w-3.5 h-3.5" fill="currentColor" />
-                      <span className="font-semibold">{f.note}</span>
-                    </div>
                     <span className="inline-flex items-center gap-1 text-xs font-bold transition-all group-hover:gap-2"
                       style={{ color: f.couleur }}>
                       Découvrir

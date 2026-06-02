@@ -42,6 +42,16 @@ next-env.d.ts
 supabase/.branches
 supabase/.temp
 
+# Artefacts de déploiement (build standalone + archive) — NE PAS versionner
+deploy-citadelle/
+deploy-citadelle*.zip
+
+# Copie de projet imbriquée (projet séparé, hors source de vérité)
+chapelle-digitale/
+
+# Runtime agent
+.claude/scheduled_tasks.lock
+
 # IDE
 .vscode/settings.json
 .idea/

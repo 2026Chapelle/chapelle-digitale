@@ -101,7 +101,7 @@ const FAQ_CATEGORIES = [
     questions: [
       {
         q: 'Comment effectuer un don à la CIER ?',
-        a: 'Depuis la page « Dons », vous pouvez choisir le type de don (dîme, offrande, partenariat, don libre), le montant et la fréquence. Les paiements sont sécurisés via Stripe. Nous acceptons les cartes bancaires, PayPal et virements.',
+        a: 'Depuis la page « Soutenir l’œuvre », vous pouvez choisir le type de soutien (offrande, partenariat, don libre, accès au parcours). Les paiements sont traités par notre prestataire de paiement sécurisé. Nous ne stockons aucune donnée bancaire.',
       },
       {
         q: 'Les dons sont-ils déductibles des impôts ?',
@@ -129,7 +129,7 @@ const FAQ_CATEGORIES = [
       },
       {
         q: 'Comment signaler un problème technique ?',
-        a: 'Contactez notre équipe support via la page Contact en sélectionnant « Support technique », ou écrivez à support@cier-chapelle.org. Notre équipe répond sous 24h ouvrées.',
+        a: 'Contactez notre équipe support via la page Contact en sélectionnant « Support technique », ou écrivez à support@chapelleduroyaume.org. Notre équipe répond sous 24h ouvrées.',
       },
     ],
   },

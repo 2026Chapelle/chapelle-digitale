@@ -4,7 +4,7 @@ import { PLATEFORMES } from '@/lib/constants'
 import { ogImage } from '@/lib/og'
 import PlateformePage from './PlateformePage'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cier.org'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://citadelle.chapelleduroyaume.org'
 
 export async function generateStaticParams() {
   return Object.keys(PLATEFORMES).map((id) => ({ id }))

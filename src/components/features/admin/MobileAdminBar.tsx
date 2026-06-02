@@ -2,28 +2,36 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Heart, BookOpen,
-  Calendar, FileText, MessageSquare, Settings,
-  UserCheck, Send, BarChart2, Radio, DollarSign, TrendingUp,
-  type LucideIcon,
+  LayoutDashboard, Users, Heart, BookOpen, Calendar, Settings,
+  Inbox, Film, FileText, TrendingUp, Radio, Mic, MessageSquare, HandCoins,
+  Newspaper, Mail, AtSign, GraduationCap, Layers, Route, type LucideIcon,
 } from 'lucide-react'
 
 type Item = { icon: LucideIcon; label: string; href: string; color: string; live?: boolean }
 const NAV_ITEMS: Item[] = [
-  { icon: LayoutDashboard, label: 'Dashboard',      href: '/admin/dashboard',       color: '#D4AF37' },
-  { icon: TrendingUp,      label: 'Analytics',      href: '/admin/analytics',       color: '#0EA5E9' },
-  { icon: Users,           label: 'Membres',        href: '/admin/membres',         color: '#60A5FA' },
-  { icon: DollarSign,      label: 'Dons',           href: '/admin/dons',            color: '#22C55E' },
-  { icon: UserCheck,       label: 'CRM',            href: '/admin/crm',             color: '#EC4899' },
-  { icon: Send,            label: 'Comm.',          href: '/admin/communications',  color: '#6366F1' },
-  { icon: Radio,           label: 'Live',           href: '/admin/live',            color: '#EF4444', live: true },
-  { icon: Heart,           label: 'Prières',        href: '/admin/prieres',         color: '#F472B6' },
-  { icon: BookOpen,        label: 'Formations',     href: '/admin/formations',      color: '#8B5CF6' },
-  { icon: Calendar,        label: 'Événements',     href: '/admin/evenements',      color: '#F59E0B' },
-  { icon: FileText,        label: 'Ressources',     href: '/admin/ressources',      color: '#22C55E' },
-  { icon: MessageSquare,   label: 'Témoignages',    href: '/admin/temoignages',     color: '#14B8A6' },
-  { icon: BarChart2,       label: 'Engagement',     href: '/admin/engagement',      color: '#F97316' },
-  { icon: Settings,        label: 'Paramètres',     href: '/admin/parametres',      color: '#64748B' },
+  { icon: LayoutDashboard, label: 'Dashboard',     href: '/admin/dashboard',     color: '#D4AF37' },
+  { icon: Users,           label: 'Membres',       href: '/admin/membres',       color: '#60A5FA' },
+  { icon: FileText,        label: 'Pages',         href: '/admin/pages',         color: '#14B8A6' },
+  { icon: Newspaper,       label: 'Articles',      href: '/admin/articles',      color: '#34D399' },
+  { icon: Film,            label: 'Médias',        href: '/admin/medias',        color: '#EF4444' },
+  { icon: Radio,           label: 'Lives',         href: '/admin/lives',         color: '#F43F5E' },
+  { icon: Mic,             label: 'Podcasts',      href: '/admin/podcasts',      color: '#A855F7' },
+  { icon: BookOpen,        label: 'Enseignements', href: '/admin/enseignements', color: '#8B5CF6' },
+  { icon: GraduationCap,   label: 'Formations',    href: '/admin/formations',    color: '#0EA5E9' },
+  { icon: Layers,          label: 'Modules',       href: '/admin/modules',       color: '#06B6D4' },
+  { icon: Route,           label: 'Parcours',      href: '/admin/parcours',      color: '#A855F7' },
+  { icon: Calendar,        label: 'Événements',    href: '/admin/evenements',    color: '#F59E0B' },
+  { icon: Calendar,        label: 'Inscriptions',  href: '/admin/inscriptions',  color: '#FBBF24' },
+  { icon: MessageSquare,   label: 'Témoignages',   href: '/admin/temoignages',   color: '#22C55E' },
+  { icon: HandCoins,       label: 'Dons',          href: '/admin/dons',          color: '#EAB308' },
+  { icon: Heart,           label: 'Prières',       href: '/admin/prieres',       color: '#F472B6' },
+  { icon: Users,           label: 'Groupes',       href: '/admin/groupes',       color: '#F59E0B' },
+  { icon: Mail,            label: 'Messages',      href: '/admin/messages',      color: '#38BDF8' },
+  { icon: AtSign,          label: 'Newsletter',    href: '/admin/newsletter',    color: '#FB7185' },
+  { icon: Inbox,           label: 'Formulaires',   href: '/admin/formulaires',   color: '#6366F1' },
+  { icon: TrendingUp,      label: 'Statistiques',  href: '/admin/statistiques',  color: '#34D399' },
+  { icon: TrendingUp,      label: 'Analytics',     href: '/admin/analytics',     color: '#0EA5E9' },
+  { icon: Settings,        label: 'Paramètres',    href: '/admin/parametres',    color: '#64748B' },
 ]
 
 export function MobileAdminBar() {

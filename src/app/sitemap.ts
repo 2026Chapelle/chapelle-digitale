@@ -1,8 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { PLATEFORMES } from '@/lib/constants'
-import { FORMATIONS } from '@/lib/mock/formations'
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://cier.org'
+const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citadelle.chapelleduroyaume.org'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
@@ -35,12 +34,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: now,
   }))
 
-  const formationsPages: MetadataRoute.Sitemap = FORMATIONS.map((f) => ({
-    url: `${BASE}/formations/${f.slug}`,
-    changeFrequency: 'monthly',
-    priority: 0.75,
-    lastModified: now,
-  }))
-
-  return [...staticPages, ...plateformesPages, ...formationsPages]
+  return [...staticPages, ...plateformesPages]
 }

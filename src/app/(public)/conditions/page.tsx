@@ -26,7 +26,7 @@ const SECTIONS = [
   },
   {
     titre: '6. Abonnements et Paiements',
-    contenu: `Les abonnements Premium et Partenaire sont facturés mensuellement via Stripe. Vous pouvez annuler à tout moment depuis votre espace membre. Aucun remboursement partiel n'est effectué pour les mois en cours. Les dons sont volontaires et non remboursables sauf erreur de traitement. Les reçus fiscaux sont émis conformément à la législation française.`,
+    contenu: `Les abonnements Premium et Partenaire sont facturés mensuellement via notre prestataire de paiement sécurisé. Vous pouvez annuler à tout moment depuis votre espace membre. Aucun remboursement partiel n'est effectué pour les mois en cours. Les dons sont volontaires et non remboursables sauf erreur de traitement. Les reçus fiscaux sont émis conformément à la législation française.`,
   },
   {
     titre: '7. Limitation de Responsabilité',
@@ -34,7 +34,7 @@ const SECTIONS = [
   },
   {
     titre: '8. Droit Applicable',
-    contenu: `Ces conditions sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Paris. Avant tout recours judiciaire, les parties s'engagent à tenter une résolution amiable via contact@cier-chapelle.org. La CIER est soumise au droit des associations cultuelles françaises (loi 1905).`,
+    contenu: `Ces conditions sont régies par le droit applicable en Côte d'Ivoire, pays du siège de la CIER (Abidjan). Avant tout recours, les parties s'engagent à tenter une résolution amiable via contact@chapelleduroyaume.org.`,
   },
 ]
 
@@ -99,8 +99,8 @@ export default function ConditionsPage() {
           className="mt-8 text-center"
         >
           <p className="font-inter text-xs text-pearl/30 mb-4">Pour toute question concernant ces conditions d'utilisation :</p>
-          <a href="mailto:legal@cier-chapelle.org" className="btn-ghost text-sm inline-flex">
-            legal@cier-chapelle.org
+          <a href="mailto:legal@chapelleduroyaume.org" className="btn-ghost text-sm inline-flex">
+            legal@chapelleduroyaume.org
             <ArrowRight className="w-4 h-4" />
           </a>
         </motion.div>

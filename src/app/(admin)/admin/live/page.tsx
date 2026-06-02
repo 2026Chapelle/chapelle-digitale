@@ -25,28 +25,8 @@ interface LiveEvent {
   couleur: string
 }
 
-const LIVES: LiveEvent[] = [
-  {
-    id: '1', titre: 'Culte Principal — Pentecôte', plateforme: 'CIER Global', statut: 'en_cours',
-    date: '2026-05-10', heure: '10:00', spectateurs: 2847, peak: 3120, duree: '1h 23min',
-    canaux: ['youtube', 'facebook', 'cier'], description: 'Culte spécial Pentecôte avec worship et enseignement.', couleur: '#D4AF37',
-  },
-  {
-    id: '2', titre: 'Veillée de Prière Nations', plateforme: 'Mahanaïm', statut: 'planifie',
-    date: '2026-05-15', heure: '22:00', spectateurs: 0, peak: 0,
-    canaux: ['youtube', 'cier'], description: 'Intercession pour les nations africaines et la diaspora.', couleur: '#8B5CF6',
-  },
-  {
-    id: '3', titre: 'École de Prière — Session 6', plateforme: 'CFIC', statut: 'planifie',
-    date: '2026-05-21', heure: '20:00', spectateurs: 0, peak: 0,
-    canaux: ['cier'], description: 'Module 6 de la formation École de Prière.', couleur: '#0EA5E9',
-  },
-  {
-    id: '4', titre: 'Culte Principal du 4 Mai', plateforme: 'CIER Global', statut: 'termine',
-    date: '2026-05-04', heure: '10:00', spectateurs: 0, peak: 1890, duree: '2h 15min',
-    canaux: ['youtube', 'facebook', 'cier'], description: 'Culte dominical.', couleur: '#D4AF37',
-  },
-]
+// Aucune donnée fictive : les lives se rempliront avec les diffusions réelles.
+const LIVES: LiveEvent[] = []
 
 const CANAL_ICONS: Record<string, React.ReactNode> = {
   youtube: <Youtube className="w-3.5 h-3.5" />,
@@ -69,11 +49,9 @@ const STATUT_CONFIG: Record<LiveStatut, { label: string; color: string; icon: ty
   brouillon: { label: 'Brouillon', color: '#0EA5E9', icon: Edit },
 }
 
-const STREAM_KEYS = [
-  { canal: 'YouTube', key: 'xxxx-xxxx-xxxx-xxxx', status: 'connected' },
-  { canal: 'Facebook', key: 'yyyy-yyyy-yyyy-yyyy', status: 'connected' },
-  { canal: 'Plateforme CIER', key: 'zzzz-zzzz-zzzz-zzzz', status: 'active' },
-]
+type StreamKey = { canal: string; key: string; status: string }
+// Aucune donnée fictive : les clés de streaming se configureront avec les vraies valeurs.
+const STREAM_KEYS: StreamKey[] = []
 
 export default function AdminLivePage() {
   const [showForm, setShowForm] = useState(false)
@@ -188,6 +166,13 @@ export default function AdminLivePage() {
 
         {tab === 'lives' && (
           <div className="space-y-4">
+            {LIVES.length === 0 && (
+              <div className="card-royal text-center py-16">
+                <Radio className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+                <p className="font-cinzel text-pearl/60">Aucun live programmé pour le moment</p>
+                <p className="font-inter text-xs text-pearl/30 mt-1">Créez un live pour commencer.</p>
+              </div>
+            )}
             {LIVES.map((live, i) => {
               const cfg = STATUT_CONFIG[live.statut]
               return (
@@ -278,6 +263,9 @@ export default function AdminLivePage() {
                 Clés de Streaming RTMP
               </h2>
               <div className="space-y-4">
+                {STREAM_KEYS.length === 0 && (
+                  <p className="font-inter text-sm text-pearl/30 py-4">Aucune clé de streaming configurée.</p>
+                )}
                 {STREAM_KEYS.map((sk) => (
                   <div key={sk.canal} className="flex items-center gap-4 p-4 rounded-xl"
                     style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -304,10 +292,10 @@ export default function AdminLivePage() {
               </h2>
               <div className="space-y-3">
                 {[
-                  { nom: 'YouTube CIER', icon: Youtube, actif: true, abonnes: '12.4K', color: '#EF4444' },
-                  { nom: 'Facebook CIER', icon: Facebook, actif: true, abonnes: '28.7K', color: '#3B82F6' },
-                  { nom: 'Instagram Live', icon: Instagram, actif: false, abonnes: '15.2K', color: '#EC4899' },
-                  { nom: 'Plateforme CIER', icon: Tv, actif: true, abonnes: '4.1K', color: '#D4AF37' },
+                  { nom: 'YouTube CIER', icon: Youtube, actif: false, abonnes: '0', color: '#EF4444' },
+                  { nom: 'Facebook CIER', icon: Facebook, actif: false, abonnes: '0', color: '#3B82F6' },
+                  { nom: 'Instagram Live', icon: Instagram, actif: false, abonnes: '0', color: '#EC4899' },
+                  { nom: 'Plateforme CIER', icon: Tv, actif: false, abonnes: '0', color: '#D4AF37' },
                 ].map((canal) => (
                   <div key={canal.nom} className="flex items-center gap-3 p-3.5 rounded-xl"
                     style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -336,12 +324,12 @@ export default function AdminLivePage() {
         {tab === 'stats' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
-              { label: 'Vues totales', value: '124 847', icon: Eye, color: '#D4AF37', sub: 'tous les lives' },
-              { label: 'Spectateurs peak', value: '5 340', icon: Users, color: '#EF4444', sub: 'record Pâques 2026' },
-              { label: 'Lives ce mois', value: '8', icon: Radio, color: '#22C55E', sub: 'dont 1 en cours' },
-              { label: 'Durée totale', value: '42h', icon: Clock, color: '#8B5CF6', sub: 'diffusées ce mois' },
-              { label: 'Pays atteints', value: '86', icon: Tv, color: '#0EA5E9', sub: 'ce mois' },
-              { label: 'Replays vus', value: '18 540', icon: Play, color: '#F97316', sub: 'après diffusion' },
+              { label: 'Vues totales', value: '0', icon: Eye, color: '#D4AF37', sub: 'tous les lives' },
+              { label: 'Spectateurs peak', value: '0', icon: Users, color: '#EF4444', sub: 'record' },
+              { label: 'Lives ce mois', value: '0', icon: Radio, color: '#22C55E', sub: 'diffusés' },
+              { label: 'Durée totale', value: '0h', icon: Clock, color: '#8B5CF6', sub: 'diffusées ce mois' },
+              { label: 'Pays atteints', value: '0', icon: Tv, color: '#0EA5E9', sub: 'ce mois' },
+              { label: 'Replays vus', value: '0', icon: Play, color: '#F97316', sub: 'après diffusion' },
             ].map((s, i) => (
               <motion.div key={s.label}
                 initial={{ opacity: 0, y: 12 }}
@@ -362,12 +350,11 @@ export default function AdminLivePage() {
 
         {/* New live modal */}
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)' }}>
+          <div className="admin-modal-overlay flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="card-royal w-full max-w-xl"
+              className="admin-modal-box p-6 w-full max-w-xl max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-cinzel text-lg font-bold text-pearl">Nouveau Live</h2>

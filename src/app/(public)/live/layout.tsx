@@ -9,9 +9,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Live & Cultes en Direct — CIER',
     description:
-      "Une expérience cultuelle immersive 24/7. Cultes, enseignements, veillées — accessibles depuis 120+ nations.",
+      "Une expérience cultuelle immersive. Cultes, enseignements, veillées — accessibles partout dans le monde.",
     type: 'website',
-    images: [ogImage({ eyebrow: 'En direct', title: 'Cultes & enseignements en direct', subtitle: 'Streaming HD · Chat communautaire · Replays — accessibles depuis 120+ nations.' })],
+    images: [ogImage({ eyebrow: 'En direct', title: 'Cultes & enseignements en direct', subtitle: 'Streaming HD · Chat communautaire · Replays — accessibles partout dans le monde.' })],
   },
   alternates: { canonical: '/live' },
 }

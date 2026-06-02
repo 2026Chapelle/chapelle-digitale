@@ -1,18 +1,36 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Send, Heart, Users, AlertCircle, EyeOff, Flame, CheckCircle, BookOpen, ChevronRight } from 'lucide-react'
-import { MES_PRIERES, PRIERES_COMMUNAUTE, CATEGORIES_PRIERE, CategoriePriere } from '@/lib/mock/prieres'
+import { Send, Heart, Users, AlertCircle, EyeOff, CheckCircle, BookOpen } from 'lucide-react'
+import { CATEGORIES_PRIERE, CategoriePriere } from '@/lib/mock/prieres'
 import { PageHeader } from '@/components/ui/PageHeader'
+import toast from 'react-hot-toast'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { useAuth } from '@/components/providers/AuthProvider'
 
-const STREAK_DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
-const STREAK_STATUS = [true, true, true, true, false, true, true]
-
-const JOURNAL_ENTRIES = [
-  { date: '9 mai 2026', texte: 'Seigneur, merci pour ta protection sur ma famille. Je Te confie les prochaines semaines et je crois en Ta provision.', tags: ['Gratitude', 'Famille'] },
-  { date: '8 mai 2026', texte: "Père, je te demande de toucher le cœur de mon responsable. Que les portes s'ouvrent selon Ta volonté.", tags: ['Travail', 'Direction'] },
-  { date: '7 mai 2026', texte: 'Intercession pour la nation. Que Dieu bénisse les leaders et que la paix règne.', tags: ['Intercession', 'Nations'] },
-]
+/** Demande de prière réelle (priere_demandes), normalisée pour l'affichage. */
+type PriereItem = {
+  id: string; sujet: string; description: string; categorie: string
+  statut: 'active' | 'exaucée' | 'archivée'; is_urgente: boolean; is_anonyme: boolean
+  date: string; nb_priants: number; auteur?: string | null; temoignage?: string | null
+}
+function mapStatut(s?: string): 'active' | 'exaucée' | 'archivée' {
+  const v = String(s || '')
+  if (['reponse_recue', 'temoignage_soumis', 'temoignage_valide', 'exaucee', 'exaucée', 'temoignage'].includes(v)) return 'exaucée'
+  if (['archivee', 'archivée', 'classee'].includes(v)) return 'archivée'
+  return 'active'
+}
+function frDate(s?: string) { try { return s ? new Date(s).toLocaleDateString('fr-FR') : '' } catch { return '' } }
+function mapPriere(r: any): PriereItem {
+  return {
+    id: String(r.id), sujet: r.sujet || 'Demande', description: r.description || '',
+    categorie: r.categorie || 'autre', statut: mapStatut(r.statut),
+    is_urgente: r.urgence === 'elevee' || r.priorite === 'urgent' || r.priorite === 'tres_urgent',
+    is_anonyme: !!r.anonyme, date: frDate(r.created_at),
+    nb_priants: Number(r.prayers_count) || 0, auteur: r.nom || null, temoignage: null,
+  }
+}
+const PRIERE_COLS = 'id, sujet, description, categorie, statut, urgence, priorite, anonyme, created_at, prayers_count, nom'
 
 export default function PrieresPage() {
   const [sujet, setSujet] = useState('')
@@ -22,26 +40,90 @@ export default function PrieresPage() {
   const [anonyme, setAnonyme] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  const [communautePriants, setCommunautePriants] = useState<Record<string, number>>(
-    Object.fromEntries(PRIERES_COMMUNAUTE.map((p) => [p.id, p.nb_priants]))
-  )
+  // Témoignage lié à une prière exaucée (finalisation du workflow de prière).
+  const [temoignageFor, setTemoignageFor] = useState<string | null>(null)
+  const [temTitre, setTemTitre] = useState('')
+  const [temCorps, setTemCorps] = useState('')
+  const [temSending, setTemSending] = useState(false)
+  const [temDone, setTemDone] = useState<Set<string>>(new Set())
+
+  const [mesPrieres, setMesPrieres] = useState<PriereItem[]>([])
+  const [communaute, setCommunaute] = useState<PriereItem[]>([])
+  const [communautePriants, setCommunautePriants] = useState<Record<string, number>>({})
   const [prayed, setPrayed] = useState<Set<string>>(new Set())
 
-  const handleSubmit = () => {
+  const { user, profile, isDemo } = useAuth()
+
+  // Données RÉELLES (priere_demandes) : mes demandes + mur public. Aucun mock.
+  useEffect(() => {
+    if (IS_DEMO_MODE || isDemo) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        if (user?.id) {
+          const { data: mine } = await supabase.from('priere_demandes')
+            .select(PRIERE_COLS).eq('user_id', user.id).order('created_at', { ascending: false })
+          if (!cancelled && mine) setMesPrieres(mine.map(mapPriere))
+        }
+        const { data: pub } = await supabase.from('priere_demandes')
+          .select(PRIERE_COLS).order('created_at', { ascending: false }).limit(50)
+        if (!cancelled && pub) {
+          const items = pub.map(mapPriere)
+          setCommunaute(items)
+          setCommunautePriants(Object.fromEntries(items.map((p) => [p.id, p.nb_priants])))
+        }
+      } catch { /* listes vides */ }
+    })()
+    return () => { cancelled = true }
+  }, [user, isDemo])
+  const handleSubmit = async () => {
     if (!sujet || !categorie) return
-    setSubmitted(true)
-    setSujet('')
-    setDescription('')
-    setCategorie('')
-    setUrgente(false)
-    setAnonyme(false)
-    setTimeout(() => setSubmitted(false), 3000)
+    try {
+      if (!IS_DEMO_MODE && !isDemo) {
+        const { error } = await supabase.from('priere_demandes').insert({
+          user_id: user?.id ?? null,
+          nom: anonyme ? null : (profile ? `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() : (user?.email ?? null)),
+          email: anonyme ? null : (profile?.email ?? user?.email ?? null),
+          sujet, description, categorie: String(categorie),
+          urgence: urgente ? 'elevee' : 'normale', anonyme,
+        })
+        if (error) { toast.error("Échec de l'envoi de la demande."); return }
+      }
+      setSubmitted(true)
+      setSujet(''); setDescription(''); setCategorie(''); setUrgente(false); setAnonyme(false)
+      toast.success('Demande de prière envoyée 🙏')
+      setTimeout(() => setSubmitted(false), 3000)
+    } catch { toast.error('Erreur réseau') }
   }
 
   const handlePrier = (id: string) => {
     if (prayed.has(id)) return
     setPrayed((prev) => new Set(Array.from(prev).concat(id)))
     setCommunautePriants((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }))
+  }
+
+  // Partage d'un témoignage lié à une prière exaucée → modération admin.
+  const submitTemoignage = async (p: PriereItem) => {
+    if (!temCorps.trim()) { toast.error('Écrivez votre témoignage.'); return }
+    setTemSending(true)
+    try {
+      if (!IS_DEMO_MODE && !isDemo) {
+        const { error } = await supabase.from('temoignages').insert({
+          demande_id: p.id,
+          user_id: user?.id ?? null,
+          auteur: profile ? `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() || null : null,
+          titre: temTitre.trim() || p.sujet,
+          corps: temCorps.trim(),
+          categorie: p.categorie,
+          statut: 'soumis',
+        })
+        if (error) { toast.error("Échec de l'envoi."); setTemSending(false); return }
+      }
+      setTemDone((s) => new Set(s).add(p.id))
+      setTemoignageFor(null); setTemTitre(''); setTemCorps('')
+      toast.success('Merci ! Votre témoignage sera publié après validation 🙌')
+    } catch { toast.error('Erreur réseau') }
+    setTemSending(false)
   }
 
   const statusStyle = (statut: string) => {
@@ -68,53 +150,26 @@ export default function PrieresPage() {
           description="Vos demandes, votre journal d'intercession, votre communauté de priants."
         />
 
-        {/* Prayer stats + streak */}
+        {/* Statistiques RÉELLES de prière (dérivées de mes demandes) */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"
+          className="grid grid-cols-3 gap-3 md:gap-4 mb-6"
         >
-          {/* Streak card */}
-          <div className="md:col-span-1 p-5 rounded-2xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.15)' }}>
-                <Flame className="w-5 h-5 text-red-400" />
+          {[
+            { icon: BookOpen, label: 'Demandes actives', value: String(mesPrieres.filter(p => p.statut === 'active').length), color: '#D4AF37' },
+            { icon: CheckCircle, label: 'Prières exaucées', value: String(mesPrieres.filter(p => p.statut === 'exaucée').length), color: '#22C55E' },
+            { icon: Heart, label: 'Intercessions faites', value: String(prayed.size), color: '#EC4899' },
+          ].map(s => (
+            <div key={s.label} className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ background: `${s.color}15` }}>
+                <s.icon className="w-4 h-4" style={{ color: s.color }} />
               </div>
-              <div>
-                <div className="font-cinzel text-2xl font-black text-white">12</div>
-                <div className="text-[11px] font-inter" style={{ color: 'rgba(255,255,255,0.4)' }}>jours consécutifs</div>
-              </div>
+              <div className="font-cinzel text-xl font-black" style={{ color: s.color }}>{s.value}</div>
+              <div className="text-[10px] font-inter mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{s.label}</div>
             </div>
-            <div className="flex gap-1.5">
-              {STREAK_DAYS.map((d, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="text-[9px] font-inter" style={{ color: 'rgba(255,255,255,0.3)' }}>{d}</div>
-                  <div className="w-full aspect-square rounded-md flex items-center justify-center"
-                    style={{ background: STREAK_STATUS[i] ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.06)' }}>
-                    {STREAK_STATUS[i] && <Flame className="w-3 h-3 text-red-300" />}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="md:col-span-2 grid grid-cols-3 gap-3">
-            {[
-              { icon: BookOpen, label: 'Demandes actives', value: '3', color: '#D4AF37' },
-              { icon: CheckCircle, label: 'Prières exaucées', value: '7', color: '#22C55E' },
-              { icon: Heart, label: 'Intercessions faites', value: '34', color: '#EC4899' },
-            ].map(s => (
-              <div key={s.label} className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ background: `${s.color}15` }}>
-                  <s.icon className="w-4 h-4" style={{ color: s.color }} />
-                </div>
-                <div className="font-cinzel text-xl font-black" style={{ color: s.color }}>{s.value}</div>
-                <div className="text-[10px] font-inter mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
+          ))}
         </motion.div>
 
         {/* Tabs */}
@@ -163,26 +218,11 @@ export default function PrieresPage() {
               </div>
             </div>
 
-            {/* Past entries */}
-            {JOURNAL_ENTRIES.map((entry, i) => (
-              <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.07 }}
-                className="card-royal cursor-pointer group">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="text-[11px] font-inter font-semibold" style={{ color: 'rgba(212,175,55,0.7)' }}>{entry.date}</div>
-                  <div className="flex gap-1">
-                    {entry.tags.map(tag => (
-                      <span key={tag} className="text-[9px] font-inter px-2 py-0.5 rounded-full"
-                        style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-                <p className="font-inter text-sm leading-relaxed line-clamp-3" style={{ color: 'rgba(255,255,255,0.6)' }}>{entry.texte}</p>
-                <div className="flex items-center gap-1 mt-3 text-[10px] font-inter opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ color: 'rgba(212,175,55,0.6)' }}>
-                  Lire l&apos;entrée complète <ChevronRight className="w-3 h-3" />
-                </div>
-              </motion.div>
-            ))}
+            {/* Aucune entrée fictive : le journal démarre vide. */}
+            <div className="card-royal text-center py-10">
+              <p className="font-inter text-sm text-pearl/40">Vous n&apos;avez encore aucune entrée de journal.</p>
+              <p className="font-inter text-xs text-pearl/25 mt-1">Écrivez votre première prière ci-dessus.</p>
+            </div>
           </motion.div>
         )}
 
@@ -294,8 +334,13 @@ export default function PrieresPage() {
           className="mb-8"
         >
           <h2 className="font-cinzel text-base font-bold text-pearl mb-5">Mes Demandes de Prière</h2>
+          {mesPrieres.length === 0 && (
+            <div className="card-royal text-center py-10 mb-4">
+              <p className="font-inter text-sm text-pearl/40">Vous n&apos;avez encore soumis aucune demande de prière.</p>
+            </div>
+          )}
           <div className="space-y-4">
-            {MES_PRIERES.map((p, i) => {
+            {mesPrieres.map((p, i) => {
               const cat = CATEGORIES_PRIERE.find((c) => c.label === p.categorie)
               return (
                 <motion.div
@@ -345,6 +390,29 @@ export default function PrieresPage() {
                       </p>
                     </div>
                   )}
+
+                  {/* Partager un témoignage pour une prière exaucée */}
+                  {p.statut === 'exaucée' && !p.temoignage && (
+                    temDone.has(p.id) ? (
+                      <p className="mt-3 text-xs text-green-400 font-inter flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5" /> Témoignage envoyé — en attente de validation. Merci 🙌</p>
+                    ) : temoignageFor === p.id ? (
+                      <div className="mt-3 p-3 rounded-xl bg-gold/5 border border-gold/20 space-y-2">
+                        <input value={temTitre} onChange={(e) => setTemTitre(e.target.value)} placeholder="Titre (facultatif)" className="input-royal w-full text-sm" />
+                        <textarea value={temCorps} onChange={(e) => setTemCorps(e.target.value)} rows={3} placeholder="Racontez ce que Dieu a fait…" className="input-royal w-full text-sm resize-none" />
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => submitTemoignage(p)} disabled={temSending} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 disabled:opacity-60">
+                            <Send className="w-3.5 h-3.5" /> Envoyer mon témoignage
+                          </button>
+                          <button onClick={() => setTemoignageFor(null)} className="text-xs text-pearl/40 font-inter hover:text-pearl/70">Annuler</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setTemoignageFor(p.id); setTemTitre(''); setTemCorps('') }}
+                        className="mt-3 inline-flex items-center gap-1.5 text-xs font-inter font-semibold text-gold hover:gap-2 transition-all">
+                        🙌 Partager mon témoignage
+                      </button>
+                    )
+                  )}
                 </motion.div>
               )
             })}
@@ -361,8 +429,13 @@ export default function PrieresPage() {
         >
           <h2 className="font-cinzel text-base font-bold text-pearl mb-2">Mur de Prière Communautaire</h2>
           <p className="text-pearl/40 text-sm font-inter mb-5">Priez pour vos frères et sœurs</p>
+          {communaute.length === 0 && (
+            <div className="card-royal text-center py-10">
+              <p className="font-inter text-sm text-pearl/40">Aucune demande de prière publique pour le moment.</p>
+            </div>
+          )}
           <div className="space-y-4">
-            {PRIERES_COMMUNAUTE.map((p, i) => {
+            {communaute.map((p, i) => {
               const cat = CATEGORIES_PRIERE.find((c) => c.label === p.categorie)
               const hasPrayed = prayed.has(p.id)
               return (

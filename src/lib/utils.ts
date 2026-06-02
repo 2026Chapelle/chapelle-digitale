@@ -101,7 +101,7 @@ export async function copyToClipboard(text: string) {
 
 // Share URL
 export function getShareUrl(path: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cier.org'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://citadelle.chapelleduroyaume.org'
   return `${baseUrl}${path}`
 }
 

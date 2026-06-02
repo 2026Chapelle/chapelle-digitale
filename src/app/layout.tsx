@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Suspense } from 'react'
 import { Inter, Cinzel, Cormorant_Garamond, Poppins, DM_Sans } from 'next/font/google'
 import '@/styles/globals.css'
 import { Toaster } from 'react-hot-toast'
@@ -10,6 +11,7 @@ import { DemoBanner } from '@/components/ui/DemoBanner'
 import { AudioPlayerProvider } from '@/components/providers/AudioPlayerProvider'
 import { AudioPlayerBar } from '@/components/ui/AudioPlayerBar'
 import { WebVitalsReporter } from '@/components/providers/WebVitalsReporter'
+import { AnalyticsTracker } from '@/components/providers/AnalyticsTracker'
 import { SkipLink } from '@/components/ui/SkipLink'
 
 const inter = Inter({
@@ -54,7 +56,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://cier.org'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://citadelle.chapelleduroyaume.org'),
   title: {
     default: 'La Chapelle Internationale des Élus du Royaume — Une Église Ouverte au Monde',
     template: '%s | CIER',
@@ -103,8 +105,9 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  // Favicon & apple-touch-icon are auto-discovered from
-  // src/app/icon.tsx and src/app/apple-icon.tsx (Next.js file convention).
+  // Favicon & apple-touch-icon are auto-discovered from the static
+  // src/app/icon.png and src/app/apple-icon.png (Next.js file convention) —
+  // the official Chapelle gold "C" mark, no dynamic font generation.
   manifest: '/manifest.json',
   alternates: {
     canonical: '/',
@@ -145,7 +148,7 @@ export default function RootLayout({
               alternateName: 'CIER',
               description: 'Une Église Ouverte au Monde — Communauté chrétienne francophone mondiale',
               url: process.env.NEXT_PUBLIC_APP_URL,
-              logo: `${process.env.NEXT_PUBLIC_APP_URL}/apple-icon`,
+              logo: `${process.env.NEXT_PUBLIC_APP_URL}/icon-512.png`,
               sameAs: [
                 'https://youtube.com/@cier',
                 'https://facebook.com/cier',
@@ -153,7 +156,7 @@ export default function RootLayout({
               ],
               contactPoint: {
                 '@type': 'ContactPoint',
-                email: 'contact@cier.org',
+                email: 'info@chapelleduroyaume.org',
                 contactType: 'customer service',
                 availableLanguage: ['French', 'English'],
               },
@@ -164,6 +167,9 @@ export default function RootLayout({
       <body className="font-inter">
         <SkipLink />
         <WebVitalsReporter />
+        <Suspense fallback={null}>
+          <AnalyticsTracker />
+        </Suspense>
         <ThemeProvider>
           <MotionProvider>
           <QueryProvider>

@@ -29,44 +29,8 @@ interface Contact {
   suiviPar: string
 }
 
-const CONTACTS: Contact[] = [
-  {
-    id: '1', prenom: 'Amina', nom: 'Kouassi', email: 'amina.k@email.com', phone: '+225 07 00 00 01',
-    pays: 'Côte d\'Ivoire', drapeau: '🇨🇮', plateforme: 'CIER', couleur: '#EC4899',
-    tags: ['Actif', 'Intercesseur'], score: 94, dernierContact: '2026-05-09', statut: 'chaud',
-    notes: 3, suiviPar: 'Pasteur Jean',
-  },
-  {
-    id: '2', prenom: 'David', nom: 'Mbeki', email: 'd.mbeki@email.com', phone: '+243 81 00 00 02',
-    pays: 'RDC', drapeau: '🇨🇩', plateforme: 'CFIC', couleur: '#0EA5E9',
-    tags: ['Actif', 'Leader', 'Donateur'], score: 87, dernierContact: '2026-05-08', statut: 'chaud',
-    notes: 5, suiviPar: 'Pasteur Marie',
-  },
-  {
-    id: '3', prenom: 'Marie-Claire', nom: 'Durand', email: 'mc.durand@gmail.com', phone: '+33 6 00 00 00 03',
-    pays: 'France', drapeau: '🇫🇷', plateforme: 'Femmes d\'Exceptions', couleur: '#8B5CF6',
-    tags: ['Actif', 'Donateur'], score: 78, dernierContact: '2026-05-07', statut: 'chaud',
-    notes: 2, suiviPar: 'Pasteure Rachel',
-  },
-  {
-    id: '4', prenom: 'Joseph', nom: 'Nkurunziza', email: 'j.nkuru@email.bi', phone: '+257 79 00 00 04',
-    pays: 'Burundi', drapeau: '🇧🇮', plateforme: 'CIER', couleur: '#D4AF37',
-    tags: ['Nouveau'], score: 45, dernierContact: '2026-05-02', statut: 'tiede',
-    notes: 1, suiviPar: 'Non assigné',
-  },
-  {
-    id: '5', prenom: 'Grace', nom: 'Osei', email: 'grace.o@email.gh', phone: '+233 20 00 00 05',
-    pays: 'Ghana', drapeau: '🇬🇭', plateforme: 'Jeunesse', couleur: '#22C55E',
-    tags: ['Prospect'], score: 28, dernierContact: '2026-04-15', statut: 'froid',
-    notes: 0, suiviPar: 'Non assigné',
-  },
-  {
-    id: '6', prenom: 'Samuel', nom: 'Kamga', email: 's.kamga@email.cm', phone: '+237 69 00 00 06',
-    pays: 'Cameroun', drapeau: '🇨🇲', plateforme: 'CIER', couleur: '#F97316',
-    tags: ['Actif', 'Leader'], score: 91, dernierContact: '2026-05-08', statut: 'chaud',
-    notes: 4, suiviPar: 'Pasteur Jean',
-  },
-]
+// Aucune donnée fictive : le CRM se remplira avec les contacts réels (Supabase / FluentCRM).
+const CONTACTS: Contact[] = []
 
 const STATUT_CONFIG = {
   chaud: { label: 'Chaud', color: '#EF4444', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.25)' },
@@ -85,11 +49,11 @@ const TAG_COLORS: Record<Tag, string> = {
 }
 
 const PIPELINE_STAGES = [
-  { id: 'prospect', label: 'Prospects', count: 23, color: '#6B7280' },
-  { id: 'contact', label: 'Premier contact', count: 18, color: '#3B82F6' },
-  { id: 'interesse', label: 'Intéressé', count: 31, color: '#F59E0B' },
-  { id: 'membre', label: 'Membre actif', count: 142, color: '#22C55E' },
-  { id: 'leader', label: 'Leader', count: 28, color: '#D4AF37' },
+  { id: 'prospect', label: 'Prospects', count: 0, color: '#6B7280' },
+  { id: 'contact', label: 'Premier contact', count: 0, color: '#3B82F6' },
+  { id: 'interesse', label: 'Intéressé', count: 0, color: '#F59E0B' },
+  { id: 'membre', label: 'Membre actif', count: 0, color: '#22C55E' },
+  { id: 'leader', label: 'Leader', count: 0, color: '#D4AF37' },
 ]
 
 export default function AdminCRMPage() {
@@ -139,11 +103,11 @@ export default function AdminCRMPage() {
           className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6"
         >
           {[
-            { label: 'Total contacts', value: '4 127', icon: Users, color: '#D4AF37' },
-            { label: 'Contacts chauds', value: '892', icon: Activity, color: '#EF4444' },
-            { label: 'Suivis actifs', value: '248', icon: Heart, color: '#EC4899' },
-            { label: 'À contacter', value: '34', icon: Clock, color: '#F59E0B' },
-            { label: 'Convertis/mois', value: '67', icon: TrendingUp, color: '#22C55E' },
+            { label: 'Total contacts', value: String(CONTACTS.length), icon: Users, color: '#D4AF37' },
+            { label: 'Contacts chauds', value: String(CONTACTS.filter(c => c.statut === 'chaud').length), icon: Activity, color: '#EF4444' },
+            { label: 'Suivis actifs', value: String(CONTACTS.filter(c => c.suiviPar && c.suiviPar !== 'Non assigné').length), icon: Heart, color: '#EC4899' },
+            { label: 'À contacter', value: '0', icon: Clock, color: '#F59E0B' },
+            { label: 'Convertis/mois', value: '0', icon: TrendingUp, color: '#22C55E' },
           ].map((kpi, i) => (
             <div key={kpi.label} className="card-royal py-4 text-center">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2"
@@ -229,6 +193,13 @@ export default function AdminCRMPage() {
               </div>
 
               <div className="space-y-2">
+                {filtered.length === 0 && (
+                  <div className="card-royal text-center py-16">
+                    <Users className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+                    <p className="font-cinzel text-pearl/60">Aucun contact pour le moment</p>
+                    <p className="font-inter text-xs text-pearl/30 mt-1">Les contacts réels apparaîtront ici.</p>
+                  </div>
+                )}
                 {filtered.map((contact, i) => {
                   const statusCfg = STATUT_CONFIG[contact.statut]
                   const isSelected = selectedContact?.id === contact.id
@@ -410,17 +381,7 @@ export default function AdminCRMPage() {
                       Notes pastorales ({selectedContact.notes})
                     </h4>
                     <div className="space-y-2 mb-3">
-                      {selectedContact.notes > 0 ? (
-                        Array.from({ length: Math.min(selectedContact.notes, 2) }).map((_, i) => (
-                          <div key={i} className="p-2.5 rounded-xl text-xs font-inter text-pearl/50"
-                            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                            <p className="text-[10px] text-gold/40 mb-1">Pasteur Jean · {new Date().toLocaleDateString('fr')}</p>
-                            Membre très engagé, participe fidèlement aux lives du dimanche. À encourager pour le groupe de cellule.
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-xs text-pearl/25 font-inter text-center py-3">Aucune note pour l'instant</p>
-                      )}
+                      <p className="text-xs text-pearl/25 font-inter text-center py-3">Aucune note pour l'instant</p>
                     </div>
                     <div className="relative">
                       <textarea
@@ -442,8 +403,8 @@ export default function AdminCRMPage() {
                     </h4>
                     <div className="space-y-2">
                       {[
-                        { label: 'Formations en cours', value: '3', icon: BookOpen, color: '#8B5CF6' },
-                        { label: 'Prières soumises', value: '47', icon: Heart, color: '#EC4899' },
+                        { label: 'Formations en cours', value: '0', icon: BookOpen, color: '#8B5CF6' },
+                        { label: 'Prières soumises', value: '0', icon: Heart, color: '#EC4899' },
                         { label: 'Score engagement', value: `${selectedContact.score}/100`, icon: Star, color: '#D4AF37' },
                       ].map(item => (
                         <div key={item.label} className="flex items-center justify-between py-1.5">

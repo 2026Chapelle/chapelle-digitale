@@ -1,33 +1,78 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Heart, BookOpen,
-  Calendar, FileText, MessageSquare, Settings,
-  UserCheck, Send, BarChart2, Radio, DollarSign, TrendingUp
+  LayoutDashboard, Users, Heart, BookOpen, Calendar, Settings,
+  Inbox, Film, FileText, TrendingUp, LogOut, Radio, Mic,
+  MessageSquare, HandCoins, Newspaper, Mail, AtSign,
+  GraduationCap, Layers, Route, Sparkles, Globe, Activity, Crown, ShoppingBag,
+  Command, Globe2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { NotificationBell } from '@/components/features/notifications/NotificationBell'
 
+/**
+ * Menu latéral du back-office CMS — modules de gestion de la Citadelle.
+ * Les modules de contenu (Pages, Médias, Lives, Podcasts, Enseignements,
+ * Événements, Témoignages, Dons) sont administrables et stockés dans Supabase
+ * (tables cms_* / giving_*), avec repli statique si Supabase n'est pas configuré.
+ */
 const NAV_ITEMS = [
+  { icon: Command, label: 'Centre de Commandement', href: '/admin/command-center', color: '#F5E6A7' },
+  { icon: Globe2, label: 'Commandement Global', href: '/admin/global-command', color: '#F5E6A7' },
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', color: '#D4AF37' },
-  { icon: TrendingUp, label: 'Analytics', href: '/admin/analytics', color: '#0EA5E9' },
+  { icon: Crown, label: 'Gouvernement pastoral', href: '/admin/gouvernement', color: '#F5E6A7' },
+  { icon: Sparkles, label: 'Gouvernance', href: '/admin/gouvernance', color: '#D4AF37' },
+  { icon: Globe, label: 'International', href: '/admin/international', color: '#22C55E' },
+  { icon: Globe, label: 'Dashboard par nation', href: '/admin/nation-dashboard', color: '#0EA5E9' },
+  { icon: TrendingUp, label: 'Santé spirituelle', href: '/admin/sante-spirituelle', color: '#EC4899' },
+  { icon: Activity, label: 'Activités (traçabilité)', href: '/admin/activites', color: '#D4AF37' },
+  { icon: Globe, label: 'Cartographie', href: '/admin/cartographie', color: '#0EA5E9' },
   { icon: Users, label: 'Membres', href: '/admin/membres', color: '#60A5FA' },
-  { icon: DollarSign, label: 'Dons & Finances', href: '/admin/dons', color: '#22C55E' },
-  { icon: UserCheck, label: 'CRM', href: '/admin/crm', color: '#EC4899' },
-  { icon: Send, label: 'Communications', href: '/admin/communications', color: '#6366F1' },
-  { icon: Radio, label: 'Live & Streaming', href: '/admin/live', color: '#EF4444' },
-  { icon: Heart, label: 'Prières', href: '/admin/prieres', color: '#F472B6' },
-  { icon: BookOpen, label: 'Formations', href: '/admin/formations', color: '#8B5CF6' },
+  { icon: Route, label: 'Intégration', href: '/admin/tunnel-integration', color: '#818CF8' },
+  { icon: LayoutDashboard, label: 'Accueil (sections)', href: '/admin/homepage-blocks', color: '#D4AF37' },
+  { icon: FileText, label: 'Pages', href: '/admin/pages', color: '#14B8A6' },
+  { icon: Newspaper, label: 'Articles', href: '/admin/articles', color: '#34D399' },
+  { icon: Film, label: 'Médias', href: '/admin/medias', color: '#EF4444' },
+  { icon: Radio, label: 'Lives & Cultes', href: '/admin/lives', color: '#F43F5E' },
+  { icon: Mic, label: 'Podcasts', href: '/admin/podcasts', color: '#A855F7' },
+  { icon: BookOpen, label: 'Enseignements', href: '/admin/enseignements', color: '#8B5CF6' },
+  { icon: GraduationCap, label: 'Formations', href: '/admin/formations', color: '#0EA5E9' },
+  { icon: Layers, label: 'Modules', href: '/admin/modules', color: '#06B6D4' },
+  { icon: Route, label: 'Parcours', href: '/admin/parcours', color: '#A855F7' },
+  { icon: MessageSquare, label: 'Questions formations', href: '/admin/questions-formations', color: '#0EA5E9' },
   { icon: Calendar, label: 'Événements', href: '/admin/evenements', color: '#F59E0B' },
-  { icon: FileText, label: 'Ressources', href: '/admin/ressources', color: '#22C55E' },
-  { icon: MessageSquare, label: 'Témoignages', href: '/admin/temoignages', color: '#14B8A6' },
-  { icon: BarChart2, label: 'Engagement', href: '/admin/engagement', color: '#F97316' },
+  { icon: Calendar, label: 'Inscriptions', href: '/admin/inscriptions', color: '#FBBF24' },
+  { icon: MessageSquare, label: 'Témoignages', href: '/admin/temoignages', color: '#22C55E' },
+  { icon: HandCoins, label: 'Dons & Offrandes', href: '/admin/dons', color: '#EAB308' },
+  { icon: HandCoins, label: 'Transactions', href: '/admin/transactions', color: '#F59E0B' },
+  { icon: ShoppingBag, label: 'Marketplace', href: '/admin/marketplace', color: '#D4AF37' },
+  { icon: Inbox, label: 'Notifications', href: '/admin/notifications', color: '#FB7185' },
+  { icon: Heart, label: 'Prières', href: '/admin/prieres', color: '#F472B6' },
+  { icon: Sparkles, label: 'Témoignages exaucés', href: '/admin/temoignages-prieres', color: '#FBBF24' },
+  { icon: Heart, label: 'Cure d\'âme', href: '/admin/delivrance', color: '#14B8A6' },
+  { icon: Users, label: 'Groupes', href: '/admin/groupes', color: '#F59E0B' },
+  { icon: Mail, label: 'Messages', href: '/admin/messages', color: '#38BDF8' },
+  { icon: AtSign, label: 'Newsletter', href: '/admin/newsletter', color: '#FB7185' },
+  { icon: Inbox, label: 'Formulaires', href: '/admin/formulaires', color: '#6366F1' },
+  { icon: TrendingUp, label: 'Statistiques', href: '/admin/statistiques', color: '#34D399' },
+  { icon: TrendingUp, label: 'Analytics', href: '/admin/analytics', color: '#0EA5E9' },
   { icon: Settings, label: 'Paramètres', href: '/admin/parametres', color: '#64748B' },
 ]
 
 export function AdminSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' })
+    } finally {
+      router.replace('/admin/login')
+      router.refresh()
+    }
+  }
 
   return (
     <aside className="flex flex-col h-full py-6 px-3">
@@ -46,10 +91,14 @@ export function AdminSidebar() {
           </div>
           <span className="font-cinzel font-bold text-sm tracking-[0.15em] text-gold">CIER</span>
         </Link>
-        <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-gold/60 font-inter">
-          Administration
+        <div className="flex items-center justify-between">
+          <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-gold/60 font-inter">
+            Administration
+          </div>
+          <NotificationBell endpoint="/api/admin/notifications" storageKey="notif_read_admin" />
         </div>
       </div>
+
       <nav className="flex-1 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href))
@@ -71,13 +120,21 @@ export function AdminSidebar() {
                 <item.icon className="w-3.5 h-3.5" style={{ color: isActive ? item.color : 'currentColor' }} />
               </div>
               <span className="flex-1">{item.label}</span>
-              {item.label === 'Live & Streaming' && (
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              )}
             </Link>
           )
         })}
       </nav>
+
+      {/* Déconnexion */}
+      <button
+        onClick={handleLogout}
+        className="mt-4 flex items-center gap-3 px-3 py-2.5 rounded-xl font-inter text-sm font-medium text-pearl/40 hover:text-danger hover:bg-danger/5 transition-all w-full"
+      >
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center">
+          <LogOut className="w-3.5 h-3.5" />
+        </div>
+        Déconnexion
+      </button>
     </aside>
   )
 }

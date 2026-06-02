@@ -1,25 +1,12 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
 import { Heart, Clock, Globe, ArrowRight, Send, Shield, Flame } from 'lucide-react'
 
-const PRAYER_REQUESTS = [
-  { id: '1', nom: 'Sœur Aïda', ville: 'Dakar, Sénégal', sujet: 'Guérison et restauration', priants: 247, urgent: false, color: '#EC4899' },
-  { id: '2', nom: 'Frère Patrick', ville: 'Paris, France', sujet: 'Emploi et provision divine', priants: 183, urgent: false, color: '#0EA5E9' },
-  { id: '3', nom: 'Famille Mwamba', ville: 'Kinshasa, RDC', sujet: 'Réconciliation familiale', priants: 312, urgent: true, color: '#8B5CF6' },
-  { id: '4', nom: 'Sœur Grace', ville: 'Londres, UK', sujet: 'Réussite scolaire et direction', priants: 156, urgent: false, color: '#22C55E' },
-  { id: '5', nom: 'Frère Emmanuel', ville: 'Douala, Cameroun', sujet: 'Protection et direction divine', priants: 220, urgent: false, color: '#F97316' },
-  { id: '6', nom: 'Anonyme', ville: 'Montréal, Canada', sujet: 'Délivrance et liberté totale', priants: 399, urgent: true, color: '#D4AF37' },
-]
-
 export function PrayerSection() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
-  const [prayedFor, setPrayedFor] = useState<Set<string>>(new Set())
-
-  const handlePray = (id: string) =>
-    setPrayedFor((prev) => new Set(Array.from(prev).concat(id)))
 
   return (
     <section className="section-cinematic" ref={ref}>
@@ -48,12 +35,12 @@ export function PrayerSection() {
               Priez, soyez prié, rejoignez la chaîne d'intercession 24/7.
             </p>
 
-            {/* Stats */}
+            {/* Valeurs — formulation qualitative */}
             <div className="grid grid-cols-3 gap-3 mb-8">
               {[
                 { value: '24/7', label: 'Intercession', icon: Clock, color: '#D4AF37' },
-                { value: '120+', label: 'Nations', icon: Globe, color: '#0EA5E9' },
-                { value: '50K+', label: 'Prières', icon: Heart, color: '#EC4899' },
+                { value: 'Mondial', label: 'Mur de prière', icon: Globe, color: '#0EA5E9' },
+                { value: 'Ensemble', label: 'En communion', icon: Heart, color: '#EC4899' },
               ].map((stat) => (
                 <div key={stat.label} className="card-cinematic text-center p-4">
                   <div
@@ -103,80 +90,31 @@ export function PrayerSection() {
             </div>
           </motion.div>
 
-          {/* RIGHT — Prayer cards */}
+          {/* RIGHT — Mur de prière (état vide propre) */}
           <motion.div
             initial={{ opacity: 0, x: 32 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="space-y-2.5"
           >
-            {PRAYER_REQUESTS.map((req, i) => {
-              const prayed = prayedFor.has(req.id)
-              return (
-                <motion.div
-                  key={req.id}
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={inView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ delay: 0.3 + i * 0.07 }}
-                  className="card-cinematic flex items-center gap-4 p-4 group"
-                  style={prayed ? {
-                    borderColor: `${req.color}40`,
-                    boxShadow: `0 0 24px ${req.color}25, 0 24px 60px rgba(0,0,0,0.5)`,
-                  } : undefined}
-                >
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-cinzel font-bold text-sm text-white"
-                    style={{
-                      background: `linear-gradient(135deg, ${req.color}, ${req.color}AA)`,
-                      boxShadow: `0 4px 16px ${req.color}40`,
-                    }}
-                  >
-                    {req.nom.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-sm font-semibold text-white font-inter truncate">{req.nom}</span>
-                      {req.urgent && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full font-inter flex-shrink-0"
-                          style={{
-                            background: 'rgba(239,68,68,0.18)',
-                            color: '#FCA5A5',
-                            border: '1px solid rgba(239,68,68,0.3)',
-                          }}>
-                          URGENT
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs font-inter truncate" style={{ color: 'rgba(245,230,216,0.6)' }}>
-                      {req.sujet}
-                    </p>
-                    <p className="text-[11px] font-inter" style={{ color: 'rgba(245,230,216,0.35)' }}>
-                      {req.ville}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
-                    <button
-                      onClick={() => handlePray(req.id)}
-                      className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300"
-                      style={{
-                        background: prayed ? `${req.color}25` : 'rgba(255,255,255,0.05)',
-                        color: prayed ? req.color : 'rgba(245,230,216,0.5)',
-                        transform: prayed ? 'scale(1.1)' : 'scale(1)',
-                        border: `1px solid ${prayed ? `${req.color}50` : 'rgba(255,255,255,0.08)'}`,
-                      }}
-                    >
-                      <Heart className="w-4 h-4" fill={prayed ? 'currentColor' : 'none'} />
-                    </button>
-                    <span className="text-[10px] font-inter tabular-nums"
-                      style={{ color: prayed ? req.color : 'rgba(245,230,216,0.4)' }}>
-                      {req.priants + (prayed ? 1 : 0)}
-                    </span>
-                  </div>
-                </motion.div>
-              )
-            })}
+            <div className="card-cinematic flex flex-col items-center text-center gap-4 p-10">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)' }}
+              >
+                <Heart className="w-6 h-6" style={{ color: '#D4AF37' }} />
+              </div>
+              <div>
+                <p className="font-cinzel font-bold text-white text-base mb-1.5">
+                  Aucune demande de prière pour le moment
+                </p>
+                <p className="font-inter text-sm leading-relaxed max-w-sm"
+                  style={{ color: 'rgba(245,230,216,0.5)' }}>
+                  Soyez le premier à partager un sujet de prière avec la communauté.
+                  Chaque demande est portée par les intercesseurs.
+                </p>
+              </div>
+            </div>
 
             <motion.div
               initial={{ opacity: 0 }}

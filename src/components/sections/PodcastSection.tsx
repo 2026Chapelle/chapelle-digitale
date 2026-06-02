@@ -1,33 +1,46 @@
 'use client'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { Play, Pause, Headphones, ChevronRight, Mic } from 'lucide-react'
 import Link from 'next/link'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
-const EPISODES: AudioTrack[] = [
-  { id: 'ep-1', titre: 'La Prière qui Change Tout', auteur: 'Pasteur Élias Mbeki', serie: 'Fondements Spirituels', duree: '48min', dureeSecondes: 2880, emoji: '🙏', couleur: '#D4AF37' },
-  { id: 'ep-2', titre: 'Leadership Serviteur', auteur: 'Pasteur Élias Mbeki', serie: 'École de Leaders', duree: '35min', dureeSecondes: 2100, emoji: '👑', couleur: '#8B5CF6' },
-  { id: 'ep-3', titre: "L'Identité en Christ", auteur: 'Prophète Samuel Diallo', serie: 'Qui Suis-Je ?', duree: '42min', dureeSecondes: 2520, emoji: '✨', couleur: '#EC4899' },
-  { id: 'ep-4', titre: 'La Famille au Cœur de Dieu', auteur: 'Pasteure Ruth Nguema', serie: 'Vie de Famille', duree: '52min', dureeSecondes: 3120, emoji: '💚', couleur: '#22C55E' },
-]
-
-const ECOUTES = ['12.4K', '8.7K', '9.2K', '7.1K']
-const DATES = ['5 mai 2026', '28 avr. 2026', '21 avr. 2026', '14 avr. 2026']
-
+const EP_COLORS = ['#D4AF37', '#8B5CF6', '#EC4899', '#22C55E', '#0EA5E9', '#F97316']
+// URLs plateformes depuis l'env (pas de faux liens '#').
 const PLATFORMS = [
-  { name: 'Spotify', emoji: '🟢', url: '#' },
-  { name: 'Apple', emoji: '🎵', url: '#' },
-  { name: 'YouTube', emoji: '▶️', url: '#' },
-  { name: 'Google', emoji: '🎙️', url: '#' },
-]
+  { name: 'Spotify', emoji: '🟢', url: process.env.NEXT_PUBLIC_SPOTIFY_URL || '/podcast' },
+  { name: 'Apple', emoji: '🎵', url: process.env.NEXT_PUBLIC_APPLE_PODCAST_URL || '/podcast' },
+  { name: 'YouTube', emoji: '▶️', url: process.env.NEXT_PUBLIC_YOUTUBE_URL || '/podcast' },
+].filter((p) => p.url)
 
 export function PodcastSection() {
   const { toggle, isPlaying } = useAudioPlayer()
   const ref = useRef<HTMLElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-80px' })
-  const featured = EPISODES[0]
-  const others = EPISODES.slice(1)
+
+  // Épisodes RÉELS (cms_podcasts publiés). Aucun épisode inventé.
+  const [episodes, setEpisodes] = useState<AudioTrack[]>([])
+  const [loaded, setLoaded] = useState(false)
+  useEffect(() => {
+    if (IS_DEMO_MODE) { setLoaded(true); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('cms_podcasts').select('*').eq('status', 'published').order('episode', { ascending: false }).limit(6)
+        if (cancelled) return
+        setEpisodes((data || []).filter((p: any) => p.audio_url).map((p: any, i: number) => ({
+          id: String(p.id), titre: p.title || 'Épisode', auteur: p.speaker || p.auteur || 'La Chapelle',
+          serie: p.serie || 'Podcast', duree: p.duree || '', dureeSecondes: Number(p.duree_secondes) || 0,
+          emoji: '🎙️', couleur: EP_COLORS[i % EP_COLORS.length], audioUrl: p.audio_url,
+        })))
+      } catch { /* vide */ }
+      finally { if (!cancelled) setLoaded(true) }
+    })()
+    return () => { cancelled = true }
+  }, [])
+  const featured = episodes[0]
+  const others = episodes.slice(1)
 
   return (
     <section ref={ref} className="section-cinematic">
@@ -79,8 +92,16 @@ export function PodcastSection() {
           </div>
         </motion.div>
 
+        {loaded && episodes.length === 0 && (
+          <div className="card-cinematic text-center py-14">
+            <Headphones className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+            <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.5)' }}>Nos épisodes de podcast arrivent bientôt.</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
           {/* Featured */}
+          {featured && (
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -151,12 +172,13 @@ export function PodcastSection() {
                   <div className="text-sm font-inter font-bold text-white">{featured.duree}</div>
                   <div className="text-[10px] font-inter uppercase tracking-wider"
                     style={{ color: 'rgba(245,230,216,0.4)' }}>
-                    {ECOUTES[0]} écoutes
+                    {featured.serie}
                   </div>
                 </div>
               </div>
             </div>
           </motion.div>
+          )}
 
           {/* Episode list */}
           <motion.div
@@ -201,10 +223,6 @@ export function PodcastSection() {
                   <div className="flex items-center gap-2 text-[10px] font-inter mt-0.5"
                     style={{ color: 'rgba(245,230,216,0.4)' }}>
                     <span>{ep.duree}</span>
-                    <span>·</span>
-                    <span>{ECOUTES[i + 1]}</span>
-                    <span>·</span>
-                    <span>{DATES[i + 1]}</span>
                   </div>
                 </div>
 

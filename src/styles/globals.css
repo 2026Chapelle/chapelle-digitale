@@ -583,6 +583,24 @@
       0 0 32px rgba(212,175,55,0.12);
   }
 
+  /* ── Modals admin : opaques et lisibles (pas de transparence) ── */
+  .admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(2, 0, 8, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .admin-modal-box {
+    position: relative;
+    z-index: 1001;
+    border-radius: 1.25rem;
+    background: #0c0a16;            /* fond sombre SOLIDE */
+    border: 1px solid rgba(212, 175, 55, 0.28);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.8);
+  }
+
   .card-cinematic-gold {
     position: relative;
     border-radius: 1.5rem;

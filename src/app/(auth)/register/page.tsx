@@ -5,9 +5,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, AlertCircle } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import { PAYS_AFRICAINS, PAYS_DIASPORA, PLATEFORMES } from '@/lib/constants'
+import { siteUrl } from '@/lib/site-url'
 import toast from 'react-hot-toast'
 import { events } from '@/lib/analytics'
 
@@ -85,18 +86,12 @@ export default function RegisterPage() {
     setErrs({})
     setLoading(true)
 
-    if (IS_DEMO_MODE) {
-      toast.success('Bienvenue dans la famille ! 🎉 (Mode démo)')
-      router.push('/member/dashboard?welcome=true')
-      setLoading(false)
-      return
-    }
-
     const { data, error } = await (getBrowserClient() ?? supabase).auth.signUp({
       email: form.email,
       password: form.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        // Lien de confirmation toujours sur le domaine canonique (jamais le host n0c).
+        emailRedirectTo: siteUrl('/auth/callback?next=/member/dashboard'),
         data: {
           prenom: form.prenom,
           nom: form.nom,

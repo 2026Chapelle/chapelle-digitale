@@ -6,50 +6,36 @@ import { ArrowRight, Globe, Users, Heart, BookOpen, Star, Crown, Flame } from 'l
 const TIMELINE = [
   {
     annee: '1998',
-    titre: 'La Vision Reçue',
-    desc: 'Le Révérend Docteur reçoit la vision d\'une église ouverte au monde, sans frontières géographiques ni barrières culturelles. La CIER naît dans la prière.',
+    titre: 'Le commencement du ministère',
+    desc: 'Le ministère du Révérend Doxa Salomon commence. Une vie mise à part pour servir Dieu et annoncer l\'Évangile.',
+    emoji: '🔥',
+    couleur: '#F97316',
+  },
+  {
+    annee: '2018',
+    titre: 'La vision reçue en Israël',
+    desc: 'En Israël, le Révérend Doxa Salomon reçoit la vision de répandre l\'Évangile dans les nations. La CIER — La Chapelle Internationale des Élus du Royaume — naît de cette vision.',
     emoji: '✨',
     couleur: '#D4AF37',
   },
   {
-    annee: '2003',
-    titre: 'Premier Culte à Kinshasa',
-    desc: 'Le tout premier culte de la Chapelle Internationale réunit 47 fidèles dans un salon à Kinshasa. La flamme est allumée.',
-    emoji: '🕯️',
-    couleur: '#F97316',
-  },
-  {
-    annee: '2008',
-    titre: 'Expansion en Europe',
-    desc: 'Ouverture de la première cellule européenne à Paris. La vision transfrontalière devient réalité avec des membres en France, Belgique et Suisse.',
-    emoji: '🌍',
-    couleur: '#8B5CF6',
-  },
-  {
-    annee: '2012',
-    titre: 'Naissance des Plateformes',
-    desc: 'Création des 8 plateformes ministérielles : Jeunesse, Femmes, Famille, Formation, Prière — chacune avec sa vision spécifique.',
-    emoji: '🏛️',
+    annee: '2018',
+    titre: 'Premier culte à Abidjan',
+    desc: 'Le tout premier culte de la CIER se tient à Abidjan, au Plateau Dokui (Côte d\'Ivoire). La flamme est allumée sur le terrain.',
+    emoji: '⛪',
     couleur: '#22C55E',
   },
   {
-    annee: '2018',
-    titre: 'L\'Église Digitale',
-    desc: 'Lancement des cultes en streaming. La CIER devient pionnière de l\'église digitale francophone, rejoignant des milliers de fidèles dans 30+ pays.',
+    annee: 'Aujourd\'hui',
+    titre: 'Une Église physique et digitale',
+    desc: 'Fidèle à sa vision, la CIER est une Église 100 % physique et 100 % portée par Internet et le digital — présente sur le terrain comme en ligne, sans frontières.',
     emoji: '📡',
     couleur: '#0EA5E9',
   },
   {
-    annee: '2024',
-    titre: 'Convention des 25 ans',
-    desc: 'La grande Convention du 25ème anniversaire réunit 15,000 participants en ligne et en présentiel à Kinshasa. Une étape historique.',
-    emoji: '👑',
-    couleur: '#EC4899',
-  },
-  {
     annee: '2026',
-    titre: 'La Nouvelle Ère',
-    desc: 'Lancement de la plateforme digitale unifiée CIER. 127,000 membres actifs dans 45 pays. Le Royaume s\'étend.',
+    titre: 'La Citadelle du Royaume',
+    desc: 'Lancement de la plateforme digitale unifiée : cultes en direct, formations, communauté et discipulat réunis dans un même espace pour servir les nations.',
     emoji: '🚀',
     couleur: '#D4AF37',
   },
@@ -66,40 +52,40 @@ const VALEURS = [
 
 const LEADERS = [
   {
-    nom: 'Révérend Docteur',
+    nom: 'Révérend Doxa Salomon',
     titre: 'Fondateur & Pasteur Principal',
-    desc: 'Visionnaire, prophète des nations, auteur de 12 ouvrages sur le Royaume de Dieu.',
-    avatar: '👨‍💼',
+    desc: 'Serviteur de Dieu depuis 1998, porteur de la vision de la CIER reçue en 2018 : répandre l\'Évangile dans les nations.',
+    avatar: '👑',
     couleur: '#D4AF37',
   },
   {
-    nom: 'Pasteure Associée',
-    titre: 'Directrice Pastorale',
-    desc: 'Leader des Femmes d\'Exceptions, responsable des relations interecclésiales.',
-    avatar: '👩‍💼',
+    nom: 'Équipe Pastorale',
+    titre: 'Accompagnement spirituel',
+    desc: 'Des pasteurs et bergers qui veillent sur le troupeau, enseignent la Parole et accompagnent chaque membre.',
+    avatar: '🙏',
     couleur: '#EC4899',
   },
   {
-    nom: 'Pasteur en Charge',
-    titre: 'Directeur des Formations',
-    desc: 'Fondateur du CFIC, formateur de 1,200+ leaders ministériels à travers l\'Afrique.',
-    avatar: '👨‍🏫',
+    nom: 'Pôle Formation (CFIC)',
+    titre: 'Discipulat & Leadership',
+    desc: 'Le centre de formation qui équipe les disciples et forme les futurs leaders du Royaume.',
+    avatar: '📖',
     couleur: '#8B5CF6',
   },
   {
-    nom: 'Diacre Senior',
-    titre: 'Responsable Europe',
-    desc: 'Coordinateur des cellules européennes et directeur de la plateforme digitale.',
-    avatar: '🧑‍💻',
+    nom: 'Pôle Digital',
+    titre: 'Église en ligne',
+    desc: 'L\'équipe qui porte la vision digitale : cultes en direct, plateforme et présence numérique au service des nations.',
+    avatar: '🌍',
     couleur: '#0EA5E9',
   },
 ]
 
 const STATS = [
-  { value: '127K+', label: 'Membres actifs', emoji: '👤' },
-  { value: '45+', label: 'Pays représentés', emoji: '🌍' },
-  { value: '28', label: 'Années de ministère', emoji: '📅' },
-  { value: '1.2M', label: 'Vies transformées', emoji: '✨' },
+  { value: '1998', label: 'Début du ministère', emoji: '🔥' },
+  { value: '2018', label: 'Naissance de la CIER', emoji: '✨' },
+  { value: 'Abidjan', label: 'Premier culte — Plateau Dokui', emoji: '⛪' },
+  { value: 'Nations', label: 'Notre champ de mission', emoji: '🌍' },
 ]
 
 export default function NotreHistoirePage() {
@@ -175,10 +161,10 @@ export default function NotreHistoirePage() {
                 </div>
               </div>
               <p className="font-inter text-pearl/60 leading-relaxed mb-4">
-                La Chapelle Internationale des Élus du Royaume (CIER) est une église mondiale, ancrée dans la Parole de Dieu, ouverte à toutes les nations et toutes les cultures.
+                La Chapelle Internationale des Élus du Royaume (CIER) est née en 2018, en Israël, d'une vision reçue par le Révérend Doxa Salomon : répandre l'Évangile dans les nations. Son premier culte s'est tenu à Abidjan, au Plateau Dokui.
               </p>
               <p className="font-inter text-pearl/60 leading-relaxed">
-                Nous croyons que l'Église n'a pas de frontières géographiques. Notre vision est de rejoindre chaque croyant là où il se trouve — en Afrique, en Europe, dans les Amériques ou en Asie — pour l'équiper, le fortifier et l'envoyer.
+                Notre vision est celle d'une Église <span className="text-gold">100 % physique et 100 % portée par Internet et le digital</span> — présente sur le terrain comme en ligne, pour rejoindre chaque croyant là où il se trouve, l'équiper, le fortifier et l'envoyer.
               </p>
             </motion.div>
 
@@ -218,7 +204,7 @@ export default function NotreHistoirePage() {
           >
             <div className="section-label justify-center mb-3">Notre Parcours</div>
             <h2 className="font-cinzel text-3xl md:text-4xl font-black text-pearl">
-              28 Ans d'Histoire
+              De l'appel à la Citadelle
             </h2>
           </motion.div>
 

@@ -1,10 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import {
-  Heart, DollarSign, TrendingUp, Crown, ArrowRight, Download, CheckCircle, Clock, Filter,
-  Building2, Globe, BookOpen,
+  Heart, DollarSign, TrendingUp, Crown, ArrowRight, Download, CheckCircle,
   type LucideIcon,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -24,24 +23,19 @@ const DonsChart = dynamic(() => import('./DonsChart'), {
   ),
 })
 
-const HISTORIQUE = [
-  { mois: 'Jan', montant: 150 },
-  { mois: 'Fév', montant: 150 },
-  { mois: 'Mar', montant: 200 },
-  { mois: 'Avr', montant: 150 },
-  { mois: 'Mai', montant: 250 },
-]
+/** Don réel du membre (aucune donnée de démonstration). */
+type Don = { id: string; type: string; montant: number; date: string; statut: string; recu: boolean; reference: string }
 
-const MES_DONS = [
-  { id: 'D001', type: 'Dîme', montant: 150, date: '2026-05-05', statut: 'validé', recu: true },
-  { id: 'D002', type: 'Offrande', montant: 50, date: '2026-05-05', statut: 'validé', recu: true },
-  { id: 'D003', type: 'Construction Temple', montant: 100, date: '2026-04-07', statut: 'validé', recu: true },
-  { id: 'D004', type: 'Partenariat', montant: 50, date: '2026-04-07', statut: 'validé', recu: true },
-  { id: 'D005', type: 'Dîme', montant: 150, date: '2026-03-04', statut: 'validé', recu: true },
-  { id: 'D006', type: 'Don libre', montant: 25, date: '2026-03-04', statut: 'validé', recu: true },
-  { id: 'D007', type: 'Dîme', montant: 150, date: '2026-02-03', statut: 'validé', recu: true },
-  { id: 'D008', type: 'Missions', montant: 30, date: '2026-01-06', statut: 'validé', recu: true },
+/** Paliers Partenaire du Royaume selon le cumul des dons (FCFA). */
+const PARTNER_TIERS = [
+  { nom: 'Royal', min: 1_000_000, color: '#D4AF37', emoji: '👑' },
+  { nom: 'Or', min: 200_000, color: '#EAB308', emoji: '🥇' },
+  { nom: 'Argent', min: 50_000, color: '#9CA3AF', emoji: '🥈' },
+  { nom: 'Bronze', min: 5_000, color: '#B45309', emoji: '🥉' },
 ]
+function partnerTier(total: number) {
+  return PARTNER_TIERS.find((t) => total >= t.min) || null
+}
 
 const TYPE_COLORS: Record<string, string> = {
   'Dîme': '#D4AF37',
@@ -52,22 +46,78 @@ const TYPE_COLORS: Record<string, string> = {
   'Missions': '#0EA5E9',
 }
 
-type Campagne = { nom: string; icon: LucideIcon; pct: number; couleur: string; montantPersonnel: number }
-const CAMPAGNES: Campagne[] = [
-  { nom: 'Construction Temple 2026', icon: Building2, pct: 67, couleur: '#D4AF37', montantPersonnel: 100 },
-  { nom: 'Missions Évangéliques',     icon: Globe,    pct: 76, couleur: '#22C55E', montantPersonnel: 0   },
-  { nom: 'Bourses CFIC',              icon: BookOpen, pct: 61, couleur: '#8B5CF6', montantPersonnel: 0   },
-]
+/** Libellés FR des types de dons (enum Supabase → affichage). */
+const DON_TYPE_LABELS: Record<string, string> = {
+  dime: 'Dîme', offrande: 'Offrande', partenariat: 'Partenariat',
+  don: 'Don libre', projet: 'Missions', promesse: 'Promesse',
+}
+
+/** Mappe l'historique réel (/api/member/dons) vers le format d'affichage. */
+function mapDons(dons: any[]): Don[] {
+  return (dons || []).map((d) => ({
+    id: String(d.id).slice(0, 8).toUpperCase(),
+    type: DON_TYPE_LABELS[d.type] || 'Don libre',
+    montant: Number(d.montant) || 0,
+    date: (d.date_creation || '').slice(0, 10),
+    statut: d.statut === 'complete' ? 'validé' : d.statut,
+    recu: !!d.recu_envoye,
+    reference: d.reference || '',
+  }))
+}
+
+const MOIS_ABBR = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc']
+
+/** Format monétaire FCFA (Côte d'Ivoire). Ex : 10 000 FCFA. */
+const fcfa = (n: number) => `${Math.round(Number(n) || 0).toLocaleString('fr-FR')} FCFA`
 
 export default function MesDonsPage() {
   const [filter, setFilter] = useState('Tous')
+  // Aucune donnée fictive : l'historique démarre vide et n'est rempli que par le réel.
+  const [dons, setDons] = useState<Don[]>([])
+  const [loaded, setLoaded] = useState(false)
 
-  const totalGlobal = MES_DONS.reduce((acc, d) => acc + d.montant, 0)
-  const totalMois = MES_DONS.filter(d => d.date.startsWith('2026-05')).reduce((acc, d) => acc + d.montant, 0)
-  const nbDons = MES_DONS.length
-  const types = Array.from(new Set(MES_DONS.map(d => d.type)))
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/member/dons', { credentials: 'same-origin' })
+        if (!r.ok) { if (!cancelled) setLoaded(true); return }
+        const j = await r.json()
+        if (cancelled) return
+        if (j.ok) setDons(mapDons(j.data?.dons || []))
+      } catch { /* reste vide */ }
+      finally { if (!cancelled) setLoaded(true) }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
-  const filtered = filter === 'Tous' ? MES_DONS : MES_DONS.filter(d => d.type === filter)
+  const totalGlobal = dons.reduce((acc, d) => acc + d.montant, 0)
+  const moisCourant = `-${String(new Date().getMonth() + 1).padStart(2, '0')}`
+  const totalMois = dons.filter(d => d.date.includes(moisCourant)).reduce((acc, d) => acc + d.montant, 0)
+  const nbDons = dons.length
+  const types = Array.from(new Set(dons.map(d => d.type)))
+  const filtered = filter === 'Tous' ? dons : dons.filter(d => d.type === filter)
+  const hasDons = dons.length > 0
+  const tier = partnerTier(totalGlobal)
+  const nextTier = [...PARTNER_TIERS].reverse().find((t) => totalGlobal < t.min)
+
+  // Évolution mensuelle calculée UNIQUEMENT à partir des dons réels.
+  const historique = useMemo(() => {
+    const byMonth = new Map<number, number>()
+    for (const d of dons) {
+      const m = Number((d.date || '').slice(5, 7)) - 1
+      if (m >= 0 && m < 12) byMonth.set(m, (byMonth.get(m) || 0) + d.montant)
+    }
+    const months = Array.from(byMonth.keys()).sort((a, b) => a - b)
+    return months.map((m) => ({ mois: MOIS_ABBR[m], montant: byMonth.get(m) || 0 }))
+  }, [dons])
+
+  const kpis: { label: string; value: string; icon: LucideIcon; color: string }[] = [
+    { label: 'Total 2026', value: fcfa(totalGlobal), icon: DollarSign, color: '#D4AF37' },
+    { label: 'Ce mois', value: fcfa(totalMois), icon: TrendingUp, color: '#22C55E' },
+    { label: 'Dons effectués', value: String(nbDons), icon: Heart, color: '#EC4899' },
+    { label: 'Badge Partenaire', value: tier ? `${tier.emoji} ${tier.nom}` : (hasDons ? 'Sympathisant' : '—'), icon: Crown, color: tier?.color || '#8B5CF6' },
+  ]
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -85,164 +135,170 @@ export default function MesDonsPage() {
           }
         />
 
-        {/* KPI */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: 'Total 2026', value: `${totalGlobal}€`, icon: DollarSign, color: '#D4AF37' },
-            { label: 'Ce mois (mai)', value: `${totalMois}€`, icon: TrendingUp, color: '#22C55E' },
-            { label: 'Dons effectués', value: String(nbDons), icon: Heart, color: '#EC4899' },
-            { label: 'Statut Partenaire', value: 'Actif', icon: Crown, color: '#8B5CF6' },
-          ].map((kpi, i) => (
-            <motion.div key={kpi.label}
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              className="card-royal">
-              <div className="flex items-start justify-between mb-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: `${kpi.color}18` }}>
-                  <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
-                </div>
-              </div>
-              <div className="font-cinzel text-2xl font-black" style={{ color: kpi.color }}>{kpi.value}</div>
-              <div className="text-[11px] text-pearl/35 font-inter mt-0.5">{kpi.label}</div>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Chart */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            className="card-royal lg:col-span-2">
-            <h3 className="font-cinzel text-sm font-bold text-pearl mb-5">Évolution de mes Dons</h3>
-            <div className="h-[180px]">
-              <DonsChart data={HISTORIQUE} />
+        {/* État vide honnête tant qu'aucun don réel n'existe */}
+        {!hasDons ? (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            className="card-royal text-center py-16 mt-2"
+          >
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
+              style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)' }}>
+              <Heart className="w-7 h-7 text-gold" />
             </div>
+            <div className="font-cinzel text-2xl font-black text-gold mb-1">0 FCFA</div>
+            <p className="font-cinzel text-lg text-pearl/60">
+              {loaded ? 'Aucun don enregistré pour le moment' : 'Chargement…'}
+            </p>
+            <p className="font-inter text-sm text-pearl/35 mt-1 max-w-md mx-auto">
+              Vos contributions apparaîtront ici dès votre premier don. Commencez dès aujourd'hui à soutenir l'œuvre.
+            </p>
+            <Link href="/dons" className="btn-gold text-sm py-2.5 px-6 mt-6 inline-flex">
+              Faire un don <ArrowRight className="w-4 h-4" />
+            </Link>
           </motion.div>
-
-          {/* Campagnes */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-            className="card-royal">
-            <h3 className="font-cinzel text-sm font-bold text-pearl mb-5">Campagnes Actives</h3>
-            <div className="space-y-5">
-              {CAMPAGNES.map(c => (
-                <div key={c.nom}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${c.couleur}18`, border: `1px solid ${c.couleur}30` }}
-                      >
-                        <c.icon className="w-3.5 h-3.5" style={{ color: c.couleur }} />
-                      </div>
-                      <span className="text-xs font-inter font-semibold text-pearl leading-tight truncate">{c.nom}</span>
+        ) : (
+          <>
+            {/* KPI (réels) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              {kpis.map((kpi, i) => (
+                <motion.div key={kpi.label}
+                  initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  className="card-royal">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                      style={{ background: `${kpi.color}18` }}>
+                      <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
                     </div>
-                    <span className="text-xs font-cinzel font-bold tabular-nums flex-shrink-0" style={{ color: c.couleur }}>{c.pct}%</span>
                   </div>
-                  <div className="h-1.5 rounded-full mb-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                    <motion.div
-                      initial={{ width: 0 }} animate={{ width: `${c.pct}%` }}
-                      transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-                      className="h-full rounded-full" style={{ background: c.couleur }}
-                    />
-                  </div>
-                  {c.montantPersonnel > 0 && (
-                    <div className="text-[10px] font-inter text-pearl/30">
-                      Votre contribution : <span className="text-gold font-semibold">{c.montantPersonnel}€</span>
-                    </div>
-                  )}
-                  {c.montantPersonnel === 0 && (
-                    <Link href="/dons" className="text-[10px] font-inter text-pearl/25 hover:text-gold transition-colors">
-                      Contribuer à cette campagne →
-                    </Link>
-                  )}
-                </div>
+                  <div className="font-cinzel text-2xl font-black" style={{ color: kpi.color }}>{kpi.value}</div>
+                  <div className="text-[11px] text-pearl/35 font-inter mt-0.5">{kpi.label}</div>
+                </motion.div>
               ))}
             </div>
-          </motion.div>
-        </div>
 
-        {/* Transactions */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="card-royal overflow-hidden">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-cinzel text-sm font-bold text-pearl flex items-center gap-2">
-              <Heart className="w-4 h-4 text-gold" />
-              Historique des Transactions
-            </h3>
-            <div className="flex items-center gap-2">
-              <select
-                value={filter}
-                onChange={e => setFilter(e.target.value)}
-                className="input-royal text-xs py-1.5 px-3 w-36"
-              >
-                <option>Tous</option>
-                {types.map(t => <option key={t}>{t}</option>)}
-              </select>
-              <button className="btn-ghost text-xs py-1.5 px-3 flex items-center gap-1">
-                <Download className="w-3 h-3" />
-                Reçus fiscaux
-              </button>
-            </div>
-          </div>
+            {/* Badges Partenaire du Royaume (selon le cumul réel) */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+              className="card-royal mb-8">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h3 className="font-cinzel text-sm font-bold text-pearl flex items-center gap-2"><Crown className="w-4 h-4 text-gold" /> Badge Partenaire</h3>
+                {tier
+                  ? <span className="text-xs font-inter px-3 py-1 rounded-full font-semibold" style={{ background: `${tier.color}1A`, color: tier.color, border: `1px solid ${tier.color}40` }}>{tier.emoji} Palier {tier.nom}</span>
+                  : <span className="text-xs font-inter text-pearl/40">Premier don pour débloquer Bronze</span>}
+              </div>
+              <div className="grid grid-cols-4 gap-2.5">
+                {[...PARTNER_TIERS].reverse().map((t) => {
+                  const atteint = totalGlobal >= t.min
+                  return (
+                    <div key={t.nom} className="rounded-xl p-3 text-center" style={{ background: atteint ? `${t.color}15` : 'rgba(255,255,255,0.02)', border: `1px solid ${atteint ? `${t.color}45` : 'rgba(255,255,255,0.06)'}`, opacity: atteint ? 1 : 0.5 }}>
+                      <div className="text-2xl mb-1" style={{ filter: atteint ? 'none' : 'grayscale(1)' }}>{t.emoji}</div>
+                      <div className="font-cinzel text-xs font-bold" style={{ color: atteint ? t.color : 'rgba(245,243,238,0.5)' }}>{t.nom}</div>
+                      <div className="text-[9px] font-inter text-pearl/35 mt-0.5">{t.min.toLocaleString('fr-FR')} FCFA</div>
+                    </div>
+                  )
+                })}
+              </div>
+              {nextTier && (
+                <p className="font-inter text-[11px] text-pearl/40 mt-3 text-center">
+                  Plus que <span className="text-gold font-semibold">{(nextTier.min - totalGlobal).toLocaleString('fr-FR')} FCFA</span> pour atteindre le palier {nextTier.emoji} {nextTier.nom}.
+                </p>
+              )}
+            </motion.div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-pearl/[0.04]">
-                  {['ID', 'Type de don', 'Montant', 'Date', 'Statut', 'Reçu'].map(h => (
-                    <th key={h} className="text-left px-3 py-2 text-[10px] font-semibold text-pearl/30 uppercase tracking-wider font-inter">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((don, i) => (
-                  <motion.tr key={don.id}
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    transition={{ delay: 0.04 * i }}
-                    className="border-b border-pearl/[0.03] hover:bg-pearl/[0.02] transition-colors"
+            {/* Évolution (réelle) */}
+            {historique.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className="card-royal mb-8">
+                <h3 className="font-cinzel text-sm font-bold text-pearl mb-5">Évolution de mes Dons</h3>
+                <div className="h-[180px]">
+                  <DonsChart data={historique} />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Transactions (réelles) */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              className="card-royal overflow-hidden">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-cinzel text-sm font-bold text-pearl flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-gold" />
+                  Historique des Transactions
+                </h3>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={filter}
+                    onChange={e => setFilter(e.target.value)}
+                    className="input-royal text-xs py-1.5 px-3 w-36"
                   >
-                    <td className="px-3 py-3 text-[10px] font-mono text-pearl/25">{don.id}</td>
-                    <td className="px-3 py-3">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full font-inter"
-                        style={{ background: `${TYPE_COLORS[don.type] || '#6B7280'}15`, color: TYPE_COLORS[don.type] || '#6B7280' }}>
-                        {don.type}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="font-cinzel text-sm font-black text-gold">{don.montant}€</span>
-                    </td>
-                    <td className="px-3 py-3 text-xs text-pearl/40 font-inter">{don.date}</td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3 text-green-400" />
-                        <span className="text-[10px] text-green-400 font-inter">Validé</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <button className="text-[10px] font-inter text-pearl/30 hover:text-gold transition-colors flex items-center gap-1">
-                        <Download className="w-3 h-3" />
-                        PDF
-                      </button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    <option>Tous</option>
+                    {types.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
 
-          {/* Bottom CTA */}
-          <div className="mt-5 pt-5 border-t border-pearl/5 flex items-center justify-between">
-            <p className="text-xs text-pearl/30 font-inter">
-              Total en 2026 : <span className="text-gold font-bold font-cinzel">{totalGlobal}€</span>
-            </p>
-            <Link href="/dons" className="btn-gold text-xs py-2 px-4">
-              Faire un don
-              <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </motion.div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-pearl/[0.04]">
+                      {['Référence', 'Type de don', 'Montant', 'Date', 'Statut', 'Reçu'].map(h => (
+                        <th key={h} className="text-left px-3 py-2 text-[10px] font-semibold text-pearl/30 uppercase tracking-wider font-inter">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((don, i) => (
+                      <motion.tr key={don.id}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                        transition={{ delay: 0.04 * i }}
+                        className="border-b border-pearl/[0.03] hover:bg-pearl/[0.02] transition-colors"
+                      >
+                        <td className="px-3 py-3 text-[10px] font-mono text-pearl/35">{don.reference || don.id}</td>
+                        <td className="px-3 py-3">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full font-inter"
+                            style={{ background: `${TYPE_COLORS[don.type] || '#6B7280'}15`, color: TYPE_COLORS[don.type] || '#6B7280' }}>
+                            {don.type}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="font-cinzel text-sm font-black text-gold">{fcfa(don.montant)}</span>
+                        </td>
+                        <td className="px-3 py-3 text-xs text-pearl/40 font-inter">{don.date}</td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3 text-green-400" />
+                            <span className="text-[10px] text-green-400 font-inter">{don.statut || 'Validé'}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          {don.reference ? (
+                            <a href={`/recu/${encodeURIComponent(don.reference)}`} target="_blank" rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-inter text-gold hover:underline">
+                              <Download className="w-3 h-3" /> Reçu
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-pearl/25 font-inter">—</span>
+                          )}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-        {/* Partenariat card */}
+              <div className="mt-5 pt-5 border-t border-pearl/5 flex items-center justify-between">
+                <p className="text-xs text-pearl/30 font-inter">
+                  Total en 2026 : <span className="text-gold font-bold font-cinzel">{fcfa(totalGlobal)}</span>
+                </p>
+                <Link href="/dons" className="btn-gold text-xs py-2 px-4">
+                  Faire un don
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* Partenariat — invitation (CTA, pas une donnée) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
           className="mt-6 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6"

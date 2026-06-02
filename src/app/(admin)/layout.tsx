@@ -1,8 +1,17 @@
+'use client'
+import { usePathname } from 'next/navigation'
 import { Navbar } from '@/components/layout/Navbar'
 import { AdminSidebar } from '@/components/features/admin/AdminSidebar'
 import { MobileAdminBar } from '@/components/features/admin/MobileAdminBar'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+
+  // La page de connexion s'affiche en plein écran, sans la nav ni la sidebar.
+  if (pathname === '/admin/login') {
+    return <main id="main-content" tabIndex={-1}>{children}</main>
+  }
+
   return (
     <>
       <Navbar />

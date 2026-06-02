@@ -1,14 +1,15 @@
 'use client'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
 import {
-  Play, Clock, Calendar, ArrowRight, Radio, Globe, Volume2,
+  Play, Clock, Calendar, ArrowRight, Radio, Globe,
   Church, BookOpen, Heart, GraduationCap, Wifi, MessageCircle, Film,
   type LucideIcon,
 } from 'lucide-react'
 import { PremiumImage } from '@/components/ui/PremiumImage'
 import { HERO_IMAGES } from '@/lib/images'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
 type ScheduleItem = { jour: string; heure: string; type: string; icon: LucideIcon; color: string }
 const SCHEDULE: ScheduleItem[] = [
@@ -18,15 +19,40 @@ const SCHEDULE: ScheduleItem[] = [
   { jour: 'Samedi',   heure: '10h00', type: 'Formation CFIC',     icon: GraduationCap,  color: '#22C55E' },
 ]
 
-const UPCOMING = [
-  { titre: 'Culte Principal — Dimanche', speaker: 'Pasteur Principal', date: 'Dimanche 10h00', type: 'Culte', color: '#D4AF37' },
-  { titre: 'Étude Biblique — Mercredi', speaker: 'Berger Enseignant', date: 'Mercredi 20h00', type: 'Enseignement', color: '#0EA5E9' },
-  { titre: 'Veillée de Prière — Vendredi', speaker: 'Ministère Mahanaïm', date: 'Vendredi 22h00', type: 'Prière', color: '#8B5CF6' },
-]
+const UP_COLORS = ['#D4AF37', '#0EA5E9', '#8B5CF6', '#22C55E']
+type UpcomingLive = { id: string; titre: string; date: string; type: string; color: string }
 
 export function LiveSection() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
+
+  // Direct + prochains lives RÉELS (cms_lives) — même source que /live. Aucun faux contenu.
+  const [liveNow, setLiveNow] = useState<{ titre: string; lien: string } | null>(null)
+  const [upcoming, setUpcoming] = useState<UpcomingLive[]>([])
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('cms_lives').select('*')
+          .in('status', ['live', 'scheduled', 'published'])
+        if (cancelled || !data) return
+        const row: any = data.find((d: any) => (d.status === 'live' || d.is_live) && (d.youtube_url || d.video_url))
+        if (row) setLiveNow({ titre: row.title, lien: '/live' })
+        // Prochains lives : rows programmés, non en direct, avec un titre.
+        const planned = data
+          .filter((d: any) => d.status === 'scheduled' && !(d.status === 'live' || d.is_live) && d.title)
+          .map((d: any, i: number) => {
+            const raw = d.scheduled_at || d.scheduled_for || d.start_at || d.date || d.date_creation
+            let when = ''
+            try { if (raw) when = new Date(raw).toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) } catch { /* */ }
+            return { id: String(d.id), titre: d.title as string, date: when, type: d.type || d.categorie || 'Live', color: UP_COLORS[i % UP_COLORS.length] }
+          })
+        setUpcoming(planned)
+      } catch { /* aucun direct */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <section className="section-cinematic" ref={ref}>
@@ -64,7 +90,7 @@ export function LiveSection() {
                 { icon: Wifi,           text: 'Streaming HD multi-plateformes',     color: '#0EA5E9' },
                 { icon: MessageCircle,  text: 'Chat en direct + demandes de prière',color: '#22C55E' },
                 { icon: Film,           text: 'Replay automatique disponible',      color: '#D4AF37' },
-                { icon: Globe,          text: 'Accessible depuis 120+ pays',        color: '#8B5CF6' },
+                { icon: Globe,          text: 'Accessible partout dans le monde',   color: '#8B5CF6' },
               ] as const).map((f) => (
                 <div key={f.text} className="flex items-center gap-3 group">
                   <div
@@ -116,10 +142,17 @@ export function LiveSection() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link href="/live" className="btn-gold-cinematic">
-                <Radio className="w-4 h-4" />
-                Rejoindre le Direct
-              </Link>
+              {liveNow ? (
+                <Link href={liveNow.lien} className="btn-gold-cinematic">
+                  <Radio className="w-4 h-4" />
+                  Voir le direct
+                </Link>
+              ) : (
+                <span className="btn-glass-cinematic opacity-70 cursor-default">
+                  <Clock className="w-4 h-4" />
+                  Live programmé — lien bientôt disponible
+                </span>
+              )}
               <Link href="/live?tab=replays" className="btn-glass-cinematic">
                 Voir les Replays
                 <ArrowRight className="w-4 h-4" />
@@ -150,25 +183,19 @@ export function LiveSection() {
                 />
               </div>
 
-              {/* Top live badge */}
+              {/* Badge réel : EN DIRECT seulement si un direct est réellement actif */}
               <div className="absolute top-4 left-4 flex items-center gap-2">
-                <div className="chip-live">
-                  <span className="relative flex w-2 h-2">
-                    <span className="absolute inline-flex w-full h-full rounded-full bg-red-500 opacity-75 animate-ping" />
-                    <span className="relative inline-flex w-2 h-2 rounded-full bg-red-500" />
-                  </span>
-                  EN DIRECT
-                </div>
-                <div className="chip-gold">
-                  <Volume2 className="w-2.5 h-2.5" />
-                  HD
-                </div>
-              </div>
-
-              <div className="absolute top-4 right-4 flex items-center gap-1.5 text-xs font-inter"
-                style={{ color: 'rgba(245,230,216,0.7)' }}>
-                <Globe className="w-3.5 h-3.5" />
-                <span className="tabular-nums">2 847</span> en ligne
+                {liveNow ? (
+                  <div className="chip-live">
+                    <span className="relative flex w-2 h-2">
+                      <span className="absolute inline-flex w-full h-full rounded-full bg-red-500 opacity-75 animate-ping" />
+                      <span className="relative inline-flex w-2 h-2 rounded-full bg-red-500" />
+                    </span>
+                    EN DIRECT
+                  </div>
+                ) : (
+                  <div className="chip-gold"><Calendar className="w-2.5 h-2.5" /> PROGRAMMÉ</div>
+                )}
               </div>
 
               {/* Play */}
@@ -188,11 +215,11 @@ export function LiveSection() {
                 </motion.div>
                 <p className="font-cinzel text-sm tracking-wider uppercase font-semibold"
                   style={{ color: 'rgba(245,230,216,0.7)' }}>
-                  Veillée Mahanaïm
+                  {liveNow ? liveNow.titre : 'Aucun direct en cours'}
                 </p>
                 <p className="font-inter text-xs mt-1"
                   style={{ color: 'rgba(245,230,216,0.4)' }}>
-                  Prochain culte : Dimanche 10h00
+                  {liveNow ? 'En direct maintenant' : 'Consultez le programme des cultes'}
                 </p>
               </div>
 
@@ -201,53 +228,52 @@ export function LiveSection() {
                 style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%)' }}>
                 <div className="flex items-center justify-between">
                   <div className="min-w-0">
-                    <h3 className="font-cinzel text-sm font-bold text-white truncate">Veillée d'Intercession Mondiale</h3>
+                    <h3 className="font-cinzel text-sm font-bold text-white truncate">{liveNow ? liveNow.titre : 'Cultes & veillées en direct'}</h3>
                     <p className="font-inter text-[11px] mt-0.5" style={{ color: 'rgba(245,230,216,0.55)' }}>
-                      Ministère Mahanaïm · 120+ nations connectées
+                      La Chapelle Royale
                     </p>
-                  </div>
-                  <div className="text-right ml-4 flex-shrink-0">
-                    <div className="font-cinzel font-bold text-sm" style={{ color: '#D4AF37' }}>02:48:11</div>
-                    <p className="font-inter text-[10px] uppercase tracking-wider"
-                      style={{ color: 'rgba(245,230,216,0.4)' }}>en cours</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Upcoming list */}
-            <div className="space-y-2.5">
-              {UPCOMING.map((live, i) => (
-                <motion.div
-                  key={live.titre}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.4 + i * 0.1 }}
-                  whileHover={{ x: 4 }}
-                  className="card-cinematic flex items-center gap-3 p-3.5 cursor-pointer group"
-                >
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
-                    style={{ background: `${live.color}15`, border: `1px solid ${live.color}25` }}
+            {/* Prochains lives — RÉELS (cms_lives programmés). Masqué si aucun. */}
+            {upcoming.length > 0 && (
+              <div className="space-y-2.5">
+                {upcoming.map((live, i) => (
+                  <motion.div
+                    key={live.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={inView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ delay: 0.4 + i * 0.1 }}
+                    whileHover={{ x: 4 }}
+                    className="card-cinematic flex items-center gap-3 p-3.5 cursor-pointer group"
                   >
-                    <Play className="w-4 h-4" style={{ color: live.color }} fill={live.color} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-inter text-sm font-semibold text-white truncate">{live.titre}</p>
-                    <p className="font-inter text-xs flex items-center gap-1 mt-0.5"
-                      style={{ color: 'rgba(245,230,216,0.4)' }}>
-                      <Clock className="w-3 h-3" />{live.date}
-                    </p>
-                  </div>
-                  <span
-                    className="text-[10px] font-bold font-inter px-2.5 py-1 rounded-full flex-shrink-0"
-                    style={{ background: `${live.color}18`, color: live.color, border: `1px solid ${live.color}25` }}
-                  >
-                    {live.type}
-                  </span>
-                </motion.div>
-              ))}
-            </div>
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110"
+                      style={{ background: `${live.color}15`, border: `1px solid ${live.color}25` }}
+                    >
+                      <Play className="w-4 h-4" style={{ color: live.color }} fill={live.color} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-inter text-sm font-semibold text-white truncate">{live.titre}</p>
+                      {live.date && (
+                        <p className="font-inter text-xs flex items-center gap-1 mt-0.5 capitalize"
+                          style={{ color: 'rgba(245,230,216,0.4)' }}>
+                          <Clock className="w-3 h-3" />{live.date}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className="text-[10px] font-bold font-inter px-2.5 py-1 rounded-full flex-shrink-0 capitalize"
+                      style={{ background: `${live.color}18`, color: live.color, border: `1px solid ${live.color}25` }}
+                    >
+                      {live.type}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
       </div>

@@ -5,9 +5,18 @@ import {
   Play, Pause, Clock, Eye, Calendar, Tv, Radio, Heart,
   MessageSquare, Send, Share2, Volume2, VolumeX, Maximize,
   ChevronLeft, ChevronRight, Bell, Users, Star, Bookmark, Download,
-  Church, Moon, BookOpen, Crown, Flame, Sparkles,
+  Church, Moon, BookOpen, Crown, Flame, Sparkles, Radio as RadioIcon,
   type LucideIcon,
 } from 'lucide-react'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import LiveOffering from '@/components/features/giving/LiveOffering'
+
+/** Extrait l'ID YouTube d'une URL ou ID brut. */
+function ytId(url?: string): string | null {
+  if (!url) return null
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|live\/|shorts\/))([\w-]{11})/)
+  return m ? m[1] : (/^[\w-]{11}$/.test(url) ? url : null)
+}
 
 const PLATEFORME_ICON: Record<string, LucideIcon> = {
   'CIER Global':         Church,
@@ -19,55 +28,88 @@ const PLATEFORME_ICON: Record<string, LucideIcon> = {
 }
 const platIcon = (name: string): LucideIcon => PLATEFORME_ICON[name] ?? Sparkles
 
-const LIVE_EN_COURS = {
-  titre: 'Culte Principal CIER — Dimanche de Pentecôte',
-  plateforme: 'CIER Global',
-  pasteur: 'Pasteur Samuel',
-  spectateurs: 2847,
-  duree: '1h 23min',
+// Gabarit neutre (aucun direct fictif). Le direct réel vient de cms_lives.
+const LIVE_FALLBACK = {
+  titre: 'Aucun direct en cours',
+  plateforme: '',
+  pasteur: '',
+  spectateurs: 0,
+  duree: '',
   couleur: '#D4AF37',
   emoji: '⛪',
-  description: 'Un culte exceptionnel pour célébrer la Pentecôte. Worship, enseignement et prière collective mondiale.',
+  description: '',
+  youtube_url: '',
+  video_url: '',
+  cover: '',
 }
 
-const CHAT_MESSAGES = [
-  { id: 1, user: 'Amina K.', drapeau: '🇨🇮', msg: 'Gloire à Dieu ! 🙌', time: '10:23', couleur: '#EC4899' },
-  { id: 2, user: 'David M.', drapeau: '🇨🇩', msg: 'Je suis béni par cet enseignement 🔥', time: '10:24', couleur: '#0EA5E9' },
-  { id: 3, user: 'Sarah P.', drapeau: '🇫🇷', msg: 'Amen ! Alléluia !', time: '10:24', couleur: '#22C55E' },
-  { id: 4, user: 'Grace N.', drapeau: '🇳🇬', msg: 'Priant depuis Lagos ❤️', time: '10:25', couleur: '#8B5CF6' },
-  { id: 5, user: 'Joseph B.', drapeau: '🇧🇮', msg: 'Que Dieu bénisse chaque famille ! 🙏', time: '10:25', couleur: '#D4AF37' },
-  { id: 6, user: 'Marie C.', drapeau: '🇧🇪', msg: 'Depuis Bruxelles, je loue avec vous 🌟', time: '10:26', couleur: '#F97316' },
-  { id: 7, user: 'Paul T.', drapeau: '🇨🇲', msg: 'Merci Seigneur pour ce message !', time: '10:27', couleur: '#14B8A6' },
-]
+// Aucun faux commentaire : le chat live réel (Supabase Realtime) arrivera au Lot 4.
+type ChatMessage = { id: number; user: string; drapeau: string; msg: string; time: string; couleur: string }
+const CHAT_MESSAGES: ChatMessage[] = []
 
-const REPLAYS = [
-  { id: '1', titre: 'Culte Principal', date: '04/05/2026', duree: '2h15', plateforme: 'CIER Global', emoji: '⛪', couleur: '#D4AF37', views: 1243 },
-  { id: '2', titre: 'Nuit de Prière', date: '25/04/2026', duree: '6h00', plateforme: 'Intercession', emoji: '🌙', couleur: '#8B5CF6', views: 456 },
-  { id: '3', titre: 'École de Prière S5', date: '20/04/2026', duree: '1h30', plateforme: 'CFIC', emoji: '📖', couleur: '#0EA5E9', views: 234 },
-  { id: '4', titre: 'Conférence Leadership', date: '15/04/2026', duree: '3h00', plateforme: 'CIER Global', emoji: '👑', couleur: '#22C55E', views: 892 },
-  { id: '5', titre: 'Culte Jeunesse', date: '20/04/2026', duree: '1h45', plateforme: 'Jeunesse', emoji: '🔥', couleur: '#EC4899', views: 567 },
-  { id: '6', titre: 'Groupe Femmes', date: '09/04/2026', duree: '1h20', plateforme: "Femmes d'Exceptions", emoji: '🌸', couleur: '#F59E0B', views: 189 },
-]
-
-const A_VENIR = [
-  { id: '7', titre: 'Veillée de Prière', date: '15/05/2026', heure: '22:00', plateforme: 'Intercession', emoji: '🌙', couleur: '#8B5CF6' },
-  { id: '8', titre: 'Live Jeunesse Worship', date: '18/05/2026', heure: '19:00', plateforme: 'Jeunesse', emoji: '🔥', couleur: '#EC4899' },
-  { id: '9', titre: 'École de Prière S6', date: '21/05/2026', heure: '20:00', plateforme: 'CFIC', emoji: '📖', couleur: '#0EA5E9' },
-]
+// Aucun replay / programme fictif : tout vient de cms_lives (état chargé en composant).
+type ReplayItem = { id: string; titre: string; date: string; duree: string; plateforme: string; emoji: string; couleur: string; views: number; youtube_url?: string; cover?: string }
+type AVenirItem = { id: string; titre: string; date: string; heure: string; plateforme: string; emoji: string; couleur: string; prevues: number }
 
 const REACTIONS_LIVE = ['🙌', '🔥', '❤️', '🙏', '✨', '👑']
+
+// Programmes réguliers officiels (heure d'Abidjan / GMT).
+const PROGRAMMES_REGULIERS = [
+  { titre: 'Culte de célébration royale', jour: 'Dimanche', heure: '10h30' },
+  { titre: 'Matinale de prière', jour: 'Mercredi', heure: '05h30' },
+  { titre: 'Oracle du Mardi', jour: 'Mardi', heure: '20h30' },
+  { titre: 'Vendredi de Puissance', jour: 'Vendredi', heure: '21h00' },
+  { titre: 'Batailles de la Nuit', jour: 'Selon programmation', heure: '21h30' },
+  { titre: 'Cohorte de prière', jour: 'Jeudi', heure: 'Selon programmation' },
+]
 
 export default function LivesPage() {
   const [tab, setTab] = useState<'live' | 'replays' | 'programme'>('live')
   const [chatOpen, setChatOpen] = useState(true)
   const [chatMsg, setChatMsg] = useState('')
   const [messages, setMessages] = useState(CHAT_MESSAGES)
-  const [isPlaying, setIsPlaying] = useState(true)
-  const [isMuted, setIsMuted] = useState(false)
   const [reactions, setReactions] = useState<{ id: number; emoji: string; x: number }[]>([])
-  const [bookmarked, setBookmarked] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
   const reactionCount = useRef(0)
+
+  // Données RÉELLES (cms_lives) : direct en cours, replays, programme. Aucun mock.
+  const [liveData, setLiveData] = useState<typeof LIVE_FALLBACK | null>(null)
+  const [replays, setReplays] = useState<ReplayItem[]>([])
+  const [aVenir, setAVenir] = useState<AVenirItem[]>([])
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('cms_lives')
+          .select('id, title, description, youtube_url, video_url, cover_url, scheduled_at, is_live, platform, status')
+          .in('status', ['live', 'scheduled', 'ended', 'published'])
+          .order('scheduled_at', { ascending: false })
+        if (cancelled || !data) return
+        const fmt = (s?: string) => { if (!s) return ''; try { return new Date(s).toLocaleDateString('fr-FR') } catch { return '' } }
+        const hhmm = (s?: string) => { if (!s) return ''; try { return new Date(s).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) } catch { return '' } }
+        const liveRow: any = data.find((d: any) => d.status === 'live' || d.is_live)
+        setLiveData(liveRow ? { titre: liveRow.title, plateforme: liveRow.platform || '', pasteur: '', spectateurs: 0, duree: '', couleur: '#D4AF37', emoji: '⛪', description: liveRow.description || '', youtube_url: liveRow.youtube_url || '', video_url: liveRow.video_url || '', cover: liveRow.cover_url || '' } : null)
+        // Traçabilité : visionnage réel d'un live (best-effort).
+        if (liveRow) {
+          try {
+            fetch('/api/activity', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+              body: JSON.stringify({ action_type: 'live_view', resource_type: 'live', resource_id: liveRow.id, resource_title: liveRow.title, source: 'live' }),
+            })
+          } catch { /* non bloquant */ }
+        }
+        setReplays(data.filter((d: any) => d.status === 'ended' || (d.status === 'published' && (d.youtube_url || d.video_url))).map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), duree: '', plateforme: d.platform || '', emoji: '🎬', couleur: '#D4AF37', views: 0, youtube_url: d.youtube_url || d.video_url, cover: d.cover_url || '' })))
+        setAVenir(data.filter((d: any) => d.status === 'scheduled').map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), heure: hhmm(d.scheduled_at), plateforme: d.platform || '', emoji: '📅', couleur: '#8B5CF6', prevues: 0 })))
+      } catch { /* listes vides */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+  const LIVE_EN_COURS = liveData ?? LIVE_FALLBACK
+  const hasLive = !!liveData
+  // Source vidéo réelle du direct : ID YouTube extrait de l'URL/ID admin, sinon vidéo hébergée.
+  const liveYtId = ytId(LIVE_EN_COURS.youtube_url)
+  const liveVideoUrl = LIVE_EN_COURS.video_url || ''
 
   useEffect(() => {
     if (chatRef.current) {
@@ -128,7 +170,17 @@ export default function LivesPage() {
           </div>
         </div>
 
-        {tab === 'live' && (
+        {tab === 'live' && !hasLive && (
+          <div className="card-cinematic text-center py-20">
+            <div className="w-16 h-16 rounded-2xl mx-auto mb-5 flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)' }}>
+              <RadioIcon className="w-7 h-7 text-gold" />
+            </div>
+            <p className="font-cinzel text-lg text-pearl/60">Aucun direct en cours</p>
+            <p className="font-inter text-sm text-pearl/30 mt-1">Consultez le programme pour les prochains directs.</p>
+          </div>
+        )}
+
+        {tab === 'live' && hasLive && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
             {/* Player column */}
@@ -141,46 +193,41 @@ export default function LivesPage() {
                 className="relative rounded-3xl overflow-hidden"
                 style={{ aspectRatio: '16/9', background: 'linear-gradient(135deg, #050010 0%, #120028 50%, #050010 100%)' }}
               >
-                {/* Faux player cinématique */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div
-                    className="absolute inset-0 opacity-30"
-                    style={{
-                      background: 'radial-gradient(ellipse at 30% 40%, rgba(212,175,55,0.25) 0%, transparent 60%), radial-gradient(ellipse at 70% 60%, rgba(75,0,130,0.3) 0%, transparent 60%)',
-                    }}
+                {/* Lecteur réel : YouTube (depuis l'URL/ID admin), sinon vidéo hébergée, sinon état clair. */}
+                {liveYtId ? (
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src={`https://www.youtube.com/embed/${liveYtId}?rel=0&modestbranding=1`}
+                    title={LIVE_EN_COURS.titre}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
                   />
-                  <div className="relative z-10 text-center px-8">
-                    {(() => {
-                      const Icon = platIcon(LIVE_EN_COURS.plateforme)
-                      return (
-                        <div
-                          className="w-24 h-24 mx-auto mb-6 rounded-3xl flex items-center justify-center"
-                          style={{
-                            background: 'rgba(212,175,55,0.08)',
-                            border: '1px solid rgba(212,175,55,0.25)',
-                            boxShadow: '0 0 60px rgba(212,175,55,0.18) inset, 0 12px 40px rgba(0,0,0,0.4)',
-                          }}
-                        >
-                          <Icon className="w-11 h-11 opacity-70" style={{ color: '#D4AF37' }} />
-                        </div>
-                      )
-                    })()}
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
-                      style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)' }}>
-                      <span className="relative flex w-2 h-2">
-                        <span className="absolute inline-flex w-full h-full rounded-full bg-red-500 opacity-70 animate-ping" />
-                        <span className="relative inline-flex w-2 h-2 rounded-full bg-red-500" />
-                      </span>
-                      <span className="font-inter text-xs font-bold tracking-[0.18em] text-gold">LIVE EN DIRECT</span>
+                ) : liveVideoUrl ? (
+                  <video
+                    controls
+                    poster={LIVE_EN_COURS.cover || undefined}
+                    className="absolute inset-0 w-full h-full bg-black"
+                    src={liveVideoUrl}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-8">
+                    {LIVE_EN_COURS.cover && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={LIVE_EN_COURS.cover} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+                    )}
+                    <div className="relative z-10">
+                      <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                        style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)' }}>
+                        <RadioIcon className="w-7 h-7 text-gold" />
+                      </div>
+                      <h2 className="font-cinzel text-lg md:text-2xl font-black text-pearl leading-tight">{LIVE_EN_COURS.titre}</h2>
+                      <p className="font-inter text-sm text-pearl/40 mt-2">La vidéo de ce direct n'est pas encore disponible.</p>
                     </div>
-                    <h2 className="font-cinzel text-xl md:text-3xl font-black text-pearl leading-tight tracking-tight" style={{ letterSpacing: '-0.01em' }}>
-                      {LIVE_EN_COURS.titre}
-                    </h2>
                   </div>
-                </div>
+                )}
 
-                {/* Floating reactions */}
-                <div className="absolute bottom-16 left-4 pointer-events-none">
+                {/* Réactions flottantes (par-dessus le lecteur, sans bloquer les clics) */}
+                <div className="absolute bottom-16 left-4 pointer-events-none z-20">
                   <AnimatePresence>
                     {reactions.map(r => (
                       <motion.div
@@ -198,75 +245,15 @@ export default function LivesPage() {
                   </AnimatePresence>
                 </div>
 
-                {/* Controls overlay */}
-                <div className="absolute inset-0 flex flex-col justify-between p-4">
-                  {/* Top bar */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-                      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}>
-                      <Radio className="w-3.5 h-3.5 text-red-400 animate-pulse" />
-                      <span className="text-white text-xs font-inter font-bold">
-                        {LIVE_EN_COURS.spectateurs.toLocaleString()} spectateurs
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setBookmarked(!bookmarked)}
-                        className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
-                        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}>
-                        <Bookmark className="w-4 h-4" style={{ color: bookmarked ? '#D4AF37' : 'white' }}
-                          fill={bookmarked ? '#D4AF37' : 'none'} />
-                      </button>
-                      <button className="w-8 h-8 rounded-xl flex items-center justify-center"
-                        style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}>
-                        <Share2 className="w-4 h-4 text-white" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Bottom controls */}
-                  <div className="space-y-3">
-                    {/* Progress bar */}
-                    <div className="relative h-1 rounded-full cursor-pointer" style={{ background: 'rgba(255,255,255,0.2)' }}>
-                      <div className="h-full rounded-full" style={{ width: '34%', background: 'linear-gradient(90deg, #8B5CF6, #D4AF37)' }} />
-                      <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white shadow-lg"
-                        style={{ left: '34%', transform: 'translate(-50%, -50%)' }} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => setIsPlaying(!isPlaying)}
-                          className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
-                          style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)' }}>
-                          {isPlaying
-                            ? <Pause className="w-5 h-5 text-abyss" fill="currentColor" />
-                            : <Play className="w-5 h-5 text-abyss ml-0.5" fill="currentColor" />
-                          }
-                        </button>
-                        <button onClick={() => setIsMuted(!isMuted)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center"
-                          style={{ background: 'rgba(0,0,0,0.4)' }}>
-                          {isMuted
-                            ? <VolumeX className="w-4 h-4 text-pearl/60" />
-                            : <Volume2 className="w-4 h-4 text-white" />
-                          }
-                        </button>
-                        <span className="text-white text-xs font-mono">1:23:47 / En direct</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-inter"
-                          style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setChatOpen(!chatOpen)}>
-                          <MessageSquare className="w-3.5 h-3.5 text-white" />
-                          <span className="text-white">Chat</span>
-                        </button>
-                        <button className="w-8 h-8 rounded-lg flex items-center justify-center"
-                          style={{ background: 'rgba(0,0,0,0.4)' }}>
-                          <Maximize className="w-4 h-4 text-white" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                {/* Bouton Chat flottant (n'obstrue pas la vidéo) */}
+                <button
+                  onClick={() => setChatOpen(!chatOpen)}
+                  className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-inter"
+                  style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-white" />
+                  <span className="text-white">{chatOpen ? 'Masquer' : 'Chat'}</span>
+                </button>
               </motion.div>
 
               {/* Info bar */}
@@ -319,13 +306,23 @@ export default function LivesPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Offrande pendant le direct — MÊME composant que la page publique /live */}
+                <div className="mt-4 pt-4 border-t border-pearl/[0.05] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p className="font-cinzel text-sm font-bold text-pearl">Soutenez ce programme</p>
+                    <p className="font-inter text-xs text-pearl/40">Faites votre offrande sans quitter le direct — reçu envoyé par email.</p>
+                  </div>
+                  <LiveOffering programme={LIVE_EN_COURS.titre} />
+                </div>
               </motion.div>
 
               {/* Coming up */}
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 <h3 className="font-cinzel text-xs font-bold text-pearl/40 mb-3 uppercase tracking-wider">Prochains Lives</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {A_VENIR.map((e) => (
+                  {aVenir.length === 0 && <p className="text-pearl/30 text-xs font-inter">Aucun live programmé.</p>}
+                  {aVenir.map((e) => (
                     <div key={e.id} className="p-3 rounded-2xl cursor-pointer transition-all"
                       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
                       onMouseEnter={ev => {
@@ -458,8 +455,14 @@ export default function LivesPage() {
               ))}
             </div>
 
+            {replays.length === 0 && (
+              <div className="card-cinematic text-center py-16">
+                <Tv className="w-7 h-7 mx-auto mb-3 text-gold/40" />
+                <p className="font-inter text-sm text-pearl/40">Aucun replay disponible pour le moment.</p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {REPLAYS.map((r, i) => (
+              {replays.map((r, i) => (
                 <motion.div
                   key={r.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -467,6 +470,7 @@ export default function LivesPage() {
                   transition={{ delay: i * 0.06 }}
                   className="card-royal group cursor-pointer"
                   style={{ transition: 'border-color 0.2s, box-shadow 0.2s' }}
+                  onClick={() => r.youtube_url && window.open(r.youtube_url, '_blank', 'noopener,noreferrer')}
                   onMouseEnter={e => {
                     (e.currentTarget as HTMLDivElement).style.borderColor = `${r.couleur}30`
                   }}
@@ -480,6 +484,10 @@ export default function LivesPage() {
                     return (
                       <div className="relative rounded-2xl overflow-hidden mb-4 h-36"
                         style={{ background: `linear-gradient(135deg, ${r.couleur}28, rgba(10,0,24,0.95))` }}>
+                        {r.cover && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={r.cover} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />
+                        )}
                         <div
                           className="absolute inset-0 pointer-events-none"
                           style={{ background: `radial-gradient(ellipse at 50% 40%, ${r.couleur}22 0%, transparent 70%)` }}
@@ -533,28 +541,41 @@ export default function LivesPage() {
 
         {tab === 'programme' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+            {/* Programmes réguliers officiels */}
+            <div className="card-royal mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="w-4 h-4 text-gold" />
+                <h3 className="font-cinzel text-sm font-bold text-pearl">Programmes réguliers</h3>
+                <span className="text-[10px] text-pearl/35 font-inter ml-auto">Heure d&apos;Abidjan (GMT)</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {PROGRAMMES_REGULIERS.map((p) => (
+                  <div key={p.titre} className="flex items-center justify-between gap-3 p-3 rounded-xl"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="min-w-0">
+                      <p className="font-inter text-sm font-semibold text-pearl truncate">{p.titre}</p>
+                      <p className="font-inter text-[11px] text-pearl/40">{p.jour}</p>
+                    </div>
+                    <span className="font-cinzel text-sm font-bold text-gold flex-shrink-0">{p.heure}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="card-royal mb-6">
               <div className="flex items-center gap-2 mb-1">
                 <Calendar className="w-4 h-4 text-gold" />
                 <h3 className="font-cinzel text-sm font-bold text-pearl">Programme des Prochains Lives</h3>
               </div>
-              <p className="text-xs text-pearl/35 font-inter">Tous les horaires sont en heure de Paris (CET)</p>
+              <p className="text-xs text-pearl/35 font-inter">Directs ponctuels programmés par l&apos;équipe.</p>
             </div>
-            {[
-              { date: 'Dimanche 11 Mai', items: [
-                { titre: 'Culte Principal CIER', heure: '10:00', plateforme: 'CIER Global', couleur: '#D4AF37', prevues: 2800 },
-                { titre: 'Culte Jeunesse',       heure: '15:00', plateforme: 'Jeunesse',    couleur: '#6366F1', prevues: 450 },
-              ]},
-              { date: 'Mercredi 14 Mai', items: [
-                { titre: 'Étude Biblique — Actes des Apôtres', heure: '20:00', plateforme: 'CFIC', couleur: '#0EA5E9', prevues: 320 },
-              ]},
-              { date: 'Vendredi 16 Mai', items: [
-                { titre: "Groupe Femmes d'Exceptions", heure: '21:00', plateforme: "Femmes d'Exceptions", couleur: '#EC4899', prevues: 180 },
-              ]},
-              { date: 'Jeudi 15 Mai', items: [
-                { titre: 'Veillée de Prière — Nations Africaines', heure: '22:00', plateforme: 'Intercession', couleur: '#8B5CF6', prevues: 560 },
-              ]},
-            ].map((day) => (
+            {aVenir.length === 0 && (
+              <div className="card-royal text-center py-12">
+                <Calendar className="w-7 h-7 mx-auto mb-3 text-gold/40" />
+                <p className="font-inter text-sm text-pearl/40">Aucun live programmé pour le moment.</p>
+              </div>
+            )}
+            {Object.entries(aVenir.reduce<Record<string, AVenirItem[]>>((acc, e) => { (acc[e.date] = acc[e.date] || []).push(e); return acc }, {})).map(([date, items]) => ({ date, items })).map((day) => (
               <div key={day.date}>
                 <h4 className="text-xs font-inter font-semibold text-pearl/30 uppercase tracking-wider mb-3">{day.date}</h4>
                 <div className="space-y-2">

@@ -111,7 +111,7 @@ export function RouteError({
             {homeLabel}
           </Link>
           <a
-            href="mailto:support@cier.org"
+            href="mailto:support@chapelleduroyaume.org"
             className="hidden sm:flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-inter font-medium text-sm transition-all hover:-translate-y-0.5"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.45)' }}
           >

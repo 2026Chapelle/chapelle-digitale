@@ -7,36 +7,20 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { track } from '@/lib/analytics'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// Siège officiel (information vérifiée). Aucun bureau fictif.
 const OFFICES = [
   {
-    ville: 'Paris — Siège Europe',
-    pays: '🇫🇷 France',
-    adresse: '14 Rue du Faubourg Saint-Antoine, 75011 Paris',
-    email: 'europe@cier-chapelle.org',
-    tel: '+33 1 45 67 89 10',
-    horaires: 'Lun–Ven 9h–18h CET',
-    couleur: '#D4AF37',
-  },
-  {
-    ville: 'Kinshasa — Siège Afrique',
-    pays: '🇨🇩 RD Congo',
-    adresse: 'Avenue du Peuple, Commune de Lingwala, Kinshasa',
-    email: 'afrique@cier-chapelle.org',
-    tel: '+243 81 234 56 78',
+    ville: 'Abidjan — Siège Afrique',
+    pays: '🇨🇮 Côte d\'Ivoire',
+    adresse: 'Rue M123, Commune de Cocody, Angré',
+    email: 'info@chapelleduroyaume.org',
+    tel: '+225 07 48 84 24 15',
     horaires: 'Lun–Sam 8h–17h WAT',
-    couleur: '#22C55E',
-  },
-  {
-    ville: 'Montréal — Siège Amériques',
-    pays: '🇨🇦 Canada',
-    adresse: '3480 Rue Saint-Denis, Montréal, QC H2X 3L3',
-    email: 'ameriques@cier-chapelle.org',
-    tel: '+1 514 234 56 78',
-    horaires: 'Lun–Ven 9h–17h EST',
-    couleur: '#8B5CF6',
+    couleur: '#D4AF37',
   },
 ]
 
@@ -80,9 +64,30 @@ export default function ContactPage() {
     if (!validate()) return
     setLoading(true)
     track('contact_submit', { sujet })
-    await new Promise(r => setTimeout(r, 1400))
+    try {
+      if (!IS_DEMO_MODE) {
+        // Enregistrement réel du message (clé anon + RLS insert public).
+        const { error } = await supabase.from('contact_messages').insert({
+          nom: nom.trim(), email: email.trim(), sujet, message: message.trim(),
+        })
+        if (error) {
+          setErrs({ message: "L'envoi a échoué. Réessayez dans un instant." })
+          setLoading(false)
+          return
+        }
+        // Notification email à l'admin (best-effort, ne bloque pas l'utilisateur).
+        fetch('/api/notify/contact', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nom: nom.trim(), email: email.trim(), sujet, message: message.trim() }),
+        }).catch(() => {})
+      } else {
+        await new Promise(r => setTimeout(r, 800))
+      }
+      setSuccess(true)
+    } catch {
+      setErrs({ message: 'Erreur réseau. Réessayez.' })
+    }
     setLoading(false)
-    setSuccess(true)
   }
 
   return (
@@ -289,25 +294,25 @@ export default function ContactPage() {
                 <MessageCircle className="w-4 h-4 text-gold" />
                 Contact Direct
               </h3>
-              <a href="mailto:contact@cier-chapelle.org"
+              <a href="mailto:info@chapelleduroyaume.org"
                 className="flex items-center gap-3 p-3 rounded-xl border border-pearl/5 hover:border-gold/20 hover:bg-gold/5 transition-all group">
                 <div className="w-9 h-9 rounded-xl bg-gold/10 flex items-center justify-center">
                   <Mail className="w-4 h-4 text-gold" />
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-pearl font-inter">Email général</div>
-                  <div className="text-[11px] text-pearl/40 font-inter">contact@cier-chapelle.org</div>
+                  <div className="text-[11px] text-pearl/40 font-inter">info@chapelleduroyaume.org</div>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-pearl/20 group-hover:text-gold ml-auto transition-colors" />
               </a>
-              <a href="https://wa.me/33145678910"
+              <a href="https://wa.me/2250748842415"
                 className="flex items-center gap-3 p-3 rounded-xl border border-pearl/5 hover:border-green-400/20 hover:bg-green-400/5 transition-all group">
                 <div className="w-9 h-9 rounded-xl bg-green-400/10 flex items-center justify-center">
                   <Phone className="w-4 h-4 text-green-400" />
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-pearl font-inter">WhatsApp</div>
-                  <div className="text-[11px] text-pearl/40 font-inter">Réponse sous 2h en semaine</div>
+                  <div className="text-[11px] text-pearl/40 font-inter">+225 07 48 84 24 15</div>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-pearl/20 group-hover:text-green-400 ml-auto transition-colors" />
               </a>

@@ -2,6 +2,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Users, Heart, Send, MessageCircle, Radio, Clock, Eye, Download } from 'lucide-react'
+import LiveOffering from '@/components/features/giving/LiveOffering'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+
+/** Extrait l'ID YouTube d'une URL ou ID brut (source unique avec l'espace membre). */
+function ytId(url?: string): string | null {
+  if (!url) return null
+  const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|live\/|shorts\/))([\w-]{11})/)
+  return m ? m[1] : (/^[\w-]{11}$/.test(String(url)) ? String(url) : null)
+}
 
 const CHAT_MESSAGES = [
   { id: 1, nom: 'Marie K.', pays: '🇫🇷', message: 'Merci Seigneur pour cette parole !', type: 'message', time: '10:42' },
@@ -26,6 +35,25 @@ export default function LivePage() {
   const [messages, setMessages] = useState(CHAT_MESSAGES)
   const [reactionsVisible, setReactionsVisible] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // Direct RÉEL depuis cms_lives — MÊME source que l'espace membre (source unique).
+  const [live, setLive] = useState<{ titre: string; description: string; youtube_url: string; video_url: string; cover: string; plateforme: string } | null>(null)
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('cms_lives')
+          .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status')
+          .in('status', ['live', 'scheduled', 'ended', 'published'])
+        if (cancelled || !data) return
+        const row: any = data.find((d: any) => d.status === 'live' || d.is_live)
+        if (row) setLive({ titre: row.title, description: row.description || '', youtube_url: row.youtube_url || '', video_url: row.video_url || '', cover: row.cover_url || '', plateforme: row.platform || '' })
+      } catch { /* pas de direct */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+  const liveYt = ytId(live?.youtube_url)
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault()
@@ -102,36 +130,37 @@ export default function LivePage() {
 
             {/* Video player */}
             <div className="xl:col-span-2">
-              {/* Offline state */}
+              {/* Lecteur RÉEL (cms_lives) : YouTube → vidéo hébergée → état hors-ligne. */}
               <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-royal/20 to-abyss border border-pearl/10"
                 style={{ aspectRatio: '16/9' }}>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-                  <div className="w-20 h-20 rounded-3xl bg-pearl/5 flex items-center justify-center text-3xl mb-4">
-                    ⛪
+                {liveYt ? (
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src={`https://www.youtube.com/embed/${liveYt}?rel=0&modestbranding=1`}
+                    title={live?.titre || 'Direct'}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : live?.video_url ? (
+                  <video controls poster={live.cover || undefined} className="absolute inset-0 w-full h-full bg-black" src={live.video_url} />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+                    <div className="w-20 h-20 rounded-3xl bg-pearl/5 flex items-center justify-center text-3xl mb-4">⛪</div>
+                    <h2 className="font-cinzel text-xl font-bold text-pearl mb-2">Pas de Live en ce moment</h2>
+                    <p className="text-pearl/50 font-inter text-sm mb-6 max-w-sm">Le prochain culte en direct sera annoncé ici. Consultez le programme des cultes.</p>
+                    <div className="badge-gold flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Programmes réguliers — voir l&apos;agenda</div>
                   </div>
-                  <h2 className="font-cinzel text-xl font-bold text-pearl mb-2">
-                    Pas de Live en ce moment
-                  </h2>
-                  <p className="text-pearl/50 font-inter text-sm mb-6 max-w-sm">
-                    Le prochain culte en direct est prévu pour Dimanche à 10h00 (Paris)
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="badge-gold flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5" />
-                      Dimanche 10:00 Paris
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Video info */}
               <div className="mt-4 flex items-start justify-between gap-4">
                 <div>
                   <h1 className="font-cinzel text-lg font-bold text-pearl mb-1">
-                    Culte Principal CIER
+                    {live?.titre || 'Cultes en direct'}
                   </h1>
                   <p className="text-pearl/40 text-sm font-inter">
-                    Prochainement • Dimanche 10:00
+                    {live ? (live.plateforme || 'En direct maintenant') : 'Aucun direct en ce moment'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -144,6 +173,15 @@ export default function LivePage() {
                     Notes
                   </button>
                 </div>
+              </div>
+
+              {/* Offrande en direct — sans quitter le live */}
+              <div className="mt-4 rounded-2xl border border-gold/20 bg-gold/[0.04] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p className="font-cinzel text-sm font-bold text-pearl">Soutenez ce programme</p>
+                  <p className="font-inter text-xs text-pearl/45">Faites votre offrande pendant le direct — un reçu vous est envoyé par email.</p>
+                </div>
+                <LiveOffering programme={live?.titre || 'Culte en direct'} />
               </div>
             </div>
 
