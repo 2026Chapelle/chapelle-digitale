@@ -1,11 +1,64 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   BookOpen, Star, Flame, Globe, Crown, ChevronRight,
-  Check, Lock, Award, Zap, Heart, Users, Target, Mic, Sprout, HandHeart, Trophy,
+  Check, Lock, Award, Zap, Heart, Users, Target, Mic, Sprout, HandHeart, Trophy, Download, Sparkles,
   type LucideIcon,
 } from 'lucide-react'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { TunnelProgress } from '@/components/features/tunnel/TunnelProgress'
+import { TUNNEL_BY_KEY, nextStage, type TunnelStageKey } from '@/lib/tunnel'
+import { useAuth } from '@/components/providers/AuthProvider'
+
+/** Position RÉELLE dans le Tunnel Royal, dérivée du statut du membre (profil Supabase). */
+function statutToStage(membre_statut?: string): TunnelStageKey {
+  switch (membre_statut) {
+    case 'visiteur': return 'visiteur'
+    case 'nouveau_membre': return 'integration'
+    case 'membre_actif': return 'membre'
+    case 'disciple': return 'disciple'
+    case 'leader_cellule': return 'serviteur'
+    case 'berger':
+    case 'pasteur': return 'leader'
+    default: return 'visiteur'
+  }
+}
+
+/** Actions recommandées concrètes selon l'étape (guide de croissance). */
+const ACTIONS_PAR_ETAPE: Record<TunnelStageKey, { label: string; href: string }[]> = {
+  visiteur: [
+    { label: 'Déposer une demande de prière', href: '/member/dashboard/prieres' },
+    { label: 'Découvrir les cultes en direct', href: '/member/dashboard/lives' },
+    { label: 'Compléter mon profil', href: '/member/dashboard/profil' },
+  ],
+  contact: [
+    { label: 'Rejoindre un groupe', href: '/member/dashboard/groupes' },
+    { label: 'Commencer une formation', href: '/member/dashboard/formations' },
+  ],
+  integration: [
+    { label: 'Suivre le parcours Nouveau Converti', href: '/member/dashboard/formations' },
+    { label: 'Rejoindre une cellule', href: '/member/dashboard/groupes' },
+    { label: "S'inscrire à un événement", href: '/member/dashboard/evenements' },
+  ],
+  membre: [
+    { label: 'Avancer dans mes formations', href: '/member/dashboard/formations' },
+    { label: 'Participer au mur de prière', href: '/member/dashboard/prieres' },
+  ],
+  disciple: [
+    { label: 'Terminer un parcours certifiant', href: '/member/dashboard/formations' },
+    { label: 'Servir dans un groupe', href: '/member/dashboard/groupes' },
+  ],
+  serviteur: [
+    { label: 'Formation Leadership', href: '/member/dashboard/formations' },
+    { label: 'Encadrer une cellule', href: '/member/dashboard/groupes' },
+  ],
+  leader: [
+    { label: 'Accompagner de nouveaux disciples', href: '/member/dashboard/groupes' },
+    { label: 'Partager un témoignage', href: '/priere' },
+  ],
+}
 
 type Stage = {
   id: string
@@ -26,10 +79,10 @@ const STAGES: Stage[] = [
     xpTotal: 500,
     desc: 'Premiers pas dans la foi. Découvrir les fondements essentiels.',
     modules: [
-      { id: 'm1', titre: 'La Prière — Parler à Dieu', duree: '30min', done: true, xp: 50 },
-      { id: 'm2', titre: 'Lire la Bible chaque jour', duree: '25min', done: true, xp: 50 },
-      { id: 'm3', titre: 'Comprendre la Grâce', duree: '40min', done: true, xp: 75 },
-      { id: 'm4', titre: 'Votre témoignage de conversion', duree: '20min', done: true, xp: 75 },
+      { id: 'm1', titre: 'La Prière — Parler à Dieu', duree: '30min', done: false, xp: 50 },
+      { id: 'm2', titre: 'Lire la Bible chaque jour', duree: '25min', done: false, xp: 50 },
+      { id: 'm3', titre: 'Comprendre la Grâce', duree: '40min', done: false, xp: 75 },
+      { id: 'm4', titre: 'Votre témoignage de conversion', duree: '20min', done: false, xp: 75 },
       { id: 'm5', titre: 'Le baptême — Signification et symbolisme', duree: '45min', done: false, xp: 100 },
       { id: 'm6', titre: 'Trouver votre communauté', duree: '20min', done: false, xp: 75 },
     ],
@@ -98,23 +151,86 @@ const STAGES: Stage[] = [
   },
 ]
 
-const STATS = [
-  { icon: Zap, label: 'XP Total', value: '425', color: '#D4AF37' },
-  { icon: Flame, label: 'Série de prière', value: '12j', color: '#EF4444' },
-  { icon: BookOpen, label: 'Modules finis', value: '4/31', color: '#0EA5E9' },
-  { icon: Target, label: 'Étape actuelle', value: 'Nouveau', color: '#22C55E' },
+/**
+ * PROGRAMME D'INTÉGRATION — NIVEAU 1
+ * Les 3 parcours d'entrée, progressifs, qui mènent au parcours de discipulat.
+ * Logique d'ensemble : Entrer → S'enraciner → Être formé → Être envoyé.
+ * (Additif : ne remplace pas les STAGES de discipulat existants.)
+ */
+const PROGRAMME_INTEGRATION: {
+  num: number; titre: string; phase: string; desc: string
+  objectifs: string[]; icon: LucideIcon; couleur: string; href: string
+}[] = [
+  {
+    num: 1,
+    titre: 'Je découvre la maison',
+    phase: 'Entrer',
+    desc: 'Comprendre qui nous sommes, la vision de la CIER, et trouver ma place dans la famille.',
+    objectifs: ['Découvrir la vision et l\'histoire', 'Comprendre les valeurs du Royaume', 'Être accueilli et rattaché à une cellule'],
+    icon: Sparkles,
+    couleur: '#0EA5E9',
+    href: '/member/dashboard/formations',
+  },
+  {
+    num: 2,
+    titre: 'Je stabilise ma foi',
+    phase: "S'enraciner",
+    desc: 'Poser des fondations solides : la prière, la Parole, le baptême et la vie communautaire.',
+    objectifs: ['Établir une vie de prière', 'Lire la Bible chaque jour', 'Comprendre le baptême et la grâce'],
+    icon: Sprout,
+    couleur: '#22C55E',
+    href: '/member/dashboard/formations',
+  },
+  {
+    num: 3,
+    titre: 'Je deviens un disciple actif',
+    phase: 'Être formé → Être envoyé',
+    desc: 'Grandir, servir et porter du fruit : être formé, exercer ses dons et être envoyé vers les autres.',
+    objectifs: ['Être formé comme disciple', 'Servir dans un groupe', 'Témoigner et accompagner'],
+    icon: HandHeart,
+    couleur: '#D4AF37',
+    href: '/member/dashboard/formations',
+  },
 ]
 
-const MENTOR = {
-  nom: 'Sœur Rachel Biyong',
-  role: 'Mentore Spirituelle',
-  initials: 'RB',
-  disponible: true,
-}
-
 export default function ParcoursPage() {
+  const { profile } = useAuth()
+  const TUNNEL_STAGE = statutToStage(profile?.membre_statut)
+  // Position dans le programme d'intégration (0,1,2) dérivée du statut réel.
+  const integEtape = TUNNEL_STAGE === 'visiteur' || TUNNEL_STAGE === 'contact' ? 0 : TUNNEL_STAGE === 'integration' ? 1 : 2
+  const etapeNom = TUNNEL_BY_KEY[TUNNEL_STAGE]?.nom ?? 'Visiteur'
+  const suivante = nextStage(TUNNEL_STAGE)
+  const score = Number(profile?.score_engagement ?? 0)
+  const recommandations = ACTIONS_PAR_ETAPE[TUNNEL_STAGE] ?? []
+
+  // Stats RÉELLES dérivées du profil (aucun chiffre inventé).
+  const STATS = [
+    { icon: Zap, label: 'Score engagement', value: String(score), color: '#D4AF37' },
+    { icon: Target, label: 'Étape actuelle', value: etapeNom, color: '#22C55E' },
+    { icon: Trophy, label: 'Prochaine étape', value: suivante?.nom ?? 'Envoyé', color: '#8B5CF6' },
+  ]
+  // Mentorat réel à venir (table mentorships) — aucun mentor fictif affiché.
+  const MENTOR = { nom: '', role: 'Mentorat à venir', initials: '✦', disponible: false }
+
   const [activeStage, setActiveStage] = useState('nouveau')
   const [expandedMod, setExpandedMod] = useState<string | null>(null)
+
+  // Livret d'Accueil : URL stockée dans cms_settings (médiathèque). Aucune valeur codée en dur.
+  const [livretUrl, setLivretUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('cms_settings').select('value').eq('key', 'livret_accueil_url').maybeSingle()
+        if (cancelled) return
+        const v = data?.value
+        const u = typeof v === 'string' ? v : (v && typeof v === 'object' && 'url' in v ? (v as any).url : null)
+        if (u) setLivretUrl(String(u).replace(/^"|"$/g, ''))
+      } catch { /* pas de livret configuré */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   const stage = STAGES.find(s => s.id === activeStage) ?? STAGES[0]
   const currentStageIdx = STAGES.findIndex(s => s.id === activeStage)
@@ -166,10 +282,135 @@ export default function ParcoursPage() {
             <div className="font-inter text-xs font-semibold text-white truncate">{MENTOR.nom}</div>
             <div className="font-inter text-[10px]" style={{ color: 'rgba(212,175,55,0.7)' }}>{MENTOR.role}</div>
           </div>
-          <button className="ml-2 text-[10px] font-inter font-semibold px-3 py-1.5 rounded-lg transition-all hover:-translate-y-0.5"
+          <button data-tunnel-stage={TUNNEL_STAGE} className="ml-2 text-[10px] font-inter font-semibold px-3 py-1.5 rounded-lg transition-all hover:-translate-y-0.5"
             style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)', color: '#D4AF37' }}>
             <Mic className="w-3 h-3 inline mr-1" />Appeler
           </button>
+        </div>
+      </div>
+
+      {/* Tunnel Royal — position globale dans le parcours d'intégration */}
+      <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.06), rgba(75,0,130,0.06))', border: '1px solid rgba(212,175,55,0.15)' }}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-inter text-sm font-bold text-white flex items-center gap-2">
+            <Crown className="w-4 h-4 text-gold" /> Votre place dans le Royaume
+          </h2>
+          <span className="font-inter text-xs text-pearl/45">
+            Étape : <span className="text-gold font-semibold">{TUNNEL_BY_KEY[TUNNEL_STAGE].nom}</span>
+          </span>
+        </div>
+        <TunnelProgress current={TUNNEL_STAGE} variant="horizontal" />
+      </div>
+
+      {/* Programme d'Intégration — Niveau 1 : les 3 parcours d'entrée progressifs */}
+      <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
+          <h2 className="font-cinzel text-base font-bold text-pearl flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-gold" /> Programme d'Intégration — Niveau 1
+          </h2>
+          <span className="font-inter text-[11px] text-pearl/45">Entrer → S'enraciner → Être formé → Être envoyé</span>
+        </div>
+        <p className="font-inter text-sm text-pearl/55 mb-5 max-w-2xl">
+          Trois parcours progressifs pour passer du premier pas au disciple actif. Ils préparent et nourrissent votre parcours de discipulat ci-dessous.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {PROGRAMME_INTEGRATION.map((p, i) => {
+            const done = i < integEtape
+            const active = i === integEtape
+            return (
+              <div key={p.num} className="relative rounded-2xl p-5 flex flex-col"
+                style={{
+                  background: active ? `${p.couleur}12` : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${active ? `${p.couleur}45` : 'rgba(255,255,255,0.07)'}`,
+                  boxShadow: active ? `0 0 24px ${p.couleur}22` : 'none',
+                }}>
+                {/* Connecteur de progression (desktop) */}
+                {i < PROGRAMME_INTEGRATION.length - 1 && (
+                  <div className="hidden md:block absolute top-9 -right-2 w-4 h-0.5 z-10" style={{ background: 'rgba(255,255,255,0.12)' }} />
+                )}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                    style={{ background: `${p.couleur}1A`, border: `1px solid ${p.couleur}40` }}>
+                    {done ? <Check className="w-5 h-5" style={{ color: p.couleur }} /> : <p.icon className="w-5 h-5" style={{ color: p.couleur }} />}
+                  </div>
+                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full"
+                    style={{ background: `${p.couleur}1A`, color: p.couleur }}>{p.phase}</span>
+                </div>
+                <div className="font-inter text-[11px] font-semibold mb-0.5" style={{ color: p.couleur }}>Parcours {p.num}</div>
+                <h3 className="font-cinzel text-base font-bold text-pearl mb-1.5 leading-tight">{p.titre}</h3>
+                <p className="font-inter text-xs text-pearl/50 leading-relaxed mb-3">{p.desc}</p>
+                <ul className="space-y-1.5 mb-4 flex-1">
+                  {p.objectifs.map((o) => (
+                    <li key={o} className="flex items-start gap-2 font-inter text-[11px] text-pearl/60">
+                      <Check className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: p.couleur }} />
+                      <span>{o}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link href={p.href}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-inter font-semibold transition-all hover:-translate-y-0.5"
+                  style={{ background: active ? `linear-gradient(135deg, ${p.couleur}, ${p.couleur}bb)` : 'rgba(255,255,255,0.05)', color: active ? '#0B0717' : 'rgba(255,255,255,0.75)', border: active ? 'none' : '1px solid rgba(255,255,255,0.1)' }}>
+                  {done ? 'Revoir ce parcours' : active ? 'Continuer ce parcours' : 'Découvrir'}
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="mt-5 pt-4 border-t border-white/5 flex items-center gap-2">
+          <Target className="w-3.5 h-3.5 text-gold/70 flex-shrink-0" />
+          <p className="font-inter text-[11px] text-pearl/45">
+            Une fois ces parcours franchis, vous poursuivez votre croissance dans le <span className="text-gold font-semibold">parcours de discipulat</span> ci-dessous.
+          </p>
+        </div>
+      </div>
+
+      {/* Livret d'Accueil — Bienvenue → Vision → Téléchargement → Étape suivante */}
+      <div className="rounded-2xl p-5 mb-6" style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.10) 0%, rgba(75,0,130,0.12) 100%)', border: '1px solid rgba(212,175,55,0.25)' }}>
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles className="w-4 h-4 text-gold" />
+          <h2 className="font-cinzel text-sm font-bold text-pearl">Bienvenue dans la Citadelle{profile?.prenom ? `, ${profile.prenom}` : ''}</h2>
+        </div>
+        <p className="font-inter text-sm text-pearl/60 mb-4 max-w-2xl">
+          La Citadelle est une famille spirituelle mondiale. Découvrez la vision de l'œuvre, téléchargez votre livret d'accueil, puis avancez vers votre prochaine étape.
+        </p>
+        <div className="flex flex-wrap gap-2.5">
+          <Link href="/notre-histoire" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-inter font-semibold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
+            <Globe className="w-3.5 h-3.5" /> Découvrir la vision
+          </Link>
+          {livretUrl ? (
+            <a href={livretUrl} target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-1.5 text-xs px-4 py-2">
+              <Download className="w-3.5 h-3.5" /> Télécharger le Livret d'Accueil
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-inter text-pearl/35" style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.1)' }}>
+              <Download className="w-3.5 h-3.5" /> Livret d'Accueil bientôt disponible
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Moteur de progression : prochaine étape + actions recommandées */}
+      <div className="rounded-2xl p-5 mb-6" style={{ background: 'linear-gradient(135deg, rgba(75,0,130,0.18) 0%, rgba(212,175,55,0.06) 100%)', border: '1px solid rgba(212,175,55,0.2)' }}>
+        <div className="flex items-center gap-2 mb-1">
+          <Target className="w-4 h-4 text-gold" />
+          <h2 className="font-cinzel text-sm font-bold text-pearl">Votre prochaine étape</h2>
+        </div>
+        <p className="font-inter text-sm text-pearl/60 mb-4">
+          Vous êtes <span className="text-gold font-semibold">{etapeNom}</span>
+          {suivante ? <> — prochaine étape : <span className="font-semibold" style={{ color: '#D4AF37' }}>{suivante.nom}</span>.</> : <> — vous êtes envoyé pour multiplier. 🌍</>}
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          {recommandations.map((a) => (
+            <Link key={a.href + a.label} href={a.href}
+              className="flex items-center justify-between gap-2 p-3 rounded-xl transition-all hover:-translate-y-0.5"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <span className="font-inter text-xs text-pearl/80">{a.label}</span>
+              <ChevronRight className="w-4 h-4 text-gold/60 flex-shrink-0" />
+            </Link>
+          ))}
         </div>
       </div>
 

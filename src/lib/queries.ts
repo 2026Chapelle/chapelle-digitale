@@ -56,7 +56,7 @@ export async function getDashboardSummary(client?: MaybeClient): Promise<Dashboa
   const [profile, inscriptions, prieres, notifs] = await Promise.all([
     supabase.from('profiles').select('prenom, score_engagement, parcours_disciple_etape').eq('id', user.id).single(),
     supabase.from('inscriptions_formation').select('statut').eq('user_id', user.id),
-    supabase.from('demandes_priere').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('statut', 'active'),
+    supabase.from('priere_demandes').select('id', { count: 'exact', head: true }).eq('user_id', user.id).neq('statut', 'archivee'),
     supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('lue', false),
   ])
 
@@ -95,11 +95,11 @@ export async function getCommunityPrayers(limit = 30, client?: MaybeClient) {
 
   const supabase = client ?? createServerClient()
   const { data } = await supabase
-    .from('demandes_priere')
+    .from('priere_demandes')
     .select('*')
-    .eq('visibilite', 'public')
+    .eq('is_public', true)
     .neq('statut', 'archivee')
-    .order('date_creation', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(limit)
   return data ?? []
 }

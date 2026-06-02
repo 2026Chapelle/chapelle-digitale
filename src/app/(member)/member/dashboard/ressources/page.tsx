@@ -1,12 +1,12 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Search, Heart, Download, Star, Mic, Film, FileText, BookOpen, Headphones, BookMarked,
   Folder, BookOpenCheck, Library, ArrowDownUp, Crown, Sparkles, Clock,
   type LucideIcon,
 } from 'lucide-react'
-import { RESSOURCES, RessourceMock } from '@/lib/mock/ressources'
+import { type RessourceMock } from '@/lib/mock/ressources'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 const TYPES = ['Tout', 'Audio', 'Vidéo', 'PDF', 'Livre', 'Podcast', 'Dévotionnel'] as const
@@ -37,14 +37,68 @@ const TYPE_COLORS: Record<string, string> = {
   'Dévotionnel': '#EC4899',
 }
 
+/** Mappe la médiathèque CMS (cms_media) vers le format d'affichage des ressources. */
+function mapMediaToRessources(media: any[]): RessourceMock[] {
+  const TYPE_MAP: Record<string, RessourceMock['type']> = {
+    pdf: 'PDF', video: 'Vidéo', youtube: 'Vidéo', audio: 'Audio',
+  }
+  const EMOJI: Record<string, string> = { PDF: '📄', 'Vidéo': '🎬', Audio: '🎙️', Livre: '📚', Podcast: '🎧', 'Dévotionnel': '📔' }
+  return (media || [])
+    .filter((m) => m.type !== 'image') // les images ne sont pas des ressources téléchargeables
+    .map((m) => {
+      const type = TYPE_MAP[m.type] ?? 'PDF'
+      return {
+        id: m.id,
+        titre: m.title || 'Ressource',
+        description: '',
+        type,
+        categorie: m.category || 'Général',
+        auteur: m.platform || 'Citadelle',
+        duree: m.duration || undefined,
+        emoji: EMOJI[type] || '📄',
+        couleur: '#D4AF37',
+        date_ajout: m.created_at || new Date().toISOString(),
+        is_premium: false,
+        nb_telechargements: 0,
+        url: m.url,
+      }
+    })
+}
+
 export default function RessourcesPage() {
   const [search, setSearch] = useState('')
   const [activeType, setActiveType] = useState<FilterType>('Tout')
   const [sort, setSort] = useState<SortKey>('recent')
   const [premiumOnly, setPremiumOnly] = useState(false)
-  const [favorites, setFavorites] = useState<Set<string>>(
-    new Set(RESSOURCES.filter((r) => r.is_favori).map((r) => r.id)),
-  )
+  const [favorites, setFavorites] = useState<Set<string>>(new Set<string>())
+
+  // Données réelles : médiathèque CMS (cms_media). Aucune donnée fictive (démarre vide).
+  const [items, setItems] = useState<RessourceMock[]>([])
+  // Compteur de téléchargements local : incrémenté uniquement après un clic réussi.
+  const [dlBoost, setDlBoost] = useState<Record<string, number>>({})
+
+  /** Ouvre / télécharge la ressource (PDF public, vidéo, audio) puis incrémente le compteur. */
+  const access = (r: RessourceMock) => {
+    if (!r.url) return
+    const win = window.open(r.url, '_blank', 'noopener,noreferrer')
+    // Le compteur n'augmente qu'une fois l'ouverture déclenchée avec succès.
+    if (win) setDlBoost((prev) => ({ ...prev, [r.id]: (prev[r.id] || 0) + 1 }))
+  }
+  const dlCount = (r: RessourceMock) => r.nb_telechargements + (dlBoost[r.id] || 0)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/member/ressources', { credentials: 'same-origin' })
+        if (!r.ok) return
+        const j = await r.json()
+        if (cancelled || !j.ok) return
+        const mapped = mapMediaToRessources(j.data?.ressources || [])
+        setItems(mapped)
+      } catch { /* garde le mock */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   const toggleFav = (id: string) => {
     setFavorites((prev) => {
@@ -56,7 +110,7 @@ export default function RessourcesPage() {
   }
 
   const filtered = useMemo(() => {
-    const out = RESSOURCES.filter((r) => {
+    const out = items.filter((r) => {
       const matchType = activeType === 'Tout' || r.type === activeType
       const matchSearch =
         r.titre.toLowerCase().includes(search.toLowerCase()) ||
@@ -74,24 +128,24 @@ export default function RessourcesPage() {
       out.sort((a, b) => a.titre.localeCompare(b.titre, 'fr'))
     }
     return out
-  }, [search, activeType, sort, premiumOnly])
+  }, [items, search, activeType, sort, premiumOnly])
 
   const favResources = filtered.filter((r) => favorites.has(r.id))
   const otherResources = filtered.filter((r) => !favorites.has(r.id))
 
   // Stats
-  const totalRes = RESSOURCES.length
-  const totalDownloads = RESSOURCES.reduce((s, r) => s + r.nb_telechargements, 0)
-  const totalPremium = RESSOURCES.filter((r) => r.is_premium).length
+  const totalRes = items.length
+  const totalDownloads = items.reduce((s, r) => s + r.nb_telechargements, 0)
+  const totalPremium = items.filter((r) => r.is_premium).length
   const totalFav = favorites.size
 
   // Featured: most downloaded non-premium
   const featured = useMemo(
     () =>
-      [...RESSOURCES]
+      [...items]
         .filter((r) => !r.is_premium)
         .sort((a, b) => b.nb_telechargements - a.nb_telechargements)[0],
-    [],
+    [items],
   )
 
   const ResourceCard = ({ r, i }: { r: RessourceMock; i: number }) => {
@@ -160,13 +214,17 @@ export default function RessourcesPage() {
             )}
             {r.nb_pages && <span>{r.nb_pages} pages</span>}
             <span className="inline-flex items-center gap-1">
-              <Download className="w-3 h-3" /> {r.nb_telechargements.toLocaleString('fr-FR')}
+              <Download className="w-3 h-3" /> {dlCount(r).toLocaleString('fr-FR')}
             </span>
           </div>
-          <button className="btn-royal text-xs px-3 py-1.5 flex items-center gap-1">
-            <Download className="w-3 h-3" />
-            Accéder
-          </button>
+          {r.url ? (
+            <button onClick={() => access(r)} className="btn-royal text-xs px-3 py-1.5 flex items-center gap-1">
+              <Download className="w-3 h-3" />
+              Accéder
+            </button>
+          ) : (
+            <span className="text-[10px] text-pearl/30 font-inter px-3 py-1.5">Bientôt</span>
+          )}
         </div>
       </motion.div>
     )
@@ -272,14 +330,18 @@ export default function RessourcesPage() {
                   )}
                   <span className="inline-flex items-center gap-1">
                     <Download className="w-3 h-3" />
-                    {featured.nb_telechargements.toLocaleString('fr-FR')} téléchargements
+                    {dlCount(featured).toLocaleString('fr-FR')} téléchargements
                   </span>
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0">
-                <button className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5">
-                  <Download className="w-3.5 h-3.5" /> Accéder
-                </button>
+                {featured.url ? (
+                  <button onClick={() => access(featured)} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5">
+                    <Download className="w-3.5 h-3.5" /> Accéder
+                  </button>
+                ) : (
+                  <span className="text-xs text-pearl/35 font-inter px-4 py-2">Bientôt disponible</span>
+                )}
               </div>
             </div>
           </motion.div>

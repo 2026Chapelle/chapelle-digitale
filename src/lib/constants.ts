@@ -7,8 +7,8 @@ import {
 export const APP_NAME = 'La Chapelle Internationale des Élus du Royaume'
 export const APP_SHORT_NAME = 'CIER'
 export const APP_SLOGAN = 'Une Église Ouverte au Monde'
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cier.org'
-export const APP_EMAIL = 'contact@cier.org'
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://citadelle.chapelleduroyaume.org'
+export const APP_EMAIL = 'info@chapelleduroyaume.org'
 
 // Navigation
 export const NAV_HEIGHT = 80
@@ -279,8 +279,8 @@ export const PLANS_MEMBRE = {
   },
   disciple: {
     nom: 'Disciple Premium',
-    prix: 10,
-    devise: 'EUR/mois',
+    prix: 5000,
+    devise: 'FCFA/mois',
     fonctionnalites: [
       'Tout ce qui est gratuit +',
       'Accès illimité aux formations',
@@ -294,8 +294,8 @@ export const PLANS_MEMBRE = {
   },
   partenaire: {
     nom: 'Partenaire du Royaume',
-    prix: 50,
-    devise: 'EUR/mois',
+    prix: 25000,
+    devise: 'FCFA/mois',
     fonctionnalites: [
       'Tout Premium +',
       'Masterclass exclusives',

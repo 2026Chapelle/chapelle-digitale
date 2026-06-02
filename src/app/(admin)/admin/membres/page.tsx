@@ -2,8 +2,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Search, Users, TrendingUp, UserCheck, Star, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react'
-import { MEMBRES } from '@/lib/mock/membres'
+import { type MembreMock } from '@/lib/mock/membres'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useAdminData } from '@/lib/chapelle/useAdminData'
 
 const ROLE_COLORS: Record<string, string> = {
   visiteur: '#6B7280',
@@ -21,20 +22,24 @@ const STATUT_COLORS: Record<string, string> = {
   suspendu: '#EF4444',
 }
 
-const STATS = [
-  { label: 'Total membres', value: MEMBRES.length, icon: Users, color: '#D4AF37' },
-  { label: 'Actifs', value: MEMBRES.filter((m) => m.statut === 'actif').length, icon: UserCheck, color: '#22C55E' },
-  { label: 'Nouveaux ce mois', value: 3, icon: TrendingUp, color: '#0EA5E9' },
-  { label: 'Score moyen', value: Math.round(MEMBRES.reduce((acc, m) => acc + m.score_engagement, 0) / MEMBRES.length), icon: Star, color: '#8B5CF6' },
-]
-
 export default function AdminMembresPage() {
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statutFilter, setStatutFilter] = useState('')
   const [openMenu, setOpenMenu] = useState<string | null>(null)
 
-  const filtered = MEMBRES.filter((m) => {
+  // Branché sur Supabase (table chapelle.members + memberships).
+  // Aucune donnée fictive : liste vide tant qu'aucun membre réel n'est chargé.
+  const MEMBRES_DATA = useAdminData<MembreMock[]>('/api/admin/data/members', () => [])
+
+  const STATS = [
+    { label: 'Total membres', value: MEMBRES_DATA.length, icon: Users, color: '#D4AF37' },
+    { label: 'Actifs', value: MEMBRES_DATA.filter((m) => m.statut === 'actif').length, icon: UserCheck, color: '#22C55E' },
+    { label: 'Nouveaux ce mois', value: 0, icon: TrendingUp, color: '#0EA5E9' },
+    { label: 'Score moyen', value: MEMBRES_DATA.length ? Math.round(MEMBRES_DATA.reduce((acc, m) => acc + m.score_engagement, 0) / MEMBRES_DATA.length) : 0, icon: Star, color: '#8B5CF6' },
+  ]
+
+  const filtered = MEMBRES_DATA.filter((m) => {
     const matchSearch = `${m.prenom} ${m.nom} ${m.email}`.toLowerCase().includes(search.toLowerCase())
     const matchRole = !roleFilter || m.role === roleFilter
     const matchStatut = !statutFilter || m.statut === statutFilter
@@ -50,7 +55,7 @@ export default function AdminMembresPage() {
         <PageHeader
           eyebrow="Administration"
           title={<>Gestion des <span className="text-cinematic-gold">Membres</span></>}
-          description={`${MEMBRES.length.toLocaleString('fr')} membres dans la communauté CIER mondiale.`}
+          description={`${MEMBRES_DATA.length.toLocaleString('fr')} membres dans la communauté CIER mondiale.`}
         />
 
         {/* Stats */}

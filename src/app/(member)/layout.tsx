@@ -1,10 +1,11 @@
 import { Navbar } from '@/components/layout/Navbar'
 import { MemberSidebar } from '@/components/features/member/MemberSidebar'
 import { MobileBottomNav } from '@/components/features/member/MobileBottomNav'
+import { MemberGuard } from '@/components/providers/MemberGuard'
 
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <MemberGuard>
       <Navbar />
       <div className="flex min-h-screen bg-abyss">
         {/* Sidebar — desktop */}
@@ -19,6 +20,6 @@ export default function MemberLayout({ children }: { children: React.ReactNode }
       </div>
       {/* Mobile navigation */}
       <MobileBottomNav />
-    </>
+    </MemberGuard>
   )
 }

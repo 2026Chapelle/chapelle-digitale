@@ -6,25 +6,46 @@ import {
 } from 'lucide-react'
 import { PARCOURS_DISCIPLE, BADGES } from '@/lib/constants'
 import { PageHeader } from '@/components/ui/PageHeader'
-
-const MOCK_SCORE = 72
-const MOCK_ETAPE = 3
+import { useAuth } from '@/components/providers/AuthProvider'
 
 type ActionItem = { label: string; points: string; icon: LucideIcon; color: string }
+// Règles RÉELLES de score (barème officiel). Informatif : ce ne sont pas des données utilisateur.
 const ACTIONS: ActionItem[] = [
-  { label: 'Compléter une formation', points: '+20 pts', icon: BookOpen, color: '#8B5CF6' },
-  { label: 'Soumettre une prière',    points: '+5 pts',  icon: Heart,    color: '#EC4899' },
-  { label: 'Assister à un culte',     points: '+10 pts', icon: Church,   color: '#D4AF37' },
-  { label: 'Inviter un membre',       points: '+15 pts', icon: UserPlus, color: '#22C55E' },
-  { label: 'Compléter son profil',    points: '+10 pts', icon: PenLine,  color: '#0EA5E9' },
+  { label: 'Compléter son profil',     points: '+10 pts', icon: PenLine,  color: '#0EA5E9' },
+  { label: 'Terminer une formation',   points: '+20 pts', icon: BookOpen, color: '#8B5CF6' },
+  { label: 'Terminer un module',       points: '+5 pts',  icon: Trophy,   color: '#8B5CF6' },
+  { label: 'Publier un témoignage',    points: '+10 pts', icon: PenLine,  color: '#D4AF37' },
+  { label: 'Participer à un live',     points: '+3 pts',  icon: Church,   color: '#D4AF37' },
+  { label: 'Rejoindre un groupe',      points: '+5 pts',  icon: UserPlus, color: '#22C55E' },
+  { label: 'Faire un don',             points: '+5 pts',  icon: Heart,    color: '#22C55E' },
+  { label: 'Soumettre une prière',     points: '+2 pts',  icon: Heart,    color: '#EC4899' },
 ]
 
-const UNLOCKED_COUNT = 3
+/** Étape du parcours disciple (0..6) dérivée du statut réel du membre. */
+function statutToEtapeIdx(statut?: string): number {
+  switch (statut) {
+    case 'nouveau_membre': return 1
+    case 'membre_actif': return 2
+    case 'disciple': return 3
+    case 'leader_cellule': return 4
+    case 'berger': return 5
+    case 'pasteur': return 6
+    default: return 0 // visiteur
+  }
+}
 
 export default function EngagementPage() {
-  const currentEtape = PARCOURS_DISCIPLE[MOCK_ETAPE]
-  const nextEtape = PARCOURS_DISCIPLE[MOCK_ETAPE + 1]
-  const levelProgress = (MOCK_SCORE % 20) / 20 * 100
+  const { profile } = useAuth()
+  // Données RÉELLES (profil Supabase). Aucune valeur de démonstration.
+  const score = Math.max(0, Math.min(100, Number(profile?.score_engagement ?? 0)))
+  const etapeIdx = Math.max(0, Math.min(PARCOURS_DISCIPLE.length - 1,
+    Number(profile?.parcours_disciple_etape ?? statutToEtapeIdx(profile?.membre_statut))))
+  // Aucun badge débloqué tant que le moteur d'attribution réel n'est pas connecté.
+  const unlockedCount = 0
+
+  const currentEtape = PARCOURS_DISCIPLE[etapeIdx]
+  const nextEtape = PARCOURS_DISCIPLE[etapeIdx + 1]
+  const levelProgress = (score % 20) / 20 * 100
 
   const circumference = 2 * Math.PI * 58
 
@@ -57,7 +78,7 @@ export default function EngagementPage() {
                     stroke="url(#engageGrad)" strokeWidth="12"
                     strokeLinecap="round"
                     strokeDasharray={circumference}
-                    strokeDashoffset={circumference * (1 - MOCK_SCORE / 100)}
+                    strokeDashoffset={circumference * (1 - score / 100)}
                     style={{ transition: 'stroke-dashoffset 1.2s ease' }}
                   />
                   <defs>
@@ -68,7 +89,7 @@ export default function EngagementPage() {
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="font-cinzel font-black text-gold text-4xl leading-none">{MOCK_SCORE}</span>
+                  <span className="font-cinzel font-black text-gold text-4xl leading-none">{score}</span>
                   <span className="text-pearl/30 text-xs font-inter mt-1">sur 100</span>
                 </div>
               </div>
@@ -106,7 +127,7 @@ export default function EngagementPage() {
                       <div
                         className="absolute top-5 left-1/2 w-full h-0.5"
                         style={{
-                          background: i < MOCK_ETAPE ? currentEtape.couleur : 'rgba(255,255,255,0.05)',
+                          background: i < etapeIdx ? currentEtape.couleur : 'rgba(255,255,255,0.05)',
                           zIndex: 0,
                         }}
                       />
@@ -115,16 +136,16 @@ export default function EngagementPage() {
                     <div
                       className="relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold mb-2 transition-all"
                       style={{
-                        background: i <= MOCK_ETAPE ? p.couleur : 'rgba(255,255,255,0.05)',
-                        color: i <= MOCK_ETAPE ? '#050505' : 'rgba(255,255,255,0.2)',
-                        boxShadow: i === MOCK_ETAPE ? `0 0 20px ${p.couleur}60` : 'none',
-                        transform: i === MOCK_ETAPE ? 'scale(1.15)' : 'scale(1)',
+                        background: i <= etapeIdx ? p.couleur : 'rgba(255,255,255,0.05)',
+                        color: i <= etapeIdx ? '#050505' : 'rgba(255,255,255,0.2)',
+                        boxShadow: i === etapeIdx ? `0 0 20px ${p.couleur}60` : 'none',
+                        transform: i === etapeIdx ? 'scale(1.15)' : 'scale(1)',
                       }}
                     >
-                      {i < MOCK_ETAPE ? '✓' : i + 1}
+                      {i < etapeIdx ? '✓' : i + 1}
                     </div>
                     <p className={`text-[10px] text-center font-inter leading-tight ${
-                      i === MOCK_ETAPE ? 'text-pearl font-semibold' : i < MOCK_ETAPE ? 'text-pearl/40' : 'text-pearl/20'
+                      i === etapeIdx ? 'text-pearl font-semibold' : i < etapeIdx ? 'text-pearl/40' : 'text-pearl/20'
                     }`}>{p.nom}</p>
                   </div>
                 ))}
@@ -172,11 +193,11 @@ export default function EngagementPage() {
                   <Trophy className="w-4 h-4 text-gold" />
                   Mes Badges
                 </h2>
-                <span className="text-xs text-pearl/30 font-inter">{UNLOCKED_COUNT}/10 débloqués</span>
+                <span className="text-xs text-pearl/30 font-inter">{unlockedCount}/10 débloqués</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {BADGES.slice(0, 10).map((badge, i) => {
-                  const unlocked = i < UNLOCKED_COUNT
+                  const unlocked = i < unlockedCount
                   return (
                     <div
                       key={badge.id}

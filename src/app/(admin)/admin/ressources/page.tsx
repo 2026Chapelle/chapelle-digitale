@@ -6,8 +6,11 @@ import {
   Eye, Download, BookOpen, Video, Music,
   Lock, Unlock, Star, Upload, MoreVertical
 } from 'lucide-react'
-import { RESSOURCES } from '@/lib/mock/ressources'
+import type { RessourceMock } from '@/lib/mock/ressources'
 import { PageHeader } from '@/components/ui/PageHeader'
+
+// Aucune donnée fictive : la bibliothèque se remplira avec les ressources réelles (Supabase).
+const RESSOURCES: RessourceMock[] = []
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   'PDF': <FileText className="w-4 h-4" />,
@@ -134,6 +137,14 @@ export default function AdminRessourcesPage() {
           </div>
         </motion.div>
 
+        {filtered.length === 0 && (
+          <div className="card-royal text-center py-16 mb-4">
+            <FileText className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+            <p className="font-cinzel text-pearl/60">Aucune ressource disponible pour le moment</p>
+            <p className="font-inter text-xs text-pearl/30 mt-1">Les ressources réelles apparaîtront ici.</p>
+          </div>
+        )}
+
         {/* Grid */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -256,12 +267,11 @@ export default function AdminRessourcesPage() {
 
         {/* Upload Modal */}
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}>
+          <div className="admin-modal-overlay flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="card-royal w-full max-w-lg"
+              className="admin-modal-box p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-cinzel text-lg font-bold text-pearl">Nouvelle Ressource</h2>

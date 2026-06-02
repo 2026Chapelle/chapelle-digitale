@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Youtube, Facebook, Instagram, Twitter, Send, Check, Loader2 } from 'lucide-react'
 import { SOCIAL_LINKS } from '@/lib/constants'
 import { events } from '@/lib/analytics'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -19,6 +20,8 @@ const FOOTER_LINKS = {
   ],
   'Ressources': [
     { label: 'Formations', href: '/formations' },
+    { label: 'Enseignements', href: '/enseignements' },
+    { label: 'Articles', href: '/articles' },
     { label: 'Live & Replays', href: '/live' },
     { label: 'Podcast', href: '/podcast' },
     { label: 'Mur de Prière', href: '/priere' },
@@ -26,10 +29,12 @@ const FOOTER_LINKS = {
     { label: 'Dons & Partenariat', href: '/dons' },
   ],
   'Communauté': [
-    { label: 'Groupes', href: '/groupes' },
+    { label: 'Le Parcours', href: '/parcours' },
+    { label: 'Intégration', href: '/integration' },
+    { label: 'La Communauté', href: '/communaute' },
+    { label: 'Servir', href: '/servir' },
+    { label: 'Partenaires', href: '/partenaires' },
     { label: 'Témoignages', href: '/temoignages' },
-    { label: 'Agenda', href: '/evenements' },
-    { label: 'Bénévolat', href: '/benevolat' },
   ],
   'Informations': [
     { label: 'Notre Histoire', href: '/notre-histoire' },
@@ -64,8 +69,18 @@ export function Footer() {
     setErrorMsg(null)
     try {
       events.newsletterSubscribe('footer')
-      // Simulated success — wire to a real endpoint when available.
-      await new Promise((r) => setTimeout(r, 600))
+      if (!IS_DEMO_MODE) {
+        // Enregistrement réel (clé anon + RLS). Anti-doublon via contrainte unique.
+        const { error } = await supabase
+          .from('newsletter_subscribers')
+          .insert({ email: email.trim().toLowerCase(), source: 'footer' })
+        // 23505 = email déjà abonné → on considère ça comme un succès.
+        if (error && error.code !== '23505') {
+          setStatus('error'); setErrorMsg("Échec de l'abonnement. Réessayez."); return
+        }
+      } else {
+        await new Promise((r) => setTimeout(r, 400))
+      }
       setStatus('success')
       setEmail('')
     } catch {

@@ -101,14 +101,17 @@ export function JoinSection() {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="text-center mb-12"
           >
-            <div className="section-label-dark justify-center">Plans & Tarifs</div>
+            <div className="section-label-dark justify-center">Soutenir l'œuvre</div>
             <h2 className="heading-cinematic-lg mb-4">
-              Choisissez Votre
-              <span className="block text-cinematic-gold">Niveau d'Engagement</span>
+              Soutenir l'œuvre &amp; accéder aux
+              <span className="block text-cinematic-gold">ressources avancées</span>
             </h2>
-            <p className="font-inter text-base md:text-lg max-w-xl mx-auto leading-relaxed"
+            <p className="font-inter text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
               style={{ color: 'rgba(245,230,216,0.55)' }}>
-              Commencez gratuitement et évoluez à votre rythme. Chaque plan ouvre de nouvelles dimensions spirituelles.
+              Votre croissance spirituelle reste <span className="text-pearl/90 font-semibold">entièrement gratuite</span> :
+              le parcours Visiteur → Contact → Intégration → Disciple → Membre → Serviteur → Leader est ouvert à tous.
+              Ces formules ne sont pas une barrière — elles servent uniquement à soutenir l'œuvre et à débloquer
+              certains contenus premium.
             </p>
           </motion.div>
 
@@ -166,7 +169,7 @@ export function JoinSection() {
                         className="font-cinzel text-4xl font-black"
                         style={{ color: isHighlighted ? '#F5E6A7' : '#FFFFFF' }}
                       >
-                        {plan.prix === 0 ? 'Gratuit' : `${plan.prix}€`}
+                        {plan.prix === 0 ? 'Gratuit' : `${plan.prix.toLocaleString('fr-FR')} FCFA`}
                       </span>
                       {'devise' in plan && (
                         <span className="text-sm font-inter"

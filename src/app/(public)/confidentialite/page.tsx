@@ -13,7 +13,7 @@ const SECTIONS = [
       'Informations d\'identification : prénom, nom, adresse email, pays de résidence',
       'Données de profil spirituel : plateforme choisie, étape du parcours disciple, formations suivies',
       'Données d\'usage : pages visitées, temps de connexion, contenus consultés',
-      'Données de paiement : traitées exclusivement par Stripe — nous ne stockons aucune donnée bancaire',
+      'Données de paiement : traitées exclusivement par notre prestataire de paiement sécurisé — nous ne stockons aucune donnée bancaire',
       'Communications : requêtes de prière, messages au support pastoral, témoignages soumis',
     ],
   },
@@ -38,7 +38,7 @@ const SECTIONS = [
     color: '#8B5CF6',
     contenu: [
       'Vos données personnelles ne sont jamais vendues à des tiers',
-      'Partenaires techniques uniquement : Stripe (paiements), Supabase (hébergement), Vercel (infrastructure)',
+      'Partenaires techniques uniquement : prestataire de paiement sécurisé (paiements), Supabase (hébergement), Vercel (infrastructure)',
       'Les requêtes de prière confidentielles ne sont accessibles qu\'à l\'équipe d\'intercesseurs',
       'Vos données sont conservées pendant la durée de votre compte + 3 ans après désactivation',
       'Les données de paiement sont conservées 10 ans conformément aux obligations légales françaises',
@@ -55,7 +55,7 @@ const SECTIONS = [
       'Droit à l\'effacement : demandez la suppression de votre compte et données',
       'Droit à la portabilité : exportez vos données dans un format structuré',
       'Droit d\'opposition : refusez certains traitements (marketing, profilage)',
-      'Pour exercer vos droits : privacy@cier-chapelle.org — réponse sous 30 jours',
+      'Pour exercer vos droits : privacy@chapelleduroyaume.org — réponse sous 30 jours',
     ],
   },
   {
@@ -107,7 +107,7 @@ export default function ConfidentialitePage() {
             <div>
               <h2 className="font-cinzel text-sm font-bold text-pearl mb-2">Responsable du Traitement</h2>
               <p className="font-inter text-xs text-pearl/50 leading-relaxed">
-                La Chapelle Internationale des Élus du Royaume (CIER), association loi 1901, dont le siège est situé au 14 Rue du Faubourg Saint-Antoine, 75011 Paris, France. SIRET : 123 456 789 00012. Contact DPO : privacy@cier-chapelle.org
+                La Chapelle Internationale des Élus du Royaume (CIER), dont le siège est situé Rue M123, Commune de Cocody, Angré — Abidjan, Côte d'Ivoire. Contact : privacy@chapelleduroyaume.org
               </p>
             </div>
           </div>
@@ -151,9 +151,9 @@ export default function ConfidentialitePage() {
           <p className="font-inter text-sm text-pearl/50 mb-4">
             Pour toute question relative à vos données personnelles ou pour exercer vos droits, contactez notre Délégué à la Protection des Données.
           </p>
-          <a href="mailto:privacy@cier-chapelle.org"
+          <a href="mailto:privacy@chapelleduroyaume.org"
             className="btn-ghost text-sm inline-flex">
-            privacy@cier-chapelle.org
+            privacy@chapelleduroyaume.org
             <ArrowRight className="w-4 h-4" />
           </a>
         </motion.div>

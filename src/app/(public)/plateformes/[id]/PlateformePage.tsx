@@ -1,11 +1,39 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
-  ArrowRight, Users, BookOpen, Heart, Play, Calendar,
-  Star, Globe, CheckCircle, ChevronRight
+  ArrowRight, Play, Globe, CheckCircle, ChevronRight, MessageSquare,
+  Radio, GraduationCap, BookOpen, Headphones, Calendar, Heart, MessageCircle, MapPin, Clock
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { Plateforme } from '@/types'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+
+type ExploreLink = { href: string; label: string; icon: LucideIcon }
+
+// Liens « Explorer d'abord » réutilisables — toutes les destinations existent sur le site.
+const EXPLORE: Record<string, ExploreLink> = {
+  live: { href: '/live', label: 'Cultes en direct', icon: Radio },
+  formations: { href: '/formations', label: 'Formations', icon: GraduationCap },
+  enseignements: { href: '/enseignements', label: 'Enseignements', icon: BookOpen },
+  podcast: { href: '/podcast', label: 'Podcast', icon: Headphones },
+  evenements: { href: '/evenements', label: 'Événements & retraites', icon: Calendar },
+  priere: { href: '/priere', label: 'Prière & intercession', icon: Heart },
+  temoignages: { href: '/temoignages', label: 'Témoignages', icon: MessageCircle },
+}
+
+// 3 à 5 liens pertinents par plateforme (selon params.id).
+const EXPLORE_MAP: Record<string, ExploreLink[]> = {
+  cier: [EXPLORE.live, EXPLORE.enseignements, EXPLORE.formations, EXPLORE.priere, EXPLORE.evenements],
+  jeunesse: [EXPLORE.live, EXPLORE.podcast, EXPLORE.formations, EXPLORE.evenements, EXPLORE.priere],
+  'chapelle-familiale': [EXPLORE.live, EXPLORE.formations, EXPLORE.enseignements, EXPLORE.evenements],
+  'femmes-exceptions': [EXPLORE.formations, EXPLORE.enseignements, EXPLORE.evenements, EXPLORE.live, EXPLORE.temoignages],
+  'cite-refuge': [EXPLORE.priere, EXPLORE.enseignements, EXPLORE.temoignages, EXPLORE.live, EXPLORE.evenements],
+  cfic: [EXPLORE.formations, EXPLORE.enseignements, EXPLORE.live, EXPLORE.podcast],
+  mahanaim: [EXPLORE.priere, EXPLORE.live, EXPLORE.evenements, EXPLORE.enseignements],
+  'familles-chapelle': [EXPLORE.live, EXPLORE.evenements, EXPLORE.enseignements, EXPLORE.priere],
+}
 
 const FEATURES_MAP: Record<string, string[]> = {
   cier: ['Cultes en direct chaque dimanche', 'Enseignements bibliques profonds', 'Communauté internationale', 'Lives & replays illimités', 'Prière 24/7', 'Formations certifiantes'],
@@ -18,42 +46,56 @@ const FEATURES_MAP: Record<string, string[]> = {
   'familles-chapelle': ['Cellules de croissance', 'Groupes de vie intimes', 'Évangélisation locale', 'Soutien communautaire', 'Fêtes de familles', 'Leaders de cellule formés'],
 }
 
-const STATS_MAP: Record<string, { value: string; label: string }[]> = {
-  cier: [{ value: '4 127', label: 'Membres' }, { value: '86', label: 'Pays' }, { value: '52', label: 'Lives/an' }, { value: '98%', label: 'Satisfaction' }],
-  jeunesse: [{ value: '892', label: 'Jeunes' }, { value: '34', label: 'Pays' }, { value: '24', label: 'Lives/an' }, { value: '96%', label: 'Satisfaction' }],
-  'chapelle-familiale': [{ value: '524', label: 'Familles' }, { value: '28', label: 'Pays' }, { value: '18', label: 'Lives/an' }, { value: '97%', label: 'Satisfaction' }],
-  'femmes-exceptions': [{ value: '743', label: 'Femmes' }, { value: '42', label: 'Pays' }, { value: '20', label: 'Lives/an' }, { value: '99%', label: 'Satisfaction' }],
-  'cite-refuge': [{ value: '312', label: 'Accompagnés' }, { value: '18', label: 'Pays' }, { value: '12', label: 'Lives/an' }, { value: '94%', label: 'Satisfaction' }],
-  cfic: [{ value: '1 240', label: 'Étudiants' }, { value: '56', label: 'Pays' }, { value: '48', label: 'Cours' }, { value: '92%', label: 'Diplômés' }],
-  mahanaim: [{ value: '248', label: 'Intercesseurs' }, { value: '32', label: 'Pays' }, { value: '365', label: 'Jours/an' }, { value: '100%', label: 'Dévoués' }],
-  'familles-chapelle': [{ value: '567', label: 'Membres cellules' }, { value: '24', label: 'Pays' }, { value: '89', label: 'Cellules' }, { value: '95%', label: 'Satisfaction' }],
-}
-
-const TESTIMONIALS_MAP: Record<string, { nom: string; pays: string; drapeau: string; texte: string }[]> = {
-  cier: [
-    { nom: 'Amina K.', pays: 'Côte d\'Ivoire', drapeau: '🇨🇮', texte: 'CIER a transformé ma vie spirituelle. Je n\'aurais jamais cru trouver une communauté aussi puissante en ligne.' },
-    { nom: 'David M.', pays: 'RDC', drapeau: '🇨🇩', texte: 'Chaque culte du dimanche est une rencontre réelle avec Dieu. La présence de l\'Esprit est tangible.' },
-  ],
-  jeunesse: [
-    { nom: 'Ezra P.', pays: 'France', drapeau: '🇫🇷', texte: 'J\'ai trouvé mon identité en Christ grâce au ministère Jeunesse. La communauté est incroyable.' },
-    { nom: 'Faith A.', pays: 'Ghana', drapeau: '🇬🇭', texte: 'Les lives Jeunesse sont feu ! Worship + Parole = transformation totale.' },
-  ],
-  'femmes-exceptions': [
-    { nom: 'Sarah D.', pays: 'Belgique', drapeau: '🇧🇪', texte: 'Le ministère Femmes d\'Exceptions m\'a aidée à redécouvrir qui je suis en Dieu. Quelle puissance !' },
-    { nom: 'Grace N.', pays: 'Cameroun', drapeau: '🇨🇲', texte: 'Les masterclasses exclusives sont d\'une richesse incroyable. Je recommande à toute femme de foi.' },
-  ],
-}
-
-const DEFAULT_TESTIMONIALS = [
-  { nom: 'Marie C.', pays: 'France', drapeau: '🇫🇷', texte: 'Ce ministère a complètement changé ma perspective spirituelle. Je recommande à tous.' },
-  { nom: 'Samuel K.', pays: 'Sénégal', drapeau: '🇸🇳', texte: 'Une communauté authentique, des enseignements profonds, un accompagnement bienveillant.' },
-]
+interface PlatEvent { id: string; titre: string; date: string; heure: string; lieu: string; enLigne: boolean }
+interface PlatFormation { id: string; titre: string; slug: string; niveau?: string }
 
 export default function PlateformePage({ plateforme }: { plateforme: Plateforme }) {
   const features = FEATURES_MAP[plateforme.id] || FEATURES_MAP.cier
-  const stats = STATS_MAP[plateforme.id] || STATS_MAP.cier
-  const testimonials = TESTIMONIALS_MAP[plateforme.id] || DEFAULT_TESTIMONIALS
+  const exploreLinks = EXPLORE_MAP[plateforme.id] || [
+    EXPLORE.live, EXPLORE.formations, EXPLORE.enseignements, EXPLORE.evenements, EXPLORE.priere,
+  ]
   const color = plateforme.couleur_primaire
+
+  // Contenu RÉEL de la plateforme (événements + formations filtrés). Aucun mock.
+  const [events, setEvents] = useState<PlatEvent[]>([])
+  const [formations, setFormations] = useState<PlatFormation[]>([])
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    if (IS_DEMO_MODE) { setLoaded(true); return }
+    let cancelled = false
+    const id = plateforme.id.toLowerCase()
+    const nom = plateforme.nom.toLowerCase()
+    const matches = (v?: string) => {
+      if (!v) return false
+      const s = String(v).toLowerCase()
+      return s.includes(id) || id.includes(s) || s.includes(nom) || nom.includes(s)
+    }
+    ;(async () => {
+      try {
+        const [{ data: evs }, { data: forms }] = await Promise.all([
+          supabase.from('cms_events')
+            .select('id, title, starts_at, location, is_online, platform, status')
+            .eq('status', 'published').order('starts_at', { ascending: true }),
+          supabase.from('formations').select('*').limit(100),
+        ])
+        if (cancelled) return
+        const now = Date.now()
+        setEvents((evs || []).filter((e: any) => matches(e.platform) && (!e.starts_at || new Date(e.starts_at).getTime() >= now))
+          .slice(0, 4).map((e: any) => ({
+            id: e.id, titre: e.title || 'Événement',
+            date: e.starts_at ? new Date(e.starts_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '',
+            heure: e.starts_at ? new Date(e.starts_at).toTimeString().slice(0, 5) : '',
+            lieu: e.location || (e.is_online ? 'En ligne' : ''), enLigne: !!e.is_online,
+          })))
+        setFormations((forms || []).filter((f: any) =>
+          matches(f.plateforme) || matches(f.platform) || matches(f.categorie) || matches(f.ministere))
+          .slice(0, 6).map((f: any) => ({ id: f.id, titre: f.titre || f.title || 'Formation', slug: f.slug, niveau: f.niveau })))
+      } catch (e) { console.error('[plateforme] chargement contenu échoué', e) }
+      finally { if (!cancelled) setLoaded(true) }
+    })()
+    return () => { cancelled = true }
+  }, [plateforme.id, plateforme.nom])
 
   return (
     <div className="min-h-screen" style={{ background: '#F5F5F3' }}>
@@ -126,27 +168,32 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
                 </div>
               </div>
 
-              {/* Stats grid */}
+              {/* Highlights */}
               <motion.div
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3, duration: 0.7 }}
-                className="grid grid-cols-2 gap-4"
+                className="card-elevated p-8"
               >
-                {stats.map((s, i) => (
-                  <motion.div key={i}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 + i * 0.1 }}
-                    className="card-elevated p-6 text-center"
-                  >
-                    <div className="font-cinzel text-3xl md:text-4xl font-black mb-1"
-                      style={{ color }}>
-                      {s.value}
-                    </div>
-                    <div className="text-sm text-gray-500 font-inter">{s.label}</div>
-                  </motion.div>
-                ))}
+                <p className="font-cinzel text-lg font-bold text-gray-900 mb-5">
+                  Ce que vous y trouverez
+                </p>
+                <div className="space-y-3">
+                  {features.slice(0, 4).map((feat, i) => (
+                    <motion.div key={i}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 + i * 0.1 }}
+                      className="flex items-center gap-3"
+                    >
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: `${color}15` }}>
+                        <CheckCircle className="w-3.5 h-3.5" style={{ color }} />
+                      </div>
+                      <span className="font-inter text-sm text-gray-700">{feat}</span>
+                    </motion.div>
+                  ))}
+                </div>
               </motion.div>
             </div>
           </motion.div>
@@ -192,6 +239,124 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
         </div>
       </section>
 
+      {/* Explorer d'abord */}
+      <section className="py-20 px-4" style={{ background: '#F5F5F3' }}>
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-14"
+          >
+            <div className="section-label-light justify-center mb-4">Explorer d'abord</div>
+            <h2 className="font-cinzel text-3xl md:text-4xl font-black text-gray-900 mb-4">
+              Découvrez nos contenus
+            </h2>
+            <p className="text-gray-500 font-inter max-w-2xl mx-auto">
+              Plongez dès maintenant dans les lives, formations, enseignements et moments forts du ministère {plateforme.nom}.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {exploreLinks.map((link, i) => {
+              const Icon = link.icon
+              return (
+                <motion.div
+                  key={link.href}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.07 }}
+                >
+                  <Link
+                    href={link.href}
+                    className="flex items-center gap-4 p-5 card-light group h-full transition-all duration-300 hover:shadow-md"
+                  >
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: `${color}15` }}>
+                      <Icon className="w-5 h-5" style={{ color }} />
+                    </div>
+                    <span className="font-inter text-sm font-semibold text-gray-800 flex-1">{link.label}</span>
+                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" style={{ color }} />
+                  </Link>
+                </motion.div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Contenu réel du ministère — événements & formations (Supabase) */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
+            <div className="section-label-light justify-center mb-4">Agenda &amp; parcours</div>
+            <h2 className="font-cinzel text-3xl md:text-4xl font-black text-gray-900 mb-4">Le ministère {plateforme.nom} en action</h2>
+            <p className="text-gray-500 font-inter max-w-2xl mx-auto">Événements et formations propres à ce ministère, mis à jour en temps réel.</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Événements */}
+            <div>
+              <h3 className="font-cinzel text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Calendar className="w-4 h-4" style={{ color }} /> Prochains événements</h3>
+              {!loaded ? (
+                <p className="font-inter text-sm text-gray-400">Chargement…</p>
+              ) : events.length === 0 ? (
+                <div className="card-light p-6 text-center">
+                  <p className="font-inter text-sm text-gray-500">Aucun événement programmé pour le moment.</p>
+                  <Link href="/evenements" className="inline-flex items-center gap-1.5 text-sm font-inter font-semibold mt-2" style={{ color }}>Voir tout l&apos;agenda <ArrowRight className="w-3.5 h-3.5" /></Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {events.map((e) => (
+                    <div key={e.id} className="card-light p-4 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ background: `${color}15` }}>
+                        <Calendar className="w-4 h-4" style={{ color }} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-cinzel text-sm font-bold text-gray-900 truncate">{e.titre}</p>
+                        <p className="font-inter text-xs text-gray-500 flex items-center gap-2 flex-wrap mt-0.5">
+                          {e.date && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {e.date}{e.heure ? ` · ${e.heure}` : ''}</span>}
+                          {e.lieu && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {e.lieu}</span>}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Formations */}
+            <div>
+              <h3 className="font-cinzel text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><GraduationCap className="w-4 h-4" style={{ color }} /> Formations du ministère</h3>
+              {!loaded ? (
+                <p className="font-inter text-sm text-gray-400">Chargement…</p>
+              ) : formations.length === 0 ? (
+                <div className="card-light p-6 text-center">
+                  <p className="font-inter text-sm text-gray-500">Aucune formation rattachée pour le moment.</p>
+                  <Link href="/formations" className="inline-flex items-center gap-1.5 text-sm font-inter font-semibold mt-2" style={{ color }}>Voir toutes les formations <ArrowRight className="w-3.5 h-3.5" /></Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {formations.map((f) => (
+                    <Link key={f.id} href={`/formations/${f.slug}`} className="card-light p-4 flex items-center gap-4 group hover:shadow-md transition-all">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}15` }}>
+                        <BookOpen className="w-4 h-4" style={{ color }} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-cinzel text-sm font-bold text-gray-900 truncate group-hover:underline">{f.titre}</p>
+                        {f.niveau && <p className="font-inter text-xs text-gray-500 mt-0.5">{f.niveau}</p>}
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" style={{ color }} />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials */}
       <section className="py-20 px-4" style={{ background: '#F5F5F3' }}>
         <div className="max-w-6xl mx-auto">
@@ -205,37 +370,17 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
             <h2 className="font-cinzel text-3xl font-black text-gray-900">Ils ont rejoint {plateforme.nom}</h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {testimonials.map((t, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="card-elevated p-8 relative"
-              >
-                <div className="absolute top-6 right-6 text-5xl opacity-10">"</div>
-                <div className="flex mb-4">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <Star key={j} className="w-4 h-4" style={{ color }} fill={color} />
-                  ))}
-                </div>
-                <p className="font-cormorant italic text-lg text-gray-700 leading-relaxed mb-5">
-                  "{t.texte}"
-                </p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold text-white font-cinzel"
-                    style={{ background: color }}>
-                    {t.nom[0]}
-                  </div>
-                  <div>
-                    <p className="font-inter text-sm font-semibold text-gray-800">{t.nom}</p>
-                    <p className="font-inter text-xs text-gray-500">{t.drapeau} {t.pays}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+          <div className="card-elevated p-12 text-center max-w-2xl mx-auto">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ background: `${color}15` }}>
+              <MessageSquare className="w-6 h-6" style={{ color }} />
+            </div>
+            <p className="font-cinzel text-lg font-bold text-gray-800 mb-2">
+              Aucun témoignage pour le moment
+            </p>
+            <p className="font-inter text-sm text-gray-500">
+              Les premiers témoignages de ce ministère seront partagés ici très bientôt.
+            </p>
           </div>
         </div>
       </section>
@@ -274,7 +419,7 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
                   Créer mon compte gratuit
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                <Link href="/live"
+                <Link href={exploreLinks[0].href}
                   className="inline-flex items-center gap-2 px-6 py-4 rounded-full font-inter font-medium text-sm bg-white border border-gray-200 text-gray-700 hover:shadow-md transition-all">
                   <Globe className="w-4 h-4" />
                   Explorer d'abord

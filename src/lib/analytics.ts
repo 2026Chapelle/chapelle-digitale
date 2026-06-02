@@ -40,6 +40,25 @@ export function track(event: string, props: EventProps = {}): void {
     w.dataLayer.push(payload)
   }
 
+  // Ingestion interne → chapelle.analytics_events (alimente le dashboard admin).
+  // Les clics CTA portent `cta` ; le serveur range le reste dans metadata.
+  const internal = JSON.stringify({
+    type: event,
+    path: payload.path,
+    cta: typeof props.cta === 'string' ? props.cta : undefined,
+    metadata: props,
+  })
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      navigator.sendBeacon('/api/analytics', new Blob([internal], { type: 'application/json' }))
+    } else {
+      void fetch('/api/analytics', { method: 'POST', body: internal, keepalive: true })
+    }
+  } catch {
+    // Telemetry must never break the page.
+  }
+
+  // Endpoint externe optionnel (GA/GTM côté serveur), si configuré.
   const endpoint = process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT
   if (endpoint && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
     try {

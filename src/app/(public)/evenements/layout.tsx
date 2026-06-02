@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { EVENEMENTS } from '@/lib/mock/evenements'
 import { ogImage } from '@/lib/og'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://cier.org'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://citadelle.chapelleduroyaume.org'
 
 export const metadata: Metadata = {
   title: 'Événements & Conférences',

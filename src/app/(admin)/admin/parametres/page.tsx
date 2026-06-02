@@ -1,14 +1,15 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Settings, Bell, Shield, Globe, Palette, CreditCard,
   Mail, Smartphone, Save, Eye, EyeOff, Key, Users,
-  Database, Zap, Check, ChevronRight,
+  Database, Zap, Check, ChevronRight, Download, Loader2,
   Church, Flame, Crown, Heart, BookOpen, Home, HandHeart,
   type LucideIcon,
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
 const SECTIONS = [
   { id: 'general', label: 'Général', icon: Settings, color: '#D4AF37' },
@@ -26,14 +27,14 @@ export default function AdminParametresPage() {
   const [form, setForm] = useState({
     churchName: 'La Chapelle Internationale des Élus du Royaume',
     slogan: 'Une Église Ouverte au Monde',
-    email: 'contact@cier.org',
+    email: 'info@chapelleduroyaume.org',
     phone: '+33 1 23 45 67 89',
     timezone: 'Europe/Paris',
     language: 'fr',
     currency: 'EUR',
-    stripeKey: 'sk_live_••••••••••••••••••••••••••',
+    apiKey: '••••••••••••••••••••••••••',
     emailProvider: 'resend',
-    emailFrom: 'noreply@cier.org',
+    emailFrom: 'noreply@chapelleduroyaume.org',
     emailFromName: 'CIER — La Chapelle',
     maintenanceMode: false,
     registrationOpen: true,
@@ -97,6 +98,7 @@ export default function AdminParametresPage() {
           >
             {activeSection === 'general' && (
               <>
+                <LivretSetting />
                 <div className="card-royal">
                   <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
                     <Globe className="w-4 h-4 text-gold" />
@@ -262,7 +264,7 @@ export default function AdminParametresPage() {
                       <input
                         type={showKey ? 'text' : 'password'}
                         className="input-royal w-full pr-12 font-mono text-sm"
-                        value={form.stripeKey}
+                        value={form.apiKey}
                         readOnly
                       />
                       <button
@@ -275,20 +277,9 @@ export default function AdminParametresPage() {
                   </div>
                   <div>
                     <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Sessions actives</label>
-                    <div className="space-y-2">
-                      {['Chrome · Windows · Paris, France', 'Safari · iPhone · Lyon, France'].map((session, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-xl"
-                          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                          <div>
-                            <p className="font-inter text-sm text-pearl">{session}</p>
-                            <p className="font-inter text-xs text-pearl/30">Active il y a {i === 0 ? '2min' : '3h'}</p>
-                          </div>
-                          {i === 0
-                            ? <span className="text-xs text-green-400 font-inter">Session actuelle</span>
-                            : <button className="text-xs text-red-400 hover:text-red-300 font-inter">Révoquer</button>
-                          }
-                        </div>
-                      ))}
+                    <div className="p-3 rounded-xl text-center"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <p className="font-inter text-xs text-pearl/40">Aucune session active à afficher.</p>
                     </div>
                   </div>
                 </div>
@@ -299,36 +290,25 @@ export default function AdminParametresPage() {
               <div className="card-royal">
                 <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-gold" />
-                  Configuration Paiements Stripe
+                  Configuration Paiements (Chariow)
                 </h2>
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl" style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                  <div className="p-4 rounded-xl" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}>
                     <div className="flex items-center gap-2 mb-1">
-                      <Check className="w-4 h-4 text-indigo-400" />
-                      <span className="font-inter text-sm font-semibold text-indigo-300">Stripe connecté · Mode Production</span>
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span className="font-inter text-sm font-semibold text-green-300">Chariow — liens & widgets opérationnels</span>
                     </div>
-                    <p className="font-inter text-xs text-indigo-400/60">Compte Stripe vérifié · Webhooks actifs</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Clé publique Stripe</label>
-                      <input className="input-royal w-full font-mono text-sm" value="pk_live_••••••••••••" readOnly />
-                    </div>
-                    <div>
-                      <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Clé secrète Stripe</label>
-                      <input type="password" className="input-royal w-full font-mono text-sm" value="sk_live_••••••••••••" readOnly />
-                    </div>
+                    <p className="font-inter text-xs text-green-400/60">Aucune donnée bancaire stockée. Le paiement se déroule chez Chariow.</p>
                   </div>
                   <div>
-                    <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Montants de dons suggérés (EUR)</label>
-                    <div className="flex gap-2 flex-wrap">
-                      {[5, 10, 20, 50, 100, 200].map((amt) => (
-                        <div key={amt} className="px-3 py-1.5 rounded-lg font-inter text-sm font-medium text-pearl/70"
-                          style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
-                          {amt}€
-                        </div>
-                      ))}
-                    </div>
+                    <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Domaine boutique Chariow</label>
+                    <input className="input-royal w-full font-mono text-sm" value="zrqcqzjz.mychariow.shop" readOnly />
+                  </div>
+                  <div className="p-4 rounded-xl" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}>
+                    <p className="font-inter text-sm text-pearl/70 mb-2">
+                      Les produits de don/offrande/partenariat se gèrent dans le module dédié.
+                    </p>
+                    <a href="/admin/dons" className="btn-gold-cinematic px-4 py-2 text-xs inline-flex">Ouvrir « Dons & Offrandes »</a>
                   </div>
                 </div>
               </div>
@@ -365,7 +345,7 @@ export default function AdminParametresPage() {
                   </div>
                   <div className="p-4 rounded-xl" style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}>
                     <p className="font-inter text-xs text-gold/70">
-                      Clé API Resend configurée · Domaine cier.org vérifié · DKIM et SPF actifs
+                      Clé API Resend configurée · Domaine chapelleduroyaume.org vérifié · DKIM et SPF actifs
                     </p>
                   </div>
                 </div>
@@ -380,14 +360,14 @@ export default function AdminParametresPage() {
                 </h2>
                 <div className="space-y-3">
                   {([
-                    { nom: 'CIER',                     icon: Church,    actif: true,  membres: 1840, couleur: '#D4AF37' },
-                    { nom: 'Jeunesse',                 icon: Flame,     actif: true,  membres: 892,  couleur: '#6366F1' },
-                    { nom: "Femmes d'Exceptions",      icon: Crown,     actif: true,  membres: 743,  couleur: '#EC4899' },
-                    { nom: 'Chapelle Familiale',       icon: Users,     actif: true,  membres: 524,  couleur: '#F97316' },
-                    { nom: 'CFIC',                     icon: BookOpen,  actif: true,  membres: 312,  couleur: '#8B5CF6' },
-                    { nom: 'Mahanaïm',                 icon: Heart,     actif: true,  membres: 248,  couleur: '#0EA5E9' },
-                    { nom: 'Cité du Refuge',           icon: Home,      actif: false, membres: 0,    couleur: '#14B8A6' },
-                    { nom: 'Familles de la Chapelle',  icon: HandHeart, actif: true,  membres: 567,  couleur: '#22C55E' },
+                    { nom: 'CIER',                     icon: Church,    actif: true,  membres: 0, couleur: '#D4AF37' },
+                    { nom: 'Jeunesse',                 icon: Flame,     actif: true,  membres: 0, couleur: '#6366F1' },
+                    { nom: "Femmes d'Exceptions",      icon: Crown,     actif: true,  membres: 0, couleur: '#EC4899' },
+                    { nom: 'Chapelle Familiale',       icon: Users,     actif: true,  membres: 0, couleur: '#F97316' },
+                    { nom: 'CFIC',                     icon: BookOpen,  actif: true,  membres: 0, couleur: '#8B5CF6' },
+                    { nom: 'Mahanaïm',                 icon: Heart,     actif: true,  membres: 0, couleur: '#0EA5E9' },
+                    { nom: 'Cité du Refuge',           icon: Home,      actif: false, membres: 0, couleur: '#14B8A6' },
+                    { nom: 'Familles de la Chapelle',  icon: HandHeart, actif: true,  membres: 0, couleur: '#22C55E' },
                   ] as { nom: string; icon: LucideIcon; actif: boolean; membres: number; couleur: string }[]).map((p) => (
                     <div key={p.nom} className="flex items-center gap-4 p-3.5 rounded-xl transition-colors"
                       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -440,6 +420,82 @@ export default function AdminParametresPage() {
           </motion.div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Réglage RÉEL « Livret d'Accueil (URL) » → cms_settings.livret_accueil_url.
+ * Autonome : ne touche pas au formulaire général. Réutilise l'API CMS existante.
+ */
+function LivretSetting() {
+  const [url, setUrl] = useState('')
+  const [exists, setExists] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (IS_DEMO_MODE) { setLoading(false); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('cms_settings').select('value').eq('key', 'livret_accueil_url').maybeSingle()
+        if (cancelled) return
+        if (data) {
+          setExists(true)
+          const v = data.value
+          setUrl(typeof v === 'string' ? v : (v && typeof v === 'object' && 'url' in v ? String((v as any).url) : ''))
+        }
+      } catch { /* clé absente */ }
+      finally { if (!cancelled) setLoading(false) }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  async function save() {
+    setSaving(true); setError(null)
+    try {
+      const method = exists ? 'PATCH' : 'POST'
+      const r = await fetch('/api/admin/cms/settings', {
+        method, headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ key: 'livret_accueil_url', value: url.trim(), label: "Livret d'Accueil (URL)", groupe: 'general' }),
+      })
+      const j = await r.json()
+      if (j.ok) { setExists(true); setSaved(true); setTimeout(() => setSaved(false), 2500) }
+      else setError(j.message || 'Échec de l’enregistrement')
+    } catch { setError('Erreur réseau') }
+    setSaving(false)
+  }
+
+  return (
+    <div className="card-royal">
+      <h2 className="font-cinzel text-sm font-bold text-pearl mb-1.5 flex items-center gap-2">
+        <Download className="w-4 h-4 text-gold" />
+        Livret d'Accueil
+      </h2>
+      <p className="text-[11px] text-pearl/40 font-inter mb-4">
+        URL du PDF (téléversez-le d'abord dans <strong>Médias</strong>, puis collez son lien ici). Il apparaîtra dans le parcours d'intégration et l'email de bienvenue.
+      </p>
+      <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Livret d'Accueil (URL)</label>
+      <div className="flex gap-2">
+        <input
+          className="input-royal flex-1" placeholder="https://…/storage/v1/object/public/media/documents/livret.pdf"
+          value={url} disabled={loading}
+          onChange={(e) => setUrl(e.target.value)}
+        />
+        <button onClick={save} disabled={saving || loading} className="btn-gold-cinematic px-4 py-2 text-sm disabled:opacity-50 inline-flex items-center gap-1.5">
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+          {saved ? 'Enregistré' : 'Enregistrer'}
+        </button>
+      </div>
+      {error && <p className="text-[11px] text-danger font-inter mt-2">{error}</p>}
+      {url && !error && (
+        <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[11px] text-gold/80 hover:text-gold font-inter mt-2">
+          <Download className="w-3 h-3" /> Tester le lien
+        </a>
+      )}
     </div>
   )
 }

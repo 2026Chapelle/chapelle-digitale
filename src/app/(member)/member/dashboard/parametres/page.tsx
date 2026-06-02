@@ -1,11 +1,14 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 import {
   User, Lock, Bell, Shield, Trash2, Eye, EyeOff,
   Camera, Check, ChevronRight, Globe, Mail, Phone, Save
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useAuth } from '@/components/providers/AuthProvider'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 const TABS = [
   { id: 'profil', label: 'Profil', icon: User },
@@ -56,22 +59,40 @@ export default function ParametresPage() {
     allowMessages: true,
     showInSearch: true,
   })
+  const { user, isDemo } = useAuth()
   const [profileForm, setProfileForm] = useState({
-    prenom: 'Jean-Baptiste',
-    nom: 'Dubois',
-    email: 'jb.dubois@email.com',
-    telephone: '+33 6 12 34 56 78',
-    ville: 'Paris',
-    pays: 'France',
-    bio: 'Serviteur de Dieu, époux, père de famille. Passionné par l\'enseignement de la Parole.',
+    prenom: '', nom: '', email: '', telephone: '', ville: '', pays: '', bio: '',
   })
   const [pwForm, setPwForm] = useState({ ancien: '', nouveau: '', confirmer: '' })
 
+  // Chargement du vrai profil (clé anon + RLS).
+  useEffect(() => {
+    if (isDemo || !user?.id) return
+    const client = getBrowserClient()
+    if (!client) return
+    client.from('profiles').select('prenom, nom, email, telephone, ville, pays').eq('id', user.id).single()
+      .then(({ data: p }) => {
+        if (p) setProfileForm((f) => ({
+          ...f, prenom: p.prenom ?? '', nom: p.nom ?? '', email: p.email ?? user.email ?? '',
+          telephone: p.telephone ?? '', ville: p.ville ?? '', pays: p.pays ?? '',
+        }))
+      })
+  }, [isDemo, user])
+
   const save = async () => {
     setSaving(true)
-    await new Promise(r => setTimeout(r, 1200))
+    try {
+      const client = getBrowserClient()
+      if (!isDemo && client && user?.id) {
+        const { error } = await client.from('profiles').update({
+          prenom: profileForm.prenom, nom: profileForm.nom,
+          telephone: profileForm.telephone, ville: profileForm.ville, pays: profileForm.pays,
+        }).eq('id', user.id)
+        if (error) { toast.error(error.message); setSaving(false); return }
+      }
+      toast.success('Paramètres sauvegardés ✓')
+    } catch { toast.error('Erreur réseau') }
     setSaving(false)
-    toast.success('Paramètres sauvegardés ✓')
   }
 
   return (
@@ -111,17 +132,17 @@ export default function ParametresPage() {
                 <div className="relative">
                   <div className="w-20 h-20 rounded-2xl flex items-center justify-center font-cinzel font-black text-2xl"
                     style={{ background: 'linear-gradient(135deg, #D4AF37, #8B5CF6)', color: '#fff' }}>
-                    J
+                    {(profileForm.prenom[0] || '✦').toUpperCase()}
                   </div>
-                  <button className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)' }}>
+                  <Link href="/member/dashboard/profil" className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)' }} title="Changer la photo">
                     <Camera className="w-3.5 h-3.5 text-[#1A0F00]" />
-                  </button>
+                  </Link>
                 </div>
                 <div>
-                  <div className="font-inter text-sm font-semibold text-white">Jean-Baptiste Dubois</div>
-                  <div className="text-xs font-inter mt-0.5" style={{ color: '#D4AF37' }}>Membre depuis 2 ans</div>
-                  <button className="text-xs font-inter mt-2 underline" style={{ color: 'rgba(255,255,255,0.35)' }}>Changer la photo</button>
+                  <div className="font-inter text-sm font-semibold text-white">{`${profileForm.prenom} ${profileForm.nom}`.trim() || 'Mon compte'}</div>
+                  <div className="text-xs font-inter mt-0.5" style={{ color: '#D4AF37' }}>{profileForm.email}</div>
+                  <Link href="/member/dashboard/profil" className="text-xs font-inter mt-2 underline inline-block" style={{ color: 'rgba(255,255,255,0.35)' }}>Changer la photo</Link>
                 </div>
               </div>
             </div>

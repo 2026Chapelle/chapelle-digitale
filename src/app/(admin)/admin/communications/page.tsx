@@ -24,28 +24,8 @@ interface Campagne {
   couleur: string
 }
 
-const CAMPAGNES: Campagne[] = [
-  {
-    id: '1', nom: 'Invitation Culte du Dimanche', canal: 'email', statut: 'terminee',
-    cible: 'Tous les membres', envoyes: 4127, ouverts: 2840, cliques: 945, date: '2026-05-08', couleur: '#0EA5E9',
-  },
-  {
-    id: '2', nom: 'Rappel Veillée de Prière', canal: 'push', statut: 'terminee',
-    cible: 'Membres actifs', envoyes: 2340, ouverts: 1890, cliques: 680, date: '2026-05-07', couleur: '#8B5CF6',
-  },
-  {
-    id: '3', nom: 'Lancement Formation Leadership', canal: 'email', statut: 'planifiee',
-    cible: 'Disciples + Leaders', envoyes: 0, ouverts: 0, cliques: 0, date: '2026-05-12', couleur: '#D4AF37',
-  },
-  {
-    id: '4', nom: 'Message Pastoral Hebdomadaire', canal: 'whatsapp', statut: 'active',
-    cible: 'Tous', envoyes: 1240, ouverts: 1240, cliques: 892, date: '2026-05-09', couleur: '#22C55E',
-  },
-  {
-    id: '5', nom: 'Témoignages de la semaine', canal: 'email', statut: 'brouillon',
-    cible: 'Partenaires', envoyes: 0, ouverts: 0, cliques: 0, date: '—', couleur: '#F59E0B',
-  },
-]
+// Aucune donnée fictive : les campagnes se rempliront avec les données réelles.
+const CAMPAGNES: Campagne[] = []
 
 const CANAL_ICONS: Record<CanalType, React.ReactNode> = {
   email: <Mail className="w-3.5 h-3.5" />,
@@ -68,14 +48,9 @@ const STATUT_CONFIG: Record<StatutCampagne, { label: string; color: string }> = 
   planifiee: { label: 'Planifiée', color: '#D4AF37' },
 }
 
-const TEMPLATES = [
-  { id: '1', nom: 'Invitation culte', canal: 'email', utilisations: 24, couleur: '#0EA5E9' },
-  { id: '2', nom: 'Rappel formation', canal: 'push', utilisations: 18, couleur: '#8B5CF6' },
-  { id: '3', nom: 'Message pastoral', canal: 'email', utilisations: 52, couleur: '#D4AF37' },
-  { id: '4', nom: 'Alerte prière urgente', canal: 'push', utilisations: 7, couleur: '#EF4444' },
-  { id: '5', nom: 'Newsletter mensuelle', canal: 'email', utilisations: 12, couleur: '#22C55E' },
-  { id: '6', nom: 'Bienvenue nouveau membre', canal: 'email', utilisations: 4127, couleur: '#F59E0B' },
-]
+type Template = { id: string; nom: string; canal: string; utilisations: number; couleur: string }
+// Aucune donnée fictive : les templates se rempliront avec les données réelles.
+const TEMPLATES: Template[] = []
 
 export default function AdminCommunicationsPage() {
   const [showForm, setShowForm] = useState(false)
@@ -83,6 +58,10 @@ export default function AdminCommunicationsPage() {
 
   const totalEnvoyes = CAMPAGNES.reduce((acc, c) => acc + c.envoyes, 0)
   const totalOuverts = CAMPAGNES.reduce((acc, c) => acc + c.ouverts, 0)
+  const totalCliques = CAMPAGNES.reduce((acc, c) => acc + c.cliques, 0)
+  const tauxOuvertureGlobal = totalEnvoyes > 0 ? Math.round((totalOuverts / totalEnvoyes) * 100) : 0
+  const tauxClicGlobal = totalEnvoyes > 0 ? Math.round((totalCliques / totalEnvoyes) * 1000) / 10 : 0
+  const campagnesActives = CAMPAGNES.filter((c) => c.statut === 'active').length
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -106,9 +85,9 @@ export default function AdminCommunicationsPage() {
         >
           {[
             { label: 'Envois ce mois', value: totalEnvoyes.toLocaleString(), icon: Send, color: '#D4AF37' },
-            { label: 'Taux ouverture', value: `${Math.round((totalOuverts / totalEnvoyes) * 100)}%`, icon: Eye, color: '#22C55E' },
-            { label: 'Taux de clic', value: '28.3%', icon: Mouse, color: '#0EA5E9' },
-            { label: 'Campagnes actives', value: '2', icon: Zap, color: '#8B5CF6' },
+            { label: 'Taux ouverture', value: `${tauxOuvertureGlobal}%`, icon: Eye, color: '#22C55E' },
+            { label: 'Taux de clic', value: `${tauxClicGlobal}%`, icon: Mouse, color: '#0EA5E9' },
+            { label: 'Campagnes actives', value: String(campagnesActives), icon: Zap, color: '#8B5CF6' },
           ].map((k, i) => (
             <div key={k.label} className="card-royal text-center py-4">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2" style={{ background: `${k.color}18` }}>
@@ -138,6 +117,13 @@ export default function AdminCommunicationsPage() {
 
         {activeTab === 'campagnes' && (
           <div className="space-y-4">
+            {CAMPAGNES.length === 0 && (
+              <div className="card-royal text-center py-16">
+                <Send className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+                <p className="font-cinzel text-pearl/60">Aucune campagne pour le moment</p>
+                <p className="font-inter text-xs text-pearl/30 mt-1">Créez une campagne pour commencer.</p>
+              </div>
+            )}
             {CAMPAGNES.map((camp, i) => {
               const statutCfg = STATUT_CONFIG[camp.statut]
               const tauxOuverture = camp.envoyes > 0 ? Math.round((camp.ouverts / camp.envoyes) * 100) : 0
@@ -284,32 +270,14 @@ export default function AdminCommunicationsPage() {
               </div>
               <p className="text-xs text-pearl/35 font-inter">Séquences déclenchées automatiquement selon les actions des membres</p>
             </div>
-            {[
-              {
-                nom: 'Bienvenue nouveau membre',
-                declencheur: 'Inscription confirmée',
-                actions: ['Email J+0: Bienvenue', 'Push J+1: Découvrir les formations', 'Email J+7: Premier mois'],
-                actif: true, declenche: 4127, couleur: '#22C55E',
-              },
-              {
-                nom: 'Relance membre inactif',
-                declencheur: '14 jours sans connexion',
-                actions: ['Email: On pense à vous', 'Push: Live ce dimanche', 'Email: Message du pasteur'],
-                actif: true, declenche: 342, couleur: '#F59E0B',
-              },
-              {
-                nom: 'Célébration badge débloqué',
-                declencheur: 'Badge obtenu',
-                actions: ['Push: Félicitations!', 'Email: Partager votre badge'],
-                actif: true, declenche: 892, couleur: '#D4AF37',
-              },
-              {
-                nom: 'Nurturing prospect',
-                declencheur: 'Page "/rejoindre" visitée',
-                actions: ['Email J+1: Découvrir CIER', 'Email J+3: Témoignages', 'Email J+7: Invitation culte'],
-                actif: false, declenche: 0, couleur: '#8B5CF6',
-              },
-            ].map((auto, i) => (
+            {([] as { nom: string; declencheur: string; actions: string[]; actif: boolean; declenche: number; couleur: string }[]).length === 0 && (
+              <div className="card-royal text-center py-12">
+                <Zap className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+                <p className="font-cinzel text-pearl/60">Aucune automatisation configurée</p>
+                <p className="font-inter text-xs text-pearl/30 mt-1">Les séquences automatiques apparaîtront ici.</p>
+              </div>
+            )}
+            {([] as { nom: string; declencheur: string; actions: string[]; actif: boolean; declenche: number; couleur: string }[]).map((auto, i) => (
               <motion.div key={i}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -358,12 +326,11 @@ export default function AdminCommunicationsPage() {
 
         {/* Create campaign modal */}
         {showForm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)' }}>
+          <div className="admin-modal-overlay flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="card-royal w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+              className="admin-modal-box p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-cinzel text-lg font-bold text-pearl">Nouvelle Campagne</h2>

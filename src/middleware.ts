@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { isValidAdminToken } from '@/lib/admin-auth'
 
 /**
  * Middleware d'authentification.
@@ -13,6 +14,21 @@ const DEMO_MODE =
   !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export async function middleware(req: NextRequest) {
+  const { pathname: adminPath } = req.nextUrl
+
+  // ── Porte du back-office : protège /admin/* (sauf la page de login) ──
+  // Fonctionne en mode démo ET réel — l'admin n'est jamais accessible sans le
+  // cookie de session posé par /api/admin/auth.
+  if (adminPath.startsWith('/admin') && adminPath !== '/admin/login') {
+    const token = req.cookies.get('cier_admin')?.value
+    if (!isValidAdminToken(token)) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/admin/login'
+      url.searchParams.set('redirect', adminPath)
+      return NextResponse.redirect(url)
+    }
+  }
+
   if (DEMO_MODE) return NextResponse.next()
 
   const res = NextResponse.next()
@@ -20,9 +36,14 @@ export async function middleware(req: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession()
 
   const { pathname } = req.nextUrl
-  const isProtected = pathname.startsWith('/member') || pathname.startsWith('/admin')
 
-  if (isProtected && !session) {
+  // L'espace /admin est entièrement gardé par le cookie `cier_admin` ci-dessus
+  // (code ADMIN_ACCESS_CODE → /api/admin/auth). On ne le passe JAMAIS par la
+  // session Supabase membre : sinon /admin/login serait renvoyé vers /login.
+  // Ici, seul l'espace membre est protégé par la session Supabase.
+  const isMemberProtected = pathname.startsWith('/member')
+
+  if (isMemberProtected && !session) {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)

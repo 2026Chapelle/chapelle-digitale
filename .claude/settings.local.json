@@ -2,7 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "PowerShell(try { \\(Invoke-WebRequest \"http://localhost:3000/\" -UseBasicParsing -TimeoutSec 30\\).StatusCode } catch { \"ERR: $\\($_.Exception.Message\\)\" })",
+      "Bash(node scripts/probe.mjs)",
+      "Bash(npm run *)",
+      "Bash(echo \"BUILD EXIT: $?\")",
+      "Bash(rm -rf deploy-citadelle/node_modules deploy-citadelle/.next deploy-citadelle/server.js)",
+      "Bash(cp -r .next/standalone/. deploy-citadelle/)",
+      "Bash(mkdir -p deploy-citadelle/.next)",
+      "Bash(cp -r .next/static deploy-citadelle/.next/static)",
+      "Bash(rm -rf deploy-citadelle/public)",
+      "Bash(cp -r public deploy-citadelle/public)",
+      "Bash(cp app.js deploy-citadelle/app.js)",
+      "Bash(cp .env.exemple-production deploy-citadelle/.env.exemple-production)",
+      "Bash(mkdir -p deploy-citadelle/docs)",
+      "Bash(cp docs/*.md deploy-citadelle/docs/)",
+      "Bash(sed -n 358,372p 'src/app/\\(admin\\)/admin/__TRACKED_VAR__/page.tsx')",
+      "Bash(rm -rf deploy-citadelle/node_modules/sharp deploy-citadelle/node_modules/@img)",
+      "Bash(xargs -n1 basename)",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\('deps:',Object.keys\\(p.dependencies||{}\\).join\\(', '\\)\\);console.log\\(''\\);console.log\\('devDeps:',Object.keys\\(p.devDependencies||{}\\).join\\(', '\\)\\)\")"
     ]
   }
 }

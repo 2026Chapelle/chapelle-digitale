@@ -7,16 +7,17 @@ import { Check, ChevronDown, Globe, BookOpen, Heart, Users, ArrowRight, Crown, S
 const PLANS = [
   {
     emoji: '🌱',
-    nom: 'Visiteur',
+    nom: 'Membre Gratuit',
     prix: 'Gratuit',
     prixDetail: null,
     highlight: false,
     color: '#22C55E',
     features: [
       'Accès aux cultes en direct',
-      'Mur de prière public',
-      'Ressources gratuites',
-      'Newsletter hebdomadaire',
+      'Communauté de base',
+      '5 formations gratuites',
+      'Mur de prière',
+      'Profil spirituel',
     ],
     cta: 'Créer un compte gratuit',
     href: '/register',
@@ -24,36 +25,38 @@ const PLANS = [
   {
     emoji: '🌟',
     nom: 'Disciple Premium',
-    prix: '9,90€',
+    prix: '5 000 FCFA',
     prixDetail: '/mois',
     highlight: true,
     color: '#D4AF37',
     features: [
-      'Tout Visiteur inclus',
-      'Formations complètes avec certification',
-      'Lives & replays illimités',
-      'Espace membre personnalisé',
-      'Demandes de prière privées',
-      'Suivi de progression spirituelle',
-      'Certificats de formation',
+      'Tout ce qui est gratuit +',
+      'Accès illimité aux formations',
+      'Certifications officielles',
+      'Coaching personnel',
+      'Groupe dédié',
+      'Replays illimités',
+      'Ressources premium',
+      'Support prioritaire',
     ],
-    cta: 'Commencer — 7 jours gratuits',
+    cta: 'Devenir Disciple Premium',
     href: '/register?plan=disciple',
   },
   {
     emoji: '👑',
-    nom: 'Partenaire',
-    prix: '29,90€',
+    nom: 'Partenaire du Royaume',
+    prix: '25 000 FCFA',
     prixDetail: '/mois',
     highlight: false,
     color: '#8B5CF6',
     features: [
-      'Tout Disciple inclus',
-      'Appels de mentorat mensuel',
-      'Événements exclusifs VIP',
-      'Contenu prophétique premium',
-      'Badge Partenaire officiel',
-      'Impact tracking détaillé',
+      'Tout Premium +',
+      'Masterclass exclusives',
+      'Accès pasteurs en direct',
+      'Prière personnelle mensuelle',
+      'Badge Partenaire',
+      'Accès anticipé nouveautés',
+      'Reçu fiscal annuel',
     ],
     cta: 'Devenir Partenaire',
     href: '/register?plan=partenaire',
@@ -61,25 +64,18 @@ const PLANS = [
 ]
 
 const WHY_JOIN = [
-  { icon: Globe, titre: '120+ Nations', desc: 'Une communauté mondiale de croyants engagés dans la transformation spirituelle.', color: '#D4AF37' },
-  { icon: BookOpen, titre: '50+ Formations', desc: 'Des parcours structurés pour grandir dans la foi, le leadership et le ministère.', color: '#8B5CF6' },
+  { icon: Globe, titre: 'Communauté Mondiale', desc: 'Une communauté de croyants engagés dans la transformation spirituelle.', color: '#D4AF37' },
+  { icon: BookOpen, titre: 'Formations', desc: 'Des parcours structurés pour grandir dans la foi, le leadership et le ministère.', color: '#8B5CF6' },
   { icon: Heart, titre: 'Prière 24/7', desc: "Un mur de prière actif où la communauté intercède pour vos besoins à toute heure.", color: '#EC4899' },
-  { icon: Users, titre: '50 000+ Membres', desc: 'Une famille spirituelle bienveillante prête à vous accueillir et vous accompagner.', color: '#22C55E' },
+  { icon: Users, titre: 'Une Famille', desc: 'Une famille spirituelle bienveillante prête à vous accueillir et vous accompagner.', color: '#22C55E' },
 ]
 
 const FAQ = [
   { q: "Est-ce vraiment gratuit pour commencer ?", r: "Oui ! Le niveau Visiteur est totalement gratuit et vous donne accès aux cultes en direct, au mur de prière public et aux ressources de base. Aucune carte bancaire requise." },
   { q: "Puis-je annuler mon abonnement à tout moment ?", r: "Absolument. Aucun engagement. Vous pouvez annuler votre abonnement Premium ou Partenaire à tout moment depuis votre espace membre, sans frais ni pénalité." },
-  { q: "La plateforme est-elle disponible dans mon pays ?", r: "Oui ! CIER est une église mondiale numérique disponible dans 120+ nations. Notre contenu est principalement en français et accessible partout dans le monde." },
+  { q: "La plateforme est-elle disponible dans mon pays ?", r: "Oui ! CIER est une église numérique accessible partout dans le monde. Notre contenu est principalement en français et disponible à toute heure." },
   { q: "Qu'est-ce qu'un Partenaire CIER ?", r: "Les Partenaires sont des membres engagés qui soutiennent l'œuvre financièrement et bénéficient d'accès exclusifs : mentorat mensuel, événements VIP et contenus prophétiques." },
   { q: "Comment accéder aux formations ?", r: "Les Visiteurs accèdent à des formations gratuites de base. Les abonnés Disciple bénéficient de l'accès illimité à toutes nos formations avec certification officielle reconnue." },
-]
-
-const TESTIMONIALS_STRIP = [
-  { nom: 'Amandine K.', pays: '🇫🇷', texte: 'La formation Leadership a changé ma façon de servir.', plan: 'Disciple' },
-  { nom: 'Jean-Pierre M.', pays: '🇨🇩', texte: 'Je prie maintenant avec une autorité que je ne connaissais pas.', plan: 'Partenaire' },
-  { nom: 'Fatou D.', pays: '🇸🇳', texte: '7 jours gratuits… et je ne voulais plus partir !', plan: 'Disciple' },
-  { nom: 'Samuel O.', pays: '🇨🇲', texte: 'Les replays me permettent de suivre où que je sois.', plan: 'Disciple' },
 ]
 
 export default function RejoindreePage() {
@@ -153,7 +149,7 @@ export default function RejoindreePage() {
               </Link>
             </div>
             <p className="font-inter text-sm text-gray-400">
-              50 000+ membres · 120+ nations · Gratuit pour commencer
+              Une communauté mondiale · Gratuit pour commencer
             </p>
           </motion.div>
         </div>
@@ -301,58 +297,6 @@ export default function RejoindreePage() {
                   {plan.cta}
                 </Link>
               </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Social proof + urgency strip */}
-      <section className="py-10" style={{ background: '#FFFFFF', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-        <div className="max-w-5xl mx-auto px-4 md:px-8">
-          {/* Avatars + count */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {['🇫🇷','🇨🇩','🇨🇦','🇧🇯','🇨🇲'].map((flag, i) => (
-                  <div key={i} className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-sm"
-                    style={{ background: `hsl(${i * 40}, 60%, 85%)`, zIndex: 5 - i }}>
-                    {flag}
-                  </div>
-                ))}
-              </div>
-              <div>
-                <div className="font-cinzel text-sm font-bold" style={{ color: '#111827' }}>50 000+ membres actifs</div>
-                <div className="font-inter text-xs" style={{ color: '#9CA3AF' }}>dans 120+ nations</div>
-              </div>
-            </div>
-            {/* Urgency badge */}
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl"
-              style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#EF4444' }} />
-              <span className="font-inter text-xs font-semibold" style={{ color: '#DC2626' }}>
-                Plus que 12 places Partenaire ce mois
-              </span>
-            </div>
-          </div>
-
-          {/* Testimonial strip */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {TESTIMONIALS_STRIP.map((t, i) => (
-              <div key={i} className="p-4 rounded-2xl" style={{ background: '#F9F9F7', border: '1px solid rgba(0,0,0,0.06)' }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs"
-                    style={{ background: 'rgba(212,175,55,0.1)' }}>{t.pays}</div>
-                  <div>
-                    <div className="font-inter text-xs font-semibold" style={{ color: '#111827' }}>{t.nom}</div>
-                    <div className="text-[9px] font-inter px-1.5 py-0.5 rounded-full inline-block"
-                      style={{ background: 'rgba(212,175,55,0.1)', color: '#92721A' }}>{t.plan}</div>
-                  </div>
-                </div>
-                <p className="font-inter text-xs leading-relaxed" style={{ color: '#6B7280' }}>&ldquo;{t.texte}&rdquo;</p>
-                <div className="flex gap-0.5 mt-2">
-                  {[...Array(5)].map((_, s) => <span key={s} className="text-[10px]" style={{ color: '#D4AF37' }}>★</span>)}
-                </div>
-              </div>
             ))}
           </div>
         </div>

@@ -16,6 +16,8 @@ export interface EvenementMock {
   plateforme?: string
   est_inscrit?: boolean
   est_passe?: boolean
+  image?: string
+  whatsapp?: string
 }
 
 export const EVENEMENTS: EvenementMock[] = [

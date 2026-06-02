@@ -1,95 +1,26 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, Star, Send, CheckCircle, ArrowRight, Quote } from 'lucide-react'
+import { Heart, Send, CheckCircle, ArrowRight, Quote } from 'lucide-react'
 import Link from 'next/link'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
-const TEMOIGNAGES = [
-  {
-    id: '1',
-    auteur: 'Marie-Josée K.',
-    drapeau: '🇨🇩',
-    pays: 'RD Congo',
-    plateforme: 'Femmes d\'Exceptions',
-    categorie: 'guerison',
-    titre: 'Guérie d\'une maladie incurable',
-    texte: 'Après 7 ans de lutte contre une maladie que les médecins jugeaient incurable, j\'ai soumis une requête de prière à la CIER. Une semaine plus tard, lors du culte du dimanche, j\'ai ressenti une chaleur intense dans mon corps. Mon prochain examen médical a confirmé ce que je savais déjà dans mon cœur : j\'étais complètement guérie. À Dieu seul soit la gloire !',
-    date: '2026-04-15',
-    likes: 284,
-    couleur: '#EC4899',
-    emoji: '🌹',
-  },
-  {
-    id: '2',
-    auteur: 'Samuel Diallo',
-    drapeau: '🇸🇳',
-    pays: 'Sénégal',
-    plateforme: 'CIER Global',
-    categorie: 'transformation',
-    titre: 'Du fond de l\'abîme à la lumière',
-    texte: 'J\'étais dans la drogue depuis 12 ans. Ma famille avait perdu tout espoir. Un frère m\'a envoyé le lien d\'un culte CIER un dimanche matin. Je ne sais pas pourquoi j\'ai regardé, mais ce jour-là, la Parole a brisé les chaînes. Aujourd\'hui, cela fait 2 ans que je suis libre. Je forme des jeunes dans ma ville. Dieu m\'a non seulement sauvé, mais Il m\'a donné une mission.',
-    date: '2026-03-22',
-    likes: 412,
-    couleur: '#D4AF37',
-    emoji: '✨',
-  },
-  {
-    id: '3',
-    auteur: 'Claire & David M.',
-    drapeau: '🇫🇷',
-    pays: 'France',
-    plateforme: 'Chapelle Familiale',
-    categorie: 'famille',
-    titre: 'Notre mariage sauvé',
-    texte: 'Nous étions au bord du divorce après 8 ans de mariage. La Chapelle Familiale de la CIER nous a accompagnés pendant 6 mois. Les enseignements sur le couple biblique, les séances de conseil pastoral, et la communauté bienveillante ont transformé notre relation. Aujourd\'hui, nous témoignons de la fidélité de Dieu dans nos groupes de cellule.',
-    date: '2026-02-10',
-    likes: 198,
-    couleur: '#22C55E',
-    emoji: '💚',
-  },
-  {
-    id: '4',
-    auteur: 'Pastor Emmanuel A.',
-    drapeau: '🇬🇭',
-    pays: 'Ghana',
-    plateforme: 'CFIC Formation',
-    categorie: 'vocation',
-    titre: 'La formation qui a tout changé',
-    texte: 'Je pastorais une petite église sans vraie formation théologique. J\'ai suivi le cursus de 2 ans du CFIC entièrement en ligne. Chaque module a équipé mon ministère d\'une façon que je n\'aurais jamais imaginée. Aujourd\'hui, mon église a triplé et j\'ai envoyé 3 missionnaires dans des zones rurales. La CIER ne m\'a pas seulement formé — elle m\'a transformé.',
-    date: '2026-01-30',
-    likes: 376,
-    couleur: '#8B5CF6',
-    emoji: '👑',
-  },
-  {
-    id: '5',
-    auteur: 'Amina Touré',
-    drapeau: '🇨🇮',
-    pays: 'Côte d\'Ivoire',
-    plateforme: 'Mahanaïm Prière',
-    categorie: 'priere',
-    titre: '40 jours de prière qui ont tout changé',
-    texte: 'Je priais depuis 3 ans pour qu\'un membre de ma famille vienne à Christ. J\'ai rejoint les 40 jours de prière coordonnés par Mahanaïm. Le dernier jour, ma mère m\'a appelé en pleurant — elle venait de vivre une rencontre avec Dieu en regardant notre culte. Elle est désormais membre active de la CIER. Dieu répond vraiment à la prière !',
-    date: '2026-01-05',
-    likes: 521,
-    couleur: '#0EA5E9',
-    emoji: '🙏',
-  },
-  {
-    id: '6',
-    auteur: 'Jean-Baptiste N.',
-    drapeau: '🇧🇪',
-    pays: 'Belgique',
-    plateforme: 'Jeunesse CIER',
-    categorie: 'vocation',
-    titre: 'De l\'université à la mission',
-    texte: 'J\'étudiais en ingénierie et ne savais pas quoi faire de ma vie spirituelle. Les enseignements sur le leadership de la CIER Jeunesse m\'ont révélé que mes compétences pouvaient servir le Royaume. J\'ai créé une ONG chrétienne qui utilise la technologie pour former des leaders africains. La CIER a activé ma vocation.',
-    date: '2025-12-18',
-    likes: 289,
-    couleur: '#F97316',
-    emoji: '🔥',
-  },
-]
+type Temoignage = {
+  id: string
+  auteur: string
+  drapeau: string
+  pays: string
+  plateforme: string
+  categorie: string
+  titre: string
+  texte: string
+  date: string
+  likes: number
+  couleur: string
+  emoji: string
+}
+
+// Aucune donnée fictive : les témoignages publiés proviennent du CMS (cms_testimonies, statut approuvé/publié).
 
 const CATEGORIES = [
   { id: 'all', label: 'Tous', emoji: '⭐' },
@@ -109,8 +40,48 @@ export default function TemoignagesPage() {
   const [nom, setNom] = useState('')
   const [temoignage, setTemoignage] = useState('')
   const [categorie, setCategorie] = useState('')
+  const [items, setItems] = useState<Temoignage[]>([])
 
-  const filtered = TEMOIGNAGES.filter(t => activeCategory === 'all' || t.categorie === activeCategory)
+  // Témoignages RÉELS, depuis DEUX sources unifiées (aucun mock) :
+  //  • cms_testimonies (CMS éditorial, statut approved/published)
+  //  • temoignages (issus du workflow de prière, statut validé + public)
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    const knownCats = new Set(CATEGORIES.map((c) => c.id))
+    ;(async () => {
+      try {
+        const [cms, workflow] = await Promise.all([
+          supabase.from('cms_testimonies')
+            .select('id, author_name, location, title, body, created_at')
+            .in('status', ['approved', 'published'])
+            .order('created_at', { ascending: false }).limit(60),
+          supabase.from('temoignages')
+            .select('id, auteur, pays, titre, corps, categorie, created_at')
+            .eq('statut', 'valide').eq('is_public', true)
+            .order('created_at', { ascending: false }).limit(60),
+        ])
+        if (cancelled) return
+        const fromCms: Temoignage[] = (cms.data || []).map((t: any) => ({
+          id: `cms-${t.id}`, auteur: t.author_name || 'Anonyme', drapeau: '', pays: t.location || '',
+          plateforme: '', categorie: 'all', titre: t.title || '', texte: t.body || '',
+          date: (t.created_at || '').slice(0, 10), likes: 0, couleur: '#D4AF37', emoji: '✨',
+        }))
+        const fromWorkflow: Temoignage[] = (workflow.data || []).map((t: any) => ({
+          id: `tem-${t.id}`, auteur: t.auteur || 'Anonyme', drapeau: '', pays: t.pays || '',
+          plateforme: 'Prière exaucée',
+          categorie: knownCats.has(t.categorie) ? t.categorie : 'priere',
+          titre: t.titre || 'Témoignage', texte: t.corps || '',
+          date: (t.created_at || '').slice(0, 10), likes: 0, couleur: '#8B5CF6', emoji: '🙏',
+        }))
+        const merged = [...fromWorkflow, ...fromCms].sort((a, b) => b.date.localeCompare(a.date))
+        setItems(merged)
+      } catch { /* liste vide */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const filtered = items.filter(t => activeCategory === 'all' || t.categorie === activeCategory)
 
   const toggleLike = (id: string) => {
     setLikedIds(prev => {
@@ -121,8 +92,19 @@ export default function TemoignagesPage() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Enregistrement réel : soumission en modération (statut 'submitted').
+    try {
+      if (!IS_DEMO_MODE && temoignage.trim()) {
+        await supabase.from('cms_testimonies').insert({
+          author_name: nom.trim() || 'Anonyme',
+          body: temoignage.trim(),
+          status: 'submitted',
+          is_anonymous: !nom.trim(),
+        })
+      }
+    } catch { /* ignore : confirmation affichée quand même */ }
     setSubmitted(true)
   }
 
@@ -145,14 +127,6 @@ export default function TemoignagesPage() {
               « Ils l'ont vaincu à cause du sang de l'Agneau et à cause de la parole de leur témoignage. »
               — Apocalypse 12:11
             </p>
-
-            <div className="flex items-center justify-center gap-4 text-sm font-inter text-pearl/40">
-              <span className="flex items-center gap-1.5"><Heart className="w-4 h-4 text-pink-400" /> {TEMOIGNAGES.reduce((a, t) => a + t.likes, 0).toLocaleString()} réactions</span>
-              <span className="w-1 h-1 rounded-full bg-pearl/20" />
-              <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-gold" /> {TEMOIGNAGES.length}+ témoignages publiés</span>
-              <span className="w-1 h-1 rounded-full bg-pearl/20" />
-              <span>45+ pays</span>
-            </div>
           </motion.div>
         </div>
       </div>
@@ -180,6 +154,17 @@ export default function TemoignagesPage() {
             </button>
           ))}
         </motion.div>
+
+        {/* Empty state */}
+        {filtered.length === 0 && (
+          <div className="card-royal text-center py-16 mb-14 max-w-2xl mx-auto">
+            <div className="text-4xl mb-4">✨</div>
+            <h2 className="font-cinzel text-lg font-bold text-pearl mb-2">Aucun témoignage pour le moment</h2>
+            <p className="font-inter text-sm text-pearl/45">
+              Soyez le premier à partager ce que Dieu a accompli dans votre vie.
+            </p>
+          </div>
+        )}
 
         {/* Testimonials grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-14">

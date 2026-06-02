@@ -3,48 +3,39 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, MapPin, Calendar, MessageCircle, Plus, Globe, Video, ChevronRight, ArrowRight,
-  Church, Flame, Heart, Home, CalendarPlus, Share2, Send, Building2,
+  Church, Flame, Heart, Home, CalendarPlus, Share2, Send, Building2, Check,
   type LucideIcon,
 } from 'lucide-react'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { useAuth } from '@/components/providers/AuthProvider'
 
+// Aucune donnée fictive : l'appartenance réelle à un groupe se construit via les
+// demandes d'adhésion (group_join_requests) validées en back-office. État vide sinon.
 const MON_GROUPE = {
-  id: '1',
-  nom: 'Cellule Paris Centre',
-  plateforme: 'CIER Global',
+  id: '',
+  nom: 'Aucun groupe pour le moment',
+  plateforme: '',
   icon: Church,
   couleur: '#D4AF37',
-  type: 'Présentiel',
-  ville: 'Paris, France',
-  membres: 18,
-  berger: 'Frère Emmanuel',
-  jour: 'Vendredi',
-  heure: '19h30',
-  prochainRdv: '2026-05-15',
-  description: 'Cellule de croissance en plein cœur de Paris. Étude biblique, partage et intercession.',
+  type: '',
+  ville: '',
+  membres: 0,
+  berger: '',
+  jour: '',
+  heure: '',
+  prochainRdv: '',
+  description: "Vous n'êtes encore membre d'aucun groupe. Découvrez les groupes disponibles et envoyez une demande d'adhésion.",
 }
 
-const MEMBRES_GROUPE = [
-  { prenom: 'Emmanuel', nom: 'D.', role: 'Berger', pays: '🇫🇷', couleur: '#D4AF37' },
-  { prenom: 'Marie', nom: 'K.', role: 'Secrétaire', pays: '🇨🇩', couleur: '#EC4899' },
-  { prenom: 'David', nom: 'M.', role: 'Membre', pays: '🇧🇪', couleur: '#0EA5E9' },
-  { prenom: 'Jean', nom: 'D.', role: 'Vous', pays: '🇫🇷', couleur: '#22C55E' },
-  { prenom: 'Amina', nom: 'K.', role: 'Membre', pays: '🇨🇮', couleur: '#8B5CF6' },
-  { prenom: 'Samuel', nom: 'T.', role: 'Membre', pays: '🇨🇲', couleur: '#F97316' },
-]
+const MEMBRES_GROUPE: { prenom: string; nom: string; role: string; pays: string; couleur: string }[] = []
 
-const PROCHAINS_RDVS = [
-  { date: '2026-05-15', titre: 'Étude biblique — Matthieu 5', type: 'Étude', heure: '19h30' },
-  { date: '2026-05-22', titre: 'Temps de prière & partage', type: 'Prière', heure: '19h30' },
-  { date: '2026-05-29', titre: 'Soirée témoignages & louange', type: 'Louange', heure: '19h30' },
-]
+const PROCHAINS_RDVS: { date: string; titre: string; type: string; heure: string }[] = []
 
 type Suggestion = { id: string; nom: string; icon: LucideIcon; couleur: string; ville: string; type: string; membres: number }
-const SUGGESTIONS: Suggestion[] = [
-  { id: '2', nom: 'Groupe Jeunesse Lyon',     icon: Flame, couleur: '#EF4444', ville: 'Lyon, France',  type: 'Hybride',     membres: 32 },
-  { id: '5', nom: 'Intercesseurs Online',     icon: Heart, couleur: '#8B5CF6', ville: 'International', type: 'En ligne',    membres: 89 },
-  { id: '7', nom: 'Cellule Cité du Refuge',   icon: Home,  couleur: '#22C55E', ville: 'Abidjan, CI',   type: 'Présentiel',  membres: 20 },
-]
+// Aucun groupe fictif : les groupes réels seront gérés en back-office (module Groupes à venir).
+const SUGGESTIONS: Suggestion[] = []
 
 const TYPE_COLORS: Record<string, string> = {
   Étude: '#D4AF37',
@@ -54,14 +45,33 @@ const TYPE_COLORS: Record<string, string> = {
 }
 
 export default function MesGroupesPage() {
+  const { user, profile, isDemo } = useAuth()
+  const [requested, setRequested] = useState<Set<string>>(new Set())
+  const [joining, setJoining] = useState<string | null>(null)
+
+  async function joinGroup(g: { id: string; nom: string }) {
+    if (requested.has(g.id)) return
+    setJoining(g.id)
+    try {
+      if (!IS_DEMO_MODE && !isDemo) {
+        const { error } = await supabase.from('group_join_requests').insert({
+          group_id: g.id, group_nom: g.nom,
+          user_id: user?.id ?? null,
+          user_nom: profile ? `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() : (user?.email ?? ''),
+          user_email: profile?.email ?? user?.email ?? '',
+        })
+        if (error) { toast.error("Échec de l'envoi de la demande."); setJoining(null); return }
+      }
+      setRequested((s) => new Set(s).add(g.id))
+      toast.success('Demande d\'adhésion envoyée ✓')
+    } catch { toast.error('Erreur réseau') }
+    setJoining(null)
+  }
+
   const [tab, setTab] = useState<'mon-groupe' | 'decouvrir'>('mon-groupe')
   const [chatOpen, setChatOpen] = useState(false)
   const [chatMsg, setChatMsg] = useState('')
-  const [messages, setMessages] = useState([
-    { id: 1, auteur: 'Emmanuel D.', msg: "Bonsoir la famille ! 🙏 Notre prochaine rencontre c'est vendredi à 19h30", time: '18:42' },
-    { id: 2, auteur: 'Marie K.', msg: 'Amen ! Je serai là avec mon mari', time: '18:45' },
-    { id: 3, auteur: 'Samuel T.', msg: 'Pareil pour moi ! 🔥', time: '18:47' },
-  ])
+  const [messages, setMessages] = useState<{ id: number; auteur: string; msg: string; time: string }[]>([])
 
   const sendMsg = (e: React.FormEvent) => {
     e.preventDefault()
@@ -271,29 +281,49 @@ export default function MesGroupesPage() {
                   </form>
                 </div>
 
-                {/* Quick action */}
-                <div className="card-royal">
-                  <h3 className="font-cinzel text-xs font-bold text-pearl mb-3">Actions Rapides</h3>
-                  <div className="space-y-2">
-                    {([
-                      { label: 'Ajouter au calendrier', icon: CalendarPlus,    color: '#D4AF37' },
-                      { label: 'Contacter le berger',   icon: MessageCircle,   color: '#0EA5E9' },
-                      { label: 'Partager le groupe',    icon: Share2,          color: '#22C55E' },
-                    ] as const).map(a => (
-                      <button key={a.label}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-pearl/[0.04] transition-colors text-left">
-                        <div
-                          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: `${a.color}15`, border: `1px solid ${a.color}28` }}
-                        >
-                          <a.icon className="w-3.5 h-3.5" style={{ color: a.color }} />
-                        </div>
-                        <span className="text-xs font-inter text-pearl/65 flex-1">{a.label}</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-pearl/20" />
-                      </button>
-                    ))}
+                {/* Actions rapides — affichées uniquement quand un vrai groupe existe.
+                    Chaque action est alors réellement fonctionnelle (calendrier .ics, contact berger, partage). */}
+                {MON_GROUPE.id && (
+                  <div className="card-royal">
+                    <h3 className="font-cinzel text-xs font-bold text-pearl mb-3">Actions Rapides</h3>
+                    <div className="space-y-2">
+                      {[
+                        MON_GROUPE.jour && MON_GROUPE.heure ? {
+                          label: 'Ajouter au calendrier', icon: CalendarPlus, color: '#D4AF37',
+                          onClick: () => {
+                            const t = `Groupe ${MON_GROUPE.nom}`
+                            const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(t)}&details=${encodeURIComponent(MON_GROUPE.description)}&location=${encodeURIComponent(MON_GROUPE.ville)}`
+                            window.open(url, '_blank', 'noopener,noreferrer')
+                          },
+                        } : null,
+                        MON_GROUPE.berger ? {
+                          label: 'Contacter le berger', icon: MessageCircle, color: '#0EA5E9',
+                          onClick: () => { window.location.href = '/member/dashboard/messages' },
+                        } : null,
+                        {
+                          label: 'Partager le groupe', icon: Share2, color: '#22C55E',
+                          onClick: async () => {
+                            const shareUrl = typeof window !== 'undefined' ? window.location.href : ''
+                            try {
+                              if (navigator.share) await navigator.share({ title: MON_GROUPE.nom, url: shareUrl })
+                              else { await navigator.clipboard.writeText(shareUrl); toast.success('Lien copié ✓') }
+                            } catch { /* annulé */ }
+                          },
+                        },
+                      ].filter(Boolean).map((a: any) => (
+                        <button key={a.label} onClick={a.onClick}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-pearl/[0.04] transition-colors text-left">
+                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ background: `${a.color}15`, border: `1px solid ${a.color}28` }}>
+                            <a.icon className="w-3.5 h-3.5" style={{ color: a.color }} />
+                          </div>
+                          <span className="text-xs font-inter text-pearl/65 flex-1">{a.label}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-pearl/20" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </motion.div>
           ) : (
@@ -304,6 +334,13 @@ export default function MesGroupesPage() {
                 <p className="font-inter text-sm text-pearl/45 mb-6">
                   Groupes recommandés pour vous basés sur votre profil et vos préférences
                 </p>
+                {SUGGESTIONS.length === 0 && (
+                  <div className="card-royal text-center py-12 mb-8">
+                    <Users className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+                    <p className="font-inter text-sm text-pearl/50">Aucun groupe disponible pour le moment.</p>
+                    <p className="font-inter text-xs text-pearl/30 mt-1">De nouveaux groupes seront bientôt proposés.</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                   {SUGGESTIONS.map((g, i) => (
                     <motion.div key={g.id}
@@ -332,9 +369,12 @@ export default function MesGroupesPage() {
                           {g.type}
                         </span>
                       </div>
-                      <button className="w-full py-2 rounded-xl text-xs font-inter font-semibold transition-all"
+                      <button
+                        onClick={() => joinGroup({ id: g.id, nom: g.nom })}
+                        disabled={joining === g.id || requested.has(g.id)}
+                        className="w-full py-2 rounded-xl text-xs font-inter font-semibold transition-all disabled:opacity-70 inline-flex items-center justify-center gap-1.5"
                         style={{ background: `${g.couleur}12`, color: g.couleur, border: `1px solid ${g.couleur}25` }}>
-                        Rejoindre
+                        {requested.has(g.id) ? <><Check className="w-3.5 h-3.5" /> Demande envoyée</> : joining === g.id ? 'Envoi…' : 'Rejoindre'}
                       </button>
                     </motion.div>
                   ))}

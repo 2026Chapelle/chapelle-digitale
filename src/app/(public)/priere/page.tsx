@@ -1,25 +1,25 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Heart, Send, Shield, Filter, Search, Clock, Globe, Users, ArrowRight, Flame, AlertCircle, CheckCircle2 } from 'lucide-react'
-import { CATEGORIES_PRIERE, PRIERES_COMMUNAUTE, MES_PRIERES, type CategoriePriere } from '@/lib/mock/prieres'
+import { Heart, Send, Shield, Filter, Search, Clock, Globe, Users, ArrowRight, Flame, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react'
+import { CATEGORIES_PRIERE, type CategoriePriere } from '@/lib/mock/prieres'
 import { events } from '@/lib/analytics'
+import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { useAuth } from '@/components/providers/AuthProvider'
 
-const ALL_REQUESTS = [...MES_PRIERES.filter(p => !p.is_anonyme || p.sujet), ...PRIERES_COMMUNAUTE]
-  .filter(p => p.statut === 'active')
-  .sort((a, b) => b.nb_priants - a.nb_priants)
-
+// Repères qualitatifs (aucun chiffre fictif).
 const STATS = [
   { value: '24/7', label: 'Intercession continue', icon: Clock, color: '#D4AF37' },
-  { value: '120+', label: 'Nations représentées', icon: Globe, color: '#0EA5E9' },
-  { value: '50K+', label: 'Prières soumises', icon: Heart, color: '#EC4899' },
-  { value: '8K+', label: 'Intercesseurs actifs', icon: Users, color: '#22C55E' },
+  { value: 'Mondial', label: 'Mur de prière', icon: Globe, color: '#0EA5E9' },
+  { value: 'Ouvert', label: 'À tous les membres', icon: Heart, color: '#EC4899' },
+  { value: 'Communauté', label: "Chaîne d'intercession", icon: Users, color: '#22C55E' },
 ]
 
 type PriereErrs = { sujet?: string | null; description?: string | null; categorie?: string | null }
 
 export default function PrierePage() {
+  const { user } = useAuth()
   const [prayedFor, setPrayedFor] = useState<Set<string>>(new Set())
   const [activeCategorie, setActiveCategorie] = useState<CategoriePriere | 'Tous'>('Tous')
   const [searchQuery, setSearchQuery] = useState('')
@@ -34,10 +34,25 @@ export default function PrierePage() {
   const [submitted, setSubmitted] = useState(false)
   const [pErrs, setPErrs] = useState<PriereErrs>({})
 
-  const handlePray = (id: string) => setPrayedFor(prev => new Set(Array.from(prev).concat(id)))
+  const handlePray = (id: string) => {
+    if (prayedFor.has(id)) return
+    setPrayedFor(prev => new Set(Array.from(prev).concat(id)))
+    // Compteur réel d'intercesseurs (Mur Mondial de Prière). Best-effort.
+    if (!IS_DEMO_MODE) {
+      fetch('/api/priere/pray', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      }).catch(() => {})
+    }
+  }
 
   const handleSubmitPriere = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Aucune soumission anonyme : il faut être connecté (compte + email vérifié).
+    if (!user) {
+      setPErrs({ sujet: 'Connectez-vous ou créez un compte pour déposer votre demande de prière.' })
+      return
+    }
     const next: PriereErrs = {}
     if (sujet.trim().length < 3) next.sujet = 'Précisez le sujet (3 caractères min).'
     if (description.trim().length < 10) next.description = 'Décrivez votre demande (10 caractères min).'
@@ -47,14 +62,68 @@ export default function PrierePage() {
 
     setSubmitting(true)
     events.prayerSubmitted({ categorie, urgente, anonyme: !nom })
-    await new Promise(r => setTimeout(r, 900))
+    try {
+      if (!IS_DEMO_MODE) {
+        const { error } = await supabase.from('priere_demandes').insert({
+          nom: nom.trim() || null, sujet: sujet.trim(), description: description.trim(),
+          categorie, urgence: urgente ? 'elevee' : 'normale', anonyme: !nom.trim(),
+        })
+        if (error) { setPErrs({ sujet: "L'envoi a échoué. Réessayez." }); setSubmitting(false); return }
+      } else {
+        await new Promise(r => setTimeout(r, 700))
+      }
+    } catch { setPErrs({ sujet: 'Erreur réseau.' }); setSubmitting(false); return }
     setSubmitting(false)
     setSubmitted(true)
     setNom(''); setSujet(''); setDescription(''); setCategorie(''); setUrgente(false)
     setTimeout(() => setSubmitted(false), 4000)
   }
 
-  const filtered = ALL_REQUESTS.filter(req => {
+  // Témoignages exaucés (validés + publics) — boucle Demande → Réponse → Impact.
+  const [temoignages, setTemoignages] = useState<any[]>([])
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase
+          .from('temoignages')
+          .select('id, titre, corps, auteur, categorie, pays, ville, created_at')
+          .eq('statut', 'valide').eq('is_public', true)
+          .order('created_at', { ascending: false }).limit(12)
+        if (!cancelled) setTemoignages(data || [])
+      } catch { /* vide */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  // Mur de prière RÉEL : demandes publiques (non anonymes, en cours). Aucune donnée fictive.
+  const [wall, setWall] = useState<any[]>([])
+  const [wallLoaded, setWallLoaded] = useState(false)
+  useEffect(() => {
+    if (IS_DEMO_MODE) { setWallLoaded(true); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase
+          .from('priere_demandes')
+          .select('id, nom, sujet, description, categorie, urgence, anonyme, created_at, prayers_count')
+          .eq('anonyme', false)
+          .in('statut', ['nouvelle', 'en_priere'])
+          .order('created_at', { ascending: false })
+          .limit(60)
+        if (cancelled) return
+        setWall((data || []).map((d: any) => ({
+          id: d.id, auteur: d.nom || 'Membre', sujet: d.sujet, description: d.description || '',
+          categorie: d.categorie || 'general', is_anonyme: false, urgence: d.urgence, nb_priants: d.prayers_count || 0,
+        })))
+      } catch { /* mur vide */ }
+      finally { if (!cancelled) setWallLoaded(true) }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const filtered = wall.filter(req => {
     const matchesCategorie = activeCategorie === 'Tous' || req.categorie === activeCategorie
     const matchesSearch = !searchQuery || req.sujet.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesCategorie && matchesSearch
@@ -99,7 +168,7 @@ export default function PrierePage() {
               </span>
             </h1>
             <p className="font-inter text-gray-500 text-lg mb-10 leading-relaxed mx-auto" style={{ maxWidth: '600px' }}>
-              Notre mur de prière mondial unit des intercesseurs de 120+ nations. Priez, soyez prié, rejoignez la chaîne d'intercession qui ne s'arrête jamais.
+              Notre mur de prière mondial unit des intercesseurs de nombreuses nations. Priez, soyez prié, rejoignez la chaîne d'intercession qui ne s'arrête jamais.
             </p>
 
             {/* Stats */}
@@ -150,6 +219,17 @@ export default function PrierePage() {
                   <Shield className="w-4 h-4" />
                   Soumettre une demande
                 </h2>
+
+                {!user && (
+                  <div className="mb-4 px-4 py-3 rounded-xl text-xs font-inter"
+                    style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)', color: '#92721A' }}>
+                    <p className="mb-2 font-semibold">Connectez-vous ou créez un compte pour déposer votre demande de prière.</p>
+                    <div className="flex gap-2">
+                      <Link href="/login" className="px-3 py-1.5 rounded-lg font-semibold" style={{ background: '#111827', color: '#fff' }}>Se connecter</Link>
+                      <Link href="/register" className="px-3 py-1.5 rounded-lg font-semibold" style={{ background: 'rgba(212,175,55,0.18)', color: '#92721A', border: '1px solid rgba(212,175,55,0.35)' }}>Créer un compte</Link>
+                    </div>
+                  </div>
+                )}
 
                 {submitted && (
                   <div role="status" aria-live="polite" className="mb-4 flex items-start gap-2 px-4 py-3 rounded-xl text-xs font-inter"
@@ -259,7 +339,8 @@ export default function PrierePage() {
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !user}
+                  title={!user ? 'Connectez-vous pour déposer une demande' : undefined}
                   className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-inter font-semibold text-sm text-white transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{ background: '#111827', boxShadow: '0 4px 12px rgba(0,0,0,0.18)' }}
                 >
@@ -397,7 +478,7 @@ export default function PrierePage() {
                           className="w-11 h-11 rounded-xl flex items-center justify-center font-cinzel font-bold text-sm text-white flex-shrink-0"
                           style={{ background: catColor }}
                         >
-                          {req.is_anonyme ? '?' : (req.auteur ?? 'A').split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          {req.is_anonyme ? '?' : String(req.auteur ?? 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                         </div>
 
                         {/* Content */}
@@ -478,6 +559,24 @@ export default function PrierePage() {
               </div>
             </div>
           </div>
+
+          {/* Témoignages exaucés — l'impact réel de la prière */}
+          {temoignages.length > 0 && (
+            <div className="mt-16">
+              <h2 className="font-cinzel text-xl font-bold text-center mb-2" style={{ color: '#1a1a2e' }}>Témoignages exaucés</h2>
+              <p className="font-inter text-sm text-center text-gray-500 mb-8">Ce que Dieu a fait dans la communauté.</p>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+                {temoignages.map((t) => (
+                  <div key={t.id} className="rounded-2xl p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+                    <Sparkles className="w-4 h-4 mb-2" style={{ color: '#D4AF37' }} />
+                    {t.titre && <h3 className="font-cinzel font-bold text-sm mb-1" style={{ color: '#1a1a2e' }}>{t.titre}</h3>}
+                    <p className="font-inter text-sm text-gray-600 leading-relaxed line-clamp-5">{t.corps}</p>
+                    <p className="font-inter text-[11px] text-gray-400 mt-3">{t.auteur || 'Anonyme'}{t.pays ? ` · ${t.pays}` : ''}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
     </div>

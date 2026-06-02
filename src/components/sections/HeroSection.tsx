@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, Play, Users, Globe, Tv, ChevronDown, Sparkles } from 'lucide-react'
+import { ArrowRight, Play, ChevronDown, Sparkles } from 'lucide-react'
 import { events } from '@/lib/analytics'
 
 /* ============================================================
@@ -11,12 +11,6 @@ import { events } from '@/lib/analytics'
    Vitrail de lumière vectoriel (rayons + poussière d'or).
    Aucune image externe · aucun bleu · animations légères.
    ============================================================ */
-
-const STATS = [
-  { value: '127K', label: 'Membres actifs', icon: Users, accent: '#D4AF37' },
-  { value: '120+', label: 'Nations', icon: Globe, accent: '#EBE7DD' },
-  { value: '500+', label: 'Cultes en direct', icon: Tv, accent: '#F5E6A7' },
-]
 
 const ROTATING_WORDS = [
   'transformé par Sa Présence',
@@ -34,7 +28,7 @@ const FLOATING_BADGES = [
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
-export function HeroSection() {
+export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?: string; cta_href?: string } } = {}) {
   const [wordIndex, setWordIndex] = useState(0)
   const { scrollY } = useScroll()
   const bgY = useTransform(scrollY, [0, 600], [0, 140])
@@ -167,7 +161,7 @@ export function HeroSection() {
             }}
           >
             <Sparkles className="w-3 h-3" style={{ color: '#D4AF37' }} />
-            Une Église Ouverte au Monde · 120 nations
+            Une Église Ouverte au Monde
           </span>
         </motion.div>
 
@@ -227,8 +221,8 @@ export function HeroSection() {
           className="font-inter leading-relaxed mb-4 mx-auto"
           style={{ fontSize: 'clamp(0.98rem, 1.9vw, 1.18rem)', color: 'rgba(235,231,221,0.48)', maxWidth: '600px' }}
         >
-          Rejoignez des milliers de croyants dans une expérience spirituelle digitale unique —
-          cultes en direct, formations, prière et communion, à toute heure.
+          {block?.subtitle ||
+            'Rejoignez des milliers de croyants dans une expérience spirituelle digitale unique — cultes en direct, formations, prière et communion, à toute heure.'}
         </motion.p>
 
         {/* ROTATING TAGLINE */}
@@ -262,11 +256,11 @@ export function HeroSection() {
           className="flex flex-col sm:flex-row items-center gap-3 mb-7 w-full sm:w-auto"
         >
           <Link
-            href="/rejoindre"
+            href={block?.cta_href || '/rejoindre'}
             onClick={() => events.ctaClick('rejoindre_hero')}
             className="btn-gold-cinematic group w-full sm:w-auto text-[0.97rem]"
           >
-            Rejoindre la Chapelle
+            {block?.cta_label || 'Rejoindre la Chapelle'}
             <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
 
@@ -283,7 +277,7 @@ export function HeroSection() {
           </Link>
         </motion.div>
 
-        {/* SOCIAL PROOF */}
+        {/* SOCIAL PROOF — qualitatif */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -291,59 +285,8 @@ export function HeroSection() {
           className="text-[11px] font-inter mb-12"
           style={{ color: 'rgba(235,231,221,0.34)', letterSpacing: '0.08em' }}
         >
-          ★ ★ ★ ★ ★ &nbsp;·&nbsp; 127 000+ membres &nbsp;·&nbsp; 120 nations &nbsp;·&nbsp; Accès gratuit
+          Une communauté ouverte au monde &nbsp;·&nbsp; Accès gratuit
         </motion.p>
-
-        {/* STATS — cartes verre charbon */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.72, ease: EASE }}
-          className="w-full max-w-2xl"
-        >
-          <div className="grid grid-cols-3 gap-3 md:gap-4">
-            {STATS.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.8 + i * 0.1 }}
-                whileHover={{ y: -4 }}
-                className="group relative rounded-2xl p-4 sm:p-5 text-center overflow-hidden transition-all duration-500 cursor-default"
-                style={{
-                  background: 'linear-gradient(140deg, rgba(244,241,233,0.06) 0%, rgba(244,241,233,0.015) 100%)',
-                  backdropFilter: 'blur(20px) saturate(160%)',
-                  WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-                  border: '1px solid rgba(244,241,233,0.10)',
-                  boxShadow: '0 1px 0 rgba(244,241,233,0.06) inset, 0 12px 40px rgba(0,0,0,0.35)',
-                }}
-              >
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{ background: `radial-gradient(circle at 50% 0%, ${stat.accent}18, transparent 70%)` }}
-                />
-                <div
-                  className="relative w-9 h-9 rounded-xl mx-auto mb-2.5 flex items-center justify-center"
-                  style={{ background: `${stat.accent}14`, border: `1px solid ${stat.accent}28` }}
-                >
-                  <stat.icon className="w-4 h-4" style={{ color: stat.accent }} />
-                </div>
-                <div
-                  className="relative font-cinzel font-black text-2xl sm:text-3xl mb-0.5"
-                  style={{ color: '#F4F2ED', letterSpacing: '-0.02em' }}
-                >
-                  {stat.value}
-                </div>
-                <div
-                  className="relative text-[11px] font-inter uppercase tracking-wider"
-                  style={{ color: 'rgba(235,231,221,0.48)' }}
-                >
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
 
         {/* Badges nations flottants — desktop */}
         <div className="hidden lg:block absolute inset-0 pointer-events-none" aria-hidden>

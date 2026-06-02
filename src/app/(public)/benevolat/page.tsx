@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, Users, BookOpen, Tv, Globe, ArrowRight, CheckCircle, Send } from 'lucide-react'
+import { Clock, ArrowRight, CheckCircle, Send } from 'lucide-react'
 
 const MISSIONS = [
   {
@@ -10,7 +10,6 @@ const MISSIONS = [
     titre: 'Équipe Accueil',
     desc: 'Accueillir les nouveaux membres lors des cultes en ligne et en présentiel. Être le premier visage de la CIER.',
     couleur: '#D4AF37',
-    disponible: 8,
     engagement: '2h/semaine',
     requis: ['Sens du relationnel', 'Disponible en semaine ou weekend', 'Maîtrise du français'],
     plateforme: 'CIER Global',
@@ -21,7 +20,6 @@ const MISSIONS = [
     titre: 'Équipe Production Live',
     desc: 'Gérer la technique des cultes en streaming : caméras, son, diffusion sur les plateformes digitales.',
     couleur: '#EF4444',
-    disponible: 4,
     engagement: '4h/semaine',
     requis: ['Notions techniques (vidéo/son)', 'Disponible le dimanche', 'Fiabilité'],
     plateforme: 'Live & Streaming',
@@ -32,7 +30,6 @@ const MISSIONS = [
     titre: 'Assistant(e) de Formation',
     desc: 'Accompagner les apprenants dans leurs formations, animer des sessions de questions-réponses.',
     couleur: '#8B5CF6',
-    disponible: 6,
     engagement: '3h/semaine',
     requis: ['Connaissances théologiques de base', 'Pédagogie', 'Patience'],
     plateforme: 'CFIC',
@@ -43,7 +40,6 @@ const MISSIONS = [
     titre: 'Intercesseur Mahanaïm',
     desc: 'Rejoindre l\'équipe de prière pour intercéder pour les requêtes reçues et les besoins de l\'Église.',
     couleur: '#EC4899',
-    disponible: 20,
     engagement: '1h/jour',
     requis: ['Vie de prière personnelle', 'Confidentialité', 'Engagement spiritual'],
     plateforme: 'Mahanaïm',
@@ -54,7 +50,6 @@ const MISSIONS = [
     titre: 'Modérateur Communautaire',
     desc: 'Modérer les chats des cultes en live, veiller au respect de la charte communautaire et à la bonne ambiance.',
     couleur: '#0EA5E9',
-    disponible: 5,
     engagement: '2h/semaine',
     requis: ['Calme et diplomatie', 'Connaissances de la foi', 'Disponible lors des cultes'],
     plateforme: 'Tous',
@@ -65,7 +60,6 @@ const MISSIONS = [
     titre: 'Actions Sociales',
     desc: 'Participer aux missions sociales de la Cité du Refuge : aide alimentaire, accompagnement de familles en difficulté.',
     couleur: '#22C55E',
-    disponible: 12,
     engagement: '4h/mois',
     requis: ['Cœur pour les démunis', 'Disponible en semaine', 'Basé en RDC, France ou Belgique'],
     plateforme: 'Cité du Refuge',
@@ -110,20 +104,6 @@ export default function BenevolatPage() {
             <p className="font-inter text-pearl/50 max-w-xl mx-auto mb-8">
               « Chacun doit exercer sur les autres le don de la grâce qu'il a reçu, comme de bons dispensateurs de la grâce multiforme de Dieu. » — 1 Pierre 4:10
             </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-8">
-              {[
-                { val: '200+', label: 'Bénévoles actifs', emoji: '💪' },
-                { val: '6', label: 'Équipes de service', emoji: '🎯' },
-                { val: '45+', label: 'Pays représentés', emoji: '🌍' },
-              ].map(s => (
-                <div key={s.label} className="text-center">
-                  <div className="text-2xl mb-1">{s.emoji}</div>
-                  <div className="font-cinzel text-2xl font-black text-gold">{s.val}</div>
-                  <div className="text-xs text-pearl/35 font-inter">{s.label}</div>
-                </div>
-              ))}
-            </div>
           </motion.div>
         </div>
       </div>
@@ -190,8 +170,8 @@ export default function BenevolatPage() {
 
                 <div className="flex items-center justify-between text-xs font-inter mb-3">
                   <span className="text-pearl/40 flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {m.disponible} places
+                    <Clock className="w-3 h-3" />
+                    Engagement
                   </span>
                   <span className="font-semibold" style={{ color: m.couleur }}>{m.engagement}</span>
                 </div>
