@@ -1,5 +1,14 @@
 # PROJECT_MASTER_STATE — Citadelle (V1 → V5)
 
+> **SAUVEGARDE (2026-06-02 soir)** : tout le source V1→V5+P4 + 55 migrations + docs
+> est **commité et poussé sur GitHub** (`origin` = `github.com/2026Chapelle/chapelle-digitale`,
+> commit `50a05ad` sur `main`). **Source de vérité = le dépôt Git**, PAS le ZIP.
+> Le `deploy-citadelle.zip` (20,1 Mo) a été **régénéré** depuis le build frais (V1→V5+P4,
+> BUILD_ID `EvLb8KsGA4zN5OWUSf6KS`) : c'est un build *standalone compilé* (sans source ni
+> migrations — par nature). Pour reconstruire : `git clone` + `npm ci` + `npm run build`.
+> `.env.local` (secrets) reste hors Git/ZIP ; `chapelle-digitale/` & `deploy-citadelle/`
+> sont désormais gitignorés.
+>
 > **Document de reprise unique.** Un nouvel agent doit pouvoir reprendre le projet
 > à partir de ce seul fichier. Mis à jour à la pause du 2026-06-02.
 > Compléments : `docs/ARCHITECTURE_COMMANDEMENT_APOSTOLIQUE.md`,
