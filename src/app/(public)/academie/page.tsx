@@ -28,7 +28,9 @@ export default function AcademiePage() {
   const levelUnlocked = (i: number) => i === 0 || levelDone(levels[i - 1].id)
 
   const validated = niveau1.filter((m) => prog.isCompleted(m.stepId)).length
-  const locked120 = levels.reduce((n, l) => n + getLevelModules(l.id).filter((m) => prog.statusOf(m.stepId) === 'locked').length, 0)
+  const lastOpened = prog.history.find((h) => h.type === 'opened')
+  const lastModule = lastOpened ? niveau1.find((m) => m.stepId === lastOpened.stepId && m.hasRealContent) : null
+  const nextModule = niveau1.find((m) => prog.statusOf(m.stepId) === 'available' && m.hasRealContent)
   const R = 52, C = 2 * Math.PI * R
 
   return (
@@ -90,6 +92,14 @@ export default function AcademiePage() {
               </div>
             ))}
           </div>
+
+          {/* Reprendre : dernier module consulté + prochain recommandé */}
+          {(lastModule || nextModule) && (
+            <div className="grid sm:grid-cols-2 gap-3 mt-3">
+              {lastModule && <ResumeCard label="Dernier module consulté" m={lastModule} />}
+              {nextModule && <ResumeCard label="Prochain module recommandé" m={nextModule} highlight />}
+            </div>
+          )}
         </div>
       </section>
 
@@ -238,6 +248,23 @@ export default function AcademiePage() {
         </div>
       </section>
     </div>
+  )
+}
+
+function ResumeCard({ label, m, highlight }: { label: string; m: AcademieModuleView; highlight?: boolean }) {
+  return (
+    <Link href={`/academie/${m.slug}`} className="card-cinematic p-4 flex items-center gap-4 group" style={highlight ? { borderColor: 'rgba(212,175,55,0.35)' } : undefined}>
+      {m.cover && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={m.cover} alt="" loading="lazy" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="font-inter text-[10px] uppercase tracking-widest mb-0.5" style={{ color: 'rgba(245,230,216,0.4)' }}>{label}</p>
+        <p className="font-cinzel font-bold text-sm text-white truncate">{m.titre}</p>
+        <p className="font-inter text-[11px] truncate" style={{ color: 'rgba(245,230,216,0.5)' }}>Module {m.ordre} · {m.niveauLabel}</p>
+      </div>
+      <ArrowRight className="w-4 h-4 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ color: '#D4AF37' }} />
+    </Link>
   )
 }
 
