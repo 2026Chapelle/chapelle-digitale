@@ -86,16 +86,6 @@ export function MovementSection() {
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
-                  <div className="absolute top-3 left-3 z-10">
-                    <div className="text-[9px] px-2 py-0.5 rounded-full font-inter font-bold tracking-widest uppercase backdrop-blur-md"
-                      style={{
-                        background: `${platform.couleur_primaire}30`,
-                        color: '#FFFFFF',
-                        border: `1px solid ${platform.couleur_primaire}50`,
-                      }}>
-                      {platform.actif ? 'Actif' : 'Bientôt'}
-                    </div>
-                  </div>
                 </div>
 
                 <div className="h-0.5 w-full transition-all duration-300 group-hover:h-1"
