@@ -1,7 +1,7 @@
 'use client'
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { GraduationCap, Layers, BookOpen, Award, FileText, Video, Image as ImageIcon, ExternalLink, Database, Lock } from 'lucide-react'
+import { GraduationCap, Layers, BookOpen, Award, FileText, Video, Image as ImageIcon, ExternalLink, Database, Lock, ListChecks, Users, ScrollText } from 'lucide-react'
 import { getLevels, getLevelModules } from '@/lib/academie/student'
 
 /**
@@ -43,6 +43,25 @@ export default function AdminAcademiePage() {
               quiz officiels, badges, certificats, diplômes, suivi étudiants et statistiques.
             </p>
           </div>
+        </div>
+
+        {/* Gestionnaires */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+          {[
+            { href: '/admin/academie/niveaux', label: 'Niveaux', icon: Layers },
+            { href: '/admin/academie/modules', label: 'Modules', icon: BookOpen },
+            { href: '/admin/academie/quiz', label: 'Quiz', icon: ListChecks },
+            { href: '/admin/academie/badges', label: 'Badges', icon: Award },
+            { href: '/admin/academie/etudiants', label: 'Étudiants', icon: Users },
+            { href: '/academie/verifier', label: 'Vérifier', icon: ScrollText },
+          ].map((m) => (
+            <Link key={m.href} href={m.href} className="card-cinematic p-4 flex flex-col items-center gap-2 text-center hover:border-gold/30 transition-colors">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.25)' }}>
+                <m.icon className="w-5 h-5 text-gold" />
+              </div>
+              <span className="font-inter text-xs font-semibold text-pearl/80">{m.label}</span>
+            </Link>
+          ))}
         </div>
 
         {/* KPI */}

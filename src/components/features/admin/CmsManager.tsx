@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Pencil, Trash2, X, ArrowUp, ArrowDown, Eye, EyeOff, Database, Loader2, Check, ExternalLink, Copy } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'url' | 'datetime' | 'select' | 'tags' | 'file'
+export type FieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'url' | 'datetime' | 'select' | 'tags' | 'file' | 'json'
 
 export interface FieldDef {
   name: string
@@ -105,6 +105,11 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
         payload[f.name] = Number(payload[f.name])
       }
       if ((f.type === 'datetime') && payload[f.name] === '') payload[f.name] = null
+      if (f.type === 'json' && typeof payload[f.name] === 'string') {
+        const raw = (payload[f.name] as string).trim()
+        try { payload[f.name] = raw === '' ? null : JSON.parse(raw) }
+        catch { setError(`JSON invalide pour « ${f.label} »`); setSaving(false); return }
+      }
     }
     try {
       const r = await fetch(base, {
@@ -283,7 +288,11 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
               {fields.map((f) => (
                 <div key={f.name}>
                   <label className="block text-xs font-semibold text-pearl/50 font-inter mb-1.5 uppercase tracking-wider">{f.label}{f.required && ' *'}</label>
-                  {f.type === 'textarea' ? (
+                  {f.type === 'json' ? (
+                    <textarea rows={6} placeholder={f.placeholder || '[ … ]  (JSON)'}
+                      value={typeof editing[f.name] === 'string' ? editing[f.name] : JSON.stringify(editing[f.name] ?? '', null, 2)}
+                      onChange={(e) => setEditing({ ...editing, [f.name]: e.target.value })} className="input-royal resize-none font-mono text-xs" />
+                  ) : f.type === 'textarea' ? (
                     <textarea rows={4} value={editing[f.name] ?? ''} placeholder={f.placeholder}
                       onChange={(e) => setEditing({ ...editing, [f.name]: e.target.value })} className="input-royal resize-none" />
                   ) : f.type === 'boolean' ? (
