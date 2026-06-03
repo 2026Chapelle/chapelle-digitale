@@ -188,6 +188,11 @@ export default function AcademiePage() {
             <p className="font-inter text-[11px] text-center mt-4" style={{ color: 'rgba(245,230,216,0.4)' }}>
               {prog.badges.length} badge{prog.badges.length > 1 ? 's' : ''} obtenu{prog.badges.length > 1 ? 's' : ''} · collectez-les en validant les modules
             </p>
+            <div className="text-center mt-3">
+              <Link href="/academie/passeport" className="inline-flex items-center gap-1.5 text-sm font-semibold font-inter" style={{ color: '#D4AF37' }}>
+                Voir mon Passeport <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
 
           {/* Historique d'apprentissage */}
@@ -215,9 +220,13 @@ export default function AcademiePage() {
         <div className="container-cinematic">
           <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
             <h3 className="font-cinzel font-bold text-lg text-white flex items-center gap-2"><Trophy className="w-4 h-4" style={{ color: '#D4AF37' }} /> Certificats &amp; Diplôme</h3>
-            <Link href="/academie/verifier" className="inline-flex items-center gap-1.5 text-sm font-semibold font-inter" style={{ color: '#D4AF37' }}>
-              Vérifier un certificat <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="flex items-center gap-4 flex-wrap">
+              <Link href="/academie/certificat/apercu-niveau" className="inline-flex items-center gap-1.5 text-sm font-inter" style={{ color: 'rgba(245,230,216,0.6)' }}>Aperçu certificat</Link>
+              <Link href="/academie/certificat/apercu-diplome" className="inline-flex items-center gap-1.5 text-sm font-inter" style={{ color: 'rgba(245,230,216,0.6)' }}>Aperçu diplôme</Link>
+              <Link href="/academie/verifier" className="inline-flex items-center gap-1.5 text-sm font-semibold font-inter" style={{ color: '#D4AF37' }}>
+                Vérifier <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
           <p className="font-inter text-sm mb-5 max-w-2xl" style={{ color: 'rgba(245,230,216,0.5)' }}>
             Un certificat officiel est décerné à la validation des <span className="text-pearl/80">20 modules</span> d&apos;un niveau.

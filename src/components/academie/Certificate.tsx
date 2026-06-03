@@ -79,9 +79,11 @@ export function Certificate({ credential, showActions = true }: { credential: Cr
 
           <div className="flex items-end justify-between w-full mt-4">
             <div className="text-left">
-              <div className="w-32 border-t mb-1" style={{ borderColor: 'rgba(245,230,216,0.3)' }} />
-              <p className="font-cormorant italic text-sm" style={{ color: 'rgba(245,230,216,0.7)' }}>Le Directeur du CFIC</p>
-              <p className="font-inter text-[10px]" style={{ color: 'rgba(245,230,216,0.4)' }}>{date}</p>
+              <p className="font-cormorant italic mb-0.5" style={{ fontSize: 'clamp(1.2rem,2.6vw,1.7rem)', color: '#F5E6A7', lineHeight: 1 }}>Doxa Salomon</p>
+              <div className="w-40 border-t mb-1" style={{ borderColor: 'rgba(245,230,216,0.3)' }} />
+              <p className="font-cinzel text-xs font-bold" style={{ color: 'rgba(245,230,216,0.8)' }}>Rév. Doxa Salomon</p>
+              <p className="font-inter text-[10px]" style={{ color: 'rgba(245,230,216,0.45)' }}>Directeur de l&apos;Académie des Élus · CFIC</p>
+              <p className="font-inter text-[10px] mt-1" style={{ color: 'rgba(245,230,216,0.4)' }}>Délivré le {date}</p>
             </div>
             <div className="flex flex-col items-center gap-1">
               <div style={{ background: '#fff', padding: 5, borderRadius: 6 }}>
