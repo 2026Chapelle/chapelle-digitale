@@ -71,16 +71,8 @@ export default function PlateformesListPage() {
                     <div className="absolute inset-0 pointer-events-none opacity-60 group-hover:opacity-80 transition-opacity duration-500"
                       style={{ background: `radial-gradient(ellipse at 50% 120%, ${p.couleur_primaire}40 0%, transparent 60%)` }} />
 
-                    {/* Badge état */}
-                    <div className="absolute top-3 left-3 z-10">
-                      <span className="text-[9px] px-2 py-0.5 rounded-full font-inter font-bold tracking-widest uppercase backdrop-blur-md"
-                        style={{ background: `${p.couleur_primaire}30`, color: '#FFFFFF', border: `1px solid ${p.couleur_primaire}55` }}>
-                        {p.actif ? 'Actif' : 'Bientôt'}
-                      </span>
-                    </div>
-
-                    {/* Texte par-dessus l'image */}
-                    <div className="absolute inset-x-0 bottom-0 p-5 z-10">
+                    {/* Texte par-dessus l'image — légèrement remonté pour rééquilibrer la carte (rendu premium) */}
+                    <div className="absolute inset-x-0 bottom-0 px-5 pt-5 pb-7 z-10">
                       <h3 className="font-cinzel text-base font-bold text-white mb-1 leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">{p.nom}</h3>
                       <p className="text-xs font-cormorant italic mb-3 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" style={{ color: '#F5E6A7' }}>{p.slogan}</p>
                       <div className="flex items-center gap-1 text-xs font-inter font-semibold group-hover:gap-2 transition-all" style={{ color: p.couleur_primaire }}>
