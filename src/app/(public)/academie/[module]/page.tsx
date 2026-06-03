@@ -52,6 +52,10 @@ export default function AcademieModulePage({ params }: { params: { module: strin
   const niveau1Done = getLevelModules(N1).filter((m) => prog.isCompleted(m.stepId)).length
   const next = getNextModule(mod.stepId)
   const vid = ytId(mod.videoUrl)
+  // Contenu réellement disponible = au moins un manuel PDF ou une vidéo.
+  // Sinon (ex. Module 2 dont seules les couvertures existent) → « à venir »,
+  // sans proposer de validation factice (aucun contenu inventé).
+  const contentReady = !!(mod.pdf || vid)
   const showCompletion = completed || justDone
 
   function validate() {
@@ -188,23 +192,33 @@ export default function AcademieModulePage({ params }: { params: { module: strin
                 </div>
               </div>
 
-              {/* Quiz officiel (questions à intégrer) + validation du module */}
-              <div className="card-cinematic p-6">
-                <h3 className="font-cinzel font-bold text-white flex items-center gap-2 mb-1"><ListChecks className="w-4 h-4" style={{ color: '#D4AF37' }} /> Validation du module</h3>
-                <p className="font-inter text-xs mb-4" style={{ color: 'rgba(245,230,216,0.45)' }}>
-                  Le quiz officiel sera intégré ici (validation automatique). En attendant ses questions, confirmez votre étude pour valider le module.
-                </p>
-                <label className="flex items-start gap-3 cursor-pointer select-none mb-4">
-                  <input type="checkbox" checked={confirmRead} onChange={(e) => setConfirmRead(e.target.checked)} className="mt-1 w-4 h-4 accent-amber-500" />
-                  <span className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.7)' }}>
-                    J&apos;ai étudié l&apos;enseignement et lu le manuel de ce module.
-                  </span>
-                </label>
-                <button onClick={validate} disabled={!confirmRead}
-                  className="btn-gold-cinematic justify-center disabled:opacity-50 disabled:cursor-not-allowed">
-                  <Check className="w-4 h-4" /> Valider le module
-                </button>
-              </div>
+              {/* Validation du module — seulement si le contenu réel est disponible */}
+              {contentReady ? (
+                <div className="card-cinematic p-6">
+                  <h3 className="font-cinzel font-bold text-white flex items-center gap-2 mb-1"><ListChecks className="w-4 h-4" style={{ color: '#D4AF37' }} /> Validation du module</h3>
+                  <p className="font-inter text-xs mb-4" style={{ color: 'rgba(245,230,216,0.45)' }}>
+                    Le quiz officiel sera intégré ici (validation automatique). En attendant ses questions, confirmez votre étude pour valider le module.
+                  </p>
+                  <label className="flex items-start gap-3 cursor-pointer select-none mb-4">
+                    <input type="checkbox" checked={confirmRead} onChange={(e) => setConfirmRead(e.target.checked)} className="mt-1 w-4 h-4 accent-amber-500" />
+                    <span className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.7)' }}>
+                      J&apos;ai étudié l&apos;enseignement et lu le manuel de ce module.
+                    </span>
+                  </label>
+                  <button onClick={validate} disabled={!confirmRead}
+                    className="btn-gold-cinematic justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                    <Check className="w-4 h-4" /> Valider le module
+                  </button>
+                </div>
+              ) : (
+                <div className="card-cinematic p-6 text-center">
+                  <ListChecks className="w-7 h-7 mx-auto mb-2" style={{ color: 'rgba(212,175,55,0.5)' }} />
+                  <p className="font-cinzel font-bold text-white mb-1">Contenu de ce module bientôt disponible</p>
+                  <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.5)' }}>
+                    La couverture est prête. L&apos;enseignement, le manuel et le quiz officiels seront ajoutés ici très prochainement.
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
