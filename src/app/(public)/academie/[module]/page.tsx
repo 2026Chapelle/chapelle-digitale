@@ -9,6 +9,8 @@ import {
 import { getModuleBySlug, getLevelModules, getNextModule } from '@/lib/academie/student'
 import { useAcademyProgress } from '@/components/academie/useAcademyProgress'
 import { KingdomBadge } from '@/components/academie/KingdomBadge'
+import { useAuth } from '@/components/providers/AuthProvider'
+import { isIntegrationDone } from '@/lib/academie/gating'
 
 const N1 = 'acad-fondements'
 
@@ -21,6 +23,8 @@ function ytId(url?: string): string | null {
 
 export default function AcademieModulePage({ params }: { params: { module: string } }) {
   const mod = useMemo(() => getModuleBySlug(params.module), [params.module])
+  const { profile, loading: authLoading } = useAuth()
+  const integrationDone = isIntegrationDone(profile as any)
   const prog = useAcademyProgress()
   const [confirmRead, setConfirmRead] = useState(false)
   const [justDone, setJustDone] = useState(false)
@@ -40,7 +44,27 @@ export default function AcademieModulePage({ params }: { params: { module: strin
       <div className="min-h-screen bg-charbon flex items-center justify-center px-4">
         <div className="text-center">
           <h1 className="font-cinzel text-2xl font-bold text-white mb-2">Module introuvable</h1>
-          <Link href="/academie" className="btn-gold-cinematic inline-flex mt-2">Retour à l&apos;Académie</Link>
+          <Link href="/member/dashboard/formations" className="btn-gold-cinematic inline-flex mt-2">Retour à l&apos;Académie</Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (authLoading) {
+    return <div className="min-h-screen bg-charbon flex items-center justify-center"><div className="w-6 h-6 rounded-full border-2 border-gold/30 border-t-gold animate-spin" /></div>
+  }
+  if (!integrationDone) {
+    return (
+      <div className="min-h-screen bg-charbon flex items-center justify-center px-4">
+        <div className="card-cinematic p-8 text-center max-w-md">
+          <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.05)' }}>
+            <Lock className="w-6 h-6" style={{ color: 'rgba(245,230,216,0.5)' }} />
+          </div>
+          <h1 className="font-cinzel text-xl font-bold text-white mb-2">Académie verrouillée</h1>
+          <p className="font-inter text-sm mb-5" style={{ color: 'rgba(245,230,216,0.6)' }}>
+            Terminez votre parcours d&apos;intégration pour accéder à l&apos;Académie des Élus.
+          </p>
+          <Link href="/member/dashboard/parcours" className="btn-gold-cinematic inline-flex">Voir Mon Parcours <ArrowRight className="w-4 h-4" /></Link>
         </div>
       </div>
     )
@@ -82,7 +106,7 @@ export default function AcademieModulePage({ params }: { params: { module: strin
           <p className="font-inter text-sm mb-6" style={{ color: 'rgba(245,230,216,0.6)' }}>
             {mod.ordre === 2 ? 'Débloquez ce module après validation du Module 1.' : 'Ce module se débloque après validation du module précédent.'}
           </p>
-          <Link href="/academie" className="btn-glass-cinematic inline-flex">Retour au parcours <ArrowRight className="w-4 h-4" /></Link>
+          <Link href="/member/dashboard/formations" className="btn-glass-cinematic inline-flex">Retour au parcours <ArrowRight className="w-4 h-4" /></Link>
         </div>
       </div>
     )
@@ -93,7 +117,7 @@ export default function AcademieModulePage({ params }: { params: { module: strin
       <div className="container-cinematic max-w-4xl">
         {/* Fil d'Ariane */}
         <nav className="flex items-center gap-2 text-sm font-inter mb-6" style={{ color: 'rgba(245,230,216,0.4)' }}>
-          <Link href="/academie" className="hover:text-gold transition-colors">Académie</Link>
+          <Link href="/member/dashboard/formations" className="hover:text-gold transition-colors">Mes Formations</Link>
           <ChevronRight className="w-3.5 h-3.5" />
           <span style={{ color: '#D4AF37' }}>{mod.niveauLabel}</span>
           <ChevronRight className="w-3.5 h-3.5" />
@@ -138,7 +162,7 @@ export default function AcademieModulePage({ params }: { params: { module: strin
                       </span>
                     )
                   ) : null}
-                  <Link href="/academie" className="btn-glass-cinematic">Voir mon parcours</Link>
+                  <Link href="/member/dashboard/formations" className="btn-glass-cinematic">Voir mon parcours</Link>
                 </div>
               </div>
             </motion.div>

@@ -25,7 +25,7 @@ export default function CertificatPage({ params }: { params: { code: string } })
   return (
     <div className="min-h-screen bg-charbon pt-28 pb-20">
       <div className="container-cinematic max-w-4xl">
-        <Link href="/academie" className="inline-flex items-center gap-1.5 font-inter text-sm mb-6 print:hidden" style={{ color: 'rgba(245,230,216,0.4)' }}>
+        <Link href="/member/dashboard/formations" className="inline-flex items-center gap-1.5 font-inter text-sm mb-6 print:hidden" style={{ color: 'rgba(245,230,216,0.4)' }}>
           <ArrowLeft className="w-4 h-4" /> Académie des Élus
         </Link>
 
