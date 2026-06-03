@@ -9,6 +9,7 @@ import {
 import { getLevels, getLevelModules, getLibrary, type AcademieModuleView } from '@/lib/academie/student'
 import { useAcademyProgress } from '@/components/academie/useAcademyProgress'
 import { KingdomBadge } from '@/components/academie/KingdomBadge'
+import { AcademySeal } from '@/components/academie/AcademySeal'
 
 const N1 = 'acad-fondements'
 
@@ -195,6 +196,44 @@ export default function AcademiePage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* CERTIFICATIONS & DIPLÔME */}
+      <section className="section-cinematic pt-0">
+        <div className="container-cinematic">
+          <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <h3 className="font-cinzel font-bold text-lg text-white flex items-center gap-2"><Trophy className="w-4 h-4" style={{ color: '#D4AF37' }} /> Certificats &amp; Diplôme</h3>
+            <Link href="/academie/verifier" className="inline-flex items-center gap-1.5 text-sm font-semibold font-inter" style={{ color: '#D4AF37' }}>
+              Vérifier un certificat <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <p className="font-inter text-sm mb-5 max-w-2xl" style={{ color: 'rgba(245,230,216,0.5)' }}>
+            Un certificat officiel est décerné à la validation des <span className="text-pearl/80">20 modules</span> d&apos;un niveau.
+            Les <span className="text-pearl/80">6 niveaux</span> achevés ouvrent le <span className="text-cinematic-gold font-semibold">Diplôme des Bâtisseurs du Royaume</span>.
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {levels.map((l) => {
+              const done = levelDone(l.id)
+              return (
+                <div key={l.id} className="card-cinematic p-5 flex flex-col items-center text-center" style={{ opacity: done ? 1 : 0.85 }}>
+                  <AcademySeal variant={done ? 'or' : 'violet'} size={66} />
+                  <p className="font-cinzel font-bold text-sm text-white mt-3 leading-tight">Certificat · {l.theme}</p>
+                  <p className="font-inter text-[11px] mt-1" style={{ color: done ? '#86EFAC' : 'rgba(245,230,216,0.4)' }}>
+                    {done ? 'Obtenu' : `${levelPct(l.id)}% · 20 modules requis`}
+                  </p>
+                </div>
+              )
+            })}
+            {/* Diplôme suprême */}
+            <div className="card-cinematic-gold p-5 flex flex-col items-center text-center sm:col-span-2 lg:col-span-4">
+              <AcademySeal variant="or" size={84} />
+              <p className="font-cinzel font-black text-base text-cinematic-gold mt-3">Diplôme des Bâtisseurs du Royaume</p>
+              <p className="font-inter text-xs mt-1" style={{ color: 'rgba(245,230,216,0.5)' }}>
+                Décerné après validation des 6 niveaux de l&apos;Académie · mention selon les résultats.
+              </p>
+            </div>
           </div>
         </div>
       </section>
