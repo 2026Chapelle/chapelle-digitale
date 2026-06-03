@@ -4,7 +4,7 @@ import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
 import {
   Play, Clock, Calendar, ArrowRight, Radio,
-  Church, BookOpen, Heart, GraduationCap,
+  Church, BookOpen, Sunrise, Flame,
   type LucideIcon,
 } from 'lucide-react'
 import { PremiumImage } from '@/components/ui/PremiumImage'
@@ -19,12 +19,14 @@ import { events } from '@/lib/analytics'
    Palette tenue : or × charbon, rouge réservé au direct.
    ============================================================ */
 
-type ScheduleItem = { jour: string; heure: string; type: string; icon: LucideIcon; dayIndex: number; hour: number }
+type ScheduleItem = { jour: string; heure: string; type: string; icon: LucideIcon; dayIndex: number; hour: number; min: number }
 const SCHEDULE: ScheduleItem[] = [
-  { jour: 'Dimanche', heure: '10h00', type: 'Culte Principal',   icon: Church,        dayIndex: 0, hour: 10 },
-  { jour: 'Mercredi', heure: '20h00', type: 'Étude Biblique',    icon: BookOpen,      dayIndex: 3, hour: 20 },
-  { jour: 'Vendredi', heure: '22h00', type: 'Veillée de Prière', icon: Heart,         dayIndex: 5, hour: 22 },
-  { jour: 'Samedi',   heure: '10h00', type: 'Formation CFIC',    icon: GraduationCap, dayIndex: 6, hour: 10 },
+  { jour: 'Lundi',    heure: '05h30', type: 'Matinale de Prière',          icon: Sunrise, dayIndex: 1, hour: 5,  min: 30 },
+  { jour: 'Mercredi', heure: '05h30', type: 'Matinale de Prière',          icon: Sunrise, dayIndex: 3, hour: 5,  min: 30 },
+  { jour: 'Mercredi', heure: '19h30', type: 'École du Royaume',            icon: BookOpen, dayIndex: 3, hour: 19, min: 30 },
+  { jour: 'Vendredi', heure: '05h30', type: 'Matinale de Prière',          icon: Sunrise, dayIndex: 5, hour: 5,  min: 30 },
+  { jour: 'Vendredi', heure: '19h30', type: 'Vendredi de Puissance',       icon: Flame,   dayIndex: 5, hour: 19, min: 30 },
+  { jour: 'Dimanche', heure: '10h30', type: 'Culte de Célébration Royale', icon: Church,  dayIndex: 0, hour: 10, min: 30 },
 ]
 
 type NextService = { label: string; jour: string; heure: string; at: Date }
@@ -35,7 +37,7 @@ function computeNextService(now: Date): NextService | null {
   for (const s of SCHEDULE) {
     const d = new Date(now)
     let delta = (s.dayIndex - now.getDay() + 7) % 7
-    d.setHours(s.hour, 0, 0, 0)
+    d.setHours(s.hour, s.min, 0, 0)
     if (delta === 0 && d.getTime() <= now.getTime()) delta = 7
     d.setDate(d.getDate() + delta)
     if (!best || d.getTime() < best.at.getTime()) {
