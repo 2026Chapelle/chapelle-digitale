@@ -12,43 +12,43 @@ function ytId(url?: string): string | null {
   return m ? m[1] : (/^[\w-]{11}$/.test(String(url)) ? String(url) : null)
 }
 
-const CHAT_MESSAGES = [
-  { id: 1, nom: 'Marie K.', pays: '🇫🇷', message: 'Merci Seigneur pour cette parole !', type: 'message', time: '10:42' },
-  { id: 2, nom: 'David M.', pays: '🇨🇩', message: 'Amen ! Cette prédication me touche au plus profond', type: 'message', time: '10:43' },
-  { id: 3, nom: 'SYSTÈME', pays: '', message: '🎉 Grace N. vient de rejoindre la chapelle !', type: 'systeme', time: '10:43' },
-  { id: 4, nom: 'Sarah P.', pays: '🇨🇮', message: 'Je demande la prière pour ma famille', type: 'priere', time: '10:44' },
-  { id: 5, nom: 'John A.', pays: '🇳🇬', message: 'Glory to God 🔥', type: 'message', time: '10:44' },
-]
-
 const REACTIONS = ['🙏', '🔥', '❤️', '✨', '🙌', '💫', '👑', '⚡']
 
-const REPLAYS = [
-  { id: '1', titre: 'Culte Principal — "La foi qui déplace les montagnes"', date: '4 mai 2026', duree: '1h45min', vues: 3240, speaker: 'Pasteur Principal' },
-  { id: '2', titre: 'Étude Biblique — "La puissance du Nom de Jésus"', date: '1 mai 2026', duree: '1h20min', vues: 1870, speaker: 'Berger Enseignant' },
-  { id: '3', titre: 'Veillée de Prière Spéciale', date: '25 avr. 2026', duree: '2h15min', vues: 2150, speaker: 'Ministère Mahanaïm' },
-  { id: '4', titre: 'Culte Principal — "Il est vivant !"', date: '20 avr. 2026', duree: '1h55min', vues: 5340, speaker: 'Pasteur Principal' },
-]
+interface Replay { id: string; titre: string; date: string; speaker: string; url: string; cover?: string }
 
 export default function LivePage() {
   const [tab, setTab] = useState<'live' | 'replays'>('live')
   const [chatMessage, setChatMessage] = useState('')
-  const [messages, setMessages] = useState(CHAT_MESSAGES)
+  const [messages, setMessages] = useState<any[]>([])
   const [reactionsVisible, setReactionsVisible] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   // Direct RÉEL depuis cms_lives — MÊME source que l'espace membre (source unique).
   const [live, setLive] = useState<{ titre: string; description: string; youtube_url: string; video_url: string; cover: string; plateforme: string } | null>(null)
+  const [replays, setReplays] = useState<Replay[]>([])
   useEffect(() => {
     if (IS_DEMO_MODE) return
     let cancelled = false
     ;(async () => {
       try {
         const { data } = await supabase.from('cms_lives')
-          .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status')
+          .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at')
           .in('status', ['live', 'scheduled', 'ended', 'published'])
         if (cancelled || !data) return
         const row: any = data.find((d: any) => d.status === 'live' || d.is_live)
         if (row) setLive({ titre: row.title, description: row.description || '', youtube_url: row.youtube_url || '', video_url: row.video_url || '', cover: row.cover_url || '', plateforme: row.platform || '' })
+        // Replays RÉELS : rediffusions terminées/publiées disposant d'une vidéo.
+        const reps: Replay[] = (data as any[])
+          .filter((d) => (d.status === 'ended' || d.status === 'published') && (d.youtube_url || d.video_url))
+          .map((d, i) => ({
+            id: `${d.title || 'replay'}-${i}`,
+            titre: d.title || 'Rediffusion',
+            date: d.created_at ? new Date(d.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+            speaker: d.platform || '',
+            url: d.youtube_url || d.video_url || '',
+            cover: d.cover_url || (ytId(d.youtube_url) ? `https://i.ytimg.com/vi/${ytId(d.youtube_url)}/hqdefault.jpg` : ''),
+          }))
+        setReplays(reps)
       } catch { /* pas de direct */ }
     })()
     return () => { cancelled = true }
@@ -201,6 +201,9 @@ export default function LivePage() {
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
+                {messages.length === 0 && (
+                  <p className="text-center text-pearl/30 text-xs font-inter py-10">Le chat s&apos;anime pendant les directs. Soyez le premier à écrire un message.</p>
+                )}
                 {messages.map((msg) => (
                   <motion.div
                     key={msg.id}
@@ -276,45 +279,41 @@ export default function LivePage() {
 
       {tab === 'replays' && (
         <div className="container-royal py-8">
-          <h2 className="font-cinzel text-2xl font-bold text-pearl mb-8">
-            Replays & Archives
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {REPLAYS.map((replay, i) => (
-              <motion.div
-                key={replay.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.07 }}
-                className="card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300"
-              >
-                {/* Thumbnail */}
-                <div className="relative rounded-xl overflow-hidden mb-4"
-                  style={{ aspectRatio: '16/9' }}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-royal/40 to-abyss flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Play className="w-5 h-5 text-gold ml-0.5" fill="currentColor" />
+          <h2 className="font-cinzel text-2xl font-bold text-pearl mb-8">Replays &amp; Archives</h2>
+          {replays.length === 0 ? (
+            <div className="card-royal p-12 text-center">
+              <Play className="w-8 h-8 mx-auto mb-3 text-gold/40" />
+              <p className="font-cinzel text-lg text-pearl/60 mb-1">Aucun replay disponible pour le moment</p>
+              <p className="font-inter text-sm text-pearl/35">Les rediffusions des cultes apparaîtront ici après leur diffusion.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {replays.map((replay, i) => (
+                <motion.a
+                  key={replay.id} href={replay.url} target="_blank" rel="noreferrer"
+                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                  className="card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
+                >
+                  <div className="relative rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
+                    {replay.cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={replay.cover} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-royal/40 to-abyss" />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(5,3,8,0.35)' }}>
+                      <div className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Play className="w-5 h-5 text-gold ml-0.5" fill="currentColor" />
+                      </div>
                     </div>
                   </div>
-                  <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-0.5 rounded-lg text-[10px] text-pearl/70 font-mono">
-                    {replay.duree}
-                  </div>
-                </div>
-
-                <h3 className="font-cinzel text-xs font-bold text-pearl group-hover:text-gold transition-colors line-clamp-2 mb-2">
-                  {replay.titre}
-                </h3>
-                <p className="text-[11px] text-pearl/40 font-inter">{replay.speaker}</p>
-                <div className="flex items-center justify-between mt-2 text-[11px] text-pearl/30">
-                  <span>{replay.date}</span>
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    {replay.vues.toLocaleString()}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                  <h3 className="font-cinzel text-xs font-bold text-pearl group-hover:text-gold transition-colors line-clamp-2 mb-2">{replay.titre}</h3>
+                  {replay.speaker && <p className="text-[11px] text-pearl/40 font-inter capitalize">{replay.speaker}</p>}
+                  {replay.date && <p className="text-[11px] text-pearl/30 mt-1">{replay.date}</p>}
+                </motion.a>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
