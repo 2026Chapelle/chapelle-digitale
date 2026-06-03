@@ -68,6 +68,10 @@ export function PremiumImage({
     <div
       className={cn(
         'relative overflow-hidden',
+        // En mode `fill`, la racine doit remplir son parent — sinon, n'ayant que
+        // des enfants en position:absolute, elle s'effondre à 0px de hauteur et
+        // l'image (height:100%) devient invisible. Correctif central.
+        fill && 'h-full w-full',
         ringOnHover && 'group transition-shadow duration-500',
         className
       )}
