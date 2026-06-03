@@ -110,7 +110,10 @@ export default function RegisterPage() {
     } else {
       events.signUpCompleted()
       toast.success('Bienvenue dans la famille ! 🎉 Vérifiez votre email.')
-      router.push('/member/dashboard?welcome=true')
+      // Le nouvel inscrit entre directement dans l'accueil guidé (onboarding 7 étapes).
+      const params = new URLSearchParams({ prenom: form.prenom })
+      if (form.plateforme) params.set('plateforme', form.plateforme)
+      router.push(`/bienvenue?${params.toString()}`)
     }
     setLoading(false)
   }

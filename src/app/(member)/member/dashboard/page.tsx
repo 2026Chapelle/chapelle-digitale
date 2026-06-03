@@ -11,6 +11,7 @@ import { BADGES, PARCOURS_DISCIPLE } from '@/lib/constants'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { roleLabel } from '@/lib/roles'
 import { BibleTodayWidget } from '@/components/features/member/BibleTodayWidget'
+import { ProgressionCard } from '@/components/features/member/ProgressionCard'
 
 const DAILY_VERSE = {
   reference: 'Philippiens 4 : 13',
@@ -215,11 +216,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Activité — état vide honnête */}
-            <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <h2 className="font-cinzel text-sm font-bold flex items-center gap-2 mb-5" style={{ color: '#FFFFFF' }}><TrendingUp className="w-4 h-4" style={{ color: '#D4AF37' }} /> Activité Récente</h2>
-              <p className="font-inter text-sm py-6 text-center" style={{ color: 'rgba(255,255,255,0.3)' }}>Aucune activité récente pour le moment.</p>
-            </div>
+            {/* Progression visible du membre (parcours de transformation) */}
+            <ProgressionCard />
           </div>
 
           {/* Colonne droite */}

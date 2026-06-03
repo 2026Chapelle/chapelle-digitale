@@ -147,6 +147,9 @@ export default function RootLayout({
               name: 'La Chapelle Internationale des Élus du Royaume',
               alternateName: 'CIER',
               description: 'Une Église Ouverte au Monde — Communauté chrétienne francophone mondiale',
+              slogan: 'Une Église Ouverte au Monde',
+              foundingDate: '2018',
+              knowsLanguage: ['fr', 'en'],
               url: process.env.NEXT_PUBLIC_APP_URL,
               logo: `${process.env.NEXT_PUBLIC_APP_URL}/icon-512.png`,
               sameAs: [
@@ -160,6 +163,21 @@ export default function RootLayout({
                 contactType: 'customer service',
                 availableLanguage: ['French', 'English'],
               },
+            }),
+          }}
+        />
+        {/* WebSite — aide Google à reconnaître l'entité du site et son nom. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'CIER — La Chapelle Internationale des Élus du Royaume',
+              alternateName: 'Citadelle',
+              url: process.env.NEXT_PUBLIC_APP_URL,
+              inLanguage: 'fr-FR',
+              publisher: { '@type': 'Organization', name: 'La Chapelle Internationale des Élus du Royaume' },
             }),
           }}
         />

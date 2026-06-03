@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ChevronRight, Clock, BookOpen, Award, Loader2 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { FormationEnrollButton } from '@/components/conversion/FormationEnrollButton'
 
 interface PubFormation {
   id: string; titre: string; slug: string; contenu_court?: string; description?: string
@@ -99,7 +100,7 @@ export default function FormationPublicDetailPage({ params }: { params: { slug: 
                 <p className="font-cinzel text-2xl font-bold text-pearl mb-1">{f.certifiant ? 'Premium' : 'Gratuit'}</p>
                 {f.certifiant && <p className="text-sm text-pearl/40 font-inter">Accès inclus avec Disciple Premium</p>}
               </div>
-              <Link href="/register" className="btn-gold-cinematic w-full justify-center mb-4">Commencer cette formation</Link>
+              <FormationEnrollButton formationId={f.id} slug={f.slug} />
               <div className="space-y-3 text-sm">
                 {duree && (
                   <div className="flex items-center justify-between py-2 border-b border-white/5">

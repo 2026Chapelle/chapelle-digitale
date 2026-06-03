@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import Image, { ImageProps } from 'next/image'
 import { cn } from '@/lib/utils'
 import type { CieerImage } from '@/lib/images'
@@ -60,6 +61,7 @@ export function PremiumImage({
   fill = false,
   ...rest
 }: PremiumImageProps) {
+  const [failed, setFailed] = useState(false)
   const src = preferRemote && image.srcRemote ? image.srcRemote : image.src
 
   return (
@@ -90,11 +92,14 @@ export function PremiumImage({
         }}
       />
 
-      {fill ? (
+      {/* Image — masquée en cas d'erreur de chargement : le dégradé `palette`
+          ci-dessus prend alors le relais (fallback automatique). */}
+      {!failed && (fill ? (
         <Image
           src={src}
           alt={image.alt}
           fill
+          onError={() => setFailed(true)}
           className={cn('object-cover', imageClassName)}
           sizes={rest.sizes ?? '(max-width: 768px) 100vw, 50vw'}
           {...rest}
@@ -105,11 +110,12 @@ export function PremiumImage({
           alt={image.alt}
           width={image.width}
           height={image.height}
+          onError={() => setFailed(true)}
           className={cn('w-full h-full object-cover', imageClassName)}
           sizes={rest.sizes ?? '(max-width: 768px) 100vw, 50vw'}
           {...rest}
         />
-      )}
+      ))}
 
       {/* Cinematic overlay */}
       {overlay !== 'none' && (
