@@ -8,6 +8,7 @@ import { FORMATIONS } from '@/lib/mock/formations'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import { AcademieFormationBlock } from '@/components/academie/AcademieFormationBlock'
 
 interface Dispo { id: string; titre: string; slug: string; niveau?: string; certifiant?: boolean; instructeur_nom?: string; contenu_court?: string }
 interface Certif { id: string; titre: string; reference?: string; delivre_le: string }
@@ -130,6 +131,9 @@ export default function FormationsPage() {
           title={<>Mes <span className="text-cinematic-gold">Formations</span></>}
           description="Continuez votre parcours spirituel à votre rythme."
         />
+
+        {/* Académie des Élus — intégrée au parcours (verrouillée tant que l'intégration n'est pas terminée) */}
+        <AcademieFormationBlock />
 
         {/* Stats */}
         <motion.div

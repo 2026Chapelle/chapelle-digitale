@@ -115,7 +115,7 @@ export default function AdminAcademiePage() {
         </div>
 
         <div className="mt-6">
-          <Link href="/academie" className="btn-glass-cinematic inline-flex text-sm">Voir le parcours étudiant <ExternalLink className="w-4 h-4" /></Link>
+          <Link href="/member/dashboard/formations" className="btn-glass-cinematic inline-flex text-sm">Voir dans Mes Formations <ExternalLink className="w-4 h-4" /></Link>
         </div>
       </div>
     </div>
