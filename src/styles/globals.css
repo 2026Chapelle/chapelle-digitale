@@ -49,6 +49,11 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Les ancres (#premier-pas, etc.) ne se cachent plus sous la navbar fixe. */
+    scroll-padding-top: calc(var(--nav-height) + 1rem);
+    /* Barre de défilement fine, teintée or — cohérence premium (Firefox). */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212,175,55,0.35) transparent;
   }
 
   body {
@@ -102,6 +107,30 @@
 
   a { @apply transition-colors duration-200; }
   img { @apply max-w-full; }
+
+  /* ── Raffinements premium transverses (cohérence sur toute la plateforme) ── */
+
+  /* Typographie : ligatures contextuelles + crénage fin (rendu premium). */
+  body {
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  }
+
+  /* Supprime le flash bleu de tap sur mobile (rendu app premium). */
+  a, button, [role='button'], summary {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Barre de défilement WebKit — fine, discrète, accent or au survol. */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(212,175,55,0.28);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s var(--ease-smooth);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(212,175,55,0.5); background-clip: padding-box; }
 }
 
 @layer components {

@@ -1,23 +1,28 @@
 import { cmsList, type CmsHomepageBlock } from '@/lib/cms'
 import { HeroSection } from '@/components/sections/HeroSection'
-import { PlatformsSection } from '@/components/sections/PlatformsSection'
-import { ImpactSection } from '@/components/sections/ImpactSection'
 import { LiveSection } from '@/components/sections/LiveSection'
-import { FormationsSection } from '@/components/sections/FormationsSection'
-import { TestimonialsSection } from '@/components/sections/TestimonialsSection'
-import { PrayerSection } from '@/components/sections/PrayerSection'
+import { StartHereSection } from '@/components/sections/StartHereSection'
+import { MovementSection } from '@/components/sections/MovementSection'
+import { GrowSection } from '@/components/sections/GrowSection'
+import { CommunitySection } from '@/components/sections/CommunitySection'
 import { JoinSection } from '@/components/sections/JoinSection'
-import { PodcastSection } from '@/components/sections/PodcastSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
 
 /**
  * Accueil PILOTÉ PAR LE CMS (table cms_homepage_blocks).
  *
+ * Refonte premium — architecture en 7 blocs (audit homepage) :
+ *   hero → live → start → movement → grow → community → join
+ *   (fusions : Impact+Platforms→movement, Formations+Podcast→grow,
+ *    Prière+Témoignages→community ; pricing retiré de l'accueil).
+ *
  * - Ordre  : chaque bloc a un `sort_order` modifiable en back-office.
  * - Visibilité : un bloc `is_active=false` ou non « published » est masqué.
  * - Contenu : titre/sous-titre/image/CTA passés à la section (override optionnel).
- * - Fallback : si aucune ligne CMS pour une section → contenu par défaut affiché
- *   (aucune régression en démo / avant configuration).
+ * - Fallback : si aucune ligne CMS pour une section → contenu par défaut affiché.
+ *
+ * Les anciennes clés (platforms, impact, formations, prayer, testimonials,
+ * podcast) ne sont plus rendues : leurs blocs sont désormais fusionnés.
  *
  * Server component : lit le CMS côté serveur, rend des sections clientes animées.
  */
@@ -29,16 +34,14 @@ type Block = CmsHomepageBlock & {
 const COMPONENTS: Record<string, (props: { block?: Block }) => JSX.Element> = {
   hero: HeroSection,
   live: LiveSection,
-  platforms: PlatformsSection,
-  impact: ImpactSection,
-  formations: FormationsSection,
-  prayer: PrayerSection,
-  testimonials: TestimonialsSection,
-  podcast: PodcastSection,
+  start: StartHereSection,
+  movement: MovementSection,
+  grow: GrowSection,
+  community: CommunitySection,
   join: JoinSection,
 }
 
-const DEFAULT_ORDER = ['hero', 'live', 'platforms', 'impact', 'formations', 'prayer', 'testimonials', 'podcast', 'join']
+const DEFAULT_ORDER = ['hero', 'live', 'start', 'movement', 'grow', 'community', 'join']
 
 export async function HomeSections() {
   const rows = (await cmsList<Block>('cms_homepage_blocks')) ?? []

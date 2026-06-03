@@ -1,15 +1,17 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight, Play, ChevronDown, Sparkles } from 'lucide-react'
+import { PremiumImage } from '@/components/ui/PremiumImage'
+import { HERO_IMAGES } from '@/lib/images'
 import { events } from '@/lib/analytics'
 
 /* ============================================================
-   HERO — « Charbon & Lumière »
-   Charbon profond × gris cassé lumineux × or royal.
-   Vitrail de lumière vectoriel (rayons + poussière d'or).
-   Aucune image externe · aucun bleu · animations légères.
+   HERO — « Charbon & Lumière » (refonte premium)
+   Vitrail de lumière vectoriel + photo de communauté incarnée.
+   Un seul CTA dominant · bandeau de confiance · mobile-safe.
+   Palette tenue : or royal × charbon × lumière. Aucun bleu.
    ============================================================ */
 
 const ROTATING_WORDS = [
@@ -19,17 +21,13 @@ const ROTATING_WORDS = [
   'établi dans Sa Gloire',
 ]
 
-const FLOATING_BADGES = [
-  { emoji: '🇨🇩', label: 'Kinshasa', delay: 0 },
-  { emoji: '🇫🇷', label: 'Paris', delay: 0.4 },
-  { emoji: '🇨🇦', label: 'Montréal', delay: 0.8 },
-  { emoji: '🇨🇮', label: 'Abidjan', delay: 1.2 },
-]
+const TRUST_POINTS = ['Présente sur plusieurs continents', 'Accès 100 % gratuit', 'Prière 24/7']
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
 export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?: string; cta_href?: string } } = {}) {
   const [wordIndex, setWordIndex] = useState(0)
+  const reduce = useReducedMotion()
   const { scrollY } = useScroll()
   const bgY = useTransform(scrollY, [0, 600], [0, 140])
   const raysY = useTransform(scrollY, [0, 600], [0, 60])
@@ -37,23 +35,40 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
   const textOpacity = useTransform(scrollY, [0, 360], [1, 0])
 
   useEffect(() => {
+    if (reduce) return
     const t = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 3400)
     return () => clearInterval(t)
-  }, [])
+  }, [reduce])
 
   return (
     <section
       className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #131316 0%, #0C0C0F 55%, #08080A 100%)' }}
     >
-      {/* ============ FOND : VITRAIL DE LUMIÈRE ============ */}
+      {/* ============ FOND : PHOTO INCARNÉE + VITRAIL ============ */}
+
+      {/* Photo de communauté (incarnation) — fondue dans le charbon, sous le vitrail */}
+      <motion.div className="absolute inset-0 pointer-events-none" style={{ y: bgY }} aria-hidden>
+        <div className="absolute inset-0 opacity-[0.32] md:opacity-[0.38]">
+          <PremiumImage
+            image={HERO_IMAGES.worship}
+            preferRemote
+            fill
+            priority
+            overlay="heavy"
+            sizes="100vw"
+            imageClassName="object-cover scale-105"
+          />
+        </div>
+        {/* Re-fonte charbon par-dessus la photo pour garder la lisibilité du texte */}
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 38%, transparent 0%, rgba(8,8,10,0.55) 70%, #08080A 100%)' }}
+        />
+      </motion.div>
 
       {/* Halo lumineux gris cassé descendant du haut (lumière de cathédrale) */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        style={{ y: bgY }}
-        aria-hidden
-      >
+      <motion.div className="absolute inset-0 pointer-events-none" style={{ y: bgY }} aria-hidden>
         <div
           className="absolute -top-[10%] left-1/2 -translate-x-1/2 w-[150vw] md:w-[1400px] h-[1000px]"
           style={{
@@ -61,7 +76,6 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
               'radial-gradient(ellipse 55% 50% at 50% 0%, rgba(236,232,222,0.20) 0%, rgba(236,232,222,0.07) 28%, transparent 62%)',
           }}
         />
-        {/* Lueur or, ancrée sous le faisceau */}
         <div
           className="absolute top-[2%] left-1/2 -translate-x-1/2 w-[90vw] md:w-[900px] h-[640px]"
           style={{
@@ -79,8 +93,8 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         style={{ y: raysY }}
         aria-hidden
         initial={{ opacity: 0 }}
-        animate={{ opacity: [0.5, 0.8, 0.5] }}
-        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+        animate={reduce ? { opacity: 0.6 } : { opacity: [0.5, 0.8, 0.5] }}
+        transition={reduce ? { duration: 0 } : { duration: 9, repeat: Infinity, ease: 'easeInOut' }}
       >
         <defs>
           <linearGradient id="rayLight" x1="0" y1="0" x2="0" y2="1">
@@ -104,23 +118,25 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
       </motion.svg>
 
       {/* Poussière d'or en suspension */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none opacity-60"
-        style={{
-          y: bgY,
-          backgroundImage:
-            'radial-gradient(1.5px 1.5px at 18% 22%, rgba(245,230,167,0.7), transparent), ' +
-            'radial-gradient(1px 1px at 78% 30%, rgba(244,241,233,0.6), transparent), ' +
-            'radial-gradient(1.5px 1.5px at 33% 64%, rgba(212,175,55,0.6), transparent), ' +
-            'radial-gradient(1px 1px at 66% 74%, rgba(244,241,233,0.5), transparent), ' +
-            'radial-gradient(1.5px 1.5px at 50% 86%, rgba(245,230,167,0.5), transparent), ' +
-            'radial-gradient(1px 1px at 88% 58%, rgba(212,175,55,0.45), transparent)',
-          backgroundSize: '620px 620px',
-        }}
-        animate={{ backgroundPositionY: ['0px', '40px', '0px'] }}
-        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-        aria-hidden
-      />
+      {!reduce && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none opacity-60"
+          style={{
+            y: bgY,
+            backgroundImage:
+              'radial-gradient(1.5px 1.5px at 18% 22%, rgba(245,230,167,0.7), transparent), ' +
+              'radial-gradient(1px 1px at 78% 30%, rgba(244,241,233,0.6), transparent), ' +
+              'radial-gradient(1.5px 1.5px at 33% 64%, rgba(212,175,55,0.6), transparent), ' +
+              'radial-gradient(1px 1px at 66% 74%, rgba(244,241,233,0.5), transparent), ' +
+              'radial-gradient(1.5px 1.5px at 50% 86%, rgba(245,230,167,0.5), transparent), ' +
+              'radial-gradient(1px 1px at 88% 58%, rgba(212,175,55,0.45), transparent)',
+            backgroundSize: '620px 620px',
+          }}
+          animate={{ backgroundPositionY: ['0px', '40px', '0px'] }}
+          transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+          aria-hidden
+        />
+      )}
 
       {/* Grain cinématique fin */}
       <div
@@ -142,14 +158,14 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
       {/* ============ CONTENU ============ */}
       <motion.div
         style={{ opacity: textOpacity, y: contentY }}
-        className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 md:pt-28 pb-20 flex flex-col items-center text-center"
+        className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 md:pt-24 pb-24 flex flex-col items-center text-center"
       >
         {/* Eyebrow */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: EASE }}
-          className="mb-7"
+          className="mb-6"
         >
           <span
             className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-[10px] md:text-[11px] font-bold tracking-[0.28em] uppercase font-inter border backdrop-blur-xl"
@@ -174,29 +190,19 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         >
           <span
             className="block font-cinzel font-black drop-shadow-[0_2px_40px_rgba(0,0,0,0.5)]"
-            style={{
-              fontSize: 'clamp(3rem, 9.2vw, 7.2rem)',
-              lineHeight: 0.94,
-              letterSpacing: '-0.03em',
-              color: '#F4F2ED',
-            }}
+            style={{ fontSize: 'clamp(2.7rem, 8.6vw, 6.8rem)', lineHeight: 0.94, letterSpacing: '-0.03em', color: '#F4F2ED' }}
           >
             La Chapelle
           </span>
           <span
             className="block font-cinzel font-black text-gradient-light-gold"
-            style={{ fontSize: 'clamp(3rem, 9.2vw, 7.2rem)', lineHeight: 0.94, letterSpacing: '-0.03em' }}
+            style={{ fontSize: 'clamp(2.7rem, 8.6vw, 6.8rem)', lineHeight: 0.94, letterSpacing: '-0.03em' }}
           >
             Internationale
           </span>
           <span
             className="block mt-3 font-cormorant font-light italic"
-            style={{
-              fontSize: 'clamp(1.6rem, 4.2vw, 3.3rem)',
-              lineHeight: 1.15,
-              color: 'rgba(235,231,221,0.62)',
-              letterSpacing: '0.01em',
-            }}
+            style={{ fontSize: 'clamp(1.5rem, 4vw, 3.1rem)', lineHeight: 1.15, color: 'rgba(235,231,221,0.62)', letterSpacing: '0.01em' }}
           >
             des Élus du Royaume
           </span>
@@ -207,8 +213,8 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.22, ease: EASE }}
-          className="font-cormorant italic mb-6"
-          style={{ fontSize: 'clamp(1.05rem, 2.4vw, 1.45rem)', color: 'rgba(235,231,221,0.5)' }}
+          className="font-cormorant italic mb-5"
+          style={{ fontSize: 'clamp(1.05rem, 2.4vw, 1.45rem)', color: 'rgba(235,231,221,0.55)' }}
         >
           « Où que tu sois sur la terre, tu as une maison dans le Royaume. »
         </motion.p>
@@ -218,19 +224,49 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3, ease: EASE }}
-          className="font-inter leading-relaxed mb-4 mx-auto"
-          style={{ fontSize: 'clamp(0.98rem, 1.9vw, 1.18rem)', color: 'rgba(235,231,221,0.48)', maxWidth: '600px' }}
+          className="font-inter leading-relaxed mb-8 mx-auto"
+          style={{ fontSize: 'clamp(0.98rem, 1.9vw, 1.18rem)', color: 'rgba(235,231,221,0.52)', maxWidth: '600px' }}
         >
           {block?.subtitle ||
             'Rejoignez des milliers de croyants dans une expérience spirituelle digitale unique — cultes en direct, formations, prière et communion, à toute heure.'}
         </motion.p>
 
+        {/* CTAs — un seul CTA dominant */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.46, ease: EASE }}
+          className="flex flex-col sm:flex-row items-center gap-3 mb-5 w-full sm:w-auto"
+        >
+          <Link
+            href={block?.cta_href || '/rejoindre'}
+            onClick={() => events.ctaClick('rejoindre_hero')}
+            className="btn-gold-cinematic group w-full sm:w-auto"
+            style={{ padding: '16px 38px', fontSize: '1rem' }}
+          >
+            {block?.cta_label || 'Rejoindre la Chapelle'}
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+          </Link>
+
+          <Link
+            href="/live"
+            onClick={() => events.ctaClick('live_hero')}
+            className="btn-glass-cinematic group w-full sm:w-auto"
+          >
+            <span className="relative flex w-6 h-6 items-center justify-center rounded-full bg-red-500/90 flex-shrink-0">
+              {!reduce && <span className="absolute inline-flex w-full h-full rounded-full bg-red-500 opacity-60 animate-ping" />}
+              <Play className="relative w-2.5 h-2.5 text-white fill-white ml-0.5" />
+            </span>
+            Voir le culte en direct
+          </Link>
+        </motion.div>
+
         {/* ROTATING TAGLINE */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.42 }}
-          className="h-8 flex items-center justify-center gap-2 mb-10 text-sm md:text-base font-inter"
+          transition={{ delay: 0.58 }}
+          className="h-7 flex items-center justify-center gap-2 mb-8 text-sm md:text-base font-inter"
           style={{ color: 'rgba(235,231,221,0.45)' }}
         >
           <span>Venez être</span>
@@ -248,76 +284,21 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           </AnimatePresence>
         </motion.div>
 
-        {/* CTAs */}
+        {/* TRUST BAR — preuve qualitative honnête */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.52, ease: EASE }}
-          className="flex flex-col sm:flex-row items-center gap-3 mb-7 w-full sm:w-auto"
-        >
-          <Link
-            href={block?.cta_href || '/rejoindre'}
-            onClick={() => events.ctaClick('rejoindre_hero')}
-            className="btn-gold-cinematic group w-full sm:w-auto text-[0.97rem]"
-          >
-            {block?.cta_label || 'Rejoindre la Chapelle'}
-            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-          </Link>
-
-          <Link
-            href="/live"
-            onClick={() => events.ctaClick('live_hero')}
-            className="btn-glass-cinematic group w-full sm:w-auto"
-          >
-            <span className="relative flex w-6 h-6 items-center justify-center rounded-full bg-red-500/90 flex-shrink-0">
-              <span className="absolute inline-flex w-full h-full rounded-full bg-red-500 opacity-60 animate-ping" />
-              <Play className="relative w-2.5 h-2.5 text-white fill-white ml-0.5" />
-            </span>
-            Voir le culte en direct
-          </Link>
-        </motion.div>
-
-        {/* SOCIAL PROOF — qualitatif */}
-        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.64 }}
-          className="text-[11px] font-inter mb-12"
-          style={{ color: 'rgba(235,231,221,0.34)', letterSpacing: '0.08em' }}
+          transition={{ delay: 0.7 }}
+          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[11px] md:text-xs font-inter"
+          style={{ color: 'rgba(235,231,221,0.4)', letterSpacing: '0.06em' }}
         >
-          Une communauté ouverte au monde &nbsp;·&nbsp; Accès gratuit
-        </motion.p>
-
-        {/* Badges nations flottants — desktop */}
-        <div className="hidden lg:block absolute inset-0 pointer-events-none" aria-hidden>
-          {FLOATING_BADGES.map((badge, i) => (
-            <motion.div
-              key={badge.label}
-              className="absolute"
-              style={{
-                top: `${20 + (i % 2) * 50}%`,
-                left: i < 2 ? '4%' : 'auto',
-                right: i >= 2 ? '4%' : 'auto',
-              }}
-              animate={{ y: [0, -16, 0] }}
-              transition={{ duration: 5 + i, repeat: Infinity, delay: badge.delay, ease: 'easeInOut' }}
-            >
-              <div
-                className="flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-xl border"
-                style={{
-                  background: 'rgba(244,241,233,0.05)',
-                  borderColor: 'rgba(212,175,55,0.20)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                }}
-              >
-                <span className="text-base">{badge.emoji}</span>
-                <span className="font-inter text-[11px] font-medium" style={{ color: '#EBE7DD' }}>
-                  {badge.label}
-                </span>
-              </div>
-            </motion.div>
+          {TRUST_POINTS.map((point, i) => (
+            <span key={point} className="inline-flex items-center gap-3">
+              {i > 0 && <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(212,175,55,0.5)' }} />}
+              {point}
+            </span>
           ))}
-        </div>
+        </motion.div>
       </motion.div>
 
       {/* SCROLL INDICATOR — bouton accessible */}
@@ -327,22 +308,20 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           window.scrollTo({
             top: window.innerHeight - 64,
             behavior:
-              'matchMedia' in window && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-                ? 'auto'
-                : 'smooth',
+              'matchMedia' in window && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
           })
         }
         aria-label="Découvrir la suite"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 0.8 }}
+        transition={{ delay: 1.4, duration: 0.8 }}
         className="group absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-10 cursor-pointer transition-colors hover:text-gold-light"
         style={{ color: 'rgba(235,231,221,0.4)' }}
       >
         <span className="text-[9px] font-inter tracking-[0.35em] uppercase">Découvrir</span>
         <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+          animate={reduce ? {} : { y: [0, 8, 0] }}
+          transition={reduce ? {} : { repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
           className="transition-transform group-hover:scale-110"
         >
           <ChevronDown className="w-4 h-4" style={{ color: '#D4AF37' }} />

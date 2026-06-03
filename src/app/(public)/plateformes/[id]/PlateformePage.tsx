@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import {
   ArrowRight, Play, Globe, CheckCircle, ChevronRight, MessageSquare,
@@ -9,6 +9,8 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import type { Plateforme } from '@/types'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { PremiumImage } from '@/components/ui/PremiumImage'
+import { getPlatformImage } from '@/lib/images'
 
 type ExploreLink = { href: string; label: string; icon: LucideIcon }
 
@@ -56,6 +58,11 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
   ]
   const color = plateforme.couleur_primaire
 
+  // Parallaxe subtile du Hero (désactivée si l'utilisateur préfère moins d'animation).
+  const reduce = useReducedMotion()
+  const { scrollY } = useScroll()
+  const heroY = useTransform(scrollY, [0, 600], [0, 90])
+
   // Contenu RÉEL de la plateforme (événements + formations filtrés). Aucun mock.
   const [events, setEvents] = useState<PlatEvent[]>([])
   const [formations, setFormations] = useState<PlatFormation[]>([])
@@ -98,70 +105,73 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
   }, [plateforme.id, plateforme.nom])
 
   return (
-    <div className="min-h-screen" style={{ background: '#F5F5F3' }}>
+    <div className="min-h-screen bg-charbon">
 
-      {/* Hero */}
-      <section className="relative overflow-hidden pt-32 pb-20 px-4"
-        style={{ background: `linear-gradient(135deg, ${color}08 0%, #F5F5F3 40%, white 100%)` }}>
-        <div className="absolute top-20 right-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-10 blur-[80px]"
-          style={{ background: `radial-gradient(circle, ${color} 0%, transparent 70%)` }} />
+      {/* Hero — image identitaire de la plateforme en fond, overlay sombre premium */}
+      <section className="relative overflow-hidden pt-32 pb-20 px-4">
+        {/* Image de fond + parallaxe subtile (fallback dégradé auto si absente) */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={reduce ? undefined : { y: heroY }}
+          aria-hidden
+        >
+          <div className="absolute inset-0 scale-110">
+            <PremiumImage image={getPlatformImage(plateforme.id)} fill priority overlay="none" sizes="100vw" />
+          </div>
+        </motion.div>
+        {/* Overlay sombre 78% — lisibilité garantie */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(180deg, rgba(8,8,10,0.74) 0%, rgba(8,8,10,0.82) 55%, rgba(8,8,10,0.95) 100%)' }} aria-hidden />
+        {/* Teinte d'accent propre à la plateforme */}
+        <div className="absolute inset-0 pointer-events-none opacity-70"
+          style={{ background: `radial-gradient(ellipse at 75% 15%, ${color}33 0%, transparent 55%)` }} aria-hidden />
+        {/* Fondu vers le charbon de la page */}
+        <div className="absolute bottom-0 inset-x-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(180deg, transparent, #08080A)' }} aria-hidden />
 
-        <div className="max-w-6xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+        <div className="max-w-6xl mx-auto relative z-10">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
 
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm font-inter text-gray-400 mb-8">
-              <Link href="/" className="hover:text-gray-600 transition-colors">Accueil</Link>
+            <div className="flex items-center gap-2 text-sm font-inter mb-8" style={{ color: 'rgba(245,230,216,0.4)' }}>
+              <Link href="/" className="hover:text-gold transition-colors">Accueil</Link>
               <ChevronRight className="w-3.5 h-3.5" />
-              <span style={{ color }}>Plateformes</span>
+              <Link href="/plateformes" className="hover:text-gold transition-colors" style={{ color }}>Plateformes</Link>
               <ChevronRight className="w-3.5 h-3.5" />
-              <span className="text-gray-600">{plateforme.nom}</span>
+              <span style={{ color: 'rgba(245,230,216,0.7)' }}>{plateforme.nom}</span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div>
-                {/* Icon */}
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                  className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl"
-                  style={{ background: `linear-gradient(135deg, ${color}20, ${color}10)`, border: `2px solid ${color}30` }}
+                  className="w-20 h-20 rounded-3xl flex items-center justify-center text-4xl mb-8"
+                  style={{ background: `linear-gradient(135deg, ${color}2A, ${color}10)`, border: `1px solid ${color}40`, boxShadow: `0 12px 40px ${color}25` }}
                 >
                   {plateforme.icone}
                 </motion.div>
 
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6"
-                  style={{ background: `${color}12`, border: `1px solid ${color}25` }}>
+                  style={{ background: `${color}18`, border: `1px solid ${color}35` }}>
                   <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: color }} />
                   <span className="text-xs font-bold font-inter uppercase tracking-wider" style={{ color }}>Plateforme Active</span>
                 </div>
 
-                <h1 className="font-cinzel text-4xl md:text-5xl font-black mb-4 leading-tight"
-                  style={{ color: '#111827' }}>
-                  {plateforme.nom}
-                </h1>
-                <p className="text-lg font-cormorant italic mb-6"
-                  style={{ color }}>
-                  "{plateforme.slogan}"
-                </p>
-                <p className="text-gray-600 font-inter leading-relaxed text-base mb-8 max-w-lg">
+                <h1 className="font-cinzel text-4xl md:text-5xl font-black mb-4 leading-tight text-white">{plateforme.nom}</h1>
+                <p className="text-lg font-cormorant italic mb-6" style={{ color }}>&laquo;&nbsp;{plateforme.slogan}&nbsp;&raquo;</p>
+                <p className="font-inter leading-relaxed text-base mb-8 max-w-lg" style={{ color: 'rgba(245,230,216,0.6)' }}>
                   {plateforme.description}
                 </p>
 
                 <div className="flex flex-wrap gap-3">
                   <Link href="/register"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-inter font-semibold text-sm transition-all duration-300"
-                    style={{
-                      background: `linear-gradient(135deg, ${color}, ${color}CC)`,
-                      color: 'white',
-                      boxShadow: `0 4px 20px ${color}40`,
-                    }}>
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-inter font-semibold text-sm transition-all duration-300 hover:-translate-y-0.5"
+                    style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)`, color: '#FFFFFF', boxShadow: `0 8px 28px ${color}45` }}>
                     Rejoindre ce ministère
                     <ArrowRight className="w-4 h-4" />
                   </Link>
-                  <Link href="/live"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-inter font-medium text-sm transition-all duration-300 bg-white border border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-md">
+                  <Link href="/live" className="btn-glass-cinematic">
                     <Play className="w-4 h-4" />
                     Voir un live
                   </Link>
@@ -173,11 +183,9 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3, duration: 0.7 }}
-                className="card-elevated p-8"
+                className="card-cinematic p-8"
               >
-                <p className="font-cinzel text-lg font-bold text-gray-900 mb-5">
-                  Ce que vous y trouverez
-                </p>
+                <p className="font-cinzel text-lg font-bold text-white mb-5">Ce que vous y trouverez</p>
                 <div className="space-y-3">
                   {features.slice(0, 4).map((feat, i) => (
                     <motion.div key={i}
@@ -187,10 +195,10 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
                       className="flex items-center gap-3"
                     >
                       <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${color}15` }}>
+                        style={{ background: `${color}1F`, border: `1px solid ${color}30` }}>
                         <CheckCircle className="w-3.5 h-3.5" style={{ color }} />
                       </div>
-                      <span className="font-inter text-sm text-gray-700">{feat}</span>
+                      <span className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.78)' }}>{feat}</span>
                     </motion.div>
                   ))}
                 </div>
@@ -201,38 +209,26 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
       </section>
 
       {/* Features */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-14"
-          >
-            <div className="section-label-light justify-center mb-4">Ce que nous offrons</div>
-            <h2 className="font-cinzel text-3xl md:text-4xl font-black text-gray-900 mb-4">
-              Tout pour votre croissance spirituelle
-            </h2>
-            <p className="text-gray-500 font-inter max-w-2xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} className="text-center mb-14">
+            <div className="section-label-dark justify-center">Ce que nous offrons</div>
+            <h2 className="heading-cinematic-lg mb-4">Tout pour votre croissance spirituelle</h2>
+            <p className="font-inter max-w-2xl mx-auto" style={{ color: 'rgba(245,230,216,0.55)' }}>
               Le ministère {plateforme.nom} vous accompagne avec des ressources, des formations et une communauté dédiée.
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((feat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.07 }}
-                className="flex items-start gap-3 p-5 card-light"
+              <motion.div key={i}
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                className="flex items-start gap-3 p-5 card-cinematic"
               >
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background: `${color}15` }}>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: `${color}1F`, border: `1px solid ${color}30` }}>
                   <CheckCircle className="w-4 h-4" style={{ color }} />
                 </div>
-                <p className="font-inter text-sm font-medium text-gray-700 leading-relaxed">{feat}</p>
+                <p className="font-inter text-sm font-medium leading-relaxed" style={{ color: 'rgba(245,230,216,0.72)' }}>{feat}</p>
               </motion.div>
             ))}
           </div>
@@ -240,19 +236,12 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
       </section>
 
       {/* Explorer d'abord */}
-      <section className="py-20 px-4" style={{ background: '#F5F5F3' }}>
+      <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-14"
-          >
-            <div className="section-label-light justify-center mb-4">Explorer d'abord</div>
-            <h2 className="font-cinzel text-3xl md:text-4xl font-black text-gray-900 mb-4">
-              Découvrez nos contenus
-            </h2>
-            <p className="text-gray-500 font-inter max-w-2xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} className="text-center mb-14">
+            <div className="section-label-dark justify-center">Explorer d&apos;abord</div>
+            <h2 className="heading-cinematic-lg mb-4">Découvrez nos contenus</h2>
+            <p className="font-inter max-w-2xl mx-auto" style={{ color: 'rgba(245,230,216,0.55)' }}>
               Plongez dès maintenant dans les lives, formations, enseignements et moments forts du ministère {plateforme.nom}.
             </p>
           </motion.div>
@@ -261,23 +250,14 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
             {exploreLinks.map((link, i) => {
               const Icon = link.icon
               return (
-                <motion.div
-                  key={link.href}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.07 }}
-                >
-                  <Link
-                    href={link.href}
-                    className="flex items-center gap-4 p-5 card-light group h-full transition-all duration-300 hover:shadow-md"
-                  >
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: `${color}15` }}>
+                <motion.div key={link.href}
+                  initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
+                  <Link href={link.href} className="flex items-center gap-4 p-5 card-cinematic group h-full">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}1F`, border: `1px solid ${color}30` }}>
                       <Icon className="w-5 h-5" style={{ color }} />
                     </div>
-                    <span className="font-inter text-sm font-semibold text-gray-800 flex-1">{link.label}</span>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" style={{ color }} />
+                    <span className="font-inter text-sm font-semibold flex-1 text-white">{link.label}</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" style={{ color }} />
                   </Link>
                 </motion.div>
               )
@@ -287,35 +267,35 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
       </section>
 
       {/* Contenu réel du ministère — événements & formations (Supabase) */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
-            <div className="section-label-light justify-center mb-4">Agenda &amp; parcours</div>
-            <h2 className="font-cinzel text-3xl md:text-4xl font-black text-gray-900 mb-4">Le ministère {plateforme.nom} en action</h2>
-            <p className="text-gray-500 font-inter max-w-2xl mx-auto">Événements et formations propres à ce ministère, mis à jour en temps réel.</p>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} className="text-center mb-14">
+            <div className="section-label-dark justify-center">Agenda &amp; parcours</div>
+            <h2 className="heading-cinematic-lg mb-4">Le ministère {plateforme.nom} en action</h2>
+            <p className="font-inter max-w-2xl mx-auto" style={{ color: 'rgba(245,230,216,0.55)' }}>Événements et formations propres à ce ministère, mis à jour en temps réel.</p>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Événements */}
             <div>
-              <h3 className="font-cinzel text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Calendar className="w-4 h-4" style={{ color }} /> Prochains événements</h3>
+              <h3 className="font-cinzel text-lg font-bold text-white mb-4 flex items-center gap-2"><Calendar className="w-4 h-4" style={{ color }} /> Prochains événements</h3>
               {!loaded ? (
-                <p className="font-inter text-sm text-gray-400">Chargement…</p>
+                <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.4)' }}>Chargement…</p>
               ) : events.length === 0 ? (
-                <div className="card-light p-6 text-center">
-                  <p className="font-inter text-sm text-gray-500">Aucun événement programmé pour le moment.</p>
+                <div className="card-cinematic p-6 text-center">
+                  <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.5)' }}>Aucun événement programmé pour le moment.</p>
                   <Link href="/evenements" className="inline-flex items-center gap-1.5 text-sm font-inter font-semibold mt-2" style={{ color }}>Voir tout l&apos;agenda <ArrowRight className="w-3.5 h-3.5" /></Link>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {events.map((e) => (
-                    <div key={e.id} className="card-light p-4 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ background: `${color}15` }}>
+                    <div key={e.id} className="card-cinematic p-4 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl flex flex-col items-center justify-center flex-shrink-0" style={{ background: `${color}1A`, border: `1px solid ${color}2A` }}>
                         <Calendar className="w-4 h-4" style={{ color }} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-cinzel text-sm font-bold text-gray-900 truncate">{e.titre}</p>
-                        <p className="font-inter text-xs text-gray-500 flex items-center gap-2 flex-wrap mt-0.5">
+                        <p className="font-cinzel text-sm font-bold text-white truncate">{e.titre}</p>
+                        <p className="font-inter text-xs flex items-center gap-2 flex-wrap mt-0.5" style={{ color: 'rgba(245,230,216,0.5)' }}>
                           {e.date && <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {e.date}{e.heure ? ` · ${e.heure}` : ''}</span>}
                           {e.lieu && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {e.lieu}</span>}
                         </p>
@@ -328,26 +308,26 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
 
             {/* Formations */}
             <div>
-              <h3 className="font-cinzel text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><GraduationCap className="w-4 h-4" style={{ color }} /> Formations du ministère</h3>
+              <h3 className="font-cinzel text-lg font-bold text-white mb-4 flex items-center gap-2"><GraduationCap className="w-4 h-4" style={{ color }} /> Formations du ministère</h3>
               {!loaded ? (
-                <p className="font-inter text-sm text-gray-400">Chargement…</p>
+                <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.4)' }}>Chargement…</p>
               ) : formations.length === 0 ? (
-                <div className="card-light p-6 text-center">
-                  <p className="font-inter text-sm text-gray-500">Aucune formation rattachée pour le moment.</p>
+                <div className="card-cinematic p-6 text-center">
+                  <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.5)' }}>Aucune formation rattachée pour le moment.</p>
                   <Link href="/formations" className="inline-flex items-center gap-1.5 text-sm font-inter font-semibold mt-2" style={{ color }}>Voir toutes les formations <ArrowRight className="w-3.5 h-3.5" /></Link>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {formations.map((f) => (
-                    <Link key={f.id} href={`/formations/${f.slug}`} className="card-light p-4 flex items-center gap-4 group hover:shadow-md transition-all">
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}15` }}>
+                    <Link key={f.id} href={`/formations/${f.slug}`} className="card-cinematic p-4 flex items-center gap-4 group">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}1A`, border: `1px solid ${color}2A` }}>
                         <BookOpen className="w-4 h-4" style={{ color }} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-cinzel text-sm font-bold text-gray-900 truncate group-hover:underline">{f.titre}</p>
-                        {f.niveau && <p className="font-inter text-xs text-gray-500 mt-0.5">{f.niveau}</p>}
+                        <p className="font-cinzel text-sm font-bold text-white truncate">{f.titre}</p>
+                        {f.niveau && <p className="font-inter text-xs mt-0.5" style={{ color: 'rgba(245,230,216,0.5)' }}>{f.niveau}</p>}
                       </div>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" style={{ color }} />
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" style={{ color }} />
                     </Link>
                   ))}
                 </div>
@@ -358,27 +338,19 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 px-4" style={{ background: '#F5F5F3' }}>
+      <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-14"
-          >
-            <div className="section-label-light justify-center mb-4">Témoignages</div>
-            <h2 className="font-cinzel text-3xl font-black text-gray-900">Ils ont rejoint {plateforme.nom}</h2>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} className="text-center mb-14">
+            <div className="section-label-dark justify-center">Témoignages</div>
+            <h2 className="heading-cinematic-lg">Ils ont rejoint {plateforme.nom}</h2>
           </motion.div>
 
-          <div className="card-elevated p-12 text-center max-w-2xl mx-auto">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ background: `${color}15` }}>
+          <div className="card-cinematic p-12 text-center max-w-2xl mx-auto">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: `${color}1F`, border: `1px solid ${color}30` }}>
               <MessageSquare className="w-6 h-6" style={{ color }} />
             </div>
-            <p className="font-cinzel text-lg font-bold text-gray-800 mb-2">
-              Aucun témoignage pour le moment
-            </p>
-            <p className="font-inter text-sm text-gray-500">
+            <p className="font-cinzel text-lg font-bold text-white mb-2">Aucun témoignage pour le moment</p>
+            <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.5)' }}>
               Les premiers témoignages de ce ministère seront partagés ici très bientôt.
             </p>
           </div>
@@ -386,43 +358,32 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
       </section>
 
       {/* CTA final */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 pb-28">
         <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }}
             className="rounded-3xl p-10 md:p-16 text-center relative overflow-hidden"
-            style={{
-              background: `linear-gradient(135deg, ${color}15 0%, ${color}05 100%)`,
-              border: `1px solid ${color}25`,
-            }}
+            style={{ background: `linear-gradient(135deg, ${color}1F 0%, ${color}08 100%)`, border: `1px solid ${color}35` }}
           >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] blur-[60px] opacity-20"
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] blur-[60px] opacity-30"
               style={{ background: `radial-gradient(ellipse, ${color}, transparent 70%)` }} />
             <div className="relative z-10">
               <div className="text-5xl mb-6">{plateforme.icone}</div>
-              <h2 className="font-cinzel text-3xl md:text-4xl font-black text-gray-900 mb-4">
-                Rejoignez {plateforme.nom} dès aujourd'hui
+              <h2 className="font-cinzel text-3xl md:text-4xl font-black text-white mb-4">
+                Rejoignez {plateforme.nom} dès aujourd&apos;hui
               </h2>
-              <p className="text-gray-500 font-inter max-w-lg mx-auto mb-8">
-                Faites partie d'une communauté mondiale de croyants qui grandissent ensemble dans la foi.
+              <p className="font-inter max-w-lg mx-auto mb-8" style={{ color: 'rgba(245,230,216,0.6)' }}>
+                Faites partie d&apos;une communauté mondiale de croyants qui grandissent ensemble dans la foi.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <Link href="/register"
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-inter font-semibold text-base transition-all duration-300"
-                  style={{
-                    background: `linear-gradient(135deg, ${color}, ${color}CC)`,
-                    color: 'white',
-                    boxShadow: `0 4px 24px ${color}40`,
-                  }}>
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-inter font-semibold text-base transition-all duration-300 hover:-translate-y-0.5"
+                  style={{ background: `linear-gradient(135deg, ${color}, ${color}CC)`, color: '#FFFFFF', boxShadow: `0 8px 32px ${color}45` }}>
                   Créer mon compte gratuit
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                <Link href={exploreLinks[0].href}
-                  className="inline-flex items-center gap-2 px-6 py-4 rounded-full font-inter font-medium text-sm bg-white border border-gray-200 text-gray-700 hover:shadow-md transition-all">
+                <Link href={exploreLinks[0].href} className="btn-glass-cinematic">
                   <Globe className="w-4 h-4" />
-                  Explorer d'abord
+                  Explorer d&apos;abord
                 </Link>
               </div>
             </div>

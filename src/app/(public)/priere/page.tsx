@@ -37,7 +37,6 @@ export default function PrierePage() {
   const handlePray = (id: string) => {
     if (prayedFor.has(id)) return
     setPrayedFor(prev => new Set(Array.from(prev).concat(id)))
-    // Compteur réel d'intercesseurs (Mur Mondial de Prière). Best-effort.
     if (!IS_DEMO_MODE) {
       fetch('/api/priere/pray', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -48,7 +47,6 @@ export default function PrierePage() {
 
   const handleSubmitPriere = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Aucune soumission anonyme : il faut être connecté (compte + email vérifié).
     if (!user) {
       setPErrs({ sujet: 'Connectez-vous ou créez un compte pour déposer votre demande de prière.' })
       return
@@ -115,7 +113,9 @@ export default function PrierePage() {
         if (cancelled) return
         setWall((data || []).map((d: any) => ({
           id: d.id, auteur: d.nom || 'Membre', sujet: d.sujet, description: d.description || '',
-          categorie: d.categorie || 'general', is_anonyme: false, urgence: d.urgence, nb_priants: d.prayers_count || 0,
+          categorie: d.categorie || 'general', is_anonyme: false,
+          is_urgente: d.urgence === 'elevee' || d.urgence === 'urgent', date: d.created_at,
+          nb_priants: d.prayers_count || 0,
         })))
       } catch { /* mur vide */ }
       finally { if (!cancelled) setWallLoaded(true) }
@@ -130,66 +130,36 @@ export default function PrierePage() {
   })
 
   return (
-    <div className="min-h-screen" style={{ background: '#FFFFFF' }}>
+    <div className="min-h-screen bg-charbon">
 
       {/* Hero */}
-      <section
-        className="relative pt-32 pb-20 overflow-hidden"
-        style={{ background: 'linear-gradient(180deg, #F5F5F3 0%, #FFFFFF 100%)' }}
-      >
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] pointer-events-none"
-          style={{ background: 'radial-gradient(ellipse, rgba(212,175,55,0.07) 0%, transparent 65%)' }}
-        />
-
+      <section className="relative pt-32 pb-16 overflow-hidden">
+        <div className="halo-gold w-[900px] h-[480px] -top-10 left-1/2 -translate-x-1/2" />
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 relative">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            className="text-center mb-14"
-          >
-            <div className="section-label-light justify-center mb-5">Mur de Prière</div>
-            <h1
-              className="font-cinzel font-black mb-5 tracking-tight"
-              style={{ fontSize: 'clamp(2rem, 5vw, 4rem)', color: '#111827', lineHeight: 1.05 }}
-            >
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }} className="text-center mb-14">
+            <div className="section-label-dark justify-center">
+              <Heart className="w-3 h-3" />
+              Mur de Prière
+            </div>
+            <h1 className="heading-cinematic-xl mb-5">
               Priez avec
-              <span
-                className="block"
-                style={{
-                  background: 'linear-gradient(135deg, #D4AF37 0%, #92721A 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-              >
-                le Monde Entier
-              </span>
+              <span className="block text-cinematic-gold">le Monde Entier</span>
             </h1>
-            <p className="font-inter text-gray-500 text-lg mb-10 leading-relaxed mx-auto" style={{ maxWidth: '600px' }}>
-              Notre mur de prière mondial unit des intercesseurs de nombreuses nations. Priez, soyez prié, rejoignez la chaîne d'intercession qui ne s'arrête jamais.
+            <p className="font-inter text-base md:text-lg mb-10 leading-relaxed mx-auto" style={{ color: 'rgba(245,230,216,0.55)', maxWidth: '600px' }}>
+              Notre mur de prière mondial unit des intercesseurs de nombreuses nations. Priez, soyez prié,
+              rejoignez la chaîne d&apos;intercession qui ne s&apos;arrête jamais.
             </p>
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
               {STATS.map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.07 }}
-                  className="text-center p-4 rounded-2xl bg-white"
-                  style={{ border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-lg mx-auto mb-2.5 flex items-center justify-center"
-                    style={{ background: `${stat.color}12` }}
-                  >
+                <motion.div key={stat.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.07 }}
+                  className="text-center p-4 card-cinematic">
+                  <div className="w-9 h-9 rounded-lg mx-auto mb-2.5 flex items-center justify-center" style={{ background: `${stat.color}18`, border: `1px solid ${stat.color}30` }}>
                     <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
                   </div>
-                  <div className="font-cinzel font-black text-xl mb-0.5" style={{ color: '#111827' }}>{stat.value}</div>
-                  <div className="font-inter text-xs text-gray-400">{stat.label}</div>
+                  <div className="font-cinzel font-black text-xl mb-0.5 text-white">{stat.value}</div>
+                  <div className="font-inter text-xs" style={{ color: 'rgba(245,230,216,0.4)' }}>{stat.label}</div>
                 </motion.div>
               ))}
             </div>
@@ -197,44 +167,32 @@ export default function PrierePage() {
         </div>
       </section>
 
-      <section className="py-16">
+      <section className="pb-20">
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16">
           <div className="grid lg:grid-cols-3 gap-10 items-start">
 
             {/* LEFT — Submit form */}
-            <motion.div
-              initial={{ opacity: 0, x: -24 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              className="lg:sticky lg:top-28"
-            >
-              <form
-                onSubmit={handleSubmitPriere}
-                noValidate
-                className="rounded-2xl p-6 bg-white"
-                style={{ border: '1px solid rgba(0,0,0,0.08)', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}
-                aria-label="Soumettre une demande de prière"
-              >
-                <h2 className="font-cinzel text-sm font-bold tracking-wide mb-5 flex items-center gap-2" style={{ color: '#92721A' }}>
+            <motion.div initial={{ opacity: 0, x: -24 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.15 }} className="lg:sticky lg:top-28">
+              <form onSubmit={handleSubmitPriere} noValidate className="card-cinematic p-6" aria-label="Soumettre une demande de prière">
+                <h2 className="font-cinzel text-sm font-bold tracking-wide mb-5 flex items-center gap-2" style={{ color: '#D4AF37' }}>
                   <Shield className="w-4 h-4" />
                   Soumettre une demande
                 </h2>
 
                 {!user && (
                   <div className="mb-4 px-4 py-3 rounded-xl text-xs font-inter"
-                    style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)', color: '#92721A' }}>
+                    style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)', color: '#F5E6A7' }}>
                     <p className="mb-2 font-semibold">Connectez-vous ou créez un compte pour déposer votre demande de prière.</p>
                     <div className="flex gap-2">
-                      <Link href="/login" className="px-3 py-1.5 rounded-lg font-semibold" style={{ background: '#111827', color: '#fff' }}>Se connecter</Link>
-                      <Link href="/register" className="px-3 py-1.5 rounded-lg font-semibold" style={{ background: 'rgba(212,175,55,0.18)', color: '#92721A', border: '1px solid rgba(212,175,55,0.35)' }}>Créer un compte</Link>
+                      <Link href="/login" className="px-3 py-1.5 rounded-lg font-semibold" style={{ background: 'rgba(255,255,255,0.08)', color: '#F5E6D8', border: '1px solid rgba(255,255,255,0.12)' }}>Se connecter</Link>
+                      <Link href="/register" className="px-3 py-1.5 rounded-lg font-semibold" style={{ background: 'rgba(212,175,55,0.18)', color: '#F5E6A7', border: '1px solid rgba(212,175,55,0.35)' }}>Créer un compte</Link>
                     </div>
                   </div>
                 )}
 
                 {submitted && (
                   <div role="status" aria-live="polite" className="mb-4 flex items-start gap-2 px-4 py-3 rounded-xl text-xs font-inter"
-                    style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', color: '#15803d' }}
-                  >
+                    style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#86EFAC' }}>
                     <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <span>Merci, votre demande a été soumise. La communauté priera pour vous.</span>
                   </div>
@@ -243,38 +201,19 @@ export default function PrierePage() {
                 <div className="space-y-3.5 mb-5">
                   <div>
                     <label htmlFor="priere-nom" className="sr-only">Votre nom (optionnel)</label>
-                    <input
-                      id="priere-nom"
-                      type="text"
-                      value={nom}
-                      onChange={e => setNom(e.target.value)}
-                      placeholder="Votre nom (ou rester anonyme)"
-                      autoComplete="name"
-                      className="w-full px-4 py-3 rounded-xl font-inter text-sm text-gray-900 placeholder-gray-300 bg-white outline-none transition-all duration-200"
-                      style={{ border: '1.5px solid rgba(0,0,0,0.1)' }}
-                      onFocus={e => { e.currentTarget.style.borderColor = '#D4AF37'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(212,175,55,0.1)' }}
-                      onBlur={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)'; e.currentTarget.style.boxShadow = 'none' }}
-                    />
+                    <input id="priere-nom" type="text" value={nom} onChange={e => setNom(e.target.value)}
+                      placeholder="Votre nom (ou rester anonyme)" autoComplete="name" className="input-cinematic" />
                   </div>
 
                   <div>
                     <label htmlFor="priere-sujet" className="sr-only">Sujet</label>
-                    <input
-                      id="priere-sujet"
-                      type="text"
-                      value={sujet}
+                    <input id="priere-sujet" type="text" value={sujet}
                       onChange={e => { setSujet(e.target.value); if (pErrs.sujet) setPErrs(p => ({ ...p, sujet: null })) }}
-                      placeholder="Sujet de la demande"
-                      required
-                      aria-invalid={!!pErrs.sujet}
-                      aria-describedby={pErrs.sujet ? 'priere-sujet-err' : undefined}
-                      className="w-full px-4 py-3 rounded-xl font-inter text-sm text-gray-900 placeholder-gray-300 bg-white outline-none transition-all duration-200"
-                      style={{ border: `1.5px solid ${pErrs.sujet ? 'rgba(239,68,68,0.5)' : 'rgba(0,0,0,0.1)'}` }}
-                      onFocus={e => { if (!pErrs.sujet) { e.currentTarget.style.borderColor = '#D4AF37'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(212,175,55,0.1)' } }}
-                      onBlur={e => { if (!pErrs.sujet) { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.1)'; e.currentTarget.style.boxShadow = 'none' } }}
-                    />
+                      placeholder="Sujet de la demande" required aria-invalid={!!pErrs.sujet}
+                      aria-describedby={pErrs.sujet ? 'priere-sujet-err' : undefined} className="input-cinematic"
+                      style={pErrs.sujet ? { borderColor: 'rgba(239,68,68,0.5)' } : undefined} />
                     {pErrs.sujet && (
-                      <p id="priere-sujet-err" className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#dc2626' }}>
+                      <p id="priere-sujet-err" className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#FCA5A5' }}>
                         <AlertCircle className="w-3 h-3" /> {pErrs.sujet}
                       </p>
                     )}
@@ -282,20 +221,13 @@ export default function PrierePage() {
 
                   <div>
                     <label htmlFor="priere-desc" className="sr-only">Description</label>
-                    <textarea
-                      id="priere-desc"
-                      value={description}
+                    <textarea id="priere-desc" value={description}
                       onChange={e => { setDescription(e.target.value); if (pErrs.description) setPErrs(p => ({ ...p, description: null })) }}
-                      placeholder="Décrivez votre demande de prière..."
-                      rows={4}
-                      required
-                      aria-invalid={!!pErrs.description}
-                      aria-describedby={pErrs.description ? 'priere-desc-err' : undefined}
-                      className="w-full px-4 py-3 rounded-xl font-inter text-sm text-gray-900 placeholder-gray-300 bg-white outline-none resize-none transition-all duration-200"
-                      style={{ border: `1.5px solid ${pErrs.description ? 'rgba(239,68,68,0.5)' : 'rgba(0,0,0,0.1)'}` }}
-                    />
+                      placeholder="Décrivez votre demande de prière..." rows={4} required aria-invalid={!!pErrs.description}
+                      aria-describedby={pErrs.description ? 'priere-desc-err' : undefined} className="input-cinematic resize-none"
+                      style={pErrs.description ? { borderColor: 'rgba(239,68,68,0.5)' } : undefined} />
                     {pErrs.description && (
-                      <p id="priere-desc-err" className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#dc2626' }}>
+                      <p id="priere-desc-err" className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#FCA5A5' }}>
                         <AlertCircle className="w-3 h-3" /> {pErrs.description}
                       </p>
                     )}
@@ -303,85 +235,52 @@ export default function PrierePage() {
 
                   <div>
                     <label htmlFor="priere-cat" className="sr-only">Catégorie</label>
-                    <select
-                      id="priere-cat"
-                      value={categorie}
+                    <select id="priere-cat" value={categorie}
                       onChange={e => { setCategorie(e.target.value); if (pErrs.categorie) setPErrs(p => ({ ...p, categorie: null })) }}
-                      required
-                      aria-invalid={!!pErrs.categorie}
-                      aria-describedby={pErrs.categorie ? 'priere-cat-err' : undefined}
-                      className="w-full px-4 py-3 rounded-xl font-inter text-sm text-gray-700 bg-white outline-none transition-all duration-200"
-                      style={{ border: `1.5px solid ${pErrs.categorie ? 'rgba(239,68,68,0.5)' : 'rgba(0,0,0,0.1)'}` }}
-                    >
+                      required aria-invalid={!!pErrs.categorie} aria-describedby={pErrs.categorie ? 'priere-cat-err' : undefined}
+                      className="input-cinematic" style={pErrs.categorie ? { borderColor: 'rgba(239,68,68,0.5)' } : undefined}>
                       <option value="">Catégorie...</option>
                       {CATEGORIES_PRIERE.map(c => (
                         <option key={c.label} value={c.label}>{c.label}</option>
                       ))}
                     </select>
                     {pErrs.categorie && (
-                      <p id="priere-cat-err" className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#dc2626' }}>
+                      <p id="priere-cat-err" className="text-[11px] mt-1.5 flex items-center gap-1" style={{ color: '#FCA5A5' }}>
                         <AlertCircle className="w-3 h-3" /> {pErrs.categorie}
                       </p>
                     )}
                   </div>
 
-                  <label className="flex items-center gap-2.5 text-sm text-gray-500 font-inter cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={urgente}
-                      onChange={e => setUrgente(e.target.checked)}
-                      className="rounded w-4 h-4 accent-amber-600"
-                    />
+                  <label className="flex items-center gap-2.5 text-sm font-inter cursor-pointer select-none" style={{ color: 'rgba(245,230,216,0.6)' }}>
+                    <input type="checkbox" checked={urgente} onChange={e => setUrgente(e.target.checked)} className="rounded w-4 h-4 accent-amber-500" />
                     <span>Marquer comme urgente</span>
-                    <Flame className="w-3.5 h-3.5 text-red-400" />
+                    <Flame className="w-3.5 h-3.5" style={{ color: '#F97316' }} />
                   </label>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting || !user}
+                <button type="submit" disabled={submitting || !user}
                   title={!user ? 'Connectez-vous pour déposer une demande' : undefined}
-                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-inter font-semibold text-sm text-white transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{ background: '#111827', boxShadow: '0 4px 12px rgba(0,0,0,0.18)' }}
-                >
+                  className="btn-gold-cinematic w-full justify-center disabled:opacity-60 disabled:cursor-not-allowed">
                   {submitting ? (
-                    <>
-                      <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                      Envoi en cours...
-                    </>
+                    <><span className="w-4 h-4 rounded-full border-2 border-[#1A0F00]/30 border-t-[#1A0F00] animate-spin" /> Envoi en cours...</>
                   ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      Soumettre ma demande
-                    </>
+                    <><Send className="w-4 h-4" /> Soumettre ma demande</>
                   )}
                 </button>
 
-                <p className="font-inter text-[11px] text-gray-400 text-center mt-3 leading-relaxed">
+                <p className="font-inter text-[11px] text-center mt-3 leading-relaxed" style={{ color: 'rgba(245,230,216,0.4)' }}>
                   Votre demande sera partagée avec la communauté mondiale d&apos;intercesseurs.
                 </p>
               </form>
 
               {/* Premium CTA */}
-              <div
-                className="mt-4 rounded-2xl p-5 text-center"
-                style={{
-                  background: 'linear-gradient(135deg, #0F0820 0%, #1A0535 100%)',
-                  border: '1px solid rgba(212,175,55,0.15)',
-                }}
-              >
+              <div className="mt-4 card-cinematic-gold p-5 text-center">
                 <div className="text-2xl mb-2">🙏</div>
-                <h3 className="font-cinzel text-sm font-bold mb-1.5" style={{ color: '#FFFFFF' }}>
-                  Rejoignez l'équipe
-                </h3>
-                <p className="font-inter text-xs mb-4 leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <h3 className="font-cinzel text-sm font-bold mb-1.5 text-white">Rejoignez l&apos;équipe</h3>
+                <p className="font-inter text-xs mb-4 leading-relaxed" style={{ color: 'rgba(245,230,216,0.5)' }}>
                   Devenez intercesseur officiel et priez avec la communauté mondiale chaque jour.
                 </p>
-                <Link
-                  href="/register"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-inter font-semibold text-xs transition-all duration-200"
-                  style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)', color: '#1A0F00' }}
-                >
+                <Link href="/register" className="btn-gold-cinematic" style={{ padding: '10px 20px', fontSize: '0.8rem' }}>
                   Rejoindre gratuitement
                   <ArrowRight className="w-3 h-3" />
                 </Link>
@@ -394,24 +293,13 @@ export default function PrierePage() {
               {/* Search + filter */}
               <div className="flex flex-col sm:flex-row gap-3 mb-6">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher une demande..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl font-inter text-sm text-gray-900 placeholder-gray-300 bg-white outline-none"
-                    style={{ border: '1px solid rgba(0,0,0,0.09)' }}
-                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(245,230,216,0.35)' }} />
+                  <input type="text" placeholder="Rechercher une demande..." value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)} className="input-cinematic pl-10" />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Filter className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                  <select
-                    value={activeCategorie}
-                    onChange={e => setActiveCategorie(e.target.value as CategoriePriere | 'Tous')}
-                    className="px-3 py-2.5 rounded-xl font-inter text-sm text-gray-600 bg-white outline-none"
-                    style={{ border: '1px solid rgba(0,0,0,0.09)' }}
-                  >
+                  <Filter className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(245,230,216,0.35)' }} />
+                  <select value={activeCategorie} onChange={e => setActiveCategorie(e.target.value as CategoriePriere | 'Tous')} className="input-cinematic">
                     <option value="Tous">Toutes</option>
                     {CATEGORIES_PRIERE.map(c => (
                       <option key={c.label} value={c.label}>{c.emoji} {c.label}</option>
@@ -422,30 +310,19 @@ export default function PrierePage() {
 
               {/* Category pills */}
               <div className="flex flex-wrap gap-2 mb-6">
-                <button
-                  onClick={() => setActiveCategorie('Tous')}
+                <button onClick={() => setActiveCategorie('Tous')}
                   className="px-3.5 py-1.5 rounded-full font-inter text-xs font-semibold transition-all duration-200"
-                  style={{
-                    background: activeCategorie === 'Tous' ? '#111827' : 'rgba(0,0,0,0.04)',
-                    color: activeCategorie === 'Tous' ? '#FFFFFF' : '#6B7280',
-                    border: '1px solid',
-                    borderColor: activeCategorie === 'Tous' ? '#111827' : 'rgba(0,0,0,0.08)',
-                  }}
-                >
+                  style={activeCategorie === 'Tous'
+                    ? { background: 'linear-gradient(135deg, #F5E6A7, #D4AF37)', color: '#1A0F00' }
+                    : { background: 'rgba(255,255,255,0.04)', color: 'rgba(245,230,216,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   Toutes
                 </button>
                 {CATEGORIES_PRIERE.map(cat => (
-                  <button
-                    key={cat.label}
-                    onClick={() => setActiveCategorie(cat.label)}
+                  <button key={cat.label} onClick={() => setActiveCategorie(cat.label)}
                     className="px-3.5 py-1.5 rounded-full font-inter text-xs font-semibold transition-all duration-200"
-                    style={{
-                      background: activeCategorie === cat.label ? `${cat.couleur}15` : 'rgba(0,0,0,0.04)',
-                      color: activeCategorie === cat.label ? cat.couleur : '#6B7280',
-                      border: '1px solid',
-                      borderColor: activeCategorie === cat.label ? `${cat.couleur}30` : 'rgba(0,0,0,0.08)',
-                    }}
-                  >
+                    style={activeCategorie === cat.label
+                      ? { background: `${cat.couleur}1F`, color: cat.couleur, border: `1px solid ${cat.couleur}40` }
+                      : { background: 'rgba(255,255,255,0.04)', color: 'rgba(245,230,216,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     {cat.emoji} {cat.label}
                   </button>
                 ))}
@@ -459,78 +336,47 @@ export default function PrierePage() {
                   const prayed = prayedFor.has(req.id)
 
                   return (
-                    <motion.div
-                      key={req.id}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="rounded-2xl p-5 bg-white transition-all duration-300"
-                      style={{
-                        border: `1px solid ${prayed ? `${catColor}30` : 'rgba(0,0,0,0.07)'}`,
-                        boxShadow: prayed
-                          ? `0 4px 20px ${catColor}12`
-                          : '0 1px 4px rgba(0,0,0,0.04)',
-                      }}
-                    >
+                    <motion.div key={req.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                      className="card-cinematic p-5"
+                      style={prayed ? { borderColor: `${catColor}45`, boxShadow: `0 0 24px ${catColor}1F, 0 18px 50px rgba(0,0,0,0.45)` } : undefined}>
                       <div className="flex items-start gap-4">
-                        {/* Avatar */}
-                        <div
-                          className="w-11 h-11 rounded-xl flex items-center justify-center font-cinzel font-bold text-sm text-white flex-shrink-0"
-                          style={{ background: catColor }}
-                        >
+                        <div className="w-11 h-11 rounded-xl flex items-center justify-center font-cinzel font-bold text-sm text-white flex-shrink-0" style={{ background: catColor }}>
                           {req.is_anonyme ? '?' : String(req.auteur ?? 'A').split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                         </div>
 
-                        {/* Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="font-inter text-sm font-semibold text-gray-900 truncate">
+                            <span className="font-inter text-sm font-semibold text-white truncate">
                               {req.is_anonyme ? 'Anonyme' : (req.auteur ?? 'Anonyme')}
                             </span>
                             {req.is_urgente && (
-                              <span
-                                className="inline-flex items-center gap-1 font-inter text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                                style={{ background: 'rgba(239,68,68,0.08)', color: '#EF4444' }}
-                              >
-                                <Flame className="w-2.5 h-2.5" />
-                                URGENT
+                              <span className="inline-flex items-center gap-1 font-inter text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                                style={{ background: 'rgba(239,68,68,0.15)', color: '#FCA5A5' }}>
+                                <Flame className="w-2.5 h-2.5" /> URGENT
                               </span>
                             )}
                             {cat && (
-                              <span
-                                className="font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
-                                style={{ background: `${catColor}12`, color: catColor }}
-                              >
+                              <span className="font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0" style={{ background: `${catColor}18`, color: catColor }}>
                                 {cat.emoji} {cat.label}
                               </span>
                             )}
                           </div>
 
-                          <h3 className="font-inter text-sm font-semibold text-gray-800 mb-1">{req.sujet}</h3>
-                          <p className="font-inter text-xs text-gray-400 leading-relaxed mb-3 line-clamp-2">
-                            {req.description}
-                          </p>
+                          <h3 className="font-inter text-sm font-semibold mb-1" style={{ color: 'rgba(245,230,216,0.85)' }}>{req.sujet}</h3>
+                          <p className="font-inter text-xs leading-relaxed mb-3 line-clamp-2" style={{ color: 'rgba(245,230,216,0.5)' }}>{req.description}</p>
 
                           <div className="flex items-center justify-between">
-                            <span className="font-inter text-[11px] text-gray-300">
-                              {new Date(req.date).toLocaleDateString('fr', { day: 'numeric', month: 'short' })}
+                            <span className="font-inter text-[11px]" style={{ color: 'rgba(245,230,216,0.35)' }}>
+                              {req.date ? new Date(req.date).toLocaleDateString('fr', { day: 'numeric', month: 'short' }) : ''}
                             </span>
 
-                            <button
-                              onClick={() => handlePray(req.id)}
-                              disabled={prayed}
+                            <button onClick={() => handlePray(req.id)} disabled={prayed}
                               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-inter text-xs font-semibold transition-all duration-300"
-                              style={{
-                                background: prayed ? `${catColor}15` : 'rgba(0,0,0,0.04)',
-                                color: prayed ? catColor : '#9CA3AF',
-                                border: `1px solid ${prayed ? `${catColor}30` : 'rgba(0,0,0,0.06)'}`,
-                                transform: prayed ? 'scale(1.02)' : 'scale(1)',
-                              }}
-                            >
+                              style={prayed
+                                ? { background: `${catColor}1F`, color: catColor, border: `1px solid ${catColor}40` }
+                                : { background: 'rgba(255,255,255,0.05)', color: 'rgba(245,230,216,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
                               <Heart className="w-3.5 h-3.5" fill={prayed ? 'currentColor' : 'none'} />
-                              <span className="tabular-nums">
-                                {req.nb_priants + (prayed ? 1 : 0)} priants
-                              </span>
+                              <span className="tabular-nums">{req.nb_priants + (prayed ? 1 : 0)} priants</span>
                             </button>
                           </div>
                         </div>
@@ -539,20 +385,16 @@ export default function PrierePage() {
                   )
                 })}
 
-                {filtered.length === 0 && (
+                {wallLoaded && filtered.length === 0 && (
                   <div className="text-center py-16">
                     <div className="text-4xl mb-3">🙏</div>
-                    <p className="font-inter text-gray-400 text-sm">Aucune demande dans cette catégorie.</p>
+                    <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.4)' }}>Aucune demande dans cette catégorie pour le moment.</p>
                   </div>
                 )}
               </div>
 
               <div className="text-center mt-8">
-                <Link
-                  href="/register"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-inter font-medium text-sm transition-all duration-200 border group hover:-translate-y-px"
-                  style={{ borderColor: 'rgba(0,0,0,0.12)', color: '#4B5563', background: 'rgba(255,255,255,0.8)' }}
-                >
+                <Link href="/register" className="btn-glass-cinematic group">
                   Voir plus de demandes — Rejoindre la Chapelle
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
@@ -563,15 +405,15 @@ export default function PrierePage() {
           {/* Témoignages exaucés — l'impact réel de la prière */}
           {temoignages.length > 0 && (
             <div className="mt-16">
-              <h2 className="font-cinzel text-xl font-bold text-center mb-2" style={{ color: '#1a1a2e' }}>Témoignages exaucés</h2>
-              <p className="font-inter text-sm text-center text-gray-500 mb-8">Ce que Dieu a fait dans la communauté.</p>
+              <h2 className="font-cinzel text-xl font-bold text-center mb-2 text-white">Témoignages exaucés</h2>
+              <p className="font-inter text-sm text-center mb-8" style={{ color: 'rgba(245,230,216,0.5)' }}>Ce que Dieu a fait dans la communauté.</p>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
                 {temoignages.map((t) => (
-                  <div key={t.id} className="rounded-2xl p-5" style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+                  <div key={t.id} className="card-cinematic p-5">
                     <Sparkles className="w-4 h-4 mb-2" style={{ color: '#D4AF37' }} />
-                    {t.titre && <h3 className="font-cinzel font-bold text-sm mb-1" style={{ color: '#1a1a2e' }}>{t.titre}</h3>}
-                    <p className="font-inter text-sm text-gray-600 leading-relaxed line-clamp-5">{t.corps}</p>
-                    <p className="font-inter text-[11px] text-gray-400 mt-3">{t.auteur || 'Anonyme'}{t.pays ? ` · ${t.pays}` : ''}</p>
+                    {t.titre && <h3 className="font-cinzel font-bold text-sm mb-1 text-white">{t.titre}</h3>}
+                    <p className="font-inter text-sm leading-relaxed line-clamp-5" style={{ color: 'rgba(245,230,216,0.6)' }}>{t.corps}</p>
+                    <p className="font-inter text-[11px] mt-3" style={{ color: 'rgba(245,230,216,0.4)' }}>{t.auteur || 'Anonyme'}{t.pays ? ` · ${t.pays}` : ''}</p>
                   </div>
                 ))}
               </div>
