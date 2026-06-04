@@ -4,147 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Users, MapPin, Globe, Search, ArrowRight, Video, MessageCircle, Calendar, Lock, Unlock } from 'lucide-react'
 import Link from 'next/link'
 
-const GROUPES = [
-  {
-    id: '1',
-    nom: 'Cellule Paris Centre',
-    plateforme: 'CIER Global',
-    emoji: '⛪',
-    couleur: '#D4AF37',
-    type: 'Présentiel',
-    ville: 'Paris, France',
-    membres: 18,
-    maxMembres: 25,
-    jour: 'Vendredi',
-    heure: '19h30',
-    berger: 'Frère Emmanuel',
-    description: 'Cellule de croissance en plein cœur de Paris. Étude biblique, partage et intercession.',
-    public: true,
-    tags: ['Prière', 'Étude', 'Adultes'],
-  },
-  {
-    id: '2',
-    nom: 'Groupe Jeunesse Lyon',
-    plateforme: 'Jeunesse CIER',
-    emoji: '🔥',
-    couleur: '#EF4444',
-    type: 'Hybride',
-    ville: 'Lyon, France',
-    membres: 32,
-    maxMembres: 40,
-    jour: 'Samedi',
-    heure: '14h00',
-    berger: 'Sœur Claire',
-    description: 'Groupe dynamique pour les 18-30 ans. Louange, vie pratique et activisme chrétien.',
-    public: true,
-    tags: ['Jeunesse', '18-30', 'Louange'],
-  },
-  {
-    id: '3',
-    nom: 'Femmes de Destinée Bruxelles',
-    plateforme: 'Femmes d\'Exceptions',
-    emoji: '👑',
-    couleur: '#EC4899',
-    type: 'Présentiel',
-    ville: 'Bruxelles, Belgique',
-    membres: 24,
-    maxMembres: 30,
-    jour: 'Mercredi',
-    heure: '18h00',
-    berger: 'Pasteure Marie',
-    description: 'Cercle d\'excellence pour femmes chrétiennes. Leadership, vocation et famille.',
-    public: true,
-    tags: ['Femmes', 'Leadership', 'Famille'],
-  },
-  {
-    id: '4',
-    nom: 'Famille Chrétienne Montréal',
-    plateforme: 'Chapelle Familiale',
-    emoji: '👨‍👩‍👧',
-    couleur: '#F97316',
-    type: 'Présentiel',
-    ville: 'Montréal, Canada',
-    membres: 14,
-    maxMembres: 20,
-    jour: 'Dimanche',
-    heure: '15h00',
-    berger: 'Pasteur David & Marie N.',
-    description: 'Groupe pour couples et familles. Mariage, parentalité biblique et vie de foyer.',
-    public: true,
-    tags: ['Famille', 'Couples', 'Parents'],
-  },
-  {
-    id: '5',
-    nom: 'Intercesseurs Mahanaïm Online',
-    plateforme: 'Mahanaïm Prière',
-    emoji: '🙏',
-    couleur: '#8B5CF6',
-    type: 'En ligne',
-    ville: 'International',
-    membres: 89,
-    maxMembres: 100,
-    jour: 'Lun, Mer, Ven',
-    heure: '6h00 & 21h00',
-    berger: 'Équipe Intercession',
-    description: 'Équipe internationale d\'intercesseurs. Prière quotidienne pour les nations et l\'Église.',
-    public: true,
-    tags: ['Prière', '24/7', 'Intercession'],
-  },
-  {
-    id: '6',
-    nom: 'Formation Leaders Kinshasa',
-    plateforme: 'CFIC',
-    emoji: '📖',
-    couleur: '#0EA5E9',
-    type: 'Présentiel',
-    ville: 'Kinshasa, RD Congo',
-    membres: 45,
-    maxMembres: 60,
-    jour: 'Jeudi',
-    heure: '17h00',
-    berger: 'Équipe CFIC',
-    description: 'Formation intensive pour leaders ministériels. Théologie, homilétique et pastorale.',
-    public: false,
-    tags: ['Formation', 'Leaders', 'Avancé'],
-  },
-  {
-    id: '7',
-    nom: 'Cellule Cité du Refuge Abidjan',
-    plateforme: 'Cité du Refuge',
-    emoji: '🏠',
-    couleur: '#22C55E',
-    type: 'Présentiel',
-    ville: 'Abidjan, Côte d\'Ivoire',
-    membres: 20,
-    maxMembres: 30,
-    jour: 'Mardi',
-    heure: '18h30',
-    berger: 'Berger Koné',
-    description: 'Groupe de restauration et accompagnement. Pour ceux qui traversent des épreuves.',
-    public: true,
-    tags: ['Restauration', 'Soutien', 'Ouvert à tous'],
-  },
-  {
-    id: '8',
-    nom: 'Diaspora CIER Genève',
-    plateforme: 'CIER Global',
-    emoji: '🌍',
-    couleur: '#D4AF37',
-    type: 'Hybride',
-    ville: 'Genève, Suisse',
-    membres: 29,
-    maxMembres: 35,
-    jour: 'Vendredi',
-    heure: '20h00',
-    berger: 'Berger Samuel T.',
-    description: 'Communauté africaine chrétienne à Genève. Tous les pays, toutes les langues, un seul Esprit.',
-    public: true,
-    tags: ['Diaspora', 'International', 'Multiculturel'],
-  },
-]
+// Groupes & cellules réels — à publier depuis l'administration (aucune donnée fictive).
+// Tant qu'aucun groupe n'est publié, la page affiche un état vide honnête et invite
+// à créer ou rejoindre une cellule.
+type Groupe = {
+  id: string; nom: string; plateforme: string; emoji: string; couleur: string
+  type: string; ville: string; membres: number; maxMembres: number; jour: string
+  heure: string; berger: string; description: string; public: boolean; tags: string[]
+}
+const GROUPES: Groupe[] = []
 
 const TYPE_FILTERS = ['Tous', 'Présentiel', 'En ligne', 'Hybride']
-const PLATEFORME_FILTERS = ['Toutes', 'CIER Global', 'Jeunesse CIER', 'Femmes d\'Exceptions', 'Chapelle Familiale']
 
 export default function GroupesPage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -176,25 +46,19 @@ export default function GroupesPage() {
               Rejoignez une cellule près de chez vous ou en ligne. La communauté chrétienne se vit aussi en petit groupe.
             </p>
 
-            {/* Stats */}
-            <div className="flex items-center justify-center gap-8">
-              {[
-                { val: GROUPES.length + '+', label: 'Groupes actifs' },
-                { val: '450+', label: 'Membres dans les groupes' },
-                { val: '20+', label: 'Villes représentées' },
-              ].map(s => (
-                <div key={s.label} className="text-center">
-                  <div className="font-cinzel text-2xl font-black text-gold">{s.val}</div>
-                  <div className="text-xs text-pearl/35 font-inter">{s.label}</div>
-                </div>
-              ))}
+            {/* Présentation (sans chiffres fictifs) */}
+            <div className="flex items-center justify-center gap-6 text-xs text-pearl/40 flex-wrap">
+              <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-gold" /> En présentiel</span>
+              <span className="flex items-center gap-1.5"><Video className="w-3.5 h-3.5 text-gold" /> En ligne</span>
+              <span className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-gold" /> Partout dans le monde</span>
             </div>
           </motion.div>
         </div>
       </div>
 
       <div className="container-royal py-12">
-        {/* Filters */}
+        {/* Filters — affichés uniquement quand des groupes sont publiés */}
+        {GROUPES.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="flex flex-col sm:flex-row gap-4 mb-8"
@@ -226,6 +90,7 @@ export default function GroupesPage() {
             ))}
           </div>
         </motion.div>
+        )}
 
         {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12">
@@ -317,10 +182,16 @@ export default function GroupesPage() {
         </div>
 
         {filtered.length === 0 && (
-          <div className="text-center py-16 card-royal">
-            <div className="text-4xl mb-4">🔍</div>
-            <p className="font-cinzel text-lg text-pearl/50">Aucun groupe trouvé</p>
-            <p className="font-inter text-sm text-pearl/30 mt-2">Essayez avec d'autres critères ou créez votre propre groupe</p>
+          <div className="text-center py-16 card-royal mb-12">
+            <div className="text-4xl mb-4">🏠</div>
+            <p className="font-cinzel text-lg text-pearl/50">
+              {GROUPES.length === 0 ? 'Les groupes seront bientôt publiés ici' : 'Aucun groupe trouvé'}
+            </p>
+            <p className="font-inter text-sm text-pearl/30 mt-2">
+              {GROUPES.length === 0
+                ? 'Nos cellules et groupes de croissance sont en cours de référencement. Vous pouvez déjà rejoindre la communauté ou initier un groupe.'
+                : 'Essayez avec d\'autres critères ou créez votre propre groupe.'}
+            </p>
           </div>
         )}
 

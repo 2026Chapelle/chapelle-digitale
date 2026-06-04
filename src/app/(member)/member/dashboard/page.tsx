@@ -13,10 +13,22 @@ import { roleLabel } from '@/lib/roles'
 import { BibleTodayWidget } from '@/components/features/member/BibleTodayWidget'
 import { ProgressionCard } from '@/components/features/member/ProgressionCard'
 
-const DAILY_VERSE = {
-  reference: 'Philippiens 4 : 13',
-  text: '"Je puis tout par celui qui me fortifie."',
-  theme: 'Force & Foi',
+// Recueil de versets (LSG). Rotation déterministe par date — réellement « du jour ».
+const VERSETS = [
+  { reference: 'Philippiens 4 : 13', text: '"Je puis tout par celui qui me fortifie."' },
+  { reference: 'Josué 1 : 9', text: '"Fortifie-toi et prends courage… l\'Éternel, ton Dieu, est avec toi."' },
+  { reference: 'Psaume 23 : 1', text: '"L\'Éternel est mon berger : je ne manquerai de rien."' },
+  { reference: 'Proverbes 3 : 5', text: '"Confie-toi en l\'Éternel de tout ton cœur."' },
+  { reference: 'Ésaïe 40 : 31', text: '"Ceux qui se confient en l\'Éternel renouvellent leur force."' },
+  { reference: 'Jérémie 29 : 11', text: '"Je connais les projets que j\'ai formés sur vous… des projets de paix."' },
+  { reference: 'Romains 8 : 28', text: '"Toutes choses concourent au bien de ceux qui aiment Dieu."' },
+  { reference: 'Matthieu 6 : 33', text: '"Cherchez premièrement le royaume et la justice de Dieu."' },
+]
+function versetDuJour() {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), 0, 0)
+  const jour = Math.floor((now.getTime() - start.getTime()) / 86400000)
+  return VERSETS[jour % VERSETS.length]
 }
 
 type QuickWin = { icon: LucideIcon; label: string; sub: string; href: string; color: string }
@@ -31,6 +43,9 @@ interface FormationCard { id: string; titre: string; progression: number; slug: 
 export default function DashboardPage() {
   const { profile, user, isDemo } = useAuth()
   const [formations, setFormations] = useState<FormationCard[] | null>(null)
+  // Verset du jour : calculé après montage (évite tout décalage d'hydratation).
+  const [DAILY_VERSE, setDailyVerse] = useState(VERSETS[0])
+  useEffect(() => { setDailyVerse(versetDuJour()) }, [])
 
   const prenom = profile?.prenom || ''
   const pays = profile?.pays || ''
