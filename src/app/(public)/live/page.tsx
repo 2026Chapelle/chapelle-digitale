@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Users, Heart, Send, MessageCircle, Radio, Clock, Eye, Download } from 'lucide-react'
+import { Play, Users, Heart, Send, MessageCircle, Radio, Clock, Eye } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
@@ -164,14 +164,10 @@ export default function LivePage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="badge-royal flex items-center gap-1.5">
+                  <a href="/priere" className="badge-royal flex items-center gap-1.5">
                     <Heart className="w-3.5 h-3.5" />
-                    Prière
-                  </button>
-                  <button className="badge-gold flex items-center gap-1.5">
-                    <Download className="w-3.5 h-3.5" />
-                    Notes
-                  </button>
+                    Mur de prière
+                  </a>
                 </div>
               </div>
 

@@ -54,7 +54,8 @@ const RESOURCES: Record<string, Partial<AcademieModuleView>> = {
     thumbnail: `${BASE}/m2/miniature-video.png`,
     badgeLabel: 'Royaume Invisible',
     apropos: "Le Royaume invisible qui gouverne le monde visible : découvrir la réalité du Royaume avant ses manifestations.",
-    hasRealContent: true,
+    // PDF + vidéo non encore déposés → reste « à venir » (pas d'impasse de validation).
+    hasRealContent: false,
   },
 }
 

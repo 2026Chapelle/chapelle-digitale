@@ -119,22 +119,24 @@ export default function DonsPage() {
             <div className="card-royal">
               <h3 className="font-cinzel text-sm font-bold text-pearl mb-4 flex items-center gap-2">
                 <Crown className="w-4 h-4 text-gold" />
-                Impact de Vos Dons
+                Où va votre don
               </h3>
               <div className="space-y-3">
                 {[
-                  { action: 'Familles aidées', value: '450+', icon: '👨‍👩‍👧‍👦' },
-                  { action: 'Étudiants formés', value: '1,200+', icon: '📖' },
-                  { action: 'Nations atteintes', value: '45+', icon: '🌍' },
-                  { action: 'Familles réconciliées', value: '89', icon: '💚' },
+                  { action: 'Accompagnement des familles', icon: '👨‍👩‍👧‍👦' },
+                  { action: 'Formation des disciples (CFIC)', icon: '📖' },
+                  { action: 'Missions vers les nations', icon: '🌍' },
+                  { action: 'Œuvre sociale & entraide', icon: '💚' },
                 ].map((item) => (
                   <div key={item.action} className="flex items-center gap-3">
                     <span className="text-lg w-7 text-center">{item.icon}</span>
                     <span className="flex-1 text-sm text-pearl/60 font-inter">{item.action}</span>
-                    <span className="font-cinzel font-bold text-gold text-sm">{item.value}</span>
                   </div>
                 ))}
               </div>
+              <p className="font-inter text-[11px] text-pearl/35 mt-4 pt-3 border-t border-pearl/5">
+                Chaque don sert directement l&apos;œuvre. Un reçu vous est remis pour chaque contribution.
+              </p>
             </div>
 
             <div className="card-royal text-center">

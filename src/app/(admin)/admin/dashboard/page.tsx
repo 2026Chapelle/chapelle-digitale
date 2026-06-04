@@ -19,16 +19,6 @@ const ChartSkeleton = () => (
     style={{ background: 'linear-gradient(180deg, rgba(212,175,55,0.04) 0%, rgba(212,175,55,0.01) 100%)', border: '1px solid rgba(212,175,55,0.06)' }} />
 )
 const TrendChart = dynamic(() => import('./TrendChart'), { ssr: false, loading: ChartSkeleton })
-const PlatformsChart = dynamic(() => import('./PlatformsChart'), { ssr: false, loading: ChartSkeleton })
-
-const PLATFORM_DATA = [
-  { name: 'CIER', value: 35, color: '#D4AF37' },
-  { name: 'Jeunesse', value: 20, color: '#6366F1' },
-  { name: 'Femmes', value: 18, color: '#EC4899' },
-  { name: 'Famille', value: 12, color: '#F97316' },
-  { name: 'CFIC', value: 10, color: '#8B5CF6' },
-  { name: 'Autres', value: 5, color: '#6B7280' },
-]
 
 // ── helpers d'affichage ──────────────────────────────────────────────
 function fmt(stat: Stat): string {
@@ -137,7 +127,12 @@ export default function AdminDashboardPage() {
           <div className="card-cinematic p-5">
             <h2 className="font-inter text-sm font-bold text-pearl mb-1">Répartition plateformes</h2>
             <p className="font-inter text-xs text-pearl/40 mb-4">part d’audience</p>
-            <div className="h-64"><PlatformsChart data={PLATFORM_DATA} /></div>
+            <div className="h-64 flex flex-col items-center justify-center text-center gap-2">
+              <Globe className="w-7 h-7 text-pearl/15" />
+              <p className="font-inter text-xs text-pearl/40 max-w-[200px]">
+                La répartition d’audience par plateforme s’affichera dès que le suivi analytique par plateforme sera collecté.
+              </p>
+            </div>
           </div>
         </div>
 
