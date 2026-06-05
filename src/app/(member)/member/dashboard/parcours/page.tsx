@@ -321,7 +321,8 @@ export default function ParcoursPage() {
             <Globe className="w-3.5 h-3.5" /> Découvrir la vision
           </Link>
           {livretUrl ? (
-            <a href={livretUrl} target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-1.5 text-xs px-4 py-2">
+            // Passe par /livret-accueil (redirige vers le PDF + trace le téléchargement).
+            <a href="/livret-accueil" target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-1.5 text-xs px-4 py-2">
               <Download className="w-3.5 h-3.5" /> Télécharger le Livret d'Accueil
             </a>
           ) : (

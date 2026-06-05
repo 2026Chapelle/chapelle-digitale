@@ -1,7 +1,7 @@
 # 🏛️ RAPPORT DE STABILISATION P0 — Citadelle (recette réelle, juin 2026)
 
 **Méthode** : 3 workflows d'audit multi-agents (root-cause + vérification adversariale) + relecture manuelle + correctifs additifs (règle des acquis) + type-check / tests / build / ZIP.
-**Vérifications** : `tsc --noEmit` ✅ · `vitest` ✅ **294 tests** · `next build` ✅ · `deploy-citadelle.zip` (BUILD_ID `Lr4ZVLRSrswm-xX6nnA3-`).
+**Vérifications** : `tsc --noEmit` ✅ · `vitest` ✅ **294 tests** · `next build` ✅ · `deploy-citadelle.zip` (BUILD_ID `ZP5p-_JEkxooXZap7VV1j`).
 
 > Détail d'exécution prod (ordre SQL, vérifs, ZIP, cron, recette par rôle) : **`MEMO-EXECUTION-PRODUCTION.md`**.
 
@@ -39,6 +39,10 @@
 
 ## SQL fourni (SQL Editor) — voir mémo
 `apply-rbac-roles`, `apply-communaute-v1`, `apply-presences-v1`, `apply-communication-center`, `apply-analytics-interne` (nouveau), `apply-notifications-engine`, `apply-pastoral-schema`, `apply-stabilisation-schema`, `apply-lot-b`, `apply-lot-c` + seeds.
+
+## Réserves fermées (2e passe)
+- **Compteur public d'inscrits événement** : compteur réel par événement via `/api/evenements/counts` (agrégat service role) ; inscription/désinscription via `/api/member/evenements` (renvoie le compteur à jour) ; visible carte + popup ; désinscription ajoutée ; admin (`/admin/inscriptions`) et stats (gouvernement `events_inscriptions`) déjà couverts.
+- **Tracking téléchargement livret** : `/livret-accueil` journalise désormais dans `activity_logs` (`action_type=pdf_download`, `resource_type=livret`) via `logActivity` → statistiques, activités récentes, cockpit Super Admin. Le bouton du parcours passe par `/livret-accueil`.
 
 ## Limite assumée
 Pas d'accès à la prod Supabase : les **tests bout-en-bout réels** restent à exécuter après application des SQL + déploiement du ZIP (checklist par rôle dans le mémo). Validation faite ici = root-cause vérifiée + 294 tests + build production.
