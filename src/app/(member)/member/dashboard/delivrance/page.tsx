@@ -89,8 +89,8 @@ export default function DelivrancePage() {
           prenom: profile?.prenom, email: profile?.email ?? user?.email,
         }),
       })
-      const j = await r.json()
-      if (!j.ok) { toast.error('Échec de l\'envoi.'); setSending(false); return }
+      const j = await r.json().catch(() => ({}))
+      if (!j.ok) { console.warn('[cure-ame] envoi:', j.message); toast.error('Échec de l\'envoi.'); setSending(false); return }
       setSent(true); setDescription(''); setSujet('')
       toast.success('Votre demande confidentielle a été transmise 🙏')
     } catch { toast.error('Erreur réseau') }

@@ -9,6 +9,7 @@ import { type EvenementMock } from '@/lib/mock/evenements'
 import { PageHeader } from '@/components/ui/PageHeader'
 import toast from 'react-hot-toast'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/providers/AuthProvider'
 
 /** Mappe un événement CMS réel (cms_events) vers le format d'affichage. */
@@ -100,6 +101,10 @@ export default function EvenementsPage() {
     let cancelled = false
     ;(async () => {
       try {
+        // Client AUTHENTIFIÉ (cookies) pour lire mes inscriptions : la RLS de
+        // event_registrations exige `authenticated` → le client anon renvoie vide
+        // (statut perdu au refresh). Fallback anon en mode démo.
+        const db = getBrowserClient() ?? supabase
         // select('*') : résilient si une colonne récente (ex. lien_live) n'est pas
         // encore migrée → la requête ne casse pas (sinon liste vide = 0 événement).
         const { data: evs } = await supabase.from('cms_events')
@@ -107,7 +112,8 @@ export default function EvenementsPage() {
           .eq('status', 'published').order('starts_at', { ascending: true })
         let regs: any[] = []
         if (user?.id) {
-          const { data } = await supabase.from('event_registrations').select('event_id, type').eq('user_id', user.id)
+          const { data, error } = await db.from('event_registrations').select('event_id, type').eq('user_id', user.id)
+          if (error) console.warn('[evenements] lecture inscriptions:', error.message)
           regs = data || []
         }
         if (cancelled) return
@@ -127,12 +133,15 @@ export default function EvenementsPage() {
     if (type === 'rappel' && reminders.has(ev.id)) { toast('Rappel déjà activé pour cet événement.'); return }
     try {
       if (!IS_DEMO_MODE && !isDemo) {
-        const { error } = await supabase.from('event_registrations').insert({
+        // Client AUTHENTIFIÉ (cookies) : l'insert passe la RLS owner-based et la
+        // ligne devient relisible par le membre (persistance réelle au refresh).
+        const db = getBrowserClient() ?? supabase
+        const { error } = await db.from('event_registrations').insert({
           event_id: ev.id, event_titre: ev.titre, user_id: user?.id ?? null,
           user_nom: profile ? `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() : (user?.email ?? ''),
           user_email: profile?.email ?? user?.email ?? '', type,
         })
-        if (error) { toast.error("Échec de l'enregistrement."); return }
+        if (error) { console.warn('[evenements] inscription:', error.message); toast.error("Échec de l'enregistrement."); return }
       }
       if (type === 'inscription') setRegistered((s) => new Set(s).add(ev.id))
       else setReminders((s) => new Set(s).add(ev.id))

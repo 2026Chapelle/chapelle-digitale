@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Globe, Crown, ChevronRight, BookOpen,
-  Check, Zap, Target, Mic, Sprout, HandHeart, Trophy, Download, Sparkles,
+  Check, Zap, Target, Mic, Sprout, HandHeart, Trophy, Download, Sparkles, Lock, Clock,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
@@ -137,6 +137,43 @@ export default function ParcoursPage() {
     return () => { cancelled = true }
   }, [])
 
+  // Progression RÉELLE du Programme d'Intégration (4 parcours), source serveur.
+  const [integ, setInteg] = useState<{ parcours: any[]; overall_pct: number; current_slug: string | null; next_slug: string | null; integration_complete: boolean } | null>(null)
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const r = await fetch('/api/member/integration-progression', { credentials: 'same-origin' })
+        const j = await r.json()
+        if (!cancelled && j.ok) setInteg(j.data)
+      } catch { /* noop */ }
+    }
+    load()
+    // Mise à jour « temps réel » : on recharge au retour sur l'onglet/la fenêtre.
+    const onFocus = () => load()
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [])
+
+  const PALETTE = ['#0EA5E9', '#22C55E', '#D4AF37', '#A855F7']
+  const displayCards = (integ?.parcours?.length)
+    ? integ.parcours.map((p: any, i: number) => ({
+        key: p.slug, num: p.ordre, titre: p.titre, pct: p.pct as number | undefined,
+        done: p.complete, locked: p.locked, active: p.slug === integ.current_slug,
+        href: `/member/dashboard/formations/${p.slug}`, couleur: PALETTE[i % PALETTE.length], statut: p.statut,
+      }))
+    : PROGRAMME_INTEGRATION.map((p, i) => ({
+        key: String(p.num), num: p.num, titre: p.titre, pct: undefined as number | undefined,
+        done: i < integEtape, locked: false, active: i === integEtape,
+        href: p.href, couleur: p.couleur, statut: 'publie',
+      }))
+
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="container-royal space-y-6">
@@ -206,55 +243,60 @@ export default function ParcoursPage() {
           <h2 className="font-cinzel text-base font-bold text-pearl flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-gold" /> Programme d'Intégration — Niveau 1
           </h2>
-          <span className="font-inter text-[11px] text-pearl/45">Entrer → S'enraciner → Être formé → Être envoyé</span>
+          <span className="font-inter text-[11px] text-pearl/45">Progression globale : <span className="text-gold font-semibold">{integ?.overall_pct ?? 0}%</span></span>
         </div>
         <p className="font-inter text-sm text-pearl/55 mb-5 max-w-2xl">
-          Trois parcours progressifs pour passer du premier pas au disciple actif. Ils préparent et nourrissent votre parcours de discipulat ci-dessous.
+          Quatre parcours progressifs, à suivre dans l&apos;ordre. Chaque parcours se débloque une fois le précédent terminé à 100 %.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {PROGRAMME_INTEGRATION.map((p, i) => {
-            const done = i < integEtape
-            const active = i === integEtape
-            return (
-              <div key={p.num} className="relative rounded-2xl p-5 flex flex-col"
-                style={{
-                  background: active ? `${p.couleur}12` : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${active ? `${p.couleur}45` : 'rgba(255,255,255,0.07)'}`,
-                  boxShadow: active ? `0 0 24px ${p.couleur}22` : 'none',
-                }}>
-                {/* Connecteur de progression (desktop) */}
-                {i < PROGRAMME_INTEGRATION.length - 1 && (
-                  <div className="hidden md:block absolute top-9 -right-2 w-4 h-0.5 z-10" style={{ background: 'rgba(255,255,255,0.12)' }} />
-                )}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                    style={{ background: `${p.couleur}1A`, border: `1px solid ${p.couleur}40` }}>
-                    {done ? <Check className="w-5 h-5" style={{ color: p.couleur }} /> : <p.icon className="w-5 h-5" style={{ color: p.couleur }} />}
-                  </div>
-                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full"
-                    style={{ background: `${p.couleur}1A`, color: p.couleur }}>{p.phase}</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {displayCards.map((p) => (
+            <div key={p.key} className="relative rounded-2xl p-5 flex flex-col"
+              style={{
+                background: p.active ? `${p.couleur}12` : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${p.active ? `${p.couleur}45` : 'rgba(255,255,255,0.07)'}`,
+                boxShadow: p.active ? `0 0 24px ${p.couleur}22` : 'none',
+                opacity: p.locked ? 0.6 : 1,
+              }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-cinzel font-black"
+                  style={{ background: `${p.couleur}1A`, border: `1px solid ${p.couleur}40`, color: p.couleur }}>
+                  {p.done ? <Check className="w-5 h-5" /> : p.locked ? <Lock className="w-4 h-4" /> : p.num}
                 </div>
-                <div className="font-inter text-[11px] font-semibold mb-0.5" style={{ color: p.couleur }}>Parcours {p.num}</div>
-                <h3 className="font-cinzel text-base font-bold text-pearl mb-1.5 leading-tight">{p.titre}</h3>
-                <p className="font-inter text-xs text-pearl/50 leading-relaxed mb-3">{p.desc}</p>
-                <ul className="space-y-1.5 mb-4 flex-1">
-                  {p.objectifs.map((o) => (
-                    <li key={o} className="flex items-start gap-2 font-inter text-[11px] text-pearl/60">
-                      <Check className="w-3 h-3 mt-0.5 flex-shrink-0" style={{ color: p.couleur }} />
-                      <span>{o}</span>
-                    </li>
-                  ))}
-                </ul>
+                {p.done ? (
+                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', color: '#22C55E' }}>Terminé</span>
+                ) : p.locked ? (
+                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>Verrouillé</span>
+                ) : typeof p.pct === 'number' ? (
+                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: `${p.couleur}1A`, color: p.couleur }}>{p.pct}%</span>
+                ) : null}
+              </div>
+              <div className="font-inter text-[11px] font-semibold mb-0.5" style={{ color: p.couleur }}>Parcours {p.num}</div>
+              <h3 className="font-cinzel text-base font-bold text-pearl mb-1.5 leading-tight">{p.titre}</h3>
+              {typeof p.pct === 'number' && (
+                <div className="mb-4 mt-1">
+                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${p.pct}%`, background: p.couleur }} /></div>
+                </div>
+              )}
+              <div className="flex-1" />
+              {p.statut !== 'publie' ? (
+                <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-inter font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                  <Clock className="w-3.5 h-3.5" /> Bientôt disponible
+                </span>
+              ) : p.locked ? (
+                <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-inter font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                  <Lock className="w-3.5 h-3.5" /> Terminez le précédent
+                </span>
+              ) : (
                 <Link href={p.href}
                   className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-inter font-semibold transition-all hover:-translate-y-0.5"
-                  style={{ background: active ? `linear-gradient(135deg, ${p.couleur}, ${p.couleur}bb)` : 'rgba(255,255,255,0.05)', color: active ? '#0B0717' : 'rgba(255,255,255,0.75)', border: active ? 'none' : '1px solid rgba(255,255,255,0.1)' }}>
-                  {done ? 'Revoir ce parcours' : active ? 'Continuer ce parcours' : 'Découvrir'}
+                  style={{ background: p.active ? `linear-gradient(135deg, ${p.couleur}, ${p.couleur}bb)` : 'rgba(255,255,255,0.05)', color: p.active ? '#0B0717' : 'rgba(255,255,255,0.75)', border: p.active ? 'none' : '1px solid rgba(255,255,255,0.1)' }}>
+                  {p.done ? 'Revoir ce parcours' : p.active ? 'Continuer ce parcours' : 'Commencer'}
                   <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
-              </div>
-            )
-          })}
+              )}
+            </div>
+          ))}
         </div>
 
         <div className="mt-5 pt-4 border-t border-white/5 flex items-center gap-2">

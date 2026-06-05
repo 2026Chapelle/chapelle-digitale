@@ -82,7 +82,21 @@ export default function RessourcesPage() {
     if (!r.url) return
     const win = window.open(r.url, '_blank', 'noopener,noreferrer')
     // Le compteur n'augmente qu'une fois l'ouverture déclenchée avec succès.
-    if (win) setDlBoost((prev) => ({ ...prev, [r.id]: (prev[r.id] || 0) + 1 }))
+    if (win) {
+      setDlBoost((prev) => ({ ...prev, [r.id]: (prev[r.id] || 0) + 1 }))
+      // Traçabilité RÉELLE : alimente activity_logs (mêmes moteur/route que les formations)
+      // → compteurs, dashboards admin et fil d'activités. Best-effort, non bloquant.
+      try {
+        fetch('/api/activity', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({
+            action_type: 'pdf_download', resource_type: 'ressource',
+            resource_id: r.id, resource_title: r.titre, source: 'ressources',
+            metadata: { type: r.type, categorie: r.categorie },
+          }),
+        })
+      } catch { /* non bloquant */ }
+    }
   }
   const dlCount = (r: RessourceMock) => r.nb_telechargements + (dlBoost[r.id] || 0)
   useEffect(() => {

@@ -8,6 +8,12 @@ const TYPES = [
   { value: 'texte', label: 'Texte' },
   { value: 'quiz', label: 'Quiz (à venir)' },
 ]
+// Source vidéo (architecture hybride Lot C) : YouTube (nocookie) OU interne Citadelle.
+const SOURCES_VIDEO = [
+  { value: 'youtube', label: 'YouTube (nocookie)' },
+  { value: 'internal', label: 'Vidéo interne Citadelle (sécurisée)' },
+  { value: 'none', label: 'Aucune / en préparation' },
+]
 const ACCES = [
   { value: 'public', label: 'Public' },
   { value: 'membre', label: 'Membre connecté' },
@@ -32,8 +38,10 @@ export default function AdminModulesPage() {
         { name: 'ordre', label: 'Ordre', type: 'number', default: 0 },
         { name: 'titre', label: 'Titre', required: true },
         { name: 'type', label: 'Type', type: 'select', options: TYPES, default: 'youtube' },
-        { name: 'youtube_id', label: 'ID vidéo YouTube (non répertoriée)', placeholder: 'ex: dQw4w9WgXcQ', hideInTable: true },
-        { name: 'video_url', label: 'URL vidéo (alternative)', type: 'url', hideInTable: true },
+        { name: 'source_video', label: 'Source vidéo', type: 'select', options: SOURCES_VIDEO, default: 'youtube', hideInTable: true },
+        { name: 'youtube_id', label: 'ID vidéo YouTube (si source YouTube)', placeholder: 'ex: dQw4w9WgXcQ', hideInTable: true },
+        { name: 'video_path', label: 'Vidéo interne — chemin bucket privé media-videos', placeholder: 'videos/mon-fichier.mp4', hideInTable: true },
+        { name: 'video_url', label: 'URL vidéo (alternative / interne directe)', type: 'url', hideInTable: true },
         { name: 'pdf_url', label: 'PDF attaché', type: 'file', accept: 'application/pdf', hideInTable: true },
         { name: 'contenu_texte', label: 'Contenu texte', type: 'textarea', hideInTable: true },
         { name: 'duree_minutes', label: 'Durée (minutes)', type: 'number', default: 0, hideInTable: true },

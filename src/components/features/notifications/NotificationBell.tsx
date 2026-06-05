@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { AnimatePresence, motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
+import { isLiveType, getLiveSoundEnabled, playLiveChime } from '@/lib/live-sound'
 import {
   Bell, BookOpen, Calendar, Radio, Play, GraduationCap, Sparkles, Heart,
   UserPlus, Mail, CalendarCheck, DollarSign, CheckCheck, type LucideIcon,
@@ -14,12 +15,12 @@ export interface NotifItem {
 }
 
 const ICONS: Record<string, LucideIcon> = {
-  formation: BookOpen, evenement: Calendar, live: Radio, replay: Play,
+  formation: BookOpen, evenement: Calendar, live: Radio, live_now: Radio, live_starting: Radio, replay: Play,
   enseignement: GraduationCap, temoignage: Sparkles, priere: Heart,
   membre: UserPlus, contact: Mail, inscription_evt: CalendarCheck, don: DollarSign,
 }
 const COLORS: Record<string, string> = {
-  formation: '#8B5CF6', evenement: '#22C55E', live: '#EF4444', replay: '#F59E0B',
+  formation: '#8B5CF6', evenement: '#22C55E', live: '#EF4444', live_now: '#EF4444', live_starting: '#EF4444', replay: '#F59E0B',
   enseignement: '#8B5CF6', temoignage: '#D4AF37', priere: '#EC4899',
   membre: '#0EA5E9', contact: '#0EA5E9', inscription_evt: '#22C55E', don: '#EAB308',
 }
@@ -52,6 +53,7 @@ export function NotificationBell({ endpoint, storageKey, realtimeTable, markEndp
   const [showAll, setShowAll] = useState(false) // false = seulement les non-lues
   const ref = useRef<HTMLDivElement>(null)
   const fetchRef = useRef<() => void>(() => {})
+  const seenRef = useRef<Set<string> | null>(null) // ids déjà vus (détection des nouvelles alertes live)
 
   useEffect(() => {
     const localRead = loadRead(storageKey)
@@ -64,6 +66,16 @@ export function NotificationBell({ endpoint, storageKey, realtimeTable, markEndp
         const j = await r.json()
         if (cancelled || !j.ok || !Array.isArray(j.data)) return
         setItems(j.data)
+        // Alerte LIVE : bip discret si une NOUVELLE notif live arrive (préférence activée).
+        // Pas de son au premier chargement (seenRef nul) ni si l'audio est bloqué (silencieux).
+        try {
+          const incoming = j.data as NotifItem[]
+          if (seenRef.current) {
+            const fresh = incoming.filter((n) => !seenRef.current!.has(n.id))
+            if (fresh.some((n) => isLiveType(n.type)) && getLiveSoundEnabled()) void playLiveChime()
+          }
+          seenRef.current = new Set(incoming.map((n) => n.id))
+        } catch { /* aucun crash : visuel suffit */ }
         // État lu SERVEUR (multi-appareils) : fusion avec le cache local optimiste.
         if (Array.isArray(j.reads)) {
           setRead((prev) => { const merged = new Set(prev); j.reads.forEach((k: string) => merged.add(k)); return merged })
@@ -192,6 +204,11 @@ export function NotificationBell({ endpoint, storageKey, realtimeTable, markEndp
                         </div>
                         <p className="font-inter text-[11px] text-pearl/50 truncate">{n.summary}</p>
                         <p className="font-inter text-[10px] text-pearl/30 mt-0.5">{relTime(n.date)}</p>
+                        {isLiveType(n.type) && (
+                          <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-inter font-semibold" style={{ color: '#EF4444' }}>
+                            <Play className="w-3 h-3" /> Rejoindre le live
+                          </span>
+                        )}
                       </div>
                     </Link>
                   )

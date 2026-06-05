@@ -5,11 +5,12 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, User, BookOpen, Play, FileText,
   Calendar, Heart, Flame, Bell, ChevronRight, LogOut, DollarSign, Users,
-  MessageCircle, Settings, Compass, GraduationCap, UserPlus, BookMarked, Newspaper, HeartHandshake, ShoppingBag
+  MessageCircle, Settings, Compass, GraduationCap, UserPlus, BookMarked, Newspaper, HeartHandshake, ShoppingBag,
+  CalendarCheck, Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { isFormateur, isIntegration } from '@/lib/roles'
+import { isAdmin, isFormateur, isIntegration, isNational } from '@/lib/roles'
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Tableau de bord', href: '/member/dashboard', color: '#D4AF37' },
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { icon: Heart, label: 'Mes Prières', href: '/member/dashboard/prieres', color: '#EC4899' },
   { icon: HeartHandshake, label: 'Cure d\'âme', href: '/member/dashboard/delivrance', color: '#14B8A6' },
   { icon: Users, label: 'Mes Groupes', href: '/member/dashboard/groupes', color: '#F97316' },
+  { icon: CalendarCheck, label: 'Mes Réunions', href: '/member/dashboard/reunions', color: '#14B8A6' },
   { icon: DollarSign, label: 'Mes Dons', href: '/member/dashboard/dons', color: '#22C55E' },
   { icon: ShoppingBag, label: 'Mes Achats', href: '/member/dashboard/achats', color: '#EAB308' },
   { icon: Compass, label: 'Mon Parcours', href: '/member/dashboard/parcours', color: '#EC4899' },
@@ -37,11 +39,14 @@ export function MemberSidebar() {
   const pathname = usePathname()
   const { signOut, role } = useAuth()
 
-  // Liens spécialisés visibles selon le rôle (RBAC).
+  // Liens spécialisés visibles selon le rôle (RBAC) — affichage EXCLUSIF :
+  // chaque espace n'apparaît que pour SON rôle fonctionnel (admin/super_admin = tous).
+  // Même source de vérité que les gardes serveur (src/lib/roles).
   const roleItems = [
     isFormateur(role) && { icon: GraduationCap, label: 'Espace Formateur', href: '/member/dashboard/formateur', color: '#8B5CF6' },
     isIntegration(role) && { icon: UserPlus, label: 'Espace Intégration', href: '/member/dashboard/integration', color: '#F59E0B' },
-    ['super_admin', 'nation_pastor', 'platform_admin', 'admin', 'pasteur'].includes(String(role)) && { icon: Compass, label: 'Tableau national', href: '/member/dashboard/nation', color: '#22C55E' },
+    isNational(role) && { icon: Compass, label: 'Tableau national', href: '/member/dashboard/nation', color: '#22C55E' },
+    (isAdmin(role) || isNational(role)) && { icon: Building2, label: 'Dashboard Plateformes', href: '/member/dashboard/plateformes', color: '#D4AF37' },
   ].filter(Boolean) as { icon: typeof User; label: string; href: string; color: string; badge?: number }[]
   const items: { icon: typeof User; label: string; href: string; color: string; badge?: number }[] = [...NAV_ITEMS, ...roleItems]
 

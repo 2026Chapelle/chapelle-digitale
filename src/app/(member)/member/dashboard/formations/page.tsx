@@ -269,6 +269,7 @@ export default function FormationsPage() {
                   <p className="text-xs text-pearl/40 font-inter mt-1 mb-3">Délivré le {new Date(c.delivre_le).toLocaleDateString('fr-FR')}{c.reference ? ` · ${c.reference}` : ''}</p>
                   {c.reference && (
                     <a href={`/certificat/${encodeURIComponent(c.reference)}`} target="_blank" rel="noreferrer"
+                      onClick={() => { fetch('/api/member/certificats/viewed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ reference: c.reference }) }).catch(() => {}) }}
                       className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 self-start mt-auto">
                       <Award className="w-3.5 h-3.5" /> Voir / Télécharger
                     </a>

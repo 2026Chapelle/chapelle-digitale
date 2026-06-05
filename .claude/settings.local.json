@@ -25,7 +25,8 @@
       "Bash(npx next *)",
       "Bash(npx vitest *)",
       "Bash(grep -vE \"\\\\.\\(png\\\\.png|pdf\\\\.pdf\\)$\")",
-      "Bash(grep -vE \"\\\\.png\\\\.png$\")"
+      "Bash(grep -vE \"\\\\.png\\\\.png$\")",
+      "PowerShell(npm run *)"
     ]
   }
 }

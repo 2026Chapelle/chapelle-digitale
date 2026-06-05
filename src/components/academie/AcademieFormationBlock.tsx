@@ -1,22 +1,33 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Crown, Lock, Check, ArrowRight, PlayCircle, GraduationCap, ScrollText } from 'lucide-react'
 import { getLevels, getLevelModules } from '@/lib/academie/student'
 import { useAcademyProgress } from '@/components/academie/useAcademyProgress'
-import { isIntegrationDone, isLevelUnlocked } from '@/lib/academie/gating'
-import { useAuth } from '@/components/providers/AuthProvider'
+import { isLevelUnlocked } from '@/lib/academie/gating'
 
 /**
  * Académie des Élus — intégrée dans « Mes Formations ».
- * Verrouillée tant que le parcours d'intégration n'est pas terminé ; déblocage
- * SÉQUENTIEL des 6 niveaux. Connectée au statut du membre (pas de 2e système).
+ * Verrouillée tant que le PROGRAMME D'INTÉGRATION complet (tous les parcours)
+ * n'est pas terminé ; déblocage SÉQUENTIEL des 6 niveaux. Source de vérité :
+ * /api/member/integration-progression (pas de 2e système, pas de statut détourné).
  */
 export function AcademieFormationBlock() {
-  const { profile } = useAuth()
   const prog = useAcademyProgress()
   const levels = useMemo(() => getLevels(), [])
-  const integrationDone = isIntegrationDone(profile as any)
+  const [integrationComplete, setIntegrationComplete] = useState<boolean | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/member/integration-progression', { credentials: 'same-origin' })
+        const j = await r.json()
+        if (!cancelled) setIntegrationComplete(j.ok ? !!j.data.integration_complete : false)
+      } catch { if (!cancelled) setIntegrationComplete(false) }
+    })()
+    return () => { cancelled = true }
+  }, [])
+  const integrationDone = integrationComplete === true
   const [openLevel, setOpenLevel] = useState<string>('acad-fondements')
 
   const levelValidated = (id: string) => getLevelModules(id).every((m) => prog.isCompleted(m.stepId))
@@ -55,8 +66,8 @@ export function AcademieFormationBlock() {
           </div>
           <p className="font-cinzel font-bold text-pearl mb-1">Académie verrouillée</p>
           <p className="font-inter text-sm text-pearl/55 max-w-md mx-auto mb-4">
-            L&apos;Académie des Élus se débloque lorsque votre <span className="text-pearl/80">parcours d&apos;intégration</span> est terminé.
-            Avancez dans votre parcours de croissance pour ouvrir le Niveau 1.
+            L&apos;Académie des Élus se débloque lorsque vous avez terminé <span className="text-pearl/80">l&apos;ensemble du Programme d&apos;Intégration</span>
+            (Nouveau Croyant → Je Découvre la Maison → Je Stabilise Ma Foi → Je Deviens un Disciple Actif).
           </p>
           <Link href="/member/dashboard/parcours" className="btn-gold-cinematic inline-flex text-sm">
             <GraduationCap className="w-4 h-4" /> Voir Mon Parcours

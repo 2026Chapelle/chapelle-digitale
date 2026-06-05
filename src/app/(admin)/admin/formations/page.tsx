@@ -39,6 +39,7 @@ export default function AdminFormationsPage() {
         { name: 'contenu_court', label: 'Résumé court', hideInTable: true },
         { name: 'description', label: 'Description', type: 'textarea', hideInTable: true },
         { name: 'instructeur_nom', label: 'Instructeur', default: '' },
+        { name: 'instructeur_id', label: 'Formateur responsable (ID profil)', hideInTable: true, placeholder: 'UUID du profil — visible dans l’URL /admin/membres/<id>' },
         { name: 'niveau', label: 'Niveau', type: 'select', options: NIVEAUX, default: 'debutant' },
         { name: 'type', label: 'Type', type: 'select', options: TYPES, default: 'cours', hideInTable: true },
         { name: 'image_couverture', label: 'Image de couverture', type: 'file', accept: 'image/*', hideInTable: true },
