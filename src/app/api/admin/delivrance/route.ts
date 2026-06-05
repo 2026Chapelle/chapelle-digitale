@@ -13,16 +13,22 @@ import { siteUrl } from '@/lib/site-url'
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-import { isAdminRequest } from '@/lib/admin-auth'
-const guard = (req: NextRequest) =>
-  !isAdminRequest(req)
+import { getPastoralActor } from '@/lib/pastoral-auth'
+import { notifyUser } from '@/lib/notify'
+const guard = async (req: NextRequest) =>
+  !(await getPastoralActor(req)).ok
     ? NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
     : null
 
 const STATUTS = ['recu', 'en_attente', 'en_traitement', 'suivi', 'cloture']
+const STATUT_MESSAGE: Record<string, string> = {
+  en_traitement: 'Votre demande est en cours de prise en charge par l’équipe pastorale.',
+  suivi: 'Un suivi pastoral a été ouvert pour vous. Vous serez recontacté(e) avec soin.',
+  cloture: 'Votre accompagnement a été clôturé. Que la paix de Dieu vous garde.',
+}
 
 export async function GET(req: NextRequest) {
-  const d = guard(req); if (d) return d
+  const d = await guard(req); if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true, data: [] })
   const { data, error } = await supabaseAdmin.from('delivrance_demandes')
     .select('id, prenom, email, sujet, description, diagnostic, niveau, parcours_recommande, statut, assigned_to, notes_internes, created_at')
@@ -32,7 +38,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const d = guard(req); if (d) return d
+  const d = await guard(req); if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
   if (!body.id) return NextResponse.json({ ok: false, message: 'id requis.' }, { status: 400 })
@@ -41,10 +47,24 @@ export async function PATCH(req: NextRequest) {
   if (body.statut && STATUTS.includes(body.statut)) patch.statut = body.statut
   if ('assigned_to' in body) patch.assigned_to = body.assigned_to || null
   if ('notes_internes' in body) patch.notes_internes = (body.notes_internes ?? '').toString().slice(0, 8000)
+  // Réponse pastorale VISIBLE par le membre (distincte des notes internes confidentielles).
+  const reponse = (body.reponse ?? '').toString().slice(0, 4000).trim()
 
   const { data, error } = await supabaseAdmin.from('delivrance_demandes')
-    .update(patch).eq('id', body.id).select('email, prenom, statut').single()
+    .update(patch).eq('id', body.id).select('email, prenom, statut, user_id').single()
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
+
+  // Réponse pastorale IN-APP (cloche + historique) — réutilise le moteur de notifications.
+  if (data?.user_id && (reponse || (patch.statut && STATUT_MESSAGE[patch.statut]))) {
+    try {
+      await notifyUser(data.user_id, {
+        type: 'info',
+        title: 'Réponse de l’équipe pastorale',
+        body: reponse || STATUT_MESSAGE[patch.statut],
+        href: '/member/dashboard/delivrance',
+      })
+    } catch { /* non bloquant */ }
+  }
 
   // Notification douce au membre à la mise en suivi / prise en charge.
   if (patch.statut && ['en_traitement', 'suivi'].includes(patch.statut) && data?.email) {

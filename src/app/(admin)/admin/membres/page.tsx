@@ -1,255 +1,186 @@
 'use client'
-import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Search, Users, TrendingUp, UserCheck, Star, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react'
-import { type MembreMock } from '@/lib/mock/membres'
+import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
+import { Search, Users, UserCheck, UserX, Plus, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { useAdminData } from '@/lib/chapelle/useAdminData'
+import toast from 'react-hot-toast'
 
-const ROLE_COLORS: Record<string, string> = {
-  visiteur: '#6B7280',
-  membre: '#3B82F6',
-  disciple: '#D4AF37',
-  serviteur: '#F59E0B',
-  leader: '#8B5CF6',
-  pasteur: '#EC4899',
-  admin: '#EF4444',
+interface Membre {
+  id: string; prenom: string; nom: string; email: string; pays?: string; ville?: string
+  role: string; statut: string; membre_statut: string; score_engagement: number
+  date_inscription: string; derniere_connexion?: string | null; archived_at?: string | null
 }
 
-const STATUT_COLORS: Record<string, string> = {
-  actif: '#22C55E',
-  inactif: '#6B7280',
-  suspendu: '#EF4444',
-}
+const STATUT_COLORS: Record<string, string> = { actif: '#22C55E', inactif: '#6B7280', suspendu: '#EF4444', en_attente: '#F59E0B' }
+const ROLES = ['visiteur', 'membre', 'disciple', 'leader', 'berger', 'pasteur', 'admin']
+const STATUTS = ['actif', 'inactif', 'suspendu', 'en_attente']
+
+function fmt(iso?: string | null) { if (!iso) return '—'; try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' }) } catch { return '—' } }
 
 export default function AdminMembresPage() {
   const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState('')
-  const [statutFilter, setStatutFilter] = useState('')
-  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [role, setRole] = useState('')
+  const [statut, setStatut] = useState('')
+  const [page, setPage] = useState(1)
+  const [members, setMembers] = useState<Membre[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [showCreate, setShowCreate] = useState(false)
+  const pageSize = 25
 
-  // Branché sur Supabase (table chapelle.members + memberships).
-  // Aucune donnée fictive : liste vide tant qu'aucun membre réel n'est chargé.
-  const MEMBRES_DATA = useAdminData<MembreMock[]>('/api/admin/data/members', () => [])
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const p = new URLSearchParams({ q: search, role, statut, page: String(page), pageSize: String(pageSize) })
+      const r = await fetch(`/api/admin/membres?${p}`, { credentials: 'same-origin' })
+      const j = await r.json()
+      if (j.ok && j.data) { setMembers(Array.isArray(j.data.members) ? j.data.members : []); setTotal(j.data.total ?? 0) }
+    } catch { /* noop */ }
+    setLoading(false)
+  }, [search, role, statut, page])
 
-  const STATS = [
-    { label: 'Total membres', value: MEMBRES_DATA.length, icon: Users, color: '#D4AF37' },
-    { label: 'Actifs', value: MEMBRES_DATA.filter((m) => m.statut === 'actif').length, icon: UserCheck, color: '#22C55E' },
-    { label: 'Nouveaux ce mois', value: 0, icon: TrendingUp, color: '#0EA5E9' },
-    { label: 'Score moyen', value: MEMBRES_DATA.length ? Math.round(MEMBRES_DATA.reduce((acc, m) => acc + m.score_engagement, 0) / MEMBRES_DATA.length) : 0, icon: Star, color: '#8B5CF6' },
-  ]
+  useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t) }, [load])
 
-  const filtered = MEMBRES_DATA.filter((m) => {
-    const matchSearch = `${m.prenom} ${m.nom} ${m.email}`.toLowerCase().includes(search.toLowerCase())
-    const matchRole = !roleFilter || m.role === roleFilter
-    const matchStatut = !statutFilter || m.statut === statutFilter
-    return matchSearch && matchRole && matchStatut
-  })
-
-  const initials = (prenom: string, nom: string) => `${prenom[0]}${nom[0]}`
+  const pages = Math.max(1, Math.ceil(total / pageSize))
+  const actifs = members.filter((m) => m.statut === 'actif').length
 
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="container-royal">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <PageHeader eyebrow="Gouvernement pastoral" title={<>Gestion des <span className="text-cinematic-gold">Membres</span></>}
+            description={`${total.toLocaleString('fr')} membres — cliquez une ligne pour la fiche 360°.`} />
+          <button onClick={() => setShowCreate(true)} className="btn-gold text-sm px-4 py-2.5 inline-flex items-center gap-2 mt-2">
+            <Plus className="w-4 h-4" /> Créer un membre
+          </button>
+        </div>
 
-        <PageHeader
-          eyebrow="Administration"
-          title={<>Gestion des <span className="text-cinematic-gold">Membres</span></>}
-          description={`${MEMBRES_DATA.length.toLocaleString('fr')} membres dans la communauté CIER mondiale.`}
-        />
-
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
-        >
-          {STATS.map((s) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Total (page)', value: members.length, icon: Users, color: '#D4AF37' },
+            { label: 'Actifs (page)', value: actifs, icon: UserCheck, color: '#22C55E' },
+            { label: 'Total base', value: total, icon: Users, color: '#0EA5E9' },
+            { label: 'Suspendus (page)', value: members.filter((m) => m.statut === 'suspendu').length, icon: UserX, color: '#EF4444' },
+          ].map((s) => (
             <div key={s.label} className="card-royal text-center py-5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3"
-                style={{ background: `${s.color}20` }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ background: `${s.color}20` }}>
                 <s.icon className="w-5 h-5" style={{ color: s.color }} />
               </div>
               <div className="font-cinzel text-2xl font-black text-pearl mb-1">{s.value}</div>
               <div className="text-xs text-pearl/40 font-inter">{s.label}</div>
             </div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="card-royal mb-6"
-        >
+        <div className="card-royal mb-6">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/30" />
-              <input
-                className="input-royal w-full pl-11"
-                placeholder="Rechercher un membre..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <input className="input-royal w-full pl-11" placeholder="Rechercher (nom, email)…" value={search}
+                onChange={(e) => { setPage(1); setSearch(e.target.value) }} />
             </div>
-            <select
-              className="input-royal"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-            >
+            <select className="input-royal" value={role} onChange={(e) => { setPage(1); setRole(e.target.value) }}>
               <option value="">Tous les rôles</option>
-              {['visiteur', 'membre', 'disciple', 'serviteur', 'leader', 'pasteur', 'admin'].map((r) => (
-                <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-              ))}
+              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
-            <select
-              className="input-royal"
-              value={statutFilter}
-              onChange={(e) => setStatutFilter(e.target.value)}
-            >
+            <select className="input-royal" value={statut} onChange={(e) => { setPage(1); setStatut(e.target.value) }}>
               <option value="">Tous les statuts</option>
-              {['actif', 'inactif', 'suspendu'].map((s) => (
-                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-              ))}
+              {STATUTS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="card-royal overflow-hidden"
-        >
+        <div className="card-royal overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-pearl/5">
-                  <th className="text-left px-4 py-3 text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">Membre</th>
-                  <th className="text-left px-4 py-3 text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">Pays</th>
-                  <th className="text-left px-4 py-3 text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">Plateforme</th>
-                  <th className="text-left px-4 py-3 text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">Rôle</th>
-                  <th className="text-left px-4 py-3 text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">Score</th>
-                  <th className="text-left px-4 py-3 text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">Statut</th>
-                  <th className="text-left px-4 py-3 text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">Inscrit le</th>
-                  <th className="text-left px-4 py-3 text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">Actions</th>
+                <tr className="border-b border-pearl/5 text-left text-xs font-poppins font-semibold text-pearl/40 uppercase tracking-wider">
+                  <th className="px-4 py-3">Membre</th><th className="px-4 py-3">Pays</th><th className="px-4 py-3">Statut spirituel</th>
+                  <th className="px-4 py-3">Compte</th><th className="px-4 py-3">Inscrit</th><th className="px-4 py-3">Dern. connexion</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((m, i) => (
-                  <motion.tr
-                    key={m.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.02 * i }}
-                    className="border-b border-pearl/[0.03] hover:bg-pearl/[0.02] transition-colors"
-                  >
-                    {/* Membre */}
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
-                          style={{ background: `${ROLE_COLORS[m.role]}20`, color: ROLE_COLORS[m.role] }}>
-                          {initials(m.prenom, m.nom)}
+                {loading ? (
+                  <tr><td colSpan={6} className="px-4 py-12 text-center"><Loader2 className="w-5 h-5 animate-spin text-gold mx-auto" /></td></tr>
+                ) : members.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-12 text-center text-pearl/40 font-inter text-sm">Aucun membre.</td></tr>
+                ) : members.map((m) => (
+                  <tr key={m.id} className="border-b border-pearl/[0.03] hover:bg-pearl/[0.03] transition-colors cursor-pointer">
+                    <td className="px-4 py-3">
+                      <Link href={`/admin/membres/${m.id}`} className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background: 'rgba(212,175,55,0.15)', color: '#D4AF37' }}>
+                          {(m.prenom?.[0] || '') + (m.nom?.[0] || '') || '?'}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-pearl font-inter">{m.prenom} {m.nom}</p>
+                          <p className="text-sm font-semibold text-pearl font-inter">{m.prenom} {m.nom}{m.archived_at && <span className="ml-2 text-[10px] text-red-400/70">archivé</span>}</p>
                           <p className="text-xs text-pearl/30 font-inter">{m.email}</p>
                         </div>
-                      </div>
+                      </Link>
                     </td>
-                    {/* Pays */}
-                    <td className="px-4 py-4">
-                      <span className="text-sm text-pearl/60 font-inter">{m.pays}</span>
-                    </td>
-                    {/* Plateforme */}
-                    <td className="px-4 py-4">
-                      <span className="text-xs text-pearl/50 font-inter">{m.plateforme}</span>
-                    </td>
-                    {/* Rôle */}
-                    <td className="px-4 py-4">
-                      <span
-                        className="text-[10px] font-poppins font-semibold px-2 py-1 rounded-full"
-                        style={{
-                          background: `${ROLE_COLORS[m.role]}20`,
-                          color: ROLE_COLORS[m.role],
-                        }}
-                      >
-                        {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
-                      </span>
-                    </td>
-                    {/* Score */}
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-16 bg-pearl/10 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${m.score_engagement}%`, background: '#D4AF37' }}
-                          />
-                        </div>
-                        <span className="text-xs font-cinzel font-bold text-gold">{m.score_engagement}</span>
-                      </div>
-                    </td>
-                    {/* Statut */}
-                    <td className="px-4 py-4">
-                      <span
-                        className="text-[10px] font-poppins px-2 py-1 rounded-full"
-                        style={{
-                          background: `${STATUT_COLORS[m.statut]}15`,
-                          color: STATUT_COLORS[m.statut],
-                        }}
-                      >
-                        {m.statut.charAt(0).toUpperCase() + m.statut.slice(1)}
-                      </span>
-                    </td>
-                    {/* Date */}
-                    <td className="px-4 py-4">
-                      <span className="text-xs text-pearl/40 font-inter">{m.date_inscription}</span>
-                    </td>
-                    {/* Actions */}
-                    <td className="px-4 py-4 relative">
-                      <button
-                        onClick={() => setOpenMenu(openMenu === m.id ? null : m.id)}
-                        className="p-1.5 rounded-lg hover:bg-pearl/10 transition-colors"
-                      >
-                        <MoreVertical className="w-4 h-4 text-pearl/40" />
-                      </button>
-                      {openMenu === m.id && (
-                        <div className="absolute right-4 top-10 z-20 bg-[#120023] border border-pearl/10 rounded-xl shadow-xl overflow-hidden min-w-[160px]">
-                          {['Voir le profil', 'Modifier le rôle', 'Suspendre'].map((action) => (
-                            <button
-                              key={action}
-                              onClick={() => setOpenMenu(null)}
-                              className="w-full text-left px-4 py-2.5 text-xs font-inter text-pearl/70 hover:bg-pearl/10 hover:text-pearl transition-colors"
-                            >
-                              {action}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                  </motion.tr>
+                    <td className="px-4 py-3 text-sm text-pearl/60 font-inter">{m.pays || '—'}</td>
+                    <td className="px-4 py-3"><span className="text-xs text-pearl/60 font-inter capitalize">{(m.membre_statut || '').replace('_', ' ')}</span></td>
+                    <td className="px-4 py-3"><span className="text-[10px] font-poppins px-2 py-1 rounded-full capitalize" style={{ background: `${STATUT_COLORS[m.statut] || '#6B7280'}15`, color: STATUT_COLORS[m.statut] || '#6B7280' }}>{m.statut}</span></td>
+                    <td className="px-4 py-3 text-xs text-pearl/40 font-inter">{fmt(m.date_inscription)}</td>
+                    <td className="px-4 py-3 text-xs text-pearl/40 font-inter">{fmt(m.derniere_connexion)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
           <div className="flex items-center justify-between px-4 py-4 border-t border-pearl/5">
-            <span className="text-xs text-pearl/30 font-inter">{filtered.length} membres affichés</span>
+            <span className="text-xs text-pearl/30 font-inter">Page {page} / {pages} — {total} membres</span>
             <div className="flex items-center gap-2">
-              <button className="p-1.5 rounded-lg hover:bg-pearl/10 transition-colors text-pearl/40">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-xs text-pearl/50 font-inter">Page 1 sur 1</span>
-              <button className="p-1.5 rounded-lg hover:bg-pearl/10 transition-colors text-pearl/40">
-                <ChevronRight className="w-4 h-4" />
-              </button>
+              <button disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="p-1.5 rounded-lg hover:bg-pearl/10 text-pearl/40 disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
+              <button disabled={page >= pages} onClick={() => setPage((p) => Math.min(pages, p + 1))} className="p-1.5 rounded-lg hover:bg-pearl/10 text-pearl/40 disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
             </div>
           </div>
-        </motion.div>
+        </div>
+      </div>
+
+      {showCreate && <CreateMemberModal onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); load() }} />}
+    </div>
+  )
+}
+
+function CreateMemberModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [form, setForm] = useState({ email: '', prenom: '', nom: '', telephone: '', pays: '', ville: '' })
+  const [saving, setSaving] = useState(false)
+  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }))
+
+  async function submit() {
+    if (!form.email.includes('@')) { toast.error('Email valide requis.'); return }
+    setSaving(true)
+    try {
+      const r = await fetch('/api/admin/membres', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(form) })
+      const j = await r.json()
+      if (j.ok) { toast.success('Membre créé ✓'); onCreated() } else toast.error(j.message || 'Échec')
+    } catch { toast.error('Erreur réseau') }
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose}>
+      <div className="card-royal w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-cinzel font-bold text-pearl text-lg">Créer un membre</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-pearl/10 text-pearl/40"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="space-y-3">
+          <input className="input-royal w-full" placeholder="Email *" value={form.email} onChange={(e) => set('email', e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <input className="input-royal w-full" placeholder="Prénom" value={form.prenom} onChange={(e) => set('prenom', e.target.value)} />
+            <input className="input-royal w-full" placeholder="Nom" value={form.nom} onChange={(e) => set('nom', e.target.value)} />
+          </div>
+          <input className="input-royal w-full" placeholder="Téléphone" value={form.telephone} onChange={(e) => set('telephone', e.target.value)} />
+          <div className="grid grid-cols-2 gap-3">
+            <input className="input-royal w-full" placeholder="Pays" value={form.pays} onChange={(e) => set('pays', e.target.value)} />
+            <input className="input-royal w-full" placeholder="Ville" value={form.ville} onChange={(e) => set('ville', e.target.value)} />
+          </div>
+        </div>
+        <p className="text-[11px] text-pearl/40 font-inter mt-3">Un mot de passe temporaire est généré. Le membre pourra le réinitialiser.</p>
+        <button onClick={submit} disabled={saving} className="btn-gold w-full justify-center mt-4 py-2.5 inline-flex items-center gap-2 disabled:opacity-50">
+          {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Création…</> : <><Plus className="w-4 h-4" /> Créer le membre</>}
+        </button>
       </div>
     </div>
   )

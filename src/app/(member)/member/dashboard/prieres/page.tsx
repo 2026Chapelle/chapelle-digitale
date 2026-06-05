@@ -6,6 +6,7 @@ import { CATEGORIES_PRIERE, CategoriePriere } from '@/lib/mock/prieres'
 import { PageHeader } from '@/components/ui/PageHeader'
 import toast from 'react-hot-toast'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/providers/AuthProvider'
 
 /** Demande de prière réelle (priere_demandes), normalisée pour l'affichage. */
@@ -54,19 +55,27 @@ export default function PrieresPage() {
 
   const { user, profile, isDemo } = useAuth()
 
+  // Recharge MES demandes via le client AUTHENTIFIÉ (cookies) : la RLS owner-based
+  // de priere_demandes exclut le client anon (sinon « mes demandes » reste vide).
+  const reloadMine = async () => {
+    if (IS_DEMO_MODE || isDemo || !user?.id) return
+    const db = getBrowserClient() ?? supabase
+    const { data: mine, error } = await db.from('priere_demandes')
+      .select(PRIERE_COLS).eq('user_id', user.id).order('created_at', { ascending: false })
+    if (error) { console.warn('[prieres] lecture mes demandes:', error.message); return }
+    if (mine) setMesPrieres(mine.map(mapPriere))
+  }
+
   // Données RÉELLES (priere_demandes) : mes demandes + mur public. Aucun mock.
   useEffect(() => {
     if (IS_DEMO_MODE || isDemo) return
     let cancelled = false
     ;(async () => {
       try {
-        if (user?.id) {
-          const { data: mine } = await supabase.from('priere_demandes')
-            .select(PRIERE_COLS).eq('user_id', user.id).order('created_at', { ascending: false })
-          if (!cancelled && mine) setMesPrieres(mine.map(mapPriere))
-        }
+        await reloadMine()
+        if (cancelled) return
         const { data: pub } = await supabase.from('priere_demandes')
-          .select(PRIERE_COLS).order('created_at', { ascending: false }).limit(50)
+          .select(PRIERE_COLS).eq('is_public', true).order('created_at', { ascending: false }).limit(50)
         if (!cancelled && pub) {
           const items = pub.map(mapPriere)
           setCommunaute(items)
@@ -80,14 +89,18 @@ export default function PrieresPage() {
     if (!sujet || !categorie) return
     try {
       if (!IS_DEMO_MODE && !isDemo) {
-        const { error } = await supabase.from('priere_demandes').insert({
-          user_id: user?.id ?? null,
-          nom: anonyme ? null : (profile ? `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() : (user?.email ?? null)),
-          email: anonyme ? null : (profile?.email ?? user?.email ?? null),
-          sujet, description, categorie: String(categorie),
-          urgence: urgente ? 'elevee' : 'normale', anonyme,
+        // Écriture SERVEUR (service role) : fiable + notifie l'équipe pastorale.
+        const r = await fetch('/api/member/prieres', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({
+            sujet, description, categorie: String(categorie), urgente, anonyme,
+            nom: profile ? `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() : (user?.email ?? null),
+            email: profile?.email ?? user?.email ?? null,
+          }),
         })
-        if (error) { toast.error("Échec de l'envoi de la demande."); return }
+        const j = await r.json().catch(() => ({}))
+        if (!j.ok) { console.warn('[prieres] envoi:', j.message); toast.error("Échec de l'envoi de la demande."); return }
+        await reloadMine()
       }
       setSubmitted(true)
       setSujet(''); setDescription(''); setCategorie(''); setUrgente(false); setAnonyme(false)

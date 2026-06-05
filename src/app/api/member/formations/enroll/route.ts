@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { getSessionProfile } from '@/lib/member-auth'
+import { parcoursGate } from '@/lib/formations/parcours-gate-server'
 
 /**
  * Inscription explicite à une formation (entrée dans le parcours de formation).
@@ -18,6 +19,15 @@ export async function POST(req: NextRequest) {
   try {
     const { formation_id } = await req.json().catch(() => ({}))
     if (!formation_id) return NextResponse.json({ ok: false, message: 'formation_id requis.' }, { status: 400 })
+
+    // Verrou inter-parcours : interdire l'inscription tant que le parcours
+    // précédent n'est pas terminé à 100 % (P1 → P2 → P3).
+    const gate = await parcoursGate(formation_id, sp.uid)
+    if (gate.parcours_locked) {
+      const prev = gate.previous_formation?.titre || 'le parcours précédent'
+      return NextResponse.json({ ok: false, message: `Terminez d'abord ${prev} pour accéder à ce parcours.` }, { status: 403 })
+    }
+
     const { error } = await supabaseAdmin.from('inscriptions_formation')
       .upsert({ user_id: sp.uid, formation_id, statut: 'actif', dernier_acces: new Date().toISOString() }, { onConflict: 'user_id,formation_id', ignoreDuplicates: true })
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })

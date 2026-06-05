@@ -1,0 +1,132 @@
+{
+  "_meta": {
+    "but": "Mapping d'intégration OFFICIEL du PARCOURS 2 — « Je stabilise ma foi ». Architecture certifiée réutilisée à l'identique : tables formations + formation_modules, médiathèque Citadelle (bucket Supabase 'media'), progression + déblocage séquentiel (prerequis_module_id) + écran Félicitations + certificat déjà câblés. AUCUNE table modifiée, AUCUN nouveau système LMS.",
+    "ordre_source": "Ordre et contenus tirés du message officiel d'intégration (M5 = Saint-Esprit, M6 = Parole de Dieu).",
+    "a_remplir_apres_upload": "Les champs pdf_url et cover_url sont volontairement vides : à renseigner avec l'URL renvoyée par la médiathèque (/api/admin/upload → bucket 'media') après upload de chaque fichier.",
+    "notes_limites_sans_modif_schema": [
+      "formation_modules N'A PAS de colonne 'verset' ni 'cover' : le verset clé est intégré dans 'description' (donc affiché), et 'cover_url' est conservé ici à titre de mapping. La couverture du PARCOURS se règle au niveau formation (champ image_couverture). La miniature de chaque vidéo est fournie automatiquement par YouTube dans le lecteur.",
+      "« mise à jour du % global du Programme d'Intégration » et « déblocage automatique du Parcours 3 » relèvent de la logique Tunnel (membre_statut), séparée de la couche Formations — à décider à part pour ne pas toucher l'architecture certifiée."
+    ]
+  },
+  "formation": {
+    "titre": "Parcours 2 — Je stabilise ma foi",
+    "slug": "je-stabilise-ma-foi",
+    "contenu_court": "Bâtir une foi solide et disciplinée.",
+    "description": "Le deuxième parcours du Programme d'Intégration : poser des fondations solides — principes du Royaume, fondations de la foi, baptême, prière, Saint-Esprit, Parole de Dieu et premiers pas dans la communauté.",
+    "instructeur_nom": "",
+    "niveau": "debutant",
+    "type": "parcours",
+    "image_couverture": "",
+    "duree_heures": 0,
+    "gratuit": true,
+    "certifiant": false,
+    "statut": "publie"
+  },
+  "modules": [
+    {
+      "ordre": 1,
+      "titre": "Les Principes Fondamentaux du Royaume",
+      "verset": "Matthieu 4:17",
+      "description": "Objectif : comprendre la culture du Royaume et adopter une mentalité alignée sur Dieu.\n\nVerset clé : Matthieu 4:17",
+      "type": "youtube",
+      "youtube_url": "https://youtu.be/8djKB19K2YU",
+      "youtube_id": "8djKB19K2YU",
+      "pdf_url": "",
+      "cover_url": "",
+      "duree_minutes": 0,
+      "acces_min_statut": "membre",
+      "prerequis": null,
+      "status": "published"
+    },
+    {
+      "ordre": 2,
+      "titre": "Les Fondations de la Foi",
+      "verset": "Matthieu 7:24-25",
+      "description": "Objectif : poser les bases solides de la vie chrétienne.\n\nVerset clé : Matthieu 7:24-25",
+      "type": "youtube",
+      "youtube_url": "https://youtu.be/lQQAj8XgSHc",
+      "youtube_id": "lQQAj8XgSHc",
+      "pdf_url": "",
+      "cover_url": "",
+      "duree_minutes": 0,
+      "acces_min_statut": "membre",
+      "prerequis": "Module 1",
+      "status": "published"
+    },
+    {
+      "ordre": 3,
+      "titre": "La Préparation au Baptême",
+      "verset": "Romains 6:4 · Marc 16:16 · Actes 2:38 · Colossiens 2:12",
+      "description": "Objectif : comprendre le sens biblique du baptême et s'y préparer.\n\nVersets clés : Romains 6:4 ; Marc 16:16 ; Actes 2:38 ; Colossiens 2:12",
+      "type": "youtube",
+      "youtube_url": "https://youtu.be/f-Az9erbVM4",
+      "youtube_id": "f-Az9erbVM4",
+      "pdf_url": "",
+      "cover_url": "",
+      "duree_minutes": 0,
+      "acces_min_statut": "membre",
+      "prerequis": "Module 2",
+      "status": "published"
+    },
+    {
+      "ordre": 4,
+      "titre": "La Prière : le Souffle de ta Vie Spirituelle",
+      "verset": "",
+      "description": "Objectif : développer une vie de prière stable et profonde.",
+      "type": "youtube",
+      "youtube_url": "https://youtu.be/5x85QMBiuxQ",
+      "youtube_id": "5x85QMBiuxQ",
+      "pdf_url": "",
+      "cover_url": "",
+      "duree_minutes": 0,
+      "acces_min_statut": "membre",
+      "prerequis": "Module 3",
+      "status": "published"
+    },
+    {
+      "ordre": 5,
+      "titre": "Le Saint-Esprit : la Puissance pour Marcher Droit",
+      "verset": "Actes 1:8",
+      "description": "Objectif : apprendre à marcher quotidiennement avec le Saint-Esprit.\n\nVerset clé : Actes 1:8",
+      "type": "youtube",
+      "youtube_url": "https://youtu.be/ELq6Z0tBkEI",
+      "youtube_id": "ELq6Z0tBkEI",
+      "pdf_url": "",
+      "cover_url": "",
+      "duree_minutes": 0,
+      "acces_min_statut": "membre",
+      "prerequis": "Module 4",
+      "status": "published"
+    },
+    {
+      "ordre": 6,
+      "titre": "La Parole de Dieu : Nourriture du Disciple",
+      "verset": "Psaume 119:105",
+      "description": "La Bible n'est pas un livre ancien : c'est une source vivante, une lampe à tes pieds (Psaume 119:105), et ta nourriture spirituelle quotidienne. Ce module t'apprend comment lire, comprendre, méditer et appliquer la Parole pour transformer ta vie.\n\nObjectif : faire de la Parole ton repère, ta force et ton arme.\n\nVerset clé : Psaume 119:105",
+      "type": "youtube",
+      "youtube_url": "https://youtu.be/pUbNQlFOfQY",
+      "youtube_id": "pUbNQlFOfQY",
+      "pdf_url": "",
+      "cover_url": "",
+      "duree_minutes": 0,
+      "acces_min_statut": "membre",
+      "prerequis": "Module 5",
+      "status": "published"
+    },
+    {
+      "ordre": 7,
+      "titre": "Mes Premiers Pas dans la Communauté",
+      "verset": "Actes 2:42",
+      "description": "Tu n'es plus un visiteur. Tu fais maintenant partie de la famille royale. Ce module t'ouvre les portes de l'engagement communautaire : connaître ta place, marcher avec les autres, servir avec tes dons, et t'ancrer dans ta maison spirituelle.\n\nObjectif : t'aider à devenir un membre actif, utile et pleinement intégré dans la communauté.\n\nVerset clé : Actes 2:42",
+      "type": "youtube",
+      "youtube_url": "https://youtu.be/5pq4ltf7Lbc",
+      "youtube_id": "5pq4ltf7Lbc",
+      "pdf_url": "",
+      "cover_url": "",
+      "duree_minutes": 0,
+      "acces_min_statut": "membre",
+      "prerequis": "Module 6",
+      "status": "published"
+    }
+  ]
+}

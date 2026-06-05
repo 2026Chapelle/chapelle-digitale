@@ -10,7 +10,6 @@ import { getModuleBySlug, getLevelModules, getNextModule } from '@/lib/academie/
 import { useAcademyProgress } from '@/components/academie/useAcademyProgress'
 import { KingdomBadge } from '@/components/academie/KingdomBadge'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { isIntegrationDone } from '@/lib/academie/gating'
 
 const N1 = 'acad-fondements'
 
@@ -23,8 +22,20 @@ function ytId(url?: string): string | null {
 
 export default function AcademieModulePage({ params }: { params: { module: string } }) {
   const mod = useMemo(() => getModuleBySlug(params.module), [params.module])
-  const { profile, loading: authLoading } = useAuth()
-  const integrationDone = isIntegrationDone(profile as any)
+  const { loading: authLoading } = useAuth()
+  const [integrationComplete, setIntegrationComplete] = useState<boolean | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/member/integration-progression', { credentials: 'same-origin' })
+        const j = await r.json()
+        if (!cancelled) setIntegrationComplete(j.ok ? !!j.data.integration_complete : false)
+      } catch { if (!cancelled) setIntegrationComplete(false) }
+    })()
+    return () => { cancelled = true }
+  }, [])
+  const integrationDone = integrationComplete === true
   const prog = useAcademyProgress()
   const [confirmRead, setConfirmRead] = useState(false)
   const [justDone, setJustDone] = useState(false)
@@ -50,7 +61,7 @@ export default function AcademieModulePage({ params }: { params: { module: strin
     )
   }
 
-  if (authLoading) {
+  if (authLoading || integrationComplete === null) {
     return <div className="min-h-screen bg-charbon flex items-center justify-center"><div className="w-6 h-6 rounded-full border-2 border-gold/30 border-t-gold animate-spin" /></div>
   }
   if (!integrationDone) {
@@ -62,7 +73,7 @@ export default function AcademieModulePage({ params }: { params: { module: strin
           </div>
           <h1 className="font-cinzel text-xl font-bold text-white mb-2">Académie verrouillée</h1>
           <p className="font-inter text-sm mb-5" style={{ color: 'rgba(245,230,216,0.6)' }}>
-            Terminez votre parcours d&apos;intégration pour accéder à l&apos;Académie des Élus.
+            Terminez l&apos;ensemble du Programme d&apos;Intégration (les 4 parcours) pour accéder à l&apos;Académie des Élus.
           </p>
           <Link href="/member/dashboard/parcours" className="btn-gold-cinematic inline-flex">Voir Mon Parcours <ArrowRight className="w-4 h-4" /></Link>
         </div>
@@ -176,7 +187,7 @@ export default function AcademieModulePage({ params }: { params: { module: strin
               {/* Lecteur vidéo (YouTube si URL renseignée, sinon miniature officielle) */}
               <div className="relative rounded-3xl overflow-hidden mb-6" style={{ aspectRatio: '16/9', border: '1px solid rgba(212,175,55,0.2)', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
                 {vid ? (
-                  <iframe className="absolute inset-0 w-full h-full" src={`https://www.youtube.com/embed/${vid}`}
+                  <iframe className="absolute inset-0 w-full h-full" src={`https://www.youtube-nocookie.com/embed/${vid}?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3`}
                     title={mod.titre} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
                 ) : (
                   <>

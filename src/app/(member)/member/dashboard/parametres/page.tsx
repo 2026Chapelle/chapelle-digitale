@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
   User, Lock, Bell, Shield, Trash2, Eye, EyeOff,
-  Camera, Check, ChevronRight, Globe, Mail, Phone, Save
+  Camera, Check, ChevronRight, Globe, Mail, Phone, Save, Volume2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { getBrowserClient } from '@/lib/supabase-browser'
+import { getLiveSoundEnabled, setLiveSoundEnabled, playLiveChime } from '@/lib/live-sound'
 
 const TABS = [
   { id: 'profil', label: 'Profil', icon: User },
@@ -51,6 +52,8 @@ export default function ParametresPage() {
   const [notifs, setNotifs] = useState<Record<string, boolean>>(
     Object.fromEntries(NOTIF_PREFS.map(n => [n.id, n.defaultOn]))
   )
+  const [liveSound, setLiveSound] = useState(false)
+  useEffect(() => { setLiveSound(getLiveSoundEnabled()) }, [])
   const [privacy, setPrivacy] = useState({
     profilePublic: true,
     showGroupe: true,
@@ -340,6 +343,20 @@ export default function ParametresPage() {
                     <Toggle on={notifs[n.id]} onChange={v => setNotifs(p => ({ ...p, [n.id]: v }))} />
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Son des alertes live (préférence réelle, par appareil) */}
+            <div className="p-6 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Volume2 className="w-4 h-4 flex-shrink-0" style={{ color: '#EF4444' }} />
+                  <div className="min-w-0">
+                    <div className="font-inter text-sm font-medium text-white">Activer le son des alertes live</div>
+                    <div className="text-[11px] font-inter mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Un bip court et discret quand un live démarre (si votre navigateur l'autorise).</div>
+                  </div>
+                </div>
+                <Toggle on={liveSound} onChange={(v) => { setLiveSound(v); setLiveSoundEnabled(v); if (v) void playLiveChime() }} />
               </div>
             </div>
 

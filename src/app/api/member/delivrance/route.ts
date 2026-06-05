@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { getSessionProfile } from '@/lib/member-auth'
 import { sendEmail, emailLayout } from '@/lib/email'
+import { notifyBroadcast } from '@/lib/notify'
 import { APP_EMAIL } from '@/lib/constants'
 import { siteUrl } from '@/lib/site-url'
 
@@ -59,6 +60,15 @@ export async function POST(req: NextRequest) {
 
     // Notification interne DISCRÈTE (aucun détail sensible dans l'email).
     if (body.accompagnement) {
+      // Cloche back-office (équipe pastorale) — réutilise le moteur de notifications.
+      try {
+        await notifyBroadcast('admin', {
+          type: 'info',
+          title: 'Nouvelle demande d’accompagnement',
+          body: 'Une demande confidentielle de cure d’âme a été déposée.',
+          href: '/admin/delivrance',
+        })
+      } catch { /* non bloquant */ }
       try {
         await sendEmail({
           to: process.env.ADMIN_NOTIFY_EMAIL || APP_EMAIL,

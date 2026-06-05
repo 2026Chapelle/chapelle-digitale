@@ -5,17 +5,63 @@ import {
   Play, Pause, Clock, Eye, Calendar, Tv, Radio, Heart,
   MessageSquare, Send, Share2, Volume2, VolumeX, Maximize,
   ChevronLeft, ChevronRight, Bell, Users, Star, Bookmark, Download,
-  Church, Moon, BookOpen, Crown, Flame, Sparkles, Radio as RadioIcon,
+  Church, Moon, BookOpen, Crown, Flame, Sparkles, Radio as RadioIcon, X,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import LiveOffering from '@/components/features/giving/LiveOffering'
+import ShareButtons from '@/components/ui/ShareButtons'
+import toast from 'react-hot-toast'
 
 /** Extrait l'ID YouTube d'une URL ou ID brut. */
 function ytId(url?: string): string | null {
   if (!url) return null
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|live\/|shorts\/))([\w-]{11})/)
   return m ? m[1] : (/^[\w-]{11}$/.test(url) ? url : null)
+}
+
+/** Extrait l'ID de playlist YouTube (paramètre list=) d'une URL ou ID brut. */
+function ytPlaylistId(url?: string): string | null {
+  if (!url) return null
+  const m = url.match(/[?&]list=([\w-]+)/)
+  return m ? m[1] : (/^PL[\w-]+$/.test(url) ? url : null)
+}
+
+/**
+ * Programmes réguliers RÉELS suivis EN PLAYLIST embarquée (le membre reste dans
+ * Citadelle, aucune sortie YouTube brutale). IDs de playlists officielles CIER.
+ */
+const PLAYLISTS_PROGRAMMES = [
+  { titre: 'Culte de célébration royale', emoji: '⛪', couleur: '#D4AF37', listId: 'PLxNRRXEmUleFrBmQBbULlXkMRLCRUUOCZ' },
+  { titre: 'Matinale de prière',          emoji: '🌅', couleur: '#8B5CF6', listId: 'PLxNRRXEmUleEnodeexpNieSFoA6buYIz2' },
+  { titre: 'École du Royaume',            emoji: '📖', couleur: '#0EA5E9', listId: 'PLxNRRXEmUleFyJdheYr95byo50Jdvf9SS' },
+  { titre: 'Vendredi de Puissance',       emoji: '🔥', couleur: '#EF4444', listId: 'PLxNRRXEmUleE2-_qS8PujnNJYUu2GuFUb' },
+]
+
+/** Génère et déclenche le téléchargement d'un fichier .ics (rappel agenda, mobile + desktop). */
+function downloadIcs(titre: string, start: Date, durationMin = 90) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const fmt = (d: Date) =>
+    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`
+  const end = new Date(start.getTime() + durationMin * 60000)
+  const uid = `${start.getTime()}-citadelle@cier`
+  const ics = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Citadelle//Lives//FR', 'CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT', `UID:${uid}`, `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
+    `SUMMARY:${titre.replace(/[\n,;]/g, ' ')}`,
+    'DESCRIPTION:Direct Citadelle — rejoignez-nous en ligne.',
+    'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', `DESCRIPTION:${titre.replace(/[\n,;]/g, ' ')}`, 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR',
+  ].join('\r\n')
+  try {
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rappel-${titre.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}.ics`
+    document.body.appendChild(a); a.click(); a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch { /* non bloquant */ }
 }
 
 const PLATEFORME_ICON: Record<string, LucideIcon> = {
@@ -71,6 +117,11 @@ export default function LivesPage() {
   const [reactions, setReactions] = useState<{ id: number; emoji: string; x: number }[]>([])
   const chatRef = useRef<HTMLDivElement>(null)
   const reactionCount = useRef(0)
+
+  // Lecteur intégré (replays + playlists) : le membre reste dans Citadelle.
+  const [player, setPlayer] = useState<{ ytId?: string; listId?: string; titre: string } | null>(null)
+  // Partage (modale réutilisant le composant ShareButtons).
+  const [share, setShare] = useState<{ url: string; titre: string; texte?: string } | null>(null)
 
   // Données RÉELLES (cms_lives) : direct en cours, replays, programme. Aucun mock.
   const [liveData, setLiveData] = useState<typeof LIVE_FALLBACK | null>(null)
@@ -134,6 +185,32 @@ export default function LivesPage() {
     const id = reactionCount.current++
     setReactions(prev => [...prev, { id, emoji, x: Math.random() * 80 + 10 }])
     setTimeout(() => setReactions(prev => prev.filter(r => r.id !== id)), 2000)
+  }
+
+  // URL publique partageable (le partage ramène vers Citadelle, pas vers YouTube).
+  const shareUrl = () => (typeof window !== 'undefined' ? `${window.location.origin}/live` : 'https://chapelleduroyaume.org/live')
+
+  /** « Me rappeler » : rappel agenda (.ics, vrai rappel futur) + confirmation in-app (moteur notif existant). */
+  const remind = async (titre: string, dateStr?: string, heure?: string) => {
+    if (dateStr) {
+      const m = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+      const t = (heure || '').match(/(\d{1,2})[:hH](\d{2})/)
+      if (m) {
+        const dt = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), t ? Number(t[1]) : 0, t ? Number(t[2]) : 0)
+        if (!isNaN(dt.getTime())) downloadIcs(titre, dt)
+      }
+    }
+    try {
+      await fetch('/api/member/reminders', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({
+          title: `Rappel : ${titre}`,
+          body: dateStr ? `Programmé le ${dateStr}${heure ? ` à ${heure}` : ''}` : 'Vous serez alerté au démarrage du direct.',
+          href: '/member/dashboard/lives',
+        }),
+      })
+    } catch { /* non bloquant */ }
+    toast.success(dateStr ? 'Rappel ajouté à votre agenda 🔔' : 'Rappel activé 🔔')
   }
 
   return (
@@ -298,10 +375,12 @@ export default function LivesPage() {
                     </button>
                   ))}
                   <div className="ml-auto flex items-center gap-3 text-xs text-pearl/30 font-inter">
-                    <button className="flex items-center gap-1 hover:text-pearl transition-colors">
+                    <button onClick={() => setShare({ url: shareUrl(), titre: LIVE_EN_COURS.titre, texte: LIVE_EN_COURS.description })}
+                      className="flex items-center gap-1 hover:text-pearl transition-colors">
                       <Share2 className="w-3.5 h-3.5" /> Partager
                     </button>
-                    <button className="flex items-center gap-1 hover:text-pearl transition-colors">
+                    <button onClick={() => remind(LIVE_EN_COURS.titre)}
+                      className="flex items-center gap-1 hover:text-pearl transition-colors">
                       <Bell className="w-3.5 h-3.5" /> Me rappeler
                     </button>
                   </div>
@@ -340,7 +419,8 @@ export default function LivesPage() {
                           <p className="text-[10px] text-pearl/30 font-inter">{e.date} à {e.heure}</p>
                         </div>
                       </div>
-                      <button className="w-full py-1.5 rounded-lg text-[10px] font-inter font-semibold transition-all"
+                      <button onClick={() => remind(e.titre, e.date, e.heure)}
+                        className="w-full py-1.5 rounded-lg text-[10px] font-inter font-semibold transition-all hover:brightness-125"
                         style={{ background: `${e.couleur}18`, color: e.couleur, border: `1px solid ${e.couleur}25` }}>
                         Me rappeler
                       </button>
@@ -470,7 +550,11 @@ export default function LivesPage() {
                   transition={{ delay: i * 0.06 }}
                   className="card-royal group cursor-pointer"
                   style={{ transition: 'border-color 0.2s, box-shadow 0.2s' }}
-                  onClick={() => r.youtube_url && window.open(r.youtube_url, '_blank', 'noopener,noreferrer')}
+                  onClick={() => {
+                    const id = ytId(r.youtube_url)
+                    if (id) setPlayer({ ytId: id, titre: r.titre })
+                    else if (r.youtube_url) window.open(r.youtube_url, '_blank', 'noopener,noreferrer')
+                  }}
                   onMouseEnter={e => {
                     (e.currentTarget as HTMLDivElement).style.borderColor = `${r.couleur}30`
                   }}
@@ -562,6 +646,30 @@ export default function LivesPage() {
               </div>
             </div>
 
+            {/* Programmes en playlist — regardés DANS Citadelle (lecteur intégré, aucune sortie YouTube) */}
+            <div className="card-royal mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Tv className="w-4 h-4 text-gold" />
+                <h3 className="font-cinzel text-sm font-bold text-pearl">Suivre les programmes</h3>
+                <span className="text-[10px] text-pearl/35 font-inter ml-auto">Lecture intégrée</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {PLAYLISTS_PROGRAMMES.map((p) => (
+                  <button key={p.titre} onClick={() => setPlayer({ listId: p.listId, titre: p.titre })}
+                    className="flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:-translate-y-0.5"
+                    style={{ background: `${p.couleur}10`, border: `1px solid ${p.couleur}25` }}>
+                    <span className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
+                      style={{ background: `${p.couleur}18`, border: `1px solid ${p.couleur}35` }}>{p.emoji}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-inter text-sm font-semibold text-pearl truncate">{p.titre}</p>
+                      <p className="font-inter text-[11px]" style={{ color: p.couleur }}>Regarder la playlist</p>
+                    </div>
+                    <Play className="w-4 h-4 flex-shrink-0" style={{ color: p.couleur }} fill="currentColor" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="card-royal mb-6">
               <div className="flex items-center gap-2 mb-1">
                 <Calendar className="w-4 h-4 text-gold" />
@@ -601,7 +709,8 @@ export default function LivesPage() {
                               style={{ background: `${item.couleur}15`, color: item.couleur }}>{item.plateforme}</span>
                           </div>
                         </div>
-                        <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-inter font-semibold flex-shrink-0 transition-all hover:-translate-y-0.5"
+                        <button onClick={() => remind(item.titre, item.date, item.heure)}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-inter font-semibold flex-shrink-0 transition-all hover:-translate-y-0.5"
                           style={{ background: `${item.couleur}18`, color: item.couleur, border: `1px solid ${item.couleur}25` }}>
                           <Bell className="w-3 h-3" />
                           <span className="hidden sm:inline">Rappel</span>
@@ -614,6 +723,57 @@ export default function LivesPage() {
             ))}
           </motion.div>
         )}
+
+        {/* Lecteur intégré (replays + playlists) — le membre reste dans Citadelle */}
+        <AnimatePresence>
+          {player && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setPlayer(null)}
+              className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+              <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 20 }}
+                transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-4xl rounded-3xl overflow-hidden border border-gold/25 bg-abyss"
+                style={{ aspectRatio: '16/9' }}>
+                <button onClick={() => setPlayer(null)} aria-label="Fermer"
+                  className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl flex items-center justify-center bg-black/55 border border-pearl/15 text-pearl/80 hover:text-pearl">
+                  <X className="w-4 h-4" />
+                </button>
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src={player.listId
+                    ? `https://www.youtube.com/embed/videoseries?list=${player.listId}&rel=0&modestbranding=1`
+                    : `https://www.youtube.com/embed/${player.ytId}?rel=0&modestbranding=1&autoplay=1`}
+                  title={player.titre}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Partage — réutilise le composant ShareButtons (acquis) */}
+        <AnimatePresence>
+          {share && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShare(null)}
+              className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+              <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 20 }}
+                transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-md rounded-3xl overflow-hidden border border-gold/25 bg-abyss p-6">
+                <button onClick={() => setShare(null)} aria-label="Fermer"
+                  className="absolute top-3 right-3 w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 border border-pearl/15 text-pearl/80 hover:text-pearl">
+                  <X className="w-4 h-4" />
+                </button>
+                <h3 className="font-cinzel text-base font-bold text-pearl mb-1 pr-8">Partager</h3>
+                <p className="font-inter text-xs text-pearl/45 mb-4">{share.titre}</p>
+                <ShareButtons url={share.url} title={share.titre} text={share.texte} />
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

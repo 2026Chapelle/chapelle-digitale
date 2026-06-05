@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import {
-  Save, Lock, Check, Camera, Loader2, Church, Flame, Crown, Users, Heart, BookOpen, Home, HandHeart,
+  Save, Lock, Check, Camera, Loader2, Church, Flame, Crown, Users, Heart, BookOpen, Home, HandHeart, Bell,
   type LucideIcon,
 } from 'lucide-react'
 import { PARCOURS_DISCIPLE, BADGES } from '@/lib/constants'
@@ -59,6 +59,16 @@ export default function ProfilPage() {
   const [pwd, setPwd] = useState({ next: '', confirm: '' })
   const [pwdSaving, setPwdSaving] = useState(false)
 
+  // Préférences de notification
+  const [prefs, setPrefs] = useState({ notifications_email: true, notifications_push: true, whatsapp_alerts: false })
+  async function togglePref(k: keyof typeof prefs) {
+    const next = !prefs[k]
+    setPrefs((p) => ({ ...p, [k]: next }))
+    try {
+      await fetch('/api/member/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ [k]: next }) })
+    } catch { /* */ }
+  }
+
   const hydrateFromDemo = useCallback(() => {
     setForm({
       prenom: DEMO_VIEW.prenom, nom: DEMO_VIEW.nom, pays: DEMO_VIEW.pays,
@@ -97,6 +107,11 @@ export default function ProfilPage() {
             since: fmtDate(p.date_inscription),
             formations: 0,
             badges: 0,
+          })
+          setPrefs({
+            notifications_email: p.notifications_email ?? true,
+            notifications_push: p.notifications_push ?? true,
+            whatsapp_alerts: p.whatsapp_alerts ?? false,
           })
         } else {
           setMeta((m) => ({ ...m, email: user?.email ?? '' }))
@@ -369,6 +384,27 @@ export default function ProfilPage() {
               <button onClick={handlePassword} disabled={pwdSaving} className="btn-royal mt-4 disabled:opacity-50">
                 {pwdSaving ? 'Mise à jour…' : 'Mettre à jour'}
               </button>
+            </div>
+
+            {/* Préférences de notification */}
+            <div className="card-royal">
+              <h2 className="font-cinzel text-base font-bold text-pearl mb-4 flex items-center gap-2">
+                <Bell className="w-4 h-4 text-gold" /> Préférences de notification
+              </h2>
+              <div className="space-y-3">
+                {([
+                  ['notifications_email', 'Recevoir les notifications importantes par email'],
+                  ['notifications_push', 'Notifications dans l\'application'],
+                  ['whatsapp_alerts', 'Alertes WhatsApp (à venir)'],
+                ] as const).map(([k, label]) => (
+                  <label key={k} className="flex items-center justify-between gap-3 cursor-pointer">
+                    <span className="text-sm font-inter text-pearl/70">{label}</span>
+                    <button type="button" onClick={() => togglePref(k)} className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0" style={{ background: prefs[k] ? '#D4AF37' : 'rgba(255,255,255,0.12)' }}>
+                      <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all" style={{ left: prefs[k] ? '22px' : '2px' }} />
+                    </button>
+                  </label>
+                ))}
+              </div>
             </div>
           </motion.div>
 

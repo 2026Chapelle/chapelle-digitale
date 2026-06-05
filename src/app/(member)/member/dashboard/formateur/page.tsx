@@ -117,7 +117,7 @@ export default function FormateurDashboard() {
               </thead>
               <tbody>
                 {(data?.formations || []).length === 0 && (
-                  <tr><td colSpan={6} className="px-5 py-8 text-center text-pearl/30 font-inter">Aucune formation pour le moment.</td></tr>
+                  <tr><td colSpan={6} className="px-5 py-8 text-center text-pearl/30 font-inter">Aucune formation ne vous est encore assignée. L&apos;administration peut vous attribuer une formation depuis « Formations (LMS) » (champ « Formateur responsable »).</td></tr>
                 )}
                 {(data?.formations || []).map((f) => (
                   <tr key={f.id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">

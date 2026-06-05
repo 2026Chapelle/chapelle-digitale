@@ -120,7 +120,7 @@ async function computeGouvernement(paysFilter: string | null) {
 
     // ── Prières (+ sans suivi) ──
     try {
-      const { data } = await supabaseAdmin.from('priere_demandes').select('user_id, assigned_to, statut')
+      const { data } = await supabaseAdmin.from('priere_demandes').select('user_id, assigned_to, statut').limit(20000)
       for (const r of (data || []) as any[]) {
         const m = touch(r.user_id); if (!m) continue
         m.prieres++
@@ -131,7 +131,7 @@ async function computeGouvernement(paysFilter: string | null) {
 
     // ── Formations (inscrites / abandonnées) ──
     try {
-      const { data } = await supabaseAdmin.from('inscriptions_formation').select('user_id, statut')
+      const { data } = await supabaseAdmin.from('inscriptions_formation').select('user_id, statut').limit(20000)
       for (const r of (data || []) as any[]) {
         const m = touch(r.user_id); if (!m) continue
         m.formations++
@@ -141,13 +141,13 @@ async function computeGouvernement(paysFilter: string | null) {
 
     // ── Événements (inscriptions) ──
     try {
-      const { data } = await supabaseAdmin.from('event_registrations').select('user_id')
+      const { data } = await supabaseAdmin.from('event_registrations').select('user_id').limit(20000)
       for (const r of (data || []) as any[]) { const m = touch(r.user_id); if (m) m.events++ }
     } catch { /* */ }
 
     // ── Dons (complétés) ──
     try {
-      const { data } = await supabaseAdmin.from('dons').select('user_id, statut')
+      const { data } = await supabaseAdmin.from('dons').select('user_id, statut').limit(20000)
       for (const r of (data || []) as any[]) { if (String(r.statut).toLowerCase() === 'complete') { const m = touch(r.user_id); if (m) m.dons++ } }
     } catch { /* */ }
     } // fin du repli JS (!signalsOk)

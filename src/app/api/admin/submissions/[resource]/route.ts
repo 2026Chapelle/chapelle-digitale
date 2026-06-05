@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { sendEmail } from '@/lib/email'
+import { notifyUser } from '@/lib/notify'
 import { prayerAssignedEmail, prayerAnsweredEmail, testimonyValidatedEmail } from '@/lib/email-templates'
 
 const ANSWERED_STATUTS = ['reponse_recue', 'exaucee', 'temoignage_soumis', 'temoignage_valide']
@@ -32,7 +33,20 @@ async function notifyWorkflow(resource: string, id: string, patch: Record<string
           const { subject, html } = prayerAnsweredEmail(prenom, dem?.sujet || '')
           await sendEmail({ to: email, subject, html })
         }
+        // Réponse pastorale IN-APP (cloche + historique) si la demande est liée à un membre.
+        if (dem?.user_id) {
+          await notifyUser(dem.user_id, {
+            type: 'priere',
+            title: 'Votre demande de prière a une réponse',
+            body: dem?.sujet ? `« ${dem.sujet} » — l’équipe pastorale a avancé sur votre demande.` : 'L’équipe pastorale a répondu à votre demande.',
+            href: '/member/dashboard/prieres',
+          })
+        }
       }
+    } else if (resource === 'group_join_requests' && patch.statut === 'accepte') {
+      // Demande d'adhésion acceptée → matérialise l'appartenance (service centralisé).
+      const { onJoinRequestAccepted } = await import('@/lib/community/groups-server')
+      await onJoinRequestAccepted(id)
     } else if (resource === 'temoignages' && patch.statut === 'valide') {
       // Témoignage validé → email au témoin.
       const { data: t } = await supabaseAdmin.from('temoignages').select('titre, auteur, user_id, demande_id').eq('id', id).maybeSingle()

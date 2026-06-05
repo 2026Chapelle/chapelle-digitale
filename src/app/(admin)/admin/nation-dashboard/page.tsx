@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Loader2, Globe, Users, Crown, Heart, HandCoins, GraduationCap, Radio, Calendar, ShieldAlert } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { flagOf } from '@/lib/flags'
+import NationPresence from './NationPresence'
 
 interface Stats { inscrits: number; membres: number; responsables: number; prieres: number; cure_ame: number; dons: number; formations: number; live_views: number; evenements: number }
 interface Data { scope: string; nations: string[]; stats: Stats }
@@ -76,6 +77,7 @@ export default function AdminNationDashboardPage() {
                 </div>
               ))}
             </div>
+            <NationPresence pays={pays || undefined} />
             <p className="font-inter text-[11px] text-pearl/30 mt-6">Cure d&apos;âme &amp; prière : comptage agrégé uniquement, jamais de contenu nominatif. Chaque consultation est journalisée (sensitive_access_logs).</p>
           </>
         )}

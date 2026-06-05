@@ -10,6 +10,7 @@ import {
 import { BADGES, PARCOURS_DISCIPLE } from '@/lib/constants'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { roleLabel } from '@/lib/roles'
+import { AnnouncementBanner } from '@/components/features/member/AnnouncementBanner'
 import { BibleTodayWidget } from '@/components/features/member/BibleTodayWidget'
 import { ProgressionCard } from '@/components/features/member/ProgressionCard'
 
@@ -83,6 +84,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-abyss pt-24 pb-20">
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-10">
+
+        <AnnouncementBanner />
 
         {/* Welcome banner */}
         <motion.div

@@ -7,6 +7,9 @@ import {
   UserPlus, Award, MapPin, Building2, CalendarDays, BookOpen,
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
+import PresenceCard from './PresenceCard'
+import ConversionsCard from './ConversionsCard'
+import NotificationsActivityCard from './NotificationsActivityCard'
 
 interface LCN { level?: string; stage?: string; label: string; color?: string; n: number }
 interface KV { label: string; count: number }
@@ -106,7 +109,7 @@ export default function GouvernementPage() {
 
         {loading && !d ? (
           <div className="flex items-center gap-2 text-pearl/40 font-inter text-sm py-10"><Loader2 className="w-4 h-4 animate-spin" /> Chargement du cockpit…</div>
-        ) : !d || !mod || !pil ? (
+        ) : !d || !mod || !pil || !d.intelligence || !d.alertes || !d.carte || !d.membres ? (
           <div className="card-cinematic p-10 text-center text-pearl/40 font-inter">Aucune donnée disponible.</div>
         ) : (
           <>
@@ -211,6 +214,15 @@ export default function GouvernementPage() {
 
             </div>
 
+            {/* ════ ASSIDUITÉ AUX RÉUNIONS (Chantier 4 — additif) ════ */}
+            <PresenceCard />
+
+            {/* ════ CONVERSIONS & PROGRESSION (P4 — additif) ════ */}
+            <ConversionsCard />
+
+            {/* ════ ACTIVITÉ NOTIFICATIONS (Super Admin — additif) ════ */}
+            <NotificationsActivityCard />
+
             {/* ════ V3 — INTELLIGENCE PRÉDICTIVE ════ */}
             <Panel icon={Sparkles} title="Intelligence prédictive — décrochage & suivi pastoral">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
@@ -249,7 +261,7 @@ export default function GouvernementPage() {
                     <div className="space-y-1.5 max-h-80 overflow-y-auto">
                       {d.intelligence.suivi.slice(0, 30).map((s) => (
                         <div key={s.user_id} className="flex items-center gap-2.5 text-xs font-inter py-1.5 border-b border-white/[0.03] last:border-0">
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-bold" style={{ background: `${RISK_COLOR[s.niveau]}1A`, color: RISK_COLOR[s.niveau] }}>{RISK_LABEL[s.niveau] || s.niveau}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 font-bold" style={{ background: `${RISK_COLOR[s.niveau] || '#9CA3AF'}1A`, color: RISK_COLOR[s.niveau] || '#9CA3AF' }}>{RISK_LABEL[s.niveau] || s.niveau}</span>
                           <span className="text-pearl/80 truncate flex-1 min-w-0">{s.nom}{s.pays && <span className="text-pearl/30 ml-1">· {s.pays}</span>}</span>
                           <span className="text-pearl/45 hidden md:inline truncate max-w-[40%]">{s.action_label}</span>
                           <span className="text-pearl/30 w-8 text-right flex-shrink-0">{s.score}</span>
@@ -326,7 +338,7 @@ export default function GouvernementPage() {
                       {d.membres.slice(0, 50).map((m) => (
                         <tr key={m.user_id} className="border-b border-white/[0.03]">
                           <td className="py-2 pr-3 text-pearl/80 truncate max-w-[180px]">{m.nom}{m.pays && <span className="text-pearl/30 ml-1">· {m.pays}</span>}</td>
-                          <td className="py-2 px-2"><span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${NIVEAU_COLOR[m.niveau]}1A`, color: NIVEAU_COLOR[m.niveau] }}>{NIVEAU_LABEL[m.niveau] || m.niveau}</span></td>
+                          <td className="py-2 px-2"><span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${NIVEAU_COLOR[m.niveau] || '#9CA3AF'}1A`, color: NIVEAU_COLOR[m.niveau] || '#9CA3AF' }}>{NIVEAU_LABEL[m.niveau] || m.niveau}</span></td>
                           <td className="py-2 px-2 text-pearl/55">{STAGE_LABEL[m.stage] || m.stage}</td>
                           <td className="py-2 px-2 text-right text-pearl/60">{m.connexions}</td>
                           <td className="py-2 px-2 text-right text-pearl/50">{fmtDur(m.temps_moyen)}</td>
