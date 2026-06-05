@@ -1,6 +1,6 @@
 # 🚀 MÉMO D'EXÉCUTION PRODUCTION — Citadelle (recette P0)
 
-> Suivre les étapes **dans l'ordre**. Build de référence : `deploy-citadelle.zip` (BUILD_ID `ZP5p-_JEkxooXZap7VV1j`).
+> Suivre les étapes **dans l'ordre**. Build de référence : `deploy-citadelle.zip` (BUILD_ID `Gv4kuycUnHYGpEEVGVe3i`).
 > Tous les SQL sont **idempotents** (réexécutables sans risque) et à la **racine du projet**.
 
 ---

@@ -1,7 +1,7 @@
 # 🏛️ RAPPORT DE STABILISATION P0 — Citadelle (recette réelle, juin 2026)
 
 **Méthode** : 3 workflows d'audit multi-agents (root-cause + vérification adversariale) + relecture manuelle + correctifs additifs (règle des acquis) + type-check / tests / build / ZIP.
-**Vérifications** : `tsc --noEmit` ✅ · `vitest` ✅ **294 tests** · `next build` ✅ · `deploy-citadelle.zip` (BUILD_ID `ZP5p-_JEkxooXZap7VV1j`).
+**Vérifications** : `tsc --noEmit` ✅ · `vitest` ✅ **294 tests** · `next build` ✅ · `deploy-citadelle.zip` (BUILD_ID `Gv4kuycUnHYGpEEVGVe3i`).
 
 > Détail d'exécution prod (ordre SQL, vérifs, ZIP, cron, recette par rôle) : **`MEMO-EXECUTION-PRODUCTION.md`**.
 
