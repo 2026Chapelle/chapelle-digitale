@@ -116,16 +116,33 @@ export default function EvenementsPage() {
           if (error) console.warn('[evenements] lecture inscriptions:', error.message)
           regs = data || []
         }
+        // Compteurs PUBLICS d'inscrits (agrégat serveur) — corrects en multi-utilisateurs.
+        let counts: Record<string, number> = {}
+        try {
+          const cr = await fetch('/api/evenements/counts', { credentials: 'same-origin' })
+          const cj = await cr.json()
+          if (cj.ok) counts = cj.counts || {}
+        } catch { /* compteurs à 0 */ }
         if (cancelled) return
         const regIds = new Set(regs.filter((r) => r.type === 'inscription').map((r) => r.event_id))
         const remIds = new Set(regs.filter((r) => r.type === 'rappel').map((r) => r.event_id))
         setRegistered(regIds as Set<string>)
         setReminders(remIds as Set<string>)
-        setEvents((evs || []).map((ev: any) => mapCmsEvent(ev, regIds.has(ev.id))))
+        setEvents((evs || []).map((ev: any) => {
+          const m = mapCmsEvent(ev, regIds.has(ev.id))
+          m.nb_inscrits = counts[ev.id] || 0
+          return m
+        }))
       } catch { /* liste vide */ }
     })()
     return () => { cancelled = true }
   }, [isDemo, user])
+
+  // Met à jour le compteur d'inscrits d'un événement (liste + popup) après action.
+  const applyCount = (eventId: string, count: number) => {
+    setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, nb_inscrits: count } : e)))
+    setSelected((prev) => (prev && prev.id === eventId ? { ...prev, nb_inscrits: count } : prev))
+  }
 
   async function register(ev: EvenementMock, type: 'inscription' | 'rappel') {
     // Anti-doublon : ni double inscription, ni rappels multiples identiques.
@@ -133,19 +150,35 @@ export default function EvenementsPage() {
     if (type === 'rappel' && reminders.has(ev.id)) { toast('Rappel déjà activé pour cet événement.'); return }
     try {
       if (!IS_DEMO_MODE && !isDemo) {
-        // Client AUTHENTIFIÉ (cookies) : l'insert passe la RLS owner-based et la
-        // ligne devient relisible par le membre (persistance réelle au refresh).
-        const db = getBrowserClient() ?? supabase
-        const { error } = await db.from('event_registrations').insert({
-          event_id: ev.id, event_titre: ev.titre, user_id: user?.id ?? null,
-          user_nom: profile ? `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() : (user?.email ?? ''),
-          user_email: profile?.email ?? user?.email ?? '', type,
+        // Écriture SERVEUR (service role) : fiable + renvoie le compteur réel.
+        const r = await fetch('/api/member/evenements', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ event_id: ev.id, event_titre: ev.titre, type, action: 'add' }),
         })
-        if (error) { console.warn('[evenements] inscription:', error.message); toast.error("Échec de l'enregistrement."); return }
+        const j = await r.json().catch(() => ({}))
+        if (!j.ok) { console.warn('[evenements] inscription:', j.message); toast.error("Échec de l'enregistrement."); return }
+        if (type === 'inscription' && typeof j.count === 'number') applyCount(ev.id, j.count)
       }
       if (type === 'inscription') setRegistered((s) => new Set(s).add(ev.id))
       else setReminders((s) => new Set(s).add(ev.id))
       toast.success(type === 'rappel' ? 'Rappel activé 🔔' : 'Inscription confirmée ✓')
+    } catch { toast.error('Erreur réseau') }
+  }
+
+  async function unregister(ev: EvenementMock) {
+    if (!registered.has(ev.id)) return
+    try {
+      if (!IS_DEMO_MODE && !isDemo) {
+        const r = await fetch('/api/member/evenements', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+          body: JSON.stringify({ event_id: ev.id, type: 'inscription', action: 'remove' }),
+        })
+        const j = await r.json().catch(() => ({}))
+        if (!j.ok) { console.warn('[evenements] désinscription:', j.message); toast.error('Échec de la désinscription.'); return }
+        if (typeof j.count === 'number') applyCount(ev.id, j.count)
+      }
+      setRegistered((s) => { const n = new Set(s); n.delete(ev.id); return n })
+      toast.success('Désinscription effectuée')
     } catch { toast.error('Erreur réseau') }
   }
 
@@ -726,6 +759,17 @@ export default function EvenementsPage() {
                   >
                     {registered.has(selected.id) ? <><Check className="w-4 h-4" /> Inscrit</> : "S'inscrire"}
                   </button>
+
+                  {/* Désinscription (met à jour le compteur d'inscrits) */}
+                  {registered.has(selected.id) && (
+                    <button
+                      onClick={() => unregister(selected)}
+                      className="text-sm px-4 py-2.5 rounded-xl inline-flex items-center gap-1.5 font-inter font-semibold"
+                      style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                    >
+                      <X className="w-4 h-4" /> Se désinscrire
+                    </button>
+                  )}
 
                   {/* Rejoindre le live : lien dédié, activé à l'heure seulement */}
                   {selected.en_ligne && selected.lien_live && (
