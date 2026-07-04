@@ -25,7 +25,7 @@ export default function AdminFormationsPage() {
     <CmsManager
       apiBase="/api/admin/lms"
       resource="formations"
-      previewable={false}
+      previewable={true}
       itemLabel="formation"
       title={<>Formations <span className="text-cinematic-gold">(LMS)</span></>}
       description="Créez les formations, puis ajoutez-leur des modules dans « Modules de formation »."

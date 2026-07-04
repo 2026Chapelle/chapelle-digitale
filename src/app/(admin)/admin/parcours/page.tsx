@@ -1,5 +1,6 @@
 'use client'
 import { CmsManager } from '@/components/features/admin/CmsManager'
+import { ParcoursFormationsManager } from '@/components/features/admin/ParcoursFormationsManager'
 
 const CATEGORIES = [
   { value: 'conversion', label: 'Nouveau converti' },
@@ -24,6 +25,7 @@ const STATUS = [{ value: 'draft', label: 'Brouillon' }, { value: 'published', la
 
 export default function AdminParcoursPage() {
   return (
+    <>
     <CmsManager
       apiBase="/api/admin/lms"
       resource="parcours"
@@ -44,5 +46,7 @@ export default function AdminParcoursPage() {
         { name: 'status', label: 'Statut', type: 'select', options: STATUS, default: 'published' },
       ]}
     />
+    <ParcoursFormationsManager />
+    </>
   )
 }

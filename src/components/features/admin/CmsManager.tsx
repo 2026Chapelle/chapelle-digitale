@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Pencil, Trash2, X, ArrowUp, ArrowDown, Eye, EyeOff, Database, Loader2, Check, ExternalLink, Copy } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'url' | 'datetime' | 'select' | 'tags' | 'file' | 'json'
+export type FieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'url' | 'datetime' | 'select' | 'tags' | 'file' | 'json' | 'ref-select' | 'media-select'
 
 export interface FieldDef {
   name: string
@@ -27,6 +27,20 @@ export interface FieldDef {
   default?: any
   /** Pour type 'file' : filtre l'explorateur (ex. 'image/*', 'application/pdf,video/*'). */
   accept?: string
+  /** Pour type 'ref-select' : ressource à lister comme options (ex: 'formations'). La valeur stockée reste l'UUID (row.id). */
+  refResource?: string
+  /** Pour type 'ref-select' : base d'API de la liste (défaut : apiBase du CmsManager). */
+  refApiBase?: string
+  /** Pour type 'ref-select' : construit le libellé lisible d'une option depuis sa ligne. */
+  refLabel?: (row: any) => string
+  /** Pour type 'ref-select' : filtre optionnel des options selon la ligne en cours d'édition. */
+  refFilter?: (row: any, editing: any) => boolean
+  /** Pour type 'ref-select' : libellé de l'option vide (ex: 'Aucun prérequis'). */
+  emptyLabel?: string
+  /** Pour type 'media-select' : filtre les médias proposés (ex: vidéos/youtube uniquement). */
+  mediaFilter?: (row: any) => boolean
+  /** Pour type 'media-select' : à la sélection, renvoie les champs (existants) à fusionner dans le formulaire. Ne crée aucune colonne. */
+  mediaApply?: (row: any, editing: any) => Record<string, any>
 }
 
 interface CmsManagerProps {
@@ -62,6 +76,9 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
   const [isNew, setIsNew] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState<string | null>(null)
+  // Options des champs 'ref-select' (listes déportées), + drapeau d'échec pour repli en saisie manuelle.
+  const [refOptions, setRefOptions] = useState<Record<string, Row[]>>({})
+  const [refFailed, setRefFailed] = useState<Record<string, boolean>>({})
 
   const base = `${apiBase}/${resource}`
 
@@ -78,6 +95,27 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
   }, [base])
 
   useEffect(() => { load() }, [load])
+
+  // Charge (à l'ouverture de la modale) les listes des champs 'ref-select'. Une seule fois par ressource.
+  // En cas d'échec : on marque la ressource pour retomber proprement en saisie manuelle (jamais bloquant).
+  useEffect(() => {
+    if (!editing) return
+    for (const f of fields) {
+      if ((f.type !== 'ref-select' && f.type !== 'media-select') || !f.refResource) continue
+      const res = f.refResource
+      if (refOptions[res] || refFailed[res]) continue
+      const url = `${f.refApiBase ?? apiBase}/${res}`
+      ;(async () => {
+        try {
+          const r = await fetch(url, { credentials: 'same-origin' })
+          const j = await r.json()
+          if (j.ok && Array.isArray(j.data)) setRefOptions((p) => ({ ...p, [res]: j.data }))
+          else setRefFailed((p) => ({ ...p, [res]: true }))
+        } catch { setRefFailed((p) => ({ ...p, [res]: true })) }
+      })()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing])
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields])
 
@@ -98,6 +136,8 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
     const payload: Row = { ...editing }
     // normalise les tags "a, b" → ['a','b']
     for (const f of fields) {
+      // 'media-select' est un champ VIRTUEL d'aide à la saisie : jamais persisté (aucune colonne).
+      if (f.type === 'media-select') { delete payload[f.name]; continue }
       if (f.type === 'tags' && typeof payload[f.name] === 'string') {
         payload[f.name] = payload[f.name].split(',').map((s: string) => s.trim()).filter(Boolean)
       }
@@ -305,6 +345,74 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
                       <option value="">—</option>
                       {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                  ) : f.type === 'ref-select' ? (
+                    (() => {
+                      const opts = f.refResource ? refOptions[f.refResource] : undefined
+                      const failed = f.refResource ? refFailed[f.refResource] : false
+                      if (opts && opts.length > 0) {
+                        const list = f.refFilter ? opts.filter((o) => f.refFilter!(o, editing)) : opts
+                        return (
+                          <select value={editing[f.name] ?? ''} onChange={(e) => setEditing({ ...editing, [f.name]: e.target.value })} className="input-royal">
+                            <option value="">{f.emptyLabel ?? '—'}</option>
+                            {list.map((o) => <option key={o.id} value={o.id}>{f.refLabel ? f.refLabel(o) : (o.titre || o.title || o.id)}</option>)}
+                          </select>
+                        )
+                      }
+                      // Repli propre : liste indisponible / vide / en cours → saisie manuelle de l'UUID (jamais bloquant).
+                      return (
+                        <div className="space-y-1">
+                          <input type="text" value={editing[f.name] ?? ''} placeholder={f.placeholder}
+                            onChange={(e) => setEditing({ ...editing, [f.name]: e.target.value })} className="input-royal" />
+                          <p className="text-[11px] text-pearl/35 font-inter">
+                            {failed ? 'Liste indisponible — saisie manuelle de l’ID possible.'
+                              : opts ? 'Aucun élément disponible — saisie manuelle possible.'
+                              : 'Chargement de la liste…'}
+                          </p>
+                        </div>
+                      )
+                    })()
+                  ) : f.type === 'media-select' ? (
+                    (() => {
+                      const all = f.refResource ? refOptions[f.refResource] : undefined
+                      const failed = f.refResource ? refFailed[f.refResource] : false
+                      const opts = all ? (f.mediaFilter ? all.filter((o) => f.mediaFilter!(o)) : all) : undefined
+                      if (opts && opts.length > 0) {
+                        const chosen = opts.find((o) => o.id === editing[f.name])
+                        return (
+                          <div className="space-y-2">
+                            <select value={editing[f.name] ?? ''} onChange={(e) => {
+                                const id = e.target.value
+                                const row = opts.find((o) => o.id === id)
+                                if (!id || !row) { setEditing({ ...editing, [f.name]: '' }); return }
+                                const applied = f.mediaApply ? f.mediaApply(row, editing) : {}
+                                setEditing({ ...editing, [f.name]: id, ...applied })
+                              }} className="input-royal">
+                              <option value="">Aucune vidéo — saisie manuelle ci-dessous</option>
+                              {opts.map((o) => <option key={o.id} value={o.id}>{`${o.title || 'Sans titre'} · ${String(o.type || '').toLowerCase()} · ${o.status === 'published' ? 'publié' : 'brouillon'}${o.category ? ' · ' + o.category : ''}`}</option>)}
+                            </select>
+                            {chosen && (
+                              <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                                {chosen.thumbnail_url && /\.(png|jpe?g|gif|webp|avif)$/i.test(String(chosen.thumbnail_url)) && (
+                                  <img src={String(chosen.thumbnail_url)} alt="" className="w-16 h-10 object-cover rounded border border-white/10" />
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-xs text-pearl/70 font-inter truncate">{chosen.title}</p>
+                                  {chosen.url && <a href={String(chosen.url)} target="_blank" rel="noreferrer" className="text-[11px] text-gold/70 hover:text-gold break-all font-inter">{String(chosen.url)}</a>}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      }
+                      // Repli : médiathèque indisponible/vide → les champs vidéo manuels ci-dessous restent utilisables.
+                      return (
+                        <p className="text-[11px] text-pearl/35 font-inter">
+                          {failed ? 'Médiathèque indisponible — utilisez les champs vidéo ci-dessous.'
+                            : opts ? 'Aucune vidéo dans la médiathèque — utilisez les champs ci-dessous.'
+                            : 'Chargement de la médiathèque…'}
+                        </p>
+                      )
+                    })()
                   ) : f.type === 'tags' ? (
                     <input value={Array.isArray(editing[f.name]) ? editing[f.name].join(', ') : (editing[f.name] ?? '')} placeholder="séparés par des virgules"
                       onChange={(e) => setEditing({ ...editing, [f.name]: e.target.value })} className="input-royal" />

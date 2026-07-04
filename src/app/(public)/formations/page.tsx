@@ -5,15 +5,42 @@ import Link from 'next/link'
 import Image from 'next/image'
 import {
   BookOpen, Clock, Award, ChevronRight, Search, Star, Zap,
-  GraduationCap, Sparkles, Play, Loader2,
+  GraduationCap, Sparkles, Play,
 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+
+/**
+ * Type d'affichage dérivé du champ ADMINISTRABLE `formations.type` (ENUM existant :
+ * cours | atelier | certification | parcours | masterclass). Aucune donnée figée :
+ * l'admin pilote le type depuis /admin/formations. Fallback propre sur « Formation ».
+ */
+type DisplayType = 'Formation' | 'Programme' | 'Enseignement' | 'Parcours'
+
+const TYPE_TABS = ['Tous', 'Parcours', 'Formation', 'Programme', 'Enseignement'] as const
+type TypeTab = typeof TYPE_TABS[number]
+const TYPE_TAB_LABEL: Record<TypeTab, string> = {
+  Tous: 'Tous', Parcours: 'Parcours', Formation: 'Formations', Programme: 'Programmes', Enseignement: 'Enseignements',
+}
+const TYPE_CTA: Record<DisplayType, string> = {
+  Parcours: 'Commencer le parcours', Formation: 'Suivre la formation',
+  Programme: 'Découvrir le programme', Enseignement: "Regarder l'enseignement",
+}
+
+function deriveDisplayType(type?: string | null): DisplayType {
+  switch ((type || '').toLowerCase()) {
+    case 'masterclass': return 'Enseignement'
+    case 'parcours': return 'Parcours'
+    case 'certification': return 'Programme'
+    default: return 'Formation' // cours | atelier | valeur absente → Formation
+  }
+}
 
 /** Formation publiée réelle (table formations), normalisée pour l'affichage. */
 interface PubFormation {
   id: string; slug: string; titre: string; description: string
   categorie: string; niveau: string; certifie: boolean; instructeur: string
   duree: string; image?: string | null; couleur: string; emoji: string
+  displayType: DisplayType
 }
 
 function mapFormation(f: any): PubFormation {
@@ -25,6 +52,7 @@ function mapFormation(f: any): PubFormation {
     niveau, certifie: !!f.certifiant, instructeur: f.instructeur_nom || 'Citadelle',
     duree: f.duree_heures ? `${f.duree_heures}h` : '',
     image: f.image_couverture || null, couleur: '#D4AF37', emoji: f.certifiant ? '🏆' : '📚',
+    displayType: deriveDisplayType(f.type),
   }
 }
 
@@ -33,6 +61,7 @@ export default function FormationsPublicPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeCategorie, setActiveCategorie] = useState('Tout')
+  const [activeType, setActiveType] = useState<TypeTab>('Tous')
 
   useEffect(() => {
     if (IS_DEMO_MODE) { setLoading(false); return }
@@ -52,10 +81,14 @@ export default function FormationsPublicPage() {
   const categories = useMemo(() => ['Tout', ...Array.from(new Set(items.map((f) => f.categorie).filter(Boolean)))], [items])
 
   const filtered = items.filter((f) => {
+    const matchType = activeType === 'Tous' || f.displayType === activeType
     const matchCat = activeCategorie === 'Tout' || f.categorie === activeCategorie
     const matchSearch = !search || f.titre.toLowerCase().includes(search.toLowerCase()) || f.instructeur.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
+    return matchType && matchCat && matchSearch
   })
+
+  // Porte d'entrée « nouveau croyant » : dérivée du réel (aucun lien codé en dur).
+  const nouveauCroyant = items.find((f) => f.slug === 'nouveau-croyant')
 
   const stats = [
     { value: String(items.length), label: 'Formations', icon: BookOpen, color: '#D4AF37' },
@@ -71,9 +104,9 @@ export default function FormationsPublicPage() {
         <div className="max-w-3xl mx-auto relative text-center">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
             <div className="section-label-dark justify-center"><GraduationCap className="w-3 h-3" /> Académie Spirituelle</div>
-            <h1 className="heading-cinematic-xl mb-6">Grandissez dans <span className="text-cinematic-gold">votre Foi</span></h1>
+            <h1 className="heading-cinematic-xl mb-6">Grandir avec <span className="text-cinematic-gold">La Citadelle</span></h1>
             <p className="text-base md:text-lg font-inter leading-relaxed mb-8 mx-auto max-w-lg" style={{ color: 'rgba(245,230,216,0.6)' }}>
-              Des parcours structurés, des instructeurs consacrés, et une communauté qui marche ensemble vers la maturité spirituelle.
+              Formations, programmes, enseignements et parcours pour accompagner votre croissance spirituelle.
             </p>
             <div className="relative max-w-md mx-auto">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(245,230,216,0.4)' }} />
@@ -85,7 +118,18 @@ export default function FormationsPublicPage() {
 
       <section className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 text-pearl/40 font-inter text-sm py-20"><Loader2 className="w-5 h-5 animate-spin" /> Chargement…</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="card-cinematic overflow-hidden animate-pulse">
+                <div className="h-44" style={{ background: 'rgba(255,255,255,0.04)' }} />
+                <div className="p-5 space-y-3">
+                  <div className="h-3 rounded" style={{ background: 'rgba(255,255,255,0.06)', width: '40%' }} />
+                  <div className="h-4 rounded" style={{ background: 'rgba(255,255,255,0.08)', width: '80%' }} />
+                  <div className="h-3 rounded" style={{ background: 'rgba(255,255,255,0.05)', width: '60%' }} />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : items.length === 0 ? (
           <div className="text-center py-24 card-cinematic">
             <div className="text-5xl mb-4">📚</div>
@@ -108,7 +152,35 @@ export default function FormationsPublicPage() {
               ))}
             </div>
 
-            {/* Filtres par catégorie (dérivés du réel) */}
+            {/* Porte d'entrée nouveau croyant — affichée seulement si le parcours existe réellement */}
+            {nouveauCroyant && activeType === 'Tous' && !search && (
+              <Link href={`/formations/${nouveauCroyant.slug}`} className="card-cinematic-gold flex items-center gap-4 p-5 mb-8 group">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl" style={{ background: 'rgba(212,175,55,0.15)' }}>🕊️</div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-cinzel font-bold text-white text-base">Nouveau dans la foi ?</p>
+                  <p className="font-inter text-xs" style={{ color: 'rgba(245,230,216,0.6)' }}>Commencez ici : le Parcours Nouveau Croyant vous guide pas à pas.</p>
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-inter font-bold flex-shrink-0 transition-all group-hover:gap-2" style={{ color: '#D4AF37' }}>Commencer <ChevronRight className="w-3.5 h-3.5" /></span>
+              </Link>
+            )}
+
+            {/* Onglets par TYPE de contenu — dérivés du champ administrable formations.type */}
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+              {TYPE_TABS.map((t) => {
+                const active = activeType === t
+                return (
+                  <button key={t} onClick={() => setActiveType(t)}
+                    className="px-4 py-2 rounded-full text-xs font-inter font-semibold transition-all whitespace-nowrap"
+                    style={active
+                      ? { background: 'linear-gradient(135deg, #F5E6A7, #D4AF37)', color: '#1A0F00', boxShadow: '0 4px 16px rgba(212,175,55,0.4)' }
+                      : { background: 'rgba(255,255,255,0.04)', color: 'rgba(245,230,216,0.6)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    {TYPE_TAB_LABEL[t]}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Filtres par niveau (dérivés du réel) */}
             {categories.length > 2 && (
               <div className="flex gap-2 flex-wrap mb-8">
                 {categories.map((cat) => {
@@ -127,8 +199,21 @@ export default function FormationsPublicPage() {
             )}
 
             <h3 className="font-cinzel text-lg font-bold text-white mb-6 flex items-center gap-3">
-              <Sparkles className="w-4 h-4" style={{ color: '#D4AF37' }} /> Nos formations
+              <Sparkles className="w-4 h-4" style={{ color: '#D4AF37' }} /> {activeType === 'Tous' ? 'Tout le contenu' : TYPE_TAB_LABEL[activeType]}
             </h3>
+
+            {/* Les enseignements ont leur espace dédié (/enseignements) — renvoi, jamais une grille dupliquée */}
+            {activeType === 'Enseignement' && (
+              <Link href="/enseignements" className="card-cinematic flex items-center gap-4 p-6 mb-6 group">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl" style={{ background: 'rgba(212,175,55,0.12)' }}>🎧</div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-cinzel font-bold text-white text-base">Les enseignements ont leur espace dédié</p>
+                  <p className="font-inter text-xs" style={{ color: 'rgba(245,230,216,0.55)' }}>Messages, prédications et masterclass à écouter librement.</p>
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs font-inter font-bold flex-shrink-0 transition-all group-hover:gap-2" style={{ color: '#D4AF37' }}>Découvrir <ChevronRight className="w-3.5 h-3.5" /></span>
+              </Link>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((f, i) => (
                 <motion.div key={f.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 + (i % 9) * 0.05 }}>
@@ -136,10 +221,14 @@ export default function FormationsPublicPage() {
                 </motion.div>
               ))}
             </div>
-            {filtered.length === 0 && (
+            {filtered.length === 0 && activeType !== 'Enseignement' && (
               <div className="text-center py-16 card-cinematic">
-                <p className="font-cinzel text-lg text-white mb-1">Aucune formation trouvée</p>
-                <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.45)' }}>Essayez un autre terme ou une autre catégorie.</p>
+                <p className="font-cinzel text-lg text-white mb-1">
+                  {activeType === 'Tous' ? 'Aucune formation trouvée' : `Aucun contenu « ${TYPE_TAB_LABEL[activeType]} » pour l'instant`}
+                </p>
+                <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.45)' }}>
+                  {search ? 'Essayez un autre terme ou une autre catégorie.' : 'Revenez bientôt — de nouveaux contenus arrivent.'}
+                </p>
               </div>
             )}
 
@@ -178,6 +267,7 @@ function FormationCard({ f }: { f: PubFormation }) {
         {!f.image && <div className="absolute inset-0 flex items-center justify-center"><span className="text-7xl drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]">{f.emoji}</span></div>}
 
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+          <span className="chip-gold backdrop-blur-md">{f.displayType}</span>
           {f.niveau && (
             <span className="text-[9px] font-inter font-bold tracking-widest uppercase px-2 py-0.5 rounded-full backdrop-blur-md capitalize"
               style={{ background: 'rgba(255,255,255,0.12)', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.2)' }}>{f.niveau}</span>
@@ -207,7 +297,7 @@ function FormationCard({ f }: { f: PubFormation }) {
             {f.duree && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{f.duree}</span>}
           </div>
           <span className="inline-flex items-center gap-1 text-xs font-inter font-bold transition-all group-hover:gap-2" style={{ color: f.couleur }}>
-            Découvrir <ChevronRight className="w-3.5 h-3.5" />
+            {TYPE_CTA[f.displayType]} <ChevronRight className="w-3.5 h-3.5" />
           </span>
         </div>
       </div>

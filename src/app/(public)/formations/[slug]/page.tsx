@@ -3,13 +3,28 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ChevronRight, Clock, BookOpen, Award, Loader2 } from 'lucide-react'
+import { ChevronRight, Clock, BookOpen, Award } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { FormationEnrollButton } from '@/components/conversion/FormationEnrollButton'
 
+/** Type d'affichage dérivé du champ ADMINISTRABLE `formations.type`. Fallback propre. */
+type DisplayType = 'Formation' | 'Programme' | 'Enseignement' | 'Parcours'
+const TYPE_CTA: Record<DisplayType, string> = {
+  Parcours: 'Commencer le parcours', Formation: 'Suivre la formation',
+  Programme: 'Découvrir le programme', Enseignement: "Regarder l'enseignement",
+}
+function deriveDisplayType(type?: string | null): DisplayType {
+  switch ((type || '').toLowerCase()) {
+    case 'masterclass': return 'Enseignement'
+    case 'parcours': return 'Parcours'
+    case 'certification': return 'Programme'
+    default: return 'Formation'
+  }
+}
+
 interface PubFormation {
   id: string; titre: string; slug: string; contenu_court?: string; description?: string
-  niveau?: string; certifiant?: boolean; instructeur_nom?: string; duree_heures?: number; image_couverture?: string
+  niveau?: string; certifiant?: boolean; instructeur_nom?: string; duree_heures?: number; image_couverture?: string; type?: string
 }
 interface PubModule { id: string; ordre: number; titre: string; duree_minutes?: number }
 
@@ -25,7 +40,7 @@ export default function FormationPublicDetailPage({ params }: { params: { slug: 
     ;(async () => {
       try {
         const { data: f } = await supabase.from('formations')
-          .select('id, titre, slug, contenu_court, description, niveau, certifiant, instructeur_nom, duree_heures, image_couverture')
+          .select('id, titre, slug, contenu_court, description, niveau, type, certifiant, instructeur_nom, duree_heures, image_couverture')
           .eq('slug', params.slug).eq('statut', 'publie').maybeSingle()
         if (cancelled) return
         if (!f) { setNotFound(true); setLoading(false); return }
@@ -43,7 +58,24 @@ export default function FormationPublicDetailPage({ params }: { params: { slug: 
   }, [params.slug])
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>
+    return (
+      <div className="min-h-screen pt-24 pb-20">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div className="lg:col-span-2 space-y-4 animate-pulse">
+              <div className="h-4 w-40 rounded" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="aspect-[16/9] rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)' }} />
+              <div className="h-8 w-3/4 rounded" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <div className="h-4 w-full rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
+            </div>
+            <div className="card-cinematic p-6 animate-pulse space-y-4">
+              <div className="h-6 w-24 mx-auto rounded" style={{ background: 'rgba(255,255,255,0.08)' }} />
+              <div className="h-10 rounded" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
   if (notFound || !formation) {
     return (
@@ -60,6 +92,7 @@ export default function FormationPublicDetailPage({ params }: { params: { slug: 
   const f = formation
   const desc = f.contenu_court || f.description || ''
   const duree = f.duree_heures ? `${f.duree_heures}h` : null
+  const displayType = deriveDisplayType(f.type)
 
   return (
     <div className="min-h-screen pt-24 pb-20">
@@ -75,6 +108,7 @@ export default function FormationPublicDetailPage({ params }: { params: { slug: 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 mb-16">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="lg:col-span-2">
             <div className="flex flex-wrap items-center gap-2 mb-4">
+              <span className="text-[11px] font-inter font-semibold px-3 py-1 rounded-full" style={{ background: 'rgba(212,175,55,0.18)', color: '#D4AF37' }}>{displayType}</span>
               {f.niveau && <span className="text-[11px] font-inter font-semibold px-3 py-1 rounded-full capitalize" style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37' }}>{f.niveau}</span>}
               {f.certifiant && <span className="text-[11px] font-inter px-3 py-1 rounded-full flex items-center gap-1" style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37' }}><Award className="w-3 h-3" /> Certifiant</span>}
             </div>
@@ -100,8 +134,12 @@ export default function FormationPublicDetailPage({ params }: { params: { slug: 
                 <p className="font-cinzel text-2xl font-bold text-pearl mb-1">{f.certifiant ? 'Premium' : 'Gratuit'}</p>
                 {f.certifiant && <p className="text-sm text-pearl/40 font-inter">Accès inclus avec Disciple Premium</p>}
               </div>
-              <FormationEnrollButton formationId={f.id} slug={f.slug} />
+              <FormationEnrollButton formationId={f.id} slug={f.slug} label={TYPE_CTA[displayType]} />
               <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between py-2 border-b border-white/5">
+                  <span className="text-pearl/50 font-inter flex items-center gap-2"><BookOpen className="w-4 h-4" /> Type</span>
+                  <span className="font-semibold text-pearl/80">{displayType}</span>
+                </div>
                 {duree && (
                   <div className="flex items-center justify-between py-2 border-b border-white/5">
                     <span className="text-pearl/50 font-inter flex items-center gap-2"><Clock className="w-4 h-4" /> Durée</span>

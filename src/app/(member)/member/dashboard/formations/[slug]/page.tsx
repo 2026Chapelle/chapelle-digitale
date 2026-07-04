@@ -17,6 +17,17 @@ interface Module {
   video_percent?: number; video_last_position?: number
 }
 
+/** Type d'affichage dérivé du champ ADMINISTRABLE `formations.type`. Fallback propre. */
+type DisplayType = 'Formation' | 'Programme' | 'Enseignement' | 'Parcours'
+function deriveDisplayType(type?: string | null): DisplayType {
+  switch ((type || '').toLowerCase()) {
+    case 'masterclass': return 'Enseignement'
+    case 'parcours': return 'Parcours'
+    case 'certification': return 'Programme'
+    default: return 'Formation'
+  }
+}
+
 export default function FormationDetailPage({ params }: { params: { slug: string } }) {
   const { isDemo, user, profile } = useAuth()
   const [formation, setFormation] = useState<any>(null)
@@ -161,7 +172,22 @@ export default function FormationDetailPage({ params }: { params: { slug: string
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-abyss"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>
+    return (
+      <div className="min-h-screen bg-abyss pt-24 pb-16">
+        <div className="container-royal animate-pulse">
+          <div className="h-4 w-32 rounded mb-6" style={{ background: 'rgba(255,255,255,0.06)' }} />
+          <div className="card-royal mb-6 space-y-3">
+            <div className="h-6 w-2/3 rounded" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="h-4 w-full rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
+            <div className="h-2 w-full rounded-full mt-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+          </div>
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 h-64 card-royal" />
+            <div className="h-64 card-royal" />
+          </div>
+        </div>
+      </div>
+    )
   }
   if (isDemo || IS_DEMO_MODE) {
     return <Centered title="Espace formation" text="Connectez-vous pour accéder à votre parcours de formation." />
@@ -183,6 +209,7 @@ export default function FormationDetailPage({ params }: { params: { slug: string
               <h1 className="font-cinzel text-xl font-black text-pearl mb-1">{formation.titre}</h1>
               <p className="text-pearl/50 text-sm font-inter max-w-2xl">{formation.description || formation.contenu_court}</p>
               <div className="flex items-center gap-4 mt-3 text-xs text-pearl/40 font-inter">
+                <span className="badge-gold inline-flex">{deriveDisplayType(formation.type)}</span>
                 {formation.instructeur_nom && <span>par {formation.instructeur_nom}</span>}
                 {formation.niveau && <span className="capitalize">· {formation.niveau}</span>}
                 {formation.certifiant && <span className="inline-flex items-center gap-1 text-gold"><Award className="w-3 h-3" /> Certifiant</span>}
