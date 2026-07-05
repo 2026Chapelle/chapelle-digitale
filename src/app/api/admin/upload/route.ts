@@ -116,19 +116,26 @@ export async function POST(req: NextRequest) {
     // Extension FORCÉE d'après le MIME (jamais celle fournie par l'utilisateur).
     const path = `${rule.folder}/${randomUUID().slice(0, 8)}-${safeBase(file.name)}.${rule.ext}`
 
+    // Bucket cible : 'media' (public, défaut) ou 'media-videos' (PRIVÉ) pour les
+    // vidéos internes protégées (Lot C). Le bucket privé n'est autorisé que pour
+    // les fichiers vidéo.
+    const wantPrivateVideo = (form.get('bucket') || '').toString() === 'media-videos' && rule.folder === 'videos'
+    const targetBucket = wantPrivateVideo ? 'media-videos' : BUCKET
+
     const { error } = await supabaseAdmin.storage
-      .from(BUCKET)
+      .from(targetBucket)
       .upload(path, buffer, { contentType: mime, upsert: false })
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
 
+    if (wantPrivateVideo) {
+      // Pas d'URL publique : on renvoie le CHEMIN (à stocker dans video_path) +
+      // une URL signée d'aperçu (courte durée).
+      const { data: signed } = await supabaseAdmin.storage.from(targetBucket).createSignedUrl(path, 7200)
+      return NextResponse.json({ ok: true, bucket: targetBucket, path, url: signed?.signedUrl || null, mime, size: file.size })
+    }
+
     const { data: pub } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path)
-    return NextResponse.json({
-      ok: true,
-      url: pub.publicUrl,
-      path,
-      mime,
-      size: file.size,
-    })
+    return NextResponse.json({ ok: true, bucket: BUCKET, url: pub.publicUrl, path, mime, size: file.size })
   } catch (e: any) {
     return NextResponse.json({ ok: false, message: e?.message || 'Erreur d’upload' }, { status: 500 })
   }

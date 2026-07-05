@@ -12,19 +12,31 @@
 export type Role =
   | 'visiteur' | 'membre' | 'disciple' | 'leader' | 'berger' | 'pasteur'
   | 'admin' | 'super_admin' | 'formateur' | 'responsable_integration'
+  | 'nation_pastor' | 'responsable_national' | 'pasteur_national'
 
-/** Pilotage global. */
-export const ADMIN_ROLES: Role[] = ['admin', 'super_admin', 'pasteur']
+/**
+ * Pilotage global (voit TOUS les espaces). Volontairement RESTREINT : ni
+ * pasteur, ni berger, ni leader ne sont « admin » — chaque espace spécialisé
+ * est réservé à SON rôle fonctionnel (affichage exclusif côté menu + API).
+ */
+export const ADMIN_ROLES: Role[] = ['admin', 'super_admin']
 
-/** Peut gérer les formations et suivre les apprenants. */
-export const FORMATEUR_ROLES: Role[] = [...ADMIN_ROLES, 'formateur', 'berger', 'leader']
+/** Espace Formateur : le rôle formateur (et les admins). RIEN d'autre. */
+export const FORMATEUR_ROLES: Role[] = [...ADMIN_ROLES, 'formateur']
 
-/** Peut suivre l'intégration des nouveaux membres. */
-export const INTEGRATION_ROLES: Role[] = [...ADMIN_ROLES, 'responsable_integration', 'berger']
+/** Espace Intégration : le responsable d'intégration (et les admins). */
+export const INTEGRATION_ROLES: Role[] = [...ADMIN_ROLES, 'responsable_integration']
 
-export const isAdmin = (role?: string | null) => !!role && ADMIN_ROLES.includes(role as Role)
-export const isFormateur = (role?: string | null) => !!role && FORMATEUR_ROLES.includes(role as Role)
-export const isIntegration = (role?: string | null) => !!role && INTEGRATION_ROLES.includes(role as Role)
+/** Tableau National : responsables/pasteurs nationaux (et les admins). */
+export const NATIONAL_ROLES: Role[] = [...ADMIN_ROLES, 'nation_pastor', 'responsable_national', 'pasteur_national', 'pasteur']
+
+// Les helpers délèguent à la source unique de vérité (src/lib/permissions.ts) —
+// les listes ci-dessus restent documentaires / pour l'UI.
+import { can } from './permissions'
+export const isAdmin = (role?: string | null) => can(role, 'can_access_admin')
+export const isFormateur = (role?: string | null) => can(role, 'can_access_formateur_space')
+export const isIntegration = (role?: string | null) => can(role, 'can_access_integration_space')
+export const isNational = (role?: string | null) => can(role, 'can_access_national_dashboard')
 
 /** Libellé lisible d'un rôle. */
 export function roleLabel(role?: string | null): string {

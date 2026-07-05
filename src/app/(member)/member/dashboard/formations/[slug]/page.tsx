@@ -1,16 +1,31 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Award, CheckCircle, Lock, BookOpen, Loader2, FileText, PlayCircle, Check, Trophy, Download, Send, HelpCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock, Award, CheckCircle, Lock, BookOpen, Loader2, FileText, PlayCircle, Check, Trophy, Download, Send, HelpCircle } from 'lucide-react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import { ModuleVideoPlayer } from '@/components/features/member/ModuleVideoPlayer'
+import { WATCH_THRESHOLD, remainingToWatch } from '@/lib/formations/video-validation'
 
 interface Module {
   id: string; ordre: number; titre: string; description?: string; type: string
   youtube_id?: string; video_url?: string; pdf_url?: string; contenu_texte?: string
   duree_minutes: number; acces_min_statut: string
   completed: boolean; locked: boolean; lock_reason?: string | null
+  has_video?: boolean; has_pdf?: boolean; pdf_locked?: boolean
+  video_percent?: number; video_last_position?: number
+}
+
+/** Type d'affichage dérivé du champ ADMINISTRABLE `formations.type`. Fallback propre. */
+type DisplayType = 'Formation' | 'Programme' | 'Enseignement' | 'Parcours'
+function deriveDisplayType(type?: string | null): DisplayType {
+  switch ((type || '').toLowerCase()) {
+    case 'masterclass': return 'Enseignement'
+    case 'parcours': return 'Parcours'
+    case 'certification': return 'Programme'
+    default: return 'Formation'
+  }
 }
 
 export default function FormationDetailPage({ params }: { params: { slug: string } }) {
@@ -22,6 +37,13 @@ export default function FormationDetailPage({ params }: { params: { slug: string
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [certificatUrl, setCertificatUrl] = useState<string | null>(null)
+  // Inscription + verrou inter-parcours (P1 → P2 → P3)
+  const [enrolled, setEnrolled] = useState<boolean | null>(null)
+  const [parcoursLocked, setParcoursLocked] = useState(false)
+  const [previousFormation, setPreviousFormation] = useState<{ slug: string; titre: string } | null>(null)
+  const [nextFormation, setNextFormation] = useState<{ slug: string; titre: string; statut: string } | null>(null)
+  const [enrolling, setEnrolling] = useState(false)
+  const [watchPct, setWatchPct] = useState(0)
   const [question, setQuestion] = useState('')
   const [qSending, setQSending] = useState(false)
   const [qSent, setQSent] = useState(false)
@@ -43,6 +65,10 @@ export default function FormationDetailPage({ params }: { params: { slug: string
         setModules(j.data.modules)
         setProgress({ total: j.data.total, completed: j.data.completed, progression: j.data.progression })
         setActive((prev) => prev ?? j.data.modules.find((m: Module) => !m.locked) ?? j.data.modules[0] ?? null)
+        setEnrolled(!!j.data.enrolled)
+        setParcoursLocked(!!j.data.parcours_locked)
+        setPreviousFormation(j.data.previous_formation || null)
+        setNextFormation(j.data.next_formation || null)
       }
     } catch { /* vide */ }
   }, [])
@@ -74,9 +100,26 @@ export default function FormationDetailPage({ params }: { params: { slug: string
       const j = await r.json()
       if (j.ok) {
         toast.success(j.data.progression >= 100 ? '🎓 Félicitations ! Vous avez terminé cette formation.' : '✅ Bravo, module terminé — continuez sur votre lancée !')
+        if (j.data.integration_certificate) toast.success('🏅 Certificat d\'Intégration CIER délivré !')
         await loadModules(formation.id)
       } else toast.error(j.message || 'Échec')
     } catch { toast.error('Erreur réseau') }
+  }
+
+  // Inscription au parcours (entrée explicite, refusée côté serveur si verrouillé).
+  async function enrollSelf() {
+    if (!formation) return
+    setEnrolling(true)
+    try {
+      const r = await fetch('/api/member/formations/enroll', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ formation_id: formation.id }),
+      })
+      const j = await r.json()
+      if (j.ok) { toast.success('Inscription confirmée ✓'); await loadModules(formation.id) }
+      else toast.error(j.message || 'Inscription impossible')
+    } catch { toast.error('Erreur réseau') }
+    setEnrolling(false)
   }
 
   // Certificat réel de la formation (si une URL PDF a été générée).
@@ -129,7 +172,22 @@ export default function FormationDetailPage({ params }: { params: { slug: string
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-abyss"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>
+    return (
+      <div className="min-h-screen bg-abyss pt-24 pb-16">
+        <div className="container-royal animate-pulse">
+          <div className="h-4 w-32 rounded mb-6" style={{ background: 'rgba(255,255,255,0.06)' }} />
+          <div className="card-royal mb-6 space-y-3">
+            <div className="h-6 w-2/3 rounded" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="h-4 w-full rounded" style={{ background: 'rgba(255,255,255,0.05)' }} />
+            <div className="h-2 w-full rounded-full mt-4" style={{ background: 'rgba(255,255,255,0.06)' }} />
+          </div>
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 h-64 card-royal" />
+            <div className="h-64 card-royal" />
+          </div>
+        </div>
+      </div>
+    )
   }
   if (isDemo || IS_DEMO_MODE) {
     return <Centered title="Espace formation" text="Connectez-vous pour accéder à votre parcours de formation." />
@@ -151,6 +209,7 @@ export default function FormationDetailPage({ params }: { params: { slug: string
               <h1 className="font-cinzel text-xl font-black text-pearl mb-1">{formation.titre}</h1>
               <p className="text-pearl/50 text-sm font-inter max-w-2xl">{formation.description || formation.contenu_court}</p>
               <div className="flex items-center gap-4 mt-3 text-xs text-pearl/40 font-inter">
+                <span className="badge-gold inline-flex">{deriveDisplayType(formation.type)}</span>
                 {formation.instructeur_nom && <span>par {formation.instructeur_nom}</span>}
                 {formation.niveau && <span className="capitalize">· {formation.niveau}</span>}
                 {formation.certifiant && <span className="inline-flex items-center gap-1 text-gold"><Award className="w-3 h-3" /> Certifiant</span>}
@@ -179,10 +238,52 @@ export default function FormationDetailPage({ params }: { params: { slug: string
                 ? <a href={certificatUrl} target="_blank" rel="noreferrer" className="btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2"><Download className="w-4 h-4" /> Télécharger mon certificat</a>
                 : <span className="inline-flex items-center gap-2 text-xs font-inter text-pearl/50 px-4 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)' }}><Award className="w-4 h-4 text-gold/60" /> Certificat disponible prochainement</span>
             )}
+
+            {/* Parcours suivant de la séquence d'intégration */}
+            {nextFormation && (
+              <div className="mt-5 pt-5 border-t border-white/5">
+                {nextFormation.statut === 'publie' ? (
+                  <Link href={`/member/dashboard/formations/${nextFormation.slug}`}
+                    className="btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2">
+                    Continuer vers « {nextFormation.titre} » <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-xs font-inter text-pearl/50 px-4 py-2 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)' }}>
+                    <Clock className="w-4 h-4 text-gold/60" /> Parcours suivant (« {nextFormation.titre} ») bientôt disponible
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
 
-        {modules.length === 0 ? (
+        {parcoursLocked ? (
+          /* Verrou inter-parcours : parcours précédent non terminé */
+          <div className="card-royal text-center py-16" style={{ borderColor: 'rgba(212,175,55,0.3)' }}>
+            <Lock className="w-8 h-8 mx-auto mb-3 text-gold/60" />
+            <p className="font-cinzel text-pearl/80 text-lg mb-1">Parcours verrouillé</p>
+            <p className="font-inter text-sm text-pearl/50 mb-5 max-w-md mx-auto">
+              Terminez d&apos;abord {previousFormation ? `« ${previousFormation.titre} »` : 'le parcours précédent'} pour débloquer celui-ci.
+            </p>
+            {previousFormation && (
+              <Link href={`/member/dashboard/formations/${previousFormation.slug}`} className="btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" /> Aller au parcours précédent
+              </Link>
+            )}
+          </div>
+        ) : enrolled === false ? (
+          /* Inscription obligatoire avant tout accès au contenu */
+          <div className="card-royal text-center py-16" style={{ borderColor: 'rgba(212,175,55,0.25)' }}>
+            <BookOpen className="w-8 h-8 mx-auto mb-3 text-gold/60" />
+            <p className="font-cinzel text-pearl/80 text-lg mb-1">Rejoignez ce parcours</p>
+            <p className="font-inter text-sm text-pearl/50 mb-5 max-w-md mx-auto">
+              Inscrivez-vous pour accéder aux modules et suivre votre progression.
+            </p>
+            <button onClick={enrollSelf} disabled={enrolling} className="btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2 disabled:opacity-50">
+              {enrolling ? <><Loader2 className="w-4 h-4 animate-spin" /> Inscription…</> : <><Check className="w-4 h-4" /> S&apos;inscrire à cette formation</>}
+            </button>
+          </div>
+        ) : modules.length === 0 ? (
           <div className="card-royal text-center py-16">
             <BookOpen className="w-8 h-8 mx-auto mb-3 text-gold/40" />
             <p className="font-inter text-sm text-pearl/50">Aucun module disponible pour le moment.</p>
@@ -198,26 +299,65 @@ export default function FormationDetailPage({ params }: { params: { slug: string
                     {active.lock_reason === 'prerequis' ? 'Terminez le module précédent pour débloquer celui-ci.' : `Accès réservé (statut requis : ${active.acces_min_statut}).`}
                   </p>
                 </div>
+              ) : !active.has_video ? (
+                /* Module en préparation : aucune vidéo → pas de validation, pas de PDF */
+                <div className="card-royal">
+                  <h2 className="font-cinzel font-bold text-pearl text-base mb-3">{active.titre}</h2>
+                  <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 flex flex-col items-center justify-center text-center px-6 mb-4" style={{ aspectRatio: '16/9', background: 'rgba(255,255,255,0.02)' }}>
+                    <Clock className="w-8 h-8 text-gold/50 mb-3" />
+                    <p className="font-cinzel text-pearl/80">Vidéo bientôt disponible</p>
+                    <p className="font-inter text-xs text-pearl/40 mt-1">Ce module est en préparation.</p>
+                  </div>
+                  {active.description && <p className="text-pearl/60 text-sm font-inter whitespace-pre-wrap mb-3">{active.description}</p>}
+                  <div className="pt-3 border-t border-white/5">
+                    <button disabled className="btn-royal text-sm px-5 py-2.5 inline-flex items-center gap-2 opacity-60 cursor-not-allowed">
+                      <Clock className="w-4 h-4" /> Module en préparation
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <>
-                  {active.youtube_id ? (
-                    <div className="relative w-full rounded-2xl overflow-hidden border border-white/10" style={{ aspectRatio: '16/9' }}>
-                      <iframe className="absolute inset-0 w-full h-full" src={`https://www.youtube.com/embed/${active.youtube_id}`} title={active.titre} allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
-                    </div>
-                  ) : active.video_url ? (
-                    <video controls src={active.video_url} className="w-full rounded-2xl border border-white/10" />
-                  ) : null}
+                  <ModuleVideoPlayer
+                    key={active.id}
+                    moduleId={active.id}
+                    formationId={formation.id}
+                    youtubeId={active.youtube_id}
+                    videoUrl={active.video_url}
+                    initialPosition={active.video_last_position || 0}
+                    initialPercent={active.video_percent || 0}
+                    completed={active.completed}
+                    onPercent={setWatchPct}
+                  />
                   <div className="card-royal">
                     <h2 className="font-cinzel font-bold text-pearl text-base mb-1">{active.titre}</h2>
                     {active.duree_minutes > 0 && <p className="text-xs text-pearl/40 font-inter mb-3 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {active.duree_minutes} min</p>}
                     {active.description && <p className="text-pearl/60 text-sm font-inter whitespace-pre-wrap mb-3">{active.description}</p>}
                     {active.contenu_texte && <div className="max-w-none text-pearl/70 text-sm font-inter whitespace-pre-wrap mb-3">{active.contenu_texte}</div>}
-                    {active.pdf_url && (
-                      <a href={active.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-gold/80 hover:text-gold text-sm font-inter mb-4"><FileText className="w-4 h-4" /> Document PDF du module</a>
-                    )}
+
+                    {/* PDF : déverrouillé UNIQUEMENT après validation du module (≥ 90 %) */}
+                    {active.pdf_url ? (
+                      <a href={active.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-gold/80 hover:text-gold text-sm font-inter mb-4"><FileText className="w-4 h-4" /> Télécharger le PDF du module</a>
+                    ) : active.pdf_locked ? (
+                      <div className="inline-flex items-center gap-2 text-pearl/40 text-sm font-inter mb-4"><Lock className="w-4 h-4" /> Complétez la vidéo pour débloquer cette ressource.</div>
+                    ) : null}
+
+                    {/* Validation par visionnage RÉEL ≥ 90 % */}
                     <div className="pt-3 border-t border-white/5">
-                      <button onClick={() => markComplete(active)} disabled={active.completed}
-                        className={active.completed ? 'btn-royal text-sm px-5 py-2.5 inline-flex items-center gap-2' : 'btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2'}>
+                      {!active.completed && (
+                        <div className="mb-3">
+                          <div className="flex justify-between text-xs text-pearl/45 mb-1 font-inter">
+                            <span>Visionnage</span><span>{Math.min(100, Math.round(watchPct))}%</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${Math.min(100, watchPct)}%`, background: watchPct >= WATCH_THRESHOLD ? '#22C55E' : 'linear-gradient(90deg,#4B0082,#D4AF37)' }} />
+                          </div>
+                          {watchPct < WATCH_THRESHOLD && (
+                            <p className="text-[11px] text-pearl/40 font-inter mt-1.5">Regardez encore {remainingToWatch(watchPct)}% de la vidéo pour débloquer la validation.</p>
+                          )}
+                        </div>
+                      )}
+                      <button onClick={() => markComplete(active)} disabled={active.completed || watchPct < WATCH_THRESHOLD}
+                        className={(active.completed ? 'btn-royal' : 'btn-gold') + ' text-sm px-5 py-2.5 inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'}>
                         {active.completed ? <><Check className="w-4 h-4" /> Terminé</> : <><CheckCircle className="w-4 h-4" /> Marquer terminé</>}
                       </button>
                     </div>

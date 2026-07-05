@@ -45,13 +45,13 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
-              script-src 'self' 'unsafe-eval' 'unsafe-inline' *.youtube.com *.google.com js.chariowcdn.com;
+              script-src 'self' 'unsafe-eval' 'unsafe-inline' *.youtube.com *.youtube-nocookie.com *.google.com js.chariowcdn.com;
               style-src 'self' 'unsafe-inline' fonts.googleapis.com js.chariowcdn.com;
               font-src 'self' fonts.gstatic.com;
               img-src 'self' data: blob: https:;
               media-src 'self' blob: https:;
               connect-src 'self' *.supabase.co wss: https: *.mychariow.shop js.chariowcdn.com;
-              frame-src 'self' *.youtube.com *.vimeo.com *.mychariow.shop chapelleduroyaume.org;
+              frame-src 'self' *.youtube.com *.youtube-nocookie.com *.vimeo.com *.mychariow.shop chapelleduroyaume.org;
             `.replace(/\s+/g, ' ').trim(),
           },
         ],

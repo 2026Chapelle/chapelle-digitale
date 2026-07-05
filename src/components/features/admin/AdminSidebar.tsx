@@ -7,7 +7,7 @@ import {
   Inbox, Film, FileText, TrendingUp, LogOut, Radio, Mic,
   MessageSquare, HandCoins, Newspaper, Mail, AtSign,
   GraduationCap, Layers, Route, Sparkles, Globe, Activity, Crown, ShoppingBag,
-  Command, Globe2,
+  Command, Globe2, HeartHandshake, ShieldCheck, Megaphone, CalendarCheck, LifeBuoy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NotificationBell } from '@/components/features/notifications/NotificationBell'
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { icon: Command, label: 'Centre de Commandement', href: '/admin/command-center', color: '#F5E6A7' },
   { icon: Globe2, label: 'Commandement Global', href: '/admin/global-command', color: '#F5E6A7' },
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', color: '#D4AF37' },
+  { icon: HeartHandshake, label: 'Centre Pastoral', href: '/admin/pastoral', color: '#EC4899' },
   { icon: Crown, label: 'Gouvernement pastoral', href: '/admin/gouvernement', color: '#F5E6A7' },
   { icon: Sparkles, label: 'Gouvernance', href: '/admin/gouvernance', color: '#D4AF37' },
   { icon: Globe, label: 'International', href: '/admin/international', color: '#22C55E' },
@@ -30,6 +31,8 @@ const NAV_ITEMS = [
   { icon: Activity, label: 'Activités (traçabilité)', href: '/admin/activites', color: '#D4AF37' },
   { icon: Globe, label: 'Cartographie', href: '/admin/cartographie', color: '#0EA5E9' },
   { icon: Users, label: 'Membres', href: '/admin/membres', color: '#60A5FA' },
+  { icon: ShieldCheck, label: 'Rôles & accès', href: '/admin/roles', color: '#22C55E' },
+  { icon: Megaphone, label: 'Centre Communication', href: '/admin/communication', color: '#EC4899' },
   { icon: Route, label: 'Intégration', href: '/admin/tunnel-integration', color: '#818CF8' },
   { icon: LayoutDashboard, label: 'Accueil (sections)', href: '/admin/homepage-blocks', color: '#D4AF37' },
   { icon: FileText, label: 'Pages', href: '/admin/pages', color: '#14B8A6' },
@@ -53,12 +56,14 @@ const NAV_ITEMS = [
   { icon: Sparkles, label: 'Témoignages exaucés', href: '/admin/temoignages-prieres', color: '#FBBF24' },
   { icon: Heart, label: 'Cure d\'âme', href: '/admin/delivrance', color: '#14B8A6' },
   { icon: Users, label: 'Groupes', href: '/admin/groupes', color: '#F59E0B' },
+  { icon: CalendarCheck, label: 'Réunions & Présences', href: '/admin/reunions', color: '#14B8A6' },
   { icon: Mail, label: 'Messages', href: '/admin/messages', color: '#38BDF8' },
   { icon: AtSign, label: 'Newsletter', href: '/admin/newsletter', color: '#FB7185' },
   { icon: Inbox, label: 'Formulaires', href: '/admin/formulaires', color: '#6366F1' },
   { icon: TrendingUp, label: 'Statistiques', href: '/admin/statistiques', color: '#34D399' },
   { icon: TrendingUp, label: 'Analytics', href: '/admin/analytics', color: '#0EA5E9' },
   { icon: Settings, label: 'Paramètres', href: '/admin/parametres', color: '#64748B' },
+  { icon: LifeBuoy, label: "Centre d'aide", href: '/admin/aide', color: '#D4AF37' },
 ]
 
 export function AdminSidebar() {

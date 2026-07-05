@@ -3,6 +3,7 @@ import { usePathname } from 'next/navigation'
 import { Navbar } from '@/components/layout/Navbar'
 import { AdminSidebar } from '@/components/features/admin/AdminSidebar'
 import { MobileAdminBar } from '@/components/features/admin/MobileAdminBar'
+import { AdminHelpBubble } from '@/components/features/help/AdminHelpBubble'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -27,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </main>
       </div>
+      <AdminHelpBubble />
     </>
   )
 }

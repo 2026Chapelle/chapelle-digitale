@@ -16,6 +16,22 @@ interface Certif { id: string; titre: string; reference?: string; delivre_le: st
 const TABS = ['Toutes', 'En cours', 'Terminées', 'À commencer'] as const
 type Tab = typeof TABS[number]
 
+/** Type d'affichage dérivé du champ ADMINISTRABLE `formations.type`. Fallback propre. */
+type DisplayType = 'Formation' | 'Programme' | 'Enseignement' | 'Parcours'
+const TYPE_TABS = ['Tous', 'Parcours', 'Formation', 'Programme', 'Enseignement'] as const
+type TypeTab = typeof TYPE_TABS[number]
+const TYPE_TAB_LABEL: Record<TypeTab, string> = {
+  Tous: 'Tous', Parcours: 'Parcours', Formation: 'Formations', Programme: 'Programmes', Enseignement: 'Enseignements',
+}
+function deriveDisplayType(type?: string | null): DisplayType {
+  switch ((type || '').toLowerCase()) {
+    case 'masterclass': return 'Enseignement'
+    case 'parcours': return 'Parcours'
+    case 'certification': return 'Programme'
+    default: return 'Formation'
+  }
+}
+
 /** Mappe les inscriptions réelles (/api/member/formations) vers l'affichage. */
 function mapInscriptions(inscriptions: any[]): typeof FORMATIONS {
   return (inscriptions || []).map((i) => {
@@ -26,6 +42,7 @@ function mapInscriptions(inscriptions: any[]): typeof FORMATIONS {
       slug: f.slug || '',
       titre: f.titre || 'Formation',
       categorie: (f.niveau ? String(f.niveau) : 'Formation'),
+      displayType: deriveDisplayType(f.type),
       instructeur: f.instructeur_nom || 'Citadelle',
       emoji: f.certifiant ? '🏆' : '📚',
       couleur: '#D4AF37',
@@ -52,6 +69,7 @@ function statusClass(statut?: string) {
 export default function FormationsPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('Toutes')
+  const [activeType, setActiveType] = useState<TypeTab>('Tous')
   const [items, setItems] = useState<typeof FORMATIONS>([]) // aucune donnée fictive : rempli par le réel
   const [dispo, setDispo] = useState<Dispo[]>([])
   const [certificats, setCertificats] = useState<Certif[]>([])
@@ -114,13 +132,22 @@ export default function FormationsPage() {
     ]
   }, [items])
 
-  const filtered = items.filter((f) => {
-    if (activeTab === 'Toutes') return true
-    if (activeTab === 'En cours') return f.statut === 'en_cours'
-    if (activeTab === 'Terminées') return f.statut === 'terminé'
-    if (activeTab === 'À commencer') return f.statut === 'non_commencé' || !f.statut
-    return true
+  const filtered = items.filter((f: any) => {
+    const matchType = activeType === 'Tous' || f.displayType === activeType
+    const matchTab =
+      activeTab === 'Toutes' ? true
+      : activeTab === 'En cours' ? f.statut === 'en_cours'
+      : activeTab === 'Terminées' ? f.statut === 'terminé'
+      : activeTab === 'À commencer' ? (f.statut === 'non_commencé' || !f.statut)
+      : true
+    return matchType && matchTab
   })
+
+  // Reprise : le parcours EN COURS le plus avancé (dérivé du réel, aucun contenu fictif).
+  const reprise = useMemo(() => {
+    const enCours = (items as any[]).filter((f) => f.statut === 'en_cours')
+    return enCours.sort((a, b) => (b.progression || 0) - (a.progression || 0))[0] || null
+  }, [items])
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -154,7 +181,36 @@ export default function FormationsPage() {
           ))}
         </motion.div>
 
-        {/* Filter tabs */}
+        {/* Reprendre là où vous en êtes — mis en avant si un parcours est en cours */}
+        {reprise && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="mb-6">
+            <Link href={`/member/dashboard/formations/${(reprise as any).slug}`} className="card-royal block group" style={{ borderColor: 'rgba(212,175,55,0.3)' }}>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: 'rgba(212,175,55,0.15)' }}>{(reprise as any).emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-inter uppercase tracking-wider text-gold mb-0.5">Reprendre là où vous en êtes</p>
+                  <h3 className="font-cinzel font-bold text-pearl text-base truncate">{(reprise as any).titre}</h3>
+                  <div className="progress-royal mt-2"><div className="progress-fill" style={{ width: `${(reprise as any).progression}%` }} /></div>
+                </div>
+                <span className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 flex-shrink-0 group-hover:gap-2 transition-all">Continuer <ChevronRight className="w-3.5 h-3.5" /></span>
+              </div>
+            </Link>
+          </motion.div>
+        )}
+
+        {/* Onglets par TYPE de contenu — dérivés du champ administrable formations.type */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+          {TYPE_TABS.map((t) => (
+            <button key={t} onClick={() => setActiveType(t)}
+              className={`px-4 py-2 rounded-xl text-sm font-inter font-medium whitespace-nowrap transition-all ${
+                activeType === t ? 'bg-gold text-black' : 'bg-pearl/5 text-pearl/50 hover:bg-pearl/10 hover:text-pearl/80'
+              }`}>
+              {TYPE_TAB_LABEL[t]}
+            </button>
+          ))}
+        </div>
+
+        {/* Filter tabs (avancement) */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -215,7 +271,10 @@ export default function FormationsPage() {
 
                   {/* Content */}
                   <div className="flex-1">
-                    <div className="badge-royal mb-2 inline-flex">{f.categorie}</div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="badge-gold inline-flex">{(f as any).displayType}</span>
+                      {f.categorie && <span className="badge-royal inline-flex capitalize">{f.categorie}</span>}
+                    </div>
                     <h3 className="font-cinzel font-bold text-pearl text-base mb-1 group-hover:text-gold transition-colors">
                       {f.titre}
                     </h3>
@@ -269,6 +328,7 @@ export default function FormationsPage() {
                   <p className="text-xs text-pearl/40 font-inter mt-1 mb-3">Délivré le {new Date(c.delivre_le).toLocaleDateString('fr-FR')}{c.reference ? ` · ${c.reference}` : ''}</p>
                   {c.reference && (
                     <a href={`/certificat/${encodeURIComponent(c.reference)}`} target="_blank" rel="noreferrer"
+                      onClick={() => { fetch('/api/member/certificats/viewed', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ reference: c.reference }) }).catch(() => {}) }}
                       className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 self-start mt-auto">
                       <Award className="w-3.5 h-3.5" /> Voir / Télécharger
                     </a>

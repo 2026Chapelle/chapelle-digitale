@@ -23,6 +23,7 @@ const TABLE_MAP: Record<string, string> = {
   enseignements: 'cms_teachings', teachings: 'cms_teachings', formation: 'cms_teachings',
   modules: 'formation_modules', formation_modules: 'formation_modules',
   parcours: 'parcours',
+  formations: 'formations',
 }
 
 function youtubeId(url?: string): string | null {
@@ -54,7 +55,7 @@ export default async function PreviewPage({ params, searchParams }: { params: { 
   const isPdf = table === 'cms_media' && (row.type === 'pdf' || /\.pdf($|\?)/i.test(row.url || ''))
   const audio = row.audio_url || (table === 'cms_media' && row.type === 'audio' ? row.url : null)
   const dateStr = fmt(row.published_at || row.starts_at || row.scheduled_at)
-  const published = ['published', 'live', 'approved', 'scheduled', 'ended'].includes(row.status) || row.is_active === true
+  const published = ['published', 'live', 'approved', 'scheduled', 'ended'].includes(row.status) || row.statut === 'publie' || row.is_active === true
 
   return (
     <div className="min-h-screen bg-abyss pt-10 pb-20">
@@ -73,7 +74,7 @@ export default async function PreviewPage({ params, searchParams }: { params: { 
         <h1 className="font-cinzel font-black text-pearl mb-3" style={{ fontSize: 'clamp(1.75rem,4vw,2.75rem)', lineHeight: 1.1 }}>{title}</h1>
         <div className="text-pearl/40 text-sm font-inter mb-6">
           {row.author || row.speaker || ''}{dateStr ? ` · ${dateStr}` : ''}{row.location ? ` · ${row.location}` : ''}
-          <span className="ml-2 px-2 py-0.5 rounded-full text-[11px]" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' }}>statut : {row.status ?? (row.is_active ? 'actif' : 'inactif')}</span>
+          <span className="ml-2 px-2 py-0.5 rounded-full text-[11px]" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)' }}>statut : {row.status ?? row.statut ?? (row.is_active ? 'actif' : 'inactif')}</span>
         </div>
 
         {yt ? (

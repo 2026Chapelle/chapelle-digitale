@@ -88,7 +88,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false)
       }
     )
-    return () => subscription.unsubscribe()
+
+    // Re-synchronise le profil au retour sur l'onglet (rôle/statut modifiés par
+    // l'admin sans rechargement). Réutilise loadProfile() — additif, non bloquant.
+    const resync = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+      client.auth.getSession().then(({ data: { session } }) => {
+        const u = session?.user ?? null
+        setUser(u)
+        loadProfile(u)
+      }).catch(() => {})
+    }
+    document.addEventListener('visibilitychange', resync)
+    window.addEventListener('focus', resync)
+    return () => {
+      subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', resync)
+      window.removeEventListener('focus', resync)
+    }
   }, [])
 
   const signOut = async () => {
