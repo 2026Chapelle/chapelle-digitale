@@ -2,8 +2,22 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
-import { Users, UserCheck, UserX, UserMinus, GraduationCap, Crown, TrendingUp, MapPin, Loader2, ArrowRight, CalendarDays, HeartHandshake, HandHeart } from 'lucide-react'
+import { Users, UserCheck, UserX, UserMinus, GraduationCap, Crown, TrendingUp, MapPin, Loader2, ArrowRight, CalendarDays, HeartHandshake, HandHeart, UserPlus, Clock, AlertTriangle } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { mockStats } from '@/lib/mock/nouveaux-venus'
+
+/** Carte compacte « nouveaux venus » (V2.1B — démo, lien vers la liste filtrée). */
+function NvCard({ href, icon: Icon, label, value, color }: { href: string; icon: any; label: string; value: number; color: string }) {
+  return (
+    <Link href={href} className="card-royal py-4 text-center group hover:border-gold/20 transition-all block">
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2" style={{ background: `${color}20` }}>
+        <Icon className="w-4 h-4" style={{ color }} />
+      </div>
+      <div className="font-cinzel text-xl font-black text-pearl">{value}</div>
+      <div className="text-[11px] text-pearl/40 font-inter mt-0.5">{label}</div>
+    </Link>
+  )
+}
 
 export default function PastoralOverviewPage() {
   const [d, setD] = useState<any>(null)
@@ -23,6 +37,7 @@ export default function PastoralOverviewPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-gold" /></div>
 
   const k = d || { total: 0, nouveaux_7j: 0, nouveaux_30j: 0, actifs: 0, inactifs: 0, jamais: 0, par_statut: [], par_pays: [], par_ville: [], croissance: [], integration_moyenne: 0, academie_debloquee: 0, evenements: 0, prieres: 0, dons: { count: 0, total: 0, currency: 'EUR' } }
+  const nv = mockStats() // V2.1B : compteurs « nouveaux venus » de démonstration (aucune donnée réelle)
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -34,6 +49,23 @@ export default function PastoralOverviewPage() {
         </div>
 
         {!d && <div className="card-royal p-4 mb-6 text-sm text-pearl/55 font-inter">Connectez Supabase pour afficher les données réelles.</div>}
+
+        {/* Nouveaux venus (V2.1B — données de démonstration) */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2"><UserPlus className="w-4 h-4 text-gold" /> Nouveaux venus</h2>
+            <Link href="/admin/pastoral/nouveaux-venus" className="text-[11px] font-inter font-semibold text-gold hover:gap-2 inline-flex items-center gap-1 transition-all">
+              Ouvrir le CRM <ArrowRight className="w-3.5 h-3.5" /> <span className="text-pearl/30 uppercase tracking-wider ml-1">démo</span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <NvCard href="/admin/pastoral/nouveaux-venus?statut=nouveau" icon={TrendingUp} label="Nouveaux ce mois" value={nv.ce_mois} color="#0EA5E9" />
+            <NvCard href="/admin/pastoral/nouveaux-venus?statut=a_contacter" icon={Clock} label="À contacter" value={nv.a_contacter} color="#F59E0B" />
+            <NvCard href="/admin/pastoral/nouveaux-venus?statut=integre" icon={UserCheck} label="Intégrés" value={nv.integres} color="#22C55E" />
+            <NvCard href="/admin/pastoral/nouveaux-venus" icon={AlertTriangle} label="Suivis urgents" value={nv.suivis_urgents} color="#EF4444" />
+            <NvCard href="/admin/pastoral/nouveaux-venus" icon={Users} label="Membres actifs" value={nv.membres_actifs} color="#D4AF37" />
+          </div>
+        </div>
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
