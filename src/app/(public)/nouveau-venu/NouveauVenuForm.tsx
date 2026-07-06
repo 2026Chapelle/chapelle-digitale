@@ -1,10 +1,10 @@
 'use client'
 /**
- * Formulaire public « nouveau venu » — Lot V2.1B (UI uniquement).
+ * Formulaire public « nouveau venu » — V2.1D-C.
  *
- * ⚠️ VISUEL SEULEMENT : validation côté client puis écran de succès.
- * AUCUN `fetch`, AUCUNE connexion Supabase, AUCUNE persistance. La soumission
- * réelle (relais serveur sécurisé + consentement stocké) est réservée à V2.1D.
+ * Soumission via POST /api/nouveau-venu (relais serveur, service role) qui insère
+ * dans public.newcomer_intakes. AUCUN client Supabase ici, AUCUNE clé serveur
+ * exposée côté navigateur. Validation client (UX) doublée d'une validation serveur.
  */
 import { useState } from 'react'
 import { CheckCircle2, Loader2, Send } from 'lucide-react'
@@ -24,16 +24,31 @@ export function NouveauVenuForm() {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault() // aucune requête réseau
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault()
     setError(null)
     if (prenom.trim().length < 2) { setError('Merci d’indiquer votre prénom.'); return }
     if (!telephone.trim()) { setError('Merci d’indiquer votre numéro de téléphone.'); return }
     if (email.trim() && !EMAIL_RE.test(email.trim())) { setError('L’adresse email semble invalide.'); return }
     if (!consent) { setError('Merci d’accepter d’être recontacté pour valider votre inscription.'); return }
-    // Simulation visuelle uniquement (V2.1B) — aucune donnée envoyée.
     setSubmitting(true)
-    setTimeout(() => { setSubmitting(false); setDone(true) }, 500)
+    try {
+      const res = await fetch('/api/nouveau-venu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prenom, nom, telephone, email, source, message, consent }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json?.ok !== true) {
+        setError(json?.message || 'Une erreur est survenue. Réessayez dans un instant.')
+        setSubmitting(false)
+        return
+      }
+      setDone(true)
+    } catch {
+      setError('Erreur réseau. Vérifiez votre connexion et réessayez.')
+      setSubmitting(false)
+    }
   }
 
   if (done) {
@@ -44,8 +59,8 @@ export function NouveauVenuForm() {
         <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.7)' }}>
           Merci, votre inscription a bien été reçue. Notre équipe vous contactera.
         </p>
-        <p className="font-inter text-[11px] mt-4" style={{ color: 'rgba(245,230,216,0.35)' }}>
-          Mode démo (V2.1B) — aucune donnée n’a été enregistrée.
+        <p className="font-inter text-[11px] mt-4" style={{ color: 'rgba(245,230,216,0.4)' }}>
+          Que Dieu vous bénisse — à très bientôt dans la famille. 🕊️
         </p>
       </div>
     )
