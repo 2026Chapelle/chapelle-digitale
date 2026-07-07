@@ -6,9 +6,9 @@
  * /api/admin/newcomer-intakes (garde cookie admin, service role côté serveur).
  * Aucune clé service role ni client Supabase ici. Aucune donnée fictive.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw } from 'lucide-react'
+import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote } from 'lucide-react'
 
 interface Intake {
   id: string
@@ -23,6 +23,7 @@ interface Intake {
   created_at: string
   processed_at: string | null
   archived_at: string | null
+  metadata?: { admin_note?: string; admin_note_at?: string } | null
 }
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -33,11 +34,13 @@ const STATUS: Record<string, { label: string; color: string }> = {
   duplicate: { label: 'Doublon', color: '#6B7280' },
   archived: { label: 'Archivé', color: '#6B7280' },
 }
-// Actions rapides (valeurs réelles du CHECK SQL) demandées : Nouveau / Contacté / Intégré / Archivé.
+// Actions rapides = les 6 statuts réels du CHECK SQL de newcomer_intakes.
 const ACTIONS: { value: string; label: string }[] = [
   { value: 'new', label: 'Nouveau' },
+  { value: 'to_review', label: 'À revoir' },
   { value: 'contacted', label: 'Contacté' },
   { value: 'converted', label: 'Intégré' },
+  { value: 'duplicate', label: 'Doublon' },
   { value: 'archived', label: 'Archivé' },
 ]
 const FILTERS = [{ value: '', label: 'Tous' }, ...Object.entries(STATUS).map(([value, s]) => ({ value, label: s.label }))]
@@ -51,6 +54,9 @@ export default function AdminNouveauxVenusPage() {
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [noteOpenId, setNoteOpenId] = useState<string | null>(null)
+  const [noteDraft, setNoteDraft] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -79,6 +85,28 @@ export default function AdminNouveauxVenusPage() {
       else await load()
     } catch { setError('Mise à jour impossible. Réessayez.') }
     setBusyId(null)
+  }
+
+  function openNote(intake: Intake) {
+    setNoteOpenId((prev) => (prev === intake.id ? null : intake.id))
+    setNoteDraft(intake.metadata?.admin_note || '')
+  }
+
+  async function saveNote(intake: Intake) {
+    if (savingNote) return
+    const note = noteDraft.trim()
+    if (!note) { setNoteOpenId(null); return }
+    setSavingNote(true); setError(null)
+    try {
+      const r = await fetch('/api/admin/newcomer-intakes', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ id: intake.id, note }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || j?.ok !== true) setError('Enregistrement de la note impossible. Réessayez.')
+      else { setNoteOpenId(null); await load() }
+    } catch { setError('Enregistrement de la note impossible. Réessayez.') }
+    setSavingNote(false)
   }
 
   const counts = useMemo(() => {
@@ -141,10 +169,12 @@ export default function AdminNouveauxVenusPage() {
                   {intakes.map((i) => {
                     const st = STATUS[i.status] || { label: i.status, color: '#6B7280' }
                     return (
-                      <tr key={i.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] align-top">
+                      <Fragment key={i.id}>
+                        <tr className="border-b border-white/[0.03] hover:bg-white/[0.02] align-top">
                         <td className="px-4 py-3">
                           <div className="text-pearl/85 font-inter">{i.prenom} {i.nom || ''}</div>
                           {i.message && <div className="text-[11px] text-pearl/40 font-inter max-w-[240px] truncate" title={i.message}>« {i.message} »</div>}
+                          {i.metadata?.admin_note && <div className="text-[11px] text-gold/70 font-inter max-w-[240px] truncate flex items-center gap-1 mt-0.5" title={i.metadata.admin_note}><StickyNote className="w-3 h-3 flex-shrink-0" /> {i.metadata.admin_note}</div>}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -165,9 +195,36 @@ export default function AdminNouveauxVenusPage() {
                             <button key={a.value} onClick={() => setStatus(i, a.value)} disabled={busyId === i.id}
                               className="text-[11px] font-inter text-pearl/50 hover:text-gold px-1.5 py-1 disabled:opacity-40">{a.label}</button>
                           ))}
+                          <button onClick={() => openNote(i)} title="Note pastorale"
+                            className={`text-[11px] font-inter px-1.5 py-1 inline-flex items-center gap-1 align-middle ${noteOpenId === i.id ? 'text-gold' : 'text-pearl/50 hover:text-gold'}`}>
+                            <StickyNote className="w-3.5 h-3.5" /> Note
+                          </button>
                           {busyId === i.id && <Loader2 className="w-3.5 h-3.5 animate-spin inline text-pearl/40 ml-1" />}
                         </td>
-                      </tr>
+                        </tr>
+                        {noteOpenId === i.id && (
+                          <tr className="bg-white/[0.015]">
+                            <td colSpan={6} className="px-4 pb-4 pt-1">
+                              <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+                                <div className="flex-1">
+                                  <label className="block text-[11px] uppercase tracking-wider text-pearl/40 font-inter mb-1">Note pastorale interne</label>
+                                  <textarea value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} rows={2} maxLength={2000}
+                                    placeholder="Ex. Appelé le dimanche, rappellera après le culte…"
+                                    className="input-royal w-full text-sm" />
+                                </div>
+                                <div className="flex gap-2">
+                                  <button onClick={() => saveNote(i)} disabled={savingNote}
+                                    className="btn-gold text-xs px-3 py-2 inline-flex items-center gap-1 disabled:opacity-50">
+                                    {savingNote && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Enregistrer
+                                  </button>
+                                  <button onClick={() => setNoteOpenId(null)} className="text-xs font-inter text-pearl/50 hover:text-pearl px-3 py-2">Annuler</button>
+                                </div>
+                              </div>
+                              {i.metadata?.admin_note_at && <div className="text-[10px] text-pearl/30 font-inter mt-1">Dernière note : {fmtDate(i.metadata.admin_note_at)}</div>}
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     )
                   })}
                 </tbody>
