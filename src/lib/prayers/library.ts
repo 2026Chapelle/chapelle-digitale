@@ -124,6 +124,7 @@ const PRAYERS: Prayer[] = [
       "Termine en le remerciant par avance pour sa fidélité.",
     ],
     takeaway: "Travaille comme pour le Seigneur : c'est lui qui affermit l'ouvrage de tes mains (Psaume 90.17).",
+    imageUrl: '/images/prayers/prayer-work.jpg', imageAlt: 'Prière pour le travail', overlayTone: 'gold',
   },
   {
     id: 'priere-delivrance', slug: 'priere-delivrance',
@@ -147,6 +148,7 @@ const PRAYERS: Prayer[] = [
       "Reçois sa paix et revêts l'armure de Dieu (Éphésiens 6.11).",
     ],
     takeaway: "Si le Fils t'affranchit, tu es réellement libre (Jean 8.36).",
+    imageUrl: '/images/prayers/prayer-deliverance.jpg', imageAlt: 'Prière de délivrance', overlayTone: 'dark',
   },
   {
     id: 'priere-famille', slug: 'priere-famille',
@@ -169,6 +171,7 @@ const PRAYERS: Prayer[] = [
       "Bénis ta maison et scelle-la dans la paix de Christ.",
     ],
     takeaway: "Décide, comme Josué : « moi et ma maison, nous servirons l'Éternel » (Josué 24.15).",
+    imageUrl: '/images/prayers/prayer-family.jpg', imageAlt: 'Prière pour la famille', overlayTone: 'gold',
   },
   {
     id: 'priere-sante', slug: 'priere-sante',
@@ -190,6 +193,7 @@ const PRAYERS: Prayer[] = [
       "Repose ta foi sur sa grâce suffisante (2 Corinthiens 12.9).",
     ],
     takeaway: "Béni soit l'Éternel qui pardonne tes fautes et guérit tous tes maux (Psaume 103.2-3).",
+    imageUrl: '/images/prayers/prayer-health.jpg', imageAlt: 'Prière pour la santé', overlayTone: 'dark',
   },
   {
     id: 'priere-finances', slug: 'priere-finances',
@@ -211,6 +215,7 @@ const PRAYERS: Prayer[] = [
       "Choisis un geste de générosité concret cette semaine.",
     ],
     takeaway: "Ton Dieu pourvoira à tous tes besoins selon sa richesse, en Jésus-Christ (Philippiens 4.19).",
+    imageUrl: '/images/prayers/prayer-finances.jpg', imageAlt: 'Prière pour les finances', overlayTone: 'gold',
   },
   {
     id: 'priere-consecration', slug: 'priere-consecration',
@@ -233,6 +238,7 @@ const PRAYERS: Prayer[] = [
       "Laisse sa Parole éclairer et guider ta journée (Psaume 119.105).",
     ],
     takeaway: "Demeure en lui : sans lui nous ne pouvons rien faire (Jean 15.5).",
+    imageUrl: '/images/prayers/prayer-consecration.jpg', imageAlt: 'Prière de consécration spirituelle', overlayTone: 'dark',
   },
 ]
 

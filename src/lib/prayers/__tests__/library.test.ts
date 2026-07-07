@@ -32,10 +32,14 @@ describe('Bibliothèque de Prières — projection publique', () => {
       expect(typeof c.durationMinutes).toBe('number')
       expect(c.intention).toBeTruthy()
       expect(c.recommendedMoment).toBeTruthy()
-      // Les clés image DOIVENT être présentes (null si pas d'image) — jamais omises du JSON.
+      // Les clés image DOIVENT être présentes — jamais omises du JSON.
       expect(c).toHaveProperty('imageUrl')
       expect(c).toHaveProperty('imageAlt')
       expect(c).toHaveProperty('overlayTone')
+      // Les 6 prières statiques ont désormais une image reliée.
+      expect(c.imageUrl).toMatch(/^\/images\/prayers\/prayer-.+\.jpg$/)
+      expect(c.imageAlt).toBeTruthy()
+      expect(c.overlayTone).toBeTruthy()
       // JAMAIS de champs réservés ni de pdf privé dans la projection publique.
       expect(c).not.toHaveProperty('content')
       expect(c).not.toHaveProperty('guideSteps')
