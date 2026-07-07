@@ -197,12 +197,19 @@ export default function PrierePage() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {prayerCards.map((c: any) => (
                 <div key={c.id} className="card-cinematic p-5 flex flex-col">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: `${c.color || '#D4AF37'}18`, border: `1px solid ${c.color || '#D4AF37'}30` }}>
-                      <span aria-hidden>{c.coverIcon || '🙏'}</span>
+                  {c.imageUrl ? (
+                    <div className="relative -mx-5 -mt-5 mb-3 h-28 bg-cover bg-center rounded-t-2xl overflow-hidden" style={{ backgroundImage: `url(${c.imageUrl})` }} role="img" aria-label={c.imageAlt || c.title}>
+                      <div className="absolute inset-0" style={{ background: c.overlayTone === 'dark' ? 'linear-gradient(180deg, rgba(12,10,22,0.25), rgba(12,10,22,0.85))' : 'linear-gradient(180deg, rgba(12,10,22,0.15), rgba(12,10,22,0.75))' }} />
+                      <span className="absolute bottom-2 left-3 font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${c.color || '#D4AF37'}33`, color: '#F5E6D8', backdropFilter: 'blur(4px)' }}>{c.category}</span>
                     </div>
-                    <span className="font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${c.color || '#D4AF37'}18`, color: c.color || '#D4AF37' }}>{c.category}</span>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5 mb-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: `${c.color || '#D4AF37'}18`, border: `1px solid ${c.color || '#D4AF37'}30` }}>
+                        <span aria-hidden>{c.coverIcon || '🙏'}</span>
+                      </div>
+                      <span className="font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${c.color || '#D4AF37'}18`, color: c.color || '#D4AF37' }}>{c.category}</span>
+                    </div>
+                  )}
                   <h3 className="font-cinzel font-bold text-base text-white mb-1">{c.title}</h3>
                   <p className="font-inter text-xs mb-2" style={{ color: 'rgba(245,230,216,0.55)' }}>{c.summary}</p>
                   <p className="font-inter text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: 'rgba(245,230,216,0.4)' }}>{c.excerpt}</p>

@@ -20,6 +20,9 @@ interface MemberPrayer {
   durationMinutes: number
   intention: string
   recommendedMoment: string
+  imageUrl?: string
+  imageAlt?: string
+  overlayTone?: string
 }
 
 const norm = (s: unknown) =>
@@ -117,13 +120,20 @@ export default function BibliothequePrieresPage() {
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filtered.map((p) => (
-                  <div key={p.id} className="card-royal p-5 flex flex-col">
-                    <div className="flex items-center gap-2.5 mb-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: `${p.color}18`, border: `1px solid ${p.color}30` }}>
-                        <span aria-hidden>{p.coverIcon}</span>
+                  <div key={p.id} className="card-royal p-5 flex flex-col group overflow-hidden">
+                    {p.imageUrl ? (
+                      <div className="relative -mx-5 -mt-5 mb-3 h-28 bg-cover bg-center overflow-hidden transition-transform duration-500 group-hover:scale-105" style={{ backgroundImage: `url(${p.imageUrl})` }} role="img" aria-label={p.imageAlt || p.title}>
+                        <div className="absolute inset-0" style={{ background: p.overlayTone === 'dark' ? 'linear-gradient(180deg, rgba(12,10,22,0.25), rgba(12,10,22,0.85))' : 'linear-gradient(180deg, rgba(12,10,22,0.15), rgba(12,10,22,0.75))' }} />
+                        <span className="absolute bottom-2 left-3 font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${p.color}33`, color: '#F5E6D8', backdropFilter: 'blur(4px)' }}>{p.category}</span>
                       </div>
-                      <span className="font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${p.color}18`, color: p.color }}>{p.category}</span>
-                    </div>
+                    ) : (
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: `${p.color}18`, border: `1px solid ${p.color}30` }}>
+                          <span aria-hidden>{p.coverIcon}</span>
+                        </div>
+                        <span className="font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${p.color}18`, color: p.color }}>{p.category}</span>
+                      </div>
+                    )}
                     <h3 className="font-cinzel font-bold text-base text-pearl mb-1">{p.title}</h3>
                     <p className="font-inter text-xs leading-relaxed mb-3 text-pearl/45 line-clamp-2">{p.excerpt}</p>
                     <div className="flex items-center gap-3 text-[11px] font-inter text-pearl/40 mb-4">

@@ -54,6 +54,7 @@ const NAV_ITEMS = [
   { icon: ShoppingBag, label: 'Marketplace', href: '/admin/marketplace', color: '#D4AF37' },
   { icon: Inbox, label: 'Notifications', href: '/admin/notifications', color: '#FB7185' },
   { icon: Heart, label: 'Prières', href: '/admin/prieres', color: '#F472B6' },
+  { icon: BookOpen, label: 'Prières & Guides', href: '/admin/prieres-guides', color: '#8B5CF6' },
   { icon: Sparkles, label: 'Témoignages exaucés', href: '/admin/temoignages-prieres', color: '#FBBF24' },
   { icon: Heart, label: 'Cure d\'âme', href: '/admin/delivrance', color: '#14B8A6' },
   { icon: Users, label: 'Groupes', href: '/admin/groupes', color: '#F59E0B' },

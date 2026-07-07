@@ -39,6 +39,20 @@ describe('Bibliothèque de Prières — projection publique', () => {
     const json = JSON.stringify(listPublicPrayerCards())
     expect(json.includes(full!.content)).toBe(false)
   })
+
+  it('expose imageUrl/imageAlt/overlayTone quand disponibles (jamais content)', () => {
+    const card = toPublicPrayerCard({
+      id: 'x', slug: 'x', title: 't', category: 'Travail', summary: 's', excerpt: 'e',
+      content: 'SECRET', coverIcon: '💼', accessLevel: 'member', durationMinutes: 3, level: 'Doux',
+      intention: 'i', recommendedMoment: 'm', guideSteps: ['a'], takeaway: 'k',
+      imageUrl: '/images/prieres/travail.png', imageAlt: 'Prière travail', overlayTone: 'gold',
+    })
+    expect(card.imageUrl).toBe('/images/prieres/travail.png')
+    expect(card.imageAlt).toBe('Prière travail')
+    expect(card.overlayTone).toBe('gold')
+    expect(card).not.toHaveProperty('content')
+    expect(JSON.stringify(card).includes('SECRET')).toBe(false)
+  })
 })
 
 describe('Bibliothèque de Prières — accès membre / détail', () => {

@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Loader2, ArrowLeft, Clock, Sparkles, ListChecks, Compass, FileText } from 'lucide-react'
+import { Loader2, ArrowLeft, Clock, Sparkles, ListChecks, Compass, FileText, Download } from 'lucide-react'
 
 interface MemberPrayer {
   id: string
@@ -23,6 +23,10 @@ interface MemberPrayer {
   recommendedMoment: string
   guideSteps: string[]
   takeaway: string
+  imageUrl?: string
+  imageAlt?: string
+  overlayTone?: string
+  hasPdf?: boolean
 }
 
 export default function PrayerDetailPage() {
@@ -32,6 +36,17 @@ export default function PrayerDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dlMsg, setDlMsg] = useState<string | null>(null)
+
+  async function download() {
+    setDlMsg(null)
+    try {
+      const r = await fetch(`/api/member/prayers/${encodeURIComponent(id)}/download`, { credentials: 'same-origin' })
+      const j = await r.json().catch(() => ({}))
+      if (r.ok && j?.ok && j.data?.url) window.open(j.data.url, '_blank', 'noopener')
+      else setDlMsg(j?.message || 'PDF bientôt disponible.')
+    } catch { setDlMsg('Téléchargement impossible. Réessayez.') }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -72,6 +87,12 @@ export default function PrayerDetailPage() {
           <div className="card-royal p-3 text-sm text-danger font-inter">{error}</div>
         ) : prayer ? (
           <>
+            {prayer.imageUrl && (
+              <div className="relative mb-5 h-44 rounded-2xl bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${prayer.imageUrl})` }} role="img" aria-label={prayer.imageAlt || prayer.title}>
+                <div className="absolute inset-0" style={{ background: prayer.overlayTone === 'dark' ? 'linear-gradient(180deg, rgba(12,10,22,0.2), rgba(12,10,22,0.85))' : 'linear-gradient(180deg, rgba(12,10,22,0.1), rgba(12,10,22,0.8))' }} />
+                <span className="absolute bottom-3 left-4 font-inter text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: `${prayer.color}33`, color: '#F5E6D8', backdropFilter: 'blur(4px)' }}>{prayer.category}</span>
+              </div>
+            )}
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: `${prayer.color}18`, border: `1px solid ${prayer.color}30` }}>
                 <span aria-hidden>{prayer.coverIcon}</span>
@@ -119,9 +140,12 @@ export default function PrayerDetailPage() {
               </div>
             )}
 
-            <div className="inline-flex items-center gap-2 text-[11px] font-inter text-pearl/35">
-              <FileText className="w-3.5 h-3.5" /> PDF bientôt disponible
-            </div>
+            {prayer.hasPdf ? (
+              <button onClick={download} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-2"><Download className="w-3.5 h-3.5" /> Télécharger le PDF</button>
+            ) : (
+              <div className="inline-flex items-center gap-2 text-[11px] font-inter text-pearl/35"><FileText className="w-3.5 h-3.5" /> PDF bientôt disponible</div>
+            )}
+            {dlMsg && <p className="text-[11px] text-pearl/40 font-inter mt-2">{dlMsg}</p>}
           </>
         ) : null}
       </div>

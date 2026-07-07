@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server'
-import { listPublicPrayerCards } from '@/lib/prayers/library'
+import { getPublicPrayerCards } from '@/lib/prayers/server'
 
 /**
- * Bibliothèque de Prières — cartes PUBLIQUES (projection, V2.3-B Lot 1).
- *   GET /api/prayers → { cards } sans `content` ni `pdf`.
+ * Bibliothèque de Prières — cartes PUBLIQUES (projection, V2.3-B/C).
+ *   GET /api/prayers → { cards } sans `content` ni `guideSteps`/`takeaway`/`pdf`.
  *
- * Endpoint public (aperçu libre). Le contenu complet n'est JAMAIS renvoyé ici :
- * il transite uniquement par les routes membre protégées (/api/member/prayers).
- * Contenu statique curé — aucune base de données, aucun SQL.
+ * Endpoint public. Lit Supabase (prayer_guides) si dispo, sinon fallback statique.
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  return NextResponse.json({ ok: true, data: { cards: listPublicPrayerCards() } })
+  const cards = await getPublicPrayerCards()
+  return NextResponse.json({ ok: true, data: { cards } })
 }
