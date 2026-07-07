@@ -8,7 +8,8 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search, QrCode, Download, Copy, Check, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search, QrCode, Download, Copy, Check, ExternalLink, Eye } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { filterNewcomers } from '@/lib/pastoral/newcomer-filter'
 
@@ -286,6 +287,10 @@ export default function AdminNouveauxVenusPage() {
                         <td className="px-4 py-3 text-pearl/50 font-inter whitespace-nowrap">{fmtDate(i.created_at)}</td>
                         <td className="px-4 py-3 max-w-[300px]">
                           <div className="flex flex-wrap gap-1 justify-end items-center">
+                            <Link href={`/admin/nouveaux-venus/${i.id}`}
+                              className="text-[11px] font-inter text-gold px-2 py-1 rounded-md border border-gold/30 bg-gold/10 hover:bg-gold/20 inline-flex items-center gap-1 transition-colors whitespace-nowrap">
+                              <Eye className="w-3 h-3" /> Voir fiche
+                            </Link>
                             {ACTIONS.filter((a) => a.value !== i.status).map((a) => (
                               <button key={a.value} onClick={() => setStatus(i, a.value)} disabled={busyId === i.id}
                                 className="text-[11px] font-inter text-pearl/60 hover:text-gold px-2 py-1 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-colors disabled:opacity-40 whitespace-nowrap">{a.label}</button>
