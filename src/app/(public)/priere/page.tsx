@@ -205,7 +205,13 @@ export default function PrierePage() {
                   </div>
                   <h3 className="font-cinzel font-bold text-base text-white mb-1">{c.title}</h3>
                   <p className="font-inter text-xs mb-2" style={{ color: 'rgba(245,230,216,0.55)' }}>{c.summary}</p>
-                  <p className="font-inter text-xs leading-relaxed mb-4 line-clamp-3" style={{ color: 'rgba(245,230,216,0.4)' }}>{c.excerpt}</p>
+                  <p className="font-inter text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: 'rgba(245,230,216,0.4)' }}>{c.excerpt}</p>
+                  {(c.durationMinutes || c.recommendedMoment) && (
+                    <div className="flex items-center gap-2 text-[11px] font-inter mb-3" style={{ color: 'rgba(245,230,216,0.4)' }}>
+                      {c.durationMinutes ? <span className="inline-flex items-center gap-1 flex-shrink-0"><Clock className="w-3 h-3" /> {c.durationMinutes} min</span> : null}
+                      {c.recommendedMoment ? <span className="truncate">· {c.recommendedMoment}</span> : null}
+                    </div>
+                  )}
                   <div className="mt-auto pt-3 flex items-center justify-between gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                     <span className="inline-flex items-center gap-1 text-[11px] font-inter" style={{ color: 'rgba(245,230,216,0.4)' }}><Lock className="w-3 h-3" /> Réservé</span>
                     {user ? (
