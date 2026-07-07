@@ -51,6 +51,11 @@ const fmtDate = (iso: string) => { try { return new Date(iso).toLocaleString('fr
 const waLink = (tel: string) => `https://wa.me/${tel.replace(/[^\d]/g, '')}`
 // Lien public d'accueil (QR Code) — URL de production du formulaire Nouveau Venu.
 const PUBLIC_NOUVEAU_VENU_URL = 'https://citadelle.chapelleduroyaume.org/nouveau-venu'
+// Libellés humains pour la colonne Source (affichage UI uniquement — la valeur stockée en base est inchangée).
+const SOURCE_LABELS: Record<string, string> = {
+  nouveau_venu_form: "QR Code / Formulaire d'accueil",
+}
+const sourceLabel = (src: string | null) => (!src ? '—' : SOURCE_LABELS[src] || src.replace(/_/g, ' '))
 
 export default function AdminNouveauxVenusPage() {
   const [intakes, setIntakes] = useState<Intake[]>([])
@@ -269,24 +274,28 @@ export default function AdminNouveauxVenusPage() {
                             <a href={waLink(i.telephone)} target="_blank" rel="noreferrer" title="WhatsApp" className="text-pearl/50 hover:text-[#22C55E]"><MessageCircle className="w-4 h-4" /></a>
                             {i.email && <a href={`mailto:${i.email}`} title={i.email} className="text-pearl/50 hover:text-gold"><Mail className="w-4 h-4" /></a>}
                           </div>
-                          <div className="text-[11px] text-pearl/40 font-inter mt-1">{i.telephone}</div>
+                          <div className="text-[11px] text-pearl/55 font-inter mt-1 whitespace-nowrap">{i.telephone}</div>
                         </td>
-                        <td className="px-4 py-3 text-pearl/60 font-inter">{i.source || '—'}</td>
+                        <td className="px-4 py-3 text-pearl/60 font-inter">
+                          <span className="inline-block max-w-[180px] text-xs" title={i.source || undefined}>{sourceLabel(i.source)}</span>
+                        </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold font-inter"
                             style={{ background: `${st.color}22`, color: st.color }}>{st.label}</span>
                         </td>
                         <td className="px-4 py-3 text-pearl/50 font-inter whitespace-nowrap">{fmtDate(i.created_at)}</td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          {ACTIONS.filter((a) => a.value !== i.status).map((a) => (
-                            <button key={a.value} onClick={() => setStatus(i, a.value)} disabled={busyId === i.id}
-                              className="text-[11px] font-inter text-pearl/50 hover:text-gold px-1.5 py-1 disabled:opacity-40">{a.label}</button>
-                          ))}
-                          <button onClick={() => openNote(i)} title="Note pastorale"
-                            className={`text-[11px] font-inter px-1.5 py-1 inline-flex items-center gap-1 align-middle ${noteOpenId === i.id ? 'text-gold' : 'text-pearl/50 hover:text-gold'}`}>
-                            <StickyNote className="w-3.5 h-3.5" /> Note
-                          </button>
-                          {busyId === i.id && <Loader2 className="w-3.5 h-3.5 animate-spin inline text-pearl/40 ml-1" />}
+                        <td className="px-4 py-3 max-w-[300px]">
+                          <div className="flex flex-wrap gap-1 justify-end items-center">
+                            {ACTIONS.filter((a) => a.value !== i.status).map((a) => (
+                              <button key={a.value} onClick={() => setStatus(i, a.value)} disabled={busyId === i.id}
+                                className="text-[11px] font-inter text-pearl/60 hover:text-gold px-2 py-1 rounded-md border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-colors disabled:opacity-40 whitespace-nowrap">{a.label}</button>
+                            ))}
+                            <button onClick={() => openNote(i)} title="Note pastorale"
+                              className={`text-[11px] font-inter px-2 py-1 rounded-md border inline-flex items-center gap-1 whitespace-nowrap transition-colors ${noteOpenId === i.id ? 'text-gold bg-gold/10 border-gold/30' : 'text-pearl/60 border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:text-gold'}`}>
+                              <StickyNote className="w-3 h-3" /> Note
+                            </button>
+                            {busyId === i.id && <Loader2 className="w-3.5 h-3.5 animate-spin text-pearl/40" />}
+                          </div>
                         </td>
                         </tr>
                         {noteOpenId === i.id && (
