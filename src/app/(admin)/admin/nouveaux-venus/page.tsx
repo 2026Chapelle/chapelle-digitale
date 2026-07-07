@@ -8,7 +8,8 @@
  */
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote } from 'lucide-react'
+import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search } from 'lucide-react'
+import { filterNewcomers } from '@/lib/pastoral/newcomer-filter'
 
 interface Intake {
   id: string
@@ -53,6 +54,7 @@ export default function AdminNouveauxVenusPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
+  const [query, setQuery] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [noteOpenId, setNoteOpenId] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
@@ -61,14 +63,15 @@ export default function AdminNouveauxVenusPage() {
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const url = statusFilter ? `/api/admin/newcomer-intakes?status=${encodeURIComponent(statusFilter)}` : '/api/admin/newcomer-intakes'
-      const r = await fetch(url, { credentials: 'same-origin' })
+      // Charge TOUTES les demandes en une fois : filtre statut + recherche se font côté
+      // client (compteurs exacts). Plafond serveur = 500 demandes les plus récentes.
+      const r = await fetch('/api/admin/newcomer-intakes', { credentials: 'same-origin' })
       const j = await r.json().catch(() => ({}))
       if (!r.ok || j?.ok !== true) { setError('Impossible de charger les demandes. Réessayez.'); setIntakes([]) }
       else setIntakes(j.data?.intakes || [])
     } catch { setError('Impossible de charger les demandes. Réessayez.'); setIntakes([]) }
     setLoading(false)
-  }, [statusFilter])
+  }, [])
 
   useEffect(() => { load() }, [load])
 
@@ -115,6 +118,9 @@ export default function AdminNouveauxVenusPage() {
     return c
   }, [intakes])
 
+  // Filtre statut + recherche texte, côté client, sur la liste complète (V2.2-C).
+  const filtered = useMemo(() => filterNewcomers(intakes, { status: statusFilter, query }), [intakes, statusFilter, query])
+
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="container-royal">
@@ -129,8 +135,16 @@ export default function AdminNouveauxVenusPage() {
           </button>
         </div>
 
+        {/* Recherche (côté client) */}
+        <div className="relative mb-4 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pearl/40" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher nom, email, téléphone, source…"
+            className="input-royal w-full pl-9 text-sm" />
+        </div>
+
         {/* Filtre statut */}
-        <div className="flex gap-2 flex-wrap mb-6">
+        <div className="flex gap-2 flex-wrap mb-3">
           {FILTERS.map((f) => {
             const active = statusFilter === f.value
             return (
@@ -142,14 +156,18 @@ export default function AdminNouveauxVenusPage() {
           })}
         </div>
 
+        <p className="text-[11px] text-pearl/35 font-inter mb-4">
+          {filtered.length} / {intakes.length} demande(s) affichée(s){intakes.length >= 500 ? ' · 500 plus récentes (plafond)' : ''}
+        </p>
+
         {error && <div className="card-royal p-3 mb-4 text-sm text-danger font-inter">{error}</div>}
 
         {loading ? (
           <div className="flex items-center gap-2 text-pearl/40 font-inter text-sm py-12"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>
-        ) : intakes.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="card-royal text-center py-16">
             <Inbox className="w-8 h-8 mx-auto mb-3 text-pearl/30" />
-            <p className="font-cinzel text-lg text-pearl/60">Aucune demande Nouveau Venu pour le moment.</p>
+            <p className="font-cinzel text-lg text-pearl/60">{intakes.length === 0 ? 'Aucune demande Nouveau Venu pour le moment.' : 'Aucune demande ne correspond à votre recherche.'}</p>
           </div>
         ) : (
           <div className="card-royal overflow-hidden">
@@ -166,7 +184,7 @@ export default function AdminNouveauxVenusPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {intakes.map((i) => {
+                  {filtered.map((i) => {
                     const st = STATUS[i.status] || { label: i.status, color: '#6B7280' }
                     return (
                       <Fragment key={i.id}>
