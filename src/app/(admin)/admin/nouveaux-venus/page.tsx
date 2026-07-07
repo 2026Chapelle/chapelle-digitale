@@ -6,9 +6,10 @@
  * /api/admin/newcomer-intakes (garde cookie admin, service role côté serveur).
  * Aucune clé service role ni client Supabase ici. Aucune donnée fictive.
  */
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search } from 'lucide-react'
+import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search, QrCode, Download, Copy, Check, ExternalLink } from 'lucide-react'
+import QRCode from 'react-qr-code'
 import { filterNewcomers } from '@/lib/pastoral/newcomer-filter'
 
 interface Intake {
@@ -48,6 +49,8 @@ const FILTERS = [{ value: '', label: 'Tous' }, ...Object.entries(STATUS).map(([v
 
 const fmtDate = (iso: string) => { try { return new Date(iso).toLocaleString('fr-FR') } catch { return iso } }
 const waLink = (tel: string) => `https://wa.me/${tel.replace(/[^\d]/g, '')}`
+// Lien public d'accueil (QR Code) — URL de production du formulaire Nouveau Venu.
+const PUBLIC_NOUVEAU_VENU_URL = 'https://citadelle.chapelleduroyaume.org/nouveau-venu'
 
 export default function AdminNouveauxVenusPage() {
   const [intakes, setIntakes] = useState<Intake[]>([])
@@ -59,6 +62,43 @@ export default function AdminNouveauxVenusPage() {
   const [noteOpenId, setNoteOpenId] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
   const [savingNote, setSavingNote] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const qrRef = useRef<HTMLDivElement>(null)
+
+  async function copyLink() {
+    try { await navigator.clipboard.writeText(PUBLIC_NOUVEAU_VENU_URL); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+    catch { setCopied(false) }
+  }
+
+  // Télécharge le QR (SVG rendu → canvas → PNG). Repli SVG si la conversion échoue. Aucune dépendance.
+  function downloadQr() {
+    const svg = qrRef.current?.querySelector('svg')
+    if (!svg) return
+    const svgStr = new XMLSerializer().serializeToString(svg)
+    const url = URL.createObjectURL(new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' }))
+    const img = new Image()
+    img.onload = () => {
+      const size = 512
+      const canvas = document.createElement('canvas')
+      canvas.width = size; canvas.height = size
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { URL.revokeObjectURL(url); return }
+      ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, size, size)
+      ctx.drawImage(img, 0, 0, size, size)
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const a = document.createElement('a')
+          a.href = URL.createObjectURL(blob); a.download = 'qr-nouveau-venu.png'; a.click()
+          URL.revokeObjectURL(a.href)
+        }
+        URL.revokeObjectURL(url)
+      }, 'image/png')
+    }
+    img.onerror = () => {
+      const a = document.createElement('a'); a.href = url; a.download = 'qr-nouveau-venu.svg'; a.click(); URL.revokeObjectURL(url)
+    }
+    img.src = url
+  }
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -133,6 +173,35 @@ export default function AdminNouveauxVenusPage() {
           <button onClick={load} disabled={loading} className="btn-gold text-sm px-4 py-2.5 inline-flex items-center gap-2 mt-2 disabled:opacity-50">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Rafraîchir
           </button>
+        </div>
+
+        {/* QR Code Nouveau Venu (V2.4-A) — lien public d'accueil */}
+        <div className="card-royal p-5 mb-6 flex flex-col sm:flex-row items-center gap-5">
+          <div ref={qrRef} className="p-3 rounded-xl bg-white flex-shrink-0">
+            <QRCode value={PUBLIC_NOUVEAU_VENU_URL} size={132} bgColor="#FFFFFF" fgColor="#0c0a16" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-cinzel font-bold text-pearl text-base flex items-center gap-2 mb-1"><QrCode className="w-4 h-4 text-gold" /> QR Code Nouveau Venu</h2>
+            <p className="font-inter text-sm text-pearl/60 mb-0.5">À afficher à l&apos;accueil, sur écran ou à partager sur WhatsApp.</p>
+            <p className="font-inter text-xs text-pearl/40 mb-3">Les personnes scannent et remplissent le formulaire d&apos;accueil.</p>
+
+            {/* Lien public d'accueil */}
+            <div className="mb-3">
+              <p className="text-[10px] uppercase tracking-wider text-pearl/35 font-inter mb-1">Lien public d&apos;accueil</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-pearl/5 border border-white/10 max-w-full">
+                <ExternalLink className="w-3.5 h-3.5 text-pearl/40 flex-shrink-0" />
+                <span className="font-inter text-[11px] text-pearl/65 truncate">{PUBLIC_NOUVEAU_VENU_URL}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={downloadQr} className="btn-gold text-xs px-3 py-2 inline-flex items-center gap-1.5"><Download className="w-3.5 h-3.5" /> Télécharger le QR Code</button>
+              <button onClick={copyLink} className="text-xs font-inter px-3 py-2 rounded-lg inline-flex items-center gap-1.5" style={{ background: 'rgba(255,255,255,0.06)', color: '#F5E6D8', border: '1px solid rgba(255,255,255,0.12)' }}>
+                {copied ? <><Check className="w-3.5 h-3.5" /> Lien copié</> : <><Copy className="w-3.5 h-3.5" /> Copier le lien</>}
+              </button>
+              <a href={PUBLIC_NOUVEAU_VENU_URL} target="_blank" rel="noreferrer" className="text-xs font-inter text-gold hover:gap-2 inline-flex items-center gap-1 px-2 py-2 transition-all">Ouvrir <ExternalLink className="w-3 h-3" /></a>
+            </div>
+          </div>
         </div>
 
         {/* Recherche (côté client) */}
