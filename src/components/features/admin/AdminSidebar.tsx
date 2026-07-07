@@ -7,7 +7,7 @@ import {
   Inbox, Film, FileText, TrendingUp, LogOut, Radio, Mic,
   MessageSquare, HandCoins, Newspaper, Mail, AtSign,
   GraduationCap, Layers, Route, Sparkles, Globe, Activity, Crown, ShoppingBag,
-  Command, Globe2, HeartHandshake, ShieldCheck, Megaphone, CalendarCheck, LifeBuoy,
+  Command, Globe2, HeartHandshake, ShieldCheck, Megaphone, CalendarCheck, LifeBuoy, UserPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NotificationBell } from '@/components/features/notifications/NotificationBell'
@@ -23,6 +23,7 @@ const NAV_ITEMS = [
   { icon: Globe2, label: 'Commandement Global', href: '/admin/global-command', color: '#F5E6A7' },
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', color: '#D4AF37' },
   { icon: HeartHandshake, label: 'Centre Pastoral', href: '/admin/pastoral', color: '#EC4899' },
+  { icon: UserPlus, label: 'Demandes Nouveau Venu', href: '/admin/nouveaux-venus', color: '#0EA5E9' },
   { icon: Crown, label: 'Gouvernement pastoral', href: '/admin/gouvernement', color: '#F5E6A7' },
   { icon: Sparkles, label: 'Gouvernance', href: '/admin/gouvernance', color: '#D4AF37' },
   { icon: Globe, label: 'International', href: '/admin/international', color: '#22C55E' },
