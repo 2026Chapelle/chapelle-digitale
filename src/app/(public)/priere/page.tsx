@@ -223,7 +223,7 @@ export default function PrierePage() {
                     <span className="inline-flex items-center gap-1 text-[11px] font-inter" style={{ color: 'rgba(245,230,216,0.4)' }}><Lock className="w-3 h-3" /> Réservé</span>
                     {user ? (
                       <Link href="/member/dashboard/prieres/bibliotheque" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: '#F5E6A7' }}>
-                        Lire dans mon espace <ArrowRight className="w-3 h-3" />
+                        Lire la prière dans mon espace <ArrowRight className="w-3 h-3" />
                       </Link>
                     ) : (
                       <div className="flex gap-1.5">

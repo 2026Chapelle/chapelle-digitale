@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const sp = await getSessionProfile()
   if (!sp) return NextResponse.json({ ok: false, message: 'Non authentifié.' }, { status: 401 })
   const pdf = await getMemberPrayerPdf(params.id)
-  if (!pdf) return NextResponse.json({ ok: false, message: 'PDF bientôt disponible.' }, { status: 404 })
+  if (!pdf) return NextResponse.json({ ok: false, message: 'Le support PDF sera bientôt disponible.' }, { status: 404 })
   await recordPrayerEvent(pdf.id, 'download', sp.uid)
   return NextResponse.json({ ok: true, data: { url: pdf.url } })
 }

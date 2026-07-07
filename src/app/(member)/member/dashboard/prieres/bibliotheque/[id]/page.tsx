@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Loader2, ArrowLeft, Clock, Sparkles, ListChecks, Compass, FileText, Download } from 'lucide-react'
+import { Loader2, ArrowLeft, Clock, Sparkles, ListChecks, Compass, FileText, Download, BookOpen } from 'lucide-react'
 
 interface MemberPrayer {
   id: string
@@ -44,7 +44,7 @@ export default function PrayerDetailPage() {
       const r = await fetch(`/api/member/prayers/${encodeURIComponent(id)}/download`, { credentials: 'same-origin' })
       const j = await r.json().catch(() => ({}))
       if (r.ok && j?.ok && j.data?.url) window.open(j.data.url, '_blank', 'noopener')
-      else setDlMsg(j?.message || 'PDF bientôt disponible.')
+      else setDlMsg(j?.message || 'Le support PDF sera bientôt disponible.')
     } catch { setDlMsg('Téléchargement impossible. Réessayez.') }
   }
 
@@ -95,7 +95,7 @@ export default function PrayerDetailPage() {
             )}
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: `${prayer.color}18`, border: `1px solid ${prayer.color}30` }}>
-                <span aria-hidden>{prayer.coverIcon}</span>
+                <BookOpen className="w-6 h-6" aria-hidden style={{ color: prayer.color }} />
               </div>
               <div>
                 <h1 className="font-cinzel text-2xl font-black text-pearl">{prayer.title}</h1>
@@ -143,7 +143,7 @@ export default function PrayerDetailPage() {
             {prayer.hasPdf ? (
               <button onClick={download} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-2"><Download className="w-3.5 h-3.5" /> Télécharger le PDF</button>
             ) : (
-              <div className="inline-flex items-center gap-2 text-[11px] font-inter text-pearl/35"><FileText className="w-3.5 h-3.5" /> PDF bientôt disponible</div>
+              <div className="inline-flex items-center gap-2 text-[11px] font-inter text-pearl/35"><FileText className="w-3.5 h-3.5" /> Le support PDF sera bientôt disponible.</div>
             )}
             {dlMsg && <p className="text-[11px] text-pearl/40 font-inter mt-2">{dlMsg}</p>}
           </>

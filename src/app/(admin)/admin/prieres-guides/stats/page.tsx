@@ -27,11 +27,11 @@ function Kpi({ icon: Icon, label, value, color }: any) {
     </div>
   )
 }
-function Top({ title, items }: { title: string; items: { title: string; count: number }[] }) {
+function Top({ title, items, emptyText = 'Aucune donnée.' }: { title: string; items: { title: string; count: number }[]; emptyText?: string }) {
   return (
     <div className="card-royal">
       <h3 className="font-cinzel font-bold text-pearl text-sm mb-4">{title}</h3>
-      {items.length === 0 ? <p className="text-xs text-pearl/35 font-inter">Aucune donnée.</p> : (
+      {items.length === 0 ? <p className="text-xs text-pearl/35 font-inter">{emptyText}</p> : (
         <div className="space-y-2.5">
           {items.map((it, i) => (
             <div key={i} className="flex items-center justify-between text-xs font-inter">
@@ -79,14 +79,14 @@ export default function PrayerStatsPage() {
           <div className="mt-6 space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Kpi icon={BookOpen} label="Prières publiées" value={s.totalPublished} color="#D4AF37" />
-              <Kpi icon={Eye} label="Consultations" value={s.totalViews} color="#0EA5E9" />
-              <Kpi icon={BookOpen} label="Lectures" value={s.totalReads} color="#22C55E" />
-              <Kpi icon={Download} label="Téléchargements" value={s.totalDownloads} color="#F59E0B" />
+              <Kpi icon={Eye} label="Consultations de fiches" value={s.totalViews} color="#0EA5E9" />
+              <Kpi icon={BookOpen} label="Lectures complètes" value={s.totalReads} color="#22C55E" />
+              <Kpi icon={Download} label="Téléchargements PDF" value={s.totalDownloads} color="#F59E0B" />
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-              <Top title="Top consultées" items={s.topViewed} />
-              <Top title="Top lues" items={s.topRead} />
-              <Top title="Top téléchargées" items={s.topDownloaded} />
+              <Top title="Top consultées" items={s.topViewed} emptyText="Aucune consultation pour le moment." />
+              <Top title="Top lues" items={s.topRead} emptyText="Aucune lecture complète pour le moment." />
+              <Top title="Top téléchargées" items={s.topDownloaded} emptyText="Aucun téléchargement PDF pour le moment." />
             </div>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="card-royal">
