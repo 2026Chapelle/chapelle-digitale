@@ -49,9 +49,9 @@ export interface PublicPrayerCard {
   durationMinutes: number
   intention: string
   recommendedMoment: string
-  imageUrl?: string
-  imageAlt?: string
-  overlayTone?: string
+  imageUrl: string | null
+  imageAlt: string | null
+  overlayTone: string | null
   accessLevel: string
   locked: true
 }
@@ -73,9 +73,9 @@ export interface MemberPrayer {
   recommendedMoment: string
   guideSteps: string[]
   takeaway: string
-  imageUrl?: string
-  imageAlt?: string
-  overlayTone?: string
+  imageUrl: string | null
+  imageAlt: string | null
+  overlayTone: string | null
   hasPdf: boolean
   accessLevel: string
 }
@@ -250,9 +250,9 @@ export function toPublicPrayerCard(prayer: Prayer): PublicPrayerCard {
     durationMinutes: prayer.durationMinutes,
     intention: prayer.intention,
     recommendedMoment: prayer.recommendedMoment,
-    imageUrl: prayer.imageUrl,
-    imageAlt: prayer.imageAlt,
-    overlayTone: prayer.overlayTone,
+    imageUrl: prayer.imageUrl ?? null,
+    imageAlt: prayer.imageAlt ?? null,
+    overlayTone: prayer.overlayTone ?? null,
     accessLevel: prayer.accessLevel,
     locked: true,
   }
@@ -280,9 +280,9 @@ export function toMemberPrayer(prayer: Prayer): MemberPrayer {
     recommendedMoment: prayer.recommendedMoment,
     guideSteps: prayer.guideSteps,
     takeaway: prayer.takeaway,
-    imageUrl: prayer.imageUrl,
-    imageAlt: prayer.imageAlt,
-    overlayTone: prayer.overlayTone,
+    imageUrl: prayer.imageUrl ?? null,
+    imageAlt: prayer.imageAlt ?? null,
+    overlayTone: prayer.overlayTone ?? null,
     hasPdf: !!prayer.pdf,
     accessLevel: prayer.accessLevel,
   }

@@ -21,8 +21,10 @@ describe('Bibliothèque de Prières — projection publique', () => {
     }
   })
 
-  it('les champs nécessaires à la carte publique sont présents', () => {
-    for (const c of listPublicPrayerCards()) {
+  it('les champs nécessaires à la carte publique sont présents (dont clés image)', () => {
+    const cards = listPublicPrayerCards()
+    expect(cards.length).toBe(6)
+    for (const c of cards) {
       expect(c.id).toBeTruthy()
       expect(c.title).toBeTruthy()
       expect(c.category).toBeTruthy()
@@ -30,7 +32,20 @@ describe('Bibliothèque de Prières — projection publique', () => {
       expect(typeof c.durationMinutes).toBe('number')
       expect(c.intention).toBeTruthy()
       expect(c.recommendedMoment).toBeTruthy()
+      // Les clés image DOIVENT être présentes (null si pas d'image) — jamais omises du JSON.
+      expect(c).toHaveProperty('imageUrl')
+      expect(c).toHaveProperty('imageAlt')
+      expect(c).toHaveProperty('overlayTone')
+      // JAMAIS de champs réservés ni de pdf privé dans la projection publique.
+      expect(c).not.toHaveProperty('content')
+      expect(c).not.toHaveProperty('guideSteps')
+      expect(c).not.toHaveProperty('takeaway')
+      expect(c).not.toHaveProperty('pdfUrl')
+      expect(c).not.toHaveProperty('pdf_url')
     }
+    // Sérialisation JSON : la clé "imageUrl" apparaît bien (ce que /api/prayers renvoie).
+    expect(JSON.stringify(cards).includes('"imageUrl"')).toBe(true)
+    expect(JSON.stringify(cards).includes('"overlayTone"')).toBe(true)
   })
 
   it("aucune carte publique ne contient le texte du contenu complet", () => {

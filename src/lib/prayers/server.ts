@@ -26,7 +26,7 @@ function rowToPublicCard(r: any): PublicPrayerCard {
     coverIcon: categoryEmoji(r.category), color: categoryColor(r.category),
     durationMinutes: r.duration_minutes || 0,
     intention: r.intention || '', recommendedMoment: r.recommended_moment || '',
-    imageUrl: r.image_url || undefined, imageAlt: r.image_alt || undefined, overlayTone: r.overlay_tone || undefined,
+    imageUrl: r.image_url ?? null, imageAlt: r.image_alt ?? null, overlayTone: r.overlay_tone ?? null,
     accessLevel: r.access_level || 'member', locked: true,
   }
 }
@@ -39,7 +39,7 @@ function rowToMember(r: any): MemberPrayer {
     intention: r.intention || '', recommendedMoment: r.recommended_moment || '',
     guideSteps: Array.isArray(r.guide_steps) ? r.guide_steps : [],
     takeaway: r.takeaway || '',
-    imageUrl: r.image_url || undefined, imageAlt: r.image_alt || undefined, overlayTone: r.overlay_tone || undefined,
+    imageUrl: r.image_url ?? null, imageAlt: r.image_alt ?? null, overlayTone: r.overlay_tone ?? null,
     hasPdf: !!r.pdf_url, accessLevel: r.access_level || 'member',
   }
 }
