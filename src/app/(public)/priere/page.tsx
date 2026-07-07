@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Heart, Send, Shield, Filter, Search, Clock, Globe, Users, ArrowRight, Flame, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react'
+import { Heart, Send, Shield, Filter, Search, Clock, Globe, Users, ArrowRight, Flame, AlertCircle, CheckCircle2, Sparkles, BookOpen, Lock } from 'lucide-react'
 import { CATEGORIES_PRIERE, type CategoriePriere } from '@/lib/mock/prieres'
 import { events } from '@/lib/analytics'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
@@ -23,6 +23,9 @@ export default function PrierePage() {
   const [prayedFor, setPrayedFor] = useState<Set<string>>(new Set())
   const [activeCategorie, setActiveCategorie] = useState<CategoriePriere | 'Tous'>('Tous')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Bibliothèque de Prières (V2.3-B) — cartes PUBLIQUES (projection, sans contenu complet).
+  const [prayerCards, setPrayerCards] = useState<any[]>([])
 
   // Submission form state
   const [nom, setNom] = useState('')
@@ -123,6 +126,19 @@ export default function PrierePage() {
     return () => { cancelled = true }
   }, [])
 
+  // Charge les cartes publiques de la Bibliothèque (aperçu libre, jamais le contenu complet).
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const r = await fetch('/api/prayers', { credentials: 'same-origin' })
+        const j = await r.json().catch(() => ({}))
+        if (!cancelled && j?.ok) setPrayerCards(j.data?.cards || [])
+      } catch { /* silencieux */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
   const filtered = wall.filter(req => {
     const matchesCategorie = activeCategorie === 'Tous' || req.categorie === activeCategorie
     const matchesSearch = !searchQuery || req.sujet.toLowerCase().includes(searchQuery.toLowerCase())
@@ -166,6 +182,49 @@ export default function PrierePage() {
           </motion.div>
         </div>
       </section>
+
+      {/* Bibliothèque de Prières (V2.3-B) — prières éditées ; contenu complet réservé aux membres connectés */}
+      {prayerCards.length > 0 && (
+        <section className="pb-4">
+          <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16">
+            <div className="mb-6">
+              <div className="section-label-dark"><BookOpen className="w-3 h-3" /> Bibliothèque de Prières</div>
+              <h2 className="font-cinzel text-2xl font-bold text-white mt-3">Prières &amp; Guides à méditer</h2>
+              <p className="font-inter text-sm mt-1.5" style={{ color: 'rgba(245,230,216,0.5)' }}>
+                Des prières structurées par thème. Aperçu libre ; le contenu complet est réservé aux membres connectés.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {prayerCards.map((c: any) => (
+                <div key={c.id} className="card-cinematic p-5 flex flex-col">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: `${c.color || '#D4AF37'}18`, border: `1px solid ${c.color || '#D4AF37'}30` }}>
+                      <span aria-hidden>{c.coverIcon || '🙏'}</span>
+                    </div>
+                    <span className="font-inter text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${c.color || '#D4AF37'}18`, color: c.color || '#D4AF37' }}>{c.category}</span>
+                  </div>
+                  <h3 className="font-cinzel font-bold text-base text-white mb-1">{c.title}</h3>
+                  <p className="font-inter text-xs mb-2" style={{ color: 'rgba(245,230,216,0.55)' }}>{c.summary}</p>
+                  <p className="font-inter text-xs leading-relaxed mb-4 line-clamp-3" style={{ color: 'rgba(245,230,216,0.4)' }}>{c.excerpt}</p>
+                  <div className="mt-auto pt-3 flex items-center justify-between gap-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-inter" style={{ color: 'rgba(245,230,216,0.4)' }}><Lock className="w-3 h-3" /> Réservé</span>
+                    {user ? (
+                      <Link href="/member/dashboard/prieres/bibliotheque" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: '#F5E6A7' }}>
+                        Lire dans mon espace <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    ) : (
+                      <div className="flex gap-1.5">
+                        <Link href="/login" className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.08)', color: '#F5E6D8', border: '1px solid rgba(255,255,255,0.12)' }}>Se connecter</Link>
+                        <Link href="/register" className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={{ background: 'rgba(212,175,55,0.18)', color: '#F5E6A7', border: '1px solid rgba(212,175,55,0.35)' }}>Créer un compte</Link>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="pb-20">
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16">
