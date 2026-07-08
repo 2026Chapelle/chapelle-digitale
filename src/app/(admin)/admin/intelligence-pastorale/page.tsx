@@ -11,6 +11,7 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Loader2, Users, Clock, UserCheck, HeartHandshake, StickyNote, AlertTriangle, Lightbulb, ShieldCheck, HelpCircle, ArrowRight } from 'lucide-react'
 import { computeNewcomerIntelligence, type IntakeLite } from '@/lib/pastoral/newcomer-intelligence'
+import { PastoralAssistant } from '@/components/features/admin/PastoralAssistant'
 
 const STATUS: Record<string, { label: string; color: string }> = {
   new: { label: 'Nouveau', color: '#0EA5E9' },
@@ -87,6 +88,9 @@ export default function IntelligencePastoralePage() {
           <ShieldCheck className="w-4 h-4 flex-shrink-0" style={{ color: '#22C55E' }} />
           <p className="font-inter text-xs" style={{ color: '#86EFAC' }}>Assistant en <strong>lecture seule</strong> : aucune écriture, aucun changement de statut, aucun envoi. Les recommandations sont dérivées des données disponibles.</p>
         </div>
+
+        {/* Assistant Pastoral (V2.5-B.2-B-①) — question contrôlée, réponse serveur déterministe */}
+        <PastoralAssistant />
 
         {error && <div className="card-royal p-3 mb-4 text-sm text-danger font-inter">{error}</div>}
 
