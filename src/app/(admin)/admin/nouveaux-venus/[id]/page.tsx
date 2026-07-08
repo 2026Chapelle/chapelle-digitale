@@ -47,6 +47,15 @@ const ACTIONS: { value: string; label: string }[] = [
 ]
 const SOURCE_LABELS: Record<string, string> = { nouveau_venu_form: "QR Code / Formulaire d'accueil" }
 const sourceLabel = (src: string | null) => (!src ? '—' : SOURCE_LABELS[src] || src.replace(/_/g, ' '))
+// Prochaine action suggérée selon le statut actuel (dérivée — aucune donnée inventée, aucun SQL).
+const NEXT_ACTION: Record<string, string> = {
+  new: 'Prendre contact rapidement (appel ou WhatsApp).',
+  to_review: 'Qualifier la demande, puis prendre contact.',
+  contacted: 'Assurer le suivi et proposer une intégration.',
+  converted: "Accompagner l'intégration (cellule, formation).",
+  duplicate: 'Vérifier le doublon et archiver si confirmé.',
+  archived: 'Aucune action requise — demande archivée.',
+}
 const fmtDate = (iso: string | null) => { if (!iso) return '—'; try { return new Date(iso).toLocaleString('fr-FR') } catch { return iso } }
 const waLink = (tel: string) => `https://wa.me/${tel.replace(/[^\d]/g, '')}`
 
@@ -109,6 +118,11 @@ export default function NewcomerDetailPage() {
   }
 
   const st = intake ? (STATUS[intake.status] || { label: intake.status, color: '#6B7280' }) : null
+  // Horodatage réel du statut : archived_at si archivé, processed_at si contacté/intégré, sinon aucun (champs existants).
+  const statusSince = intake
+    ? (intake.status === 'archived' ? intake.archived_at
+      : (intake.status === 'contacted' || intake.status === 'converted') ? intake.processed_at : null)
+    : null
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -195,10 +209,45 @@ export default function NewcomerDetailPage() {
               {intake.metadata?.admin_note ? <p className="text-sm font-inter text-gold/80 leading-relaxed">{intake.metadata.admin_note}</p> : <p className="text-sm font-inter text-pearl/35">Aucune note enregistrée.</p>}
             </div>
 
-            {/* Historique (placeholder honnête) */}
-            <div className="card-royal p-5">
-              <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2 mb-2"><History className="w-4 h-4 text-gold" /> Historique d'intégration</h2>
-              <p className="text-sm font-inter text-pearl/40">Historique détaillé bientôt disponible.</p>
+            {/* Historique d'intégration — timeline synthétique. MARKER_NO_SQL_V24D :
+                dérivée UNIQUEMENT des champs existants de newcomer_intakes, aucun SQL, aucun champ inventé. */}
+            <div className="card-royal p-5" data-marker="MARKER_NO_SQL_V24D">
+              <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2 mb-4"><History className="w-4 h-4 text-gold" /> Historique d&apos;intégration</h2>
+              <ol className="relative ml-2 border-l border-white/10 space-y-5">
+                {/* Demande reçue */}
+                <li className="relative pl-5" data-marker="MARKER_TIMELINE_RECEIVED_OK">
+                  <span className="absolute -left-[6px] top-1.5 w-2.5 h-2.5 rounded-full" style={{ background: '#0EA5E9' }} />
+                  <p className="font-inter text-sm text-pearl/85">Demande reçue</p>
+                  <p className="font-inter text-[11px] text-pearl/40 mt-0.5">{fmtDate(intake.created_at)}</p>
+                </li>
+                {/* Source d'entrée */}
+                <li className="relative pl-5">
+                  <span className="absolute -left-[6px] top-1.5 w-2.5 h-2.5 rounded-full" style={{ background: '#D4AF37' }} />
+                  <p className="font-inter text-sm text-pearl/85">Source d&apos;entrée</p>
+                  <p className="font-inter text-[11px] text-pearl/50 mt-0.5">{sourceLabel(intake.source)}</p>
+                </li>
+                {/* Statut pastoral actuel */}
+                <li className="relative pl-5" data-marker="MARKER_TIMELINE_STATUS_OK">
+                  <span className="absolute -left-[6px] top-1.5 w-2.5 h-2.5 rounded-full" style={{ background: st?.color || '#6B7280' }} />
+                  <p className="font-inter text-sm text-pearl/85">Statut pastoral actuel : <span style={{ color: st?.color }}>{st?.label}</span></p>
+                  {statusSince && <p className="font-inter text-[11px] text-pearl/40 mt-0.5">Depuis le {fmtDate(statusSince)}</p>}
+                </li>
+                {/* Dernière note pastorale (si disponible) */}
+                {intake.metadata?.admin_note && (
+                  <li className="relative pl-5">
+                    <span className="absolute -left-[6px] top-1.5 w-2.5 h-2.5 rounded-full" style={{ background: '#EC4899' }} />
+                    <p className="font-inter text-sm text-pearl/85">Dernière note pastorale</p>
+                    <p className="font-inter text-[12px] text-gold/80 mt-0.5 leading-relaxed">{intake.metadata.admin_note}</p>
+                    {intake.metadata.admin_note_at && <p className="font-inter text-[11px] text-pearl/40 mt-0.5">{fmtDate(intake.metadata.admin_note_at)}</p>}
+                  </li>
+                )}
+                {/* Prochaine action suggérée */}
+                <li className="relative pl-5" data-marker="MARKER_TIMELINE_NEXT_ACTION_OK">
+                  <span className="absolute -left-[6px] top-1.5 w-2.5 h-2.5 rounded-full" style={{ background: '#22C55E' }} />
+                  <p className="font-inter text-sm text-pearl/85">Prochaine action suggérée</p>
+                  <p className="font-inter text-[12px] text-pearl/60 mt-0.5">{NEXT_ACTION[intake.status] || 'Assurer le suivi pastoral.'}</p>
+                </li>
+              </ol>
             </div>
           </>
         ) : null}
