@@ -247,8 +247,11 @@ export default function AdminNouveauxVenusPage() {
           </div>
         ) : (
           <div className="card-royal overflow-hidden">
+            <div className="px-4 pt-3 pb-1 text-[11px] font-inter text-pearl/35 md:hidden">
+              Glissez horizontalement pour voir toutes les colonnes. Les actions restent &agrave; droite.
+            </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[920px] text-sm">
                 <thead>
                   <tr className="text-left font-inter text-[11px] uppercase tracking-wider text-pearl/40 border-b border-white/5">
                     <th className="px-4 py-3">Personne</th>
@@ -256,7 +259,7 @@ export default function AdminNouveauxVenusPage() {
                     <th className="px-4 py-3">Source</th>
                     <th className="px-4 py-3">Statut</th>
                     <th className="px-4 py-3">Reçue le</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
+                    <th className="sticky right-0 z-20 px-4 py-3 text-right bg-[#120d1f]/95 border-l border-white/10 shadow-[-12px_0_24px_rgba(0,0,0,0.18)]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,7 +290,7 @@ export default function AdminNouveauxVenusPage() {
                         </td>
                         <td className="px-4 py-3 text-pearl/50 font-inter whitespace-nowrap">{fmtDate(i.created_at)}</td>
                         {/* MARKER_NO_SQL_V24E — actions UI uniquement, réutilisent les fonctions existantes (aucun SQL, aucune API modifiée) */}
-                        <td className="px-4 py-3" data-marker="MARKER_ACTIONS_REDESIGN_OK">
+                        <td className="sticky right-0 z-10 px-4 py-3 bg-[#120d1f]/95 border-l border-white/10 shadow-[-12px_0_24px_rgba(0,0,0,0.16)]" data-marker="MARKER_ACTIONS_REDESIGN_OK">
                           <div className="flex items-center gap-1.5 justify-end whitespace-nowrap">
                             <Link href={`/admin/nouveaux-venus/${i.id}`} data-marker="MARKER_VIEW_FICHE_PRIMARY_OK"
                               className="text-[11px] font-inter text-gold px-2.5 py-1.5 rounded-md border border-gold/30 bg-gold/10 hover:bg-gold/20 inline-flex items-center gap-1 transition-colors">
@@ -304,8 +307,8 @@ export default function AdminNouveauxVenusPage() {
                         </tr>
                         {menuOpenId === i.id && (
                           <tr className="bg-white/[0.02]">
-                            <td colSpan={6} className="px-4 pb-4 pt-1">
-                              <div className="flex flex-col sm:flex-row gap-x-6 gap-y-3 flex-wrap">
+                            <td colSpan={6} className="px-3 pb-3 pt-1.5">
+                              <div className="flex flex-col md:flex-row gap-x-4 gap-y-2 flex-wrap">
                                 {/* Groupe Contact */}
                                 <div>
                                   <p className="text-[10px] uppercase tracking-wider text-pearl/35 font-inter mb-1.5">Contact</p>
@@ -338,7 +341,7 @@ export default function AdminNouveauxVenusPage() {
                         )}
                         {noteOpenId === i.id && (
                           <tr className="bg-white/[0.015]">
-                            <td colSpan={6} className="px-4 pb-4 pt-1">
+                            <td colSpan={6} className="px-3 pb-3 pt-1.5">
                               <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
                                 <div className="flex-1">
                                   <label className="block text-[11px] uppercase tracking-wider text-pearl/40 font-inter mb-1">Note pastorale interne</label>
