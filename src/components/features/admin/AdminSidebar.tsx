@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', color: '#D4AF37' },
   { icon: HeartHandshake, label: 'Centre Pastoral', href: '/admin/pastoral', color: '#EC4899' },
   { icon: UserPlus, label: 'Demandes Nouveau Venu', href: '/admin/nouveaux-venus', color: '#0EA5E9' },
+  { icon: Sparkles, label: 'Intelligence Pastorale', href: '/admin/intelligence-pastorale', color: '#8B5CF6' },
   { icon: Crown, label: 'Gouvernement pastoral', href: '/admin/gouvernement', color: '#F5E6A7' },
   { icon: Sparkles, label: 'Gouvernance', href: '/admin/gouvernance', color: '#D4AF37' },
   { icon: Globe, label: 'International', href: '/admin/international', color: '#22C55E' },
