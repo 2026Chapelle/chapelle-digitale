@@ -16,6 +16,7 @@ export type AssistantIntent =
   | 'nouveaux_venus'
   | 'non_assignes'
   | 'conversions_a_verifier'
+  | 'notes_manquantes'
   | 'limites_donnees'
   | 'unknown'
 
@@ -57,6 +58,10 @@ const RULES: Rule[] = [
   { intent: 'conversions_a_verifier', all: ['conversion', 'verif'], triggers: [
     'converti sans profil', 'conversion sans profil', 'profil non lie',
   ] },
+  { intent: 'notes_manquantes', triggers: [
+    'note pastorale', 'notes pastorales', 'sans note', 'note manquante', 'notes manquantes',
+    'qui n a pas de note', 'pas de note',
+  ] },
   { intent: 'non_assignes', triggers: [
     'sans responsable', 'non assigne', 'non assignes', 'pas de responsable', 'sans berger',
     'sans assignation', 'personnes sans responsable',
@@ -64,6 +69,8 @@ const RULES: Rule[] = [
   { intent: 'suivis_prioritaires', triggers: [
     'suivre en priorite', 'suivi prioritaire', 'suivis prioritaires', 'priorite', 'prioritaire',
     'qui dois je suivre', 'qui suivre', 'a suivre',
+    // alias sémantiques (Q3 « contacté en premier », Q7 « suivis urgents ») → mêmes priorités
+    'contacte en premier', 'contacter en premier', 'a contacter en premier', 'urgent', 'urgence',
   ] },
   { intent: 'nouveaux_venus', triggers: [
     'nouveaux venus', 'nouveau venu', 'arrivants', 'arrivees', 'arrivee cette semaine',
@@ -102,15 +109,18 @@ export function routeIntent(question: string): IntentMatch {
  * aucune lecture base et ne renvoient aucune personne (garantie anti-hallucination).
  */
 export const DATA_INTENTS: ReadonlySet<AssistantIntent> = new Set<AssistantIntent>([
-  'rapport_global', 'suivis_prioritaires', 'nouveaux_venus', 'non_assignes', 'conversions_a_verifier',
+  'rapport_global', 'suivis_prioritaires', 'nouveaux_venus', 'non_assignes', 'conversions_a_verifier', 'notes_manquantes',
 ])
 
 /** Questions d'exemple proposées à l'utilisateur (chips) — toutes routables ci-dessus. */
 export const SUGGESTED_QUESTIONS: string[] = [
   'Fais-moi un rapport pastoral de cette semaine.',
-  'Qui dois-je suivre en priorité ?',
+  'Donne-moi les priorités pastorales.',
+  'Qui doit être contacté en premier ?',
   'Montre-moi les nouveaux venus sans responsable.',
   'Quelles conversions doivent être vérifiées ?',
-  'Quelles recommandations pastorales proposes-tu ?',
+  'Qui n’a pas de note pastorale ?',
+  'Quels suivis semblent urgents ?',
+  'Quelles recommandations proposes-tu cette semaine ?',
   'Quelles données sont indisponibles ?',
 ]

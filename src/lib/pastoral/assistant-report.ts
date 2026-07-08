@@ -7,7 +7,7 @@
  * AUCUNE IA, AUCUNE donnée inventée. Ne renvoie que ce que les données permettent.
  */
 import { computeNewcomerIntelligence, type IntakeLite, type Severity } from './newcomer-intelligence'
-import { getUnassignedNewcomers, getConversionIssues } from './assistant-data'
+import { getUnassignedNewcomers, getConversionIssues, getNewcomersWithoutNotes } from './assistant-data'
 import type { AssistantIntent } from './intent-router'
 
 export interface AssistantPerson {
@@ -131,6 +131,19 @@ export function buildAssistantResponse(
         summary: issues.length ? `${issues.length} demande(s) marquée(s) « Intégré » sans profil membre correspondant.` : 'Aucune conversion à vérifier : les intégrations semblent correctement reliées.',
         suggestions: issues.length ? ['Rapprocher chaque conversion d’un profil membre, ou corriger le statut si besoin.'] : [],
         ...cap(issues),
+      }
+    }
+
+    case 'notes_manquantes': {
+      const noNotes = getNewcomersWithoutNotes(list)
+        .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
+        .map((i) => person(i, 'Note pastorale à compléter.', 'douce'))
+      return {
+        ...base,
+        title: 'Suivis sans note pastorale',
+        summary: noNotes.length ? `${noNotes.length} demande(s) active(s) sans note pastorale.` : 'Toutes les demandes actives ont une note pastorale.',
+        suggestions: noNotes.length ? ['Compléter une brève note pastorale pour documenter le suivi.'] : [],
+        ...cap(noNotes),
       }
     }
 

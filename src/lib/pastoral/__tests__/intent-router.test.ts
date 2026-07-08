@@ -54,12 +54,34 @@ describe('DATA_INTENTS — allow-list d’accès données (anti-régression séc
     expect(DATA_INTENTS.has('unknown')).toBe(false)
     expect(DATA_INTENTS.has('limites_donnees')).toBe(false)
   })
-  it('inclut exactement les 5 intents qui lisent les demandes', () => {
+  it('inclut exactement les 6 intents qui lisent les demandes', () => {
     expect(DATA_INTENTS.has('rapport_global')).toBe(true)
     expect(DATA_INTENTS.has('suivis_prioritaires')).toBe(true)
     expect(DATA_INTENTS.has('nouveaux_venus')).toBe(true)
     expect(DATA_INTENTS.has('non_assignes')).toBe(true)
     expect(DATA_INTENTS.has('conversions_a_verifier')).toBe(true)
-    expect(DATA_INTENTS.size).toBe(5)
+    expect(DATA_INTENTS.has('notes_manquantes')).toBe(true)
+    expect(DATA_INTENTS.size).toBe(6)
+  })
+})
+
+describe('routeIntent — V2.5-B.2-C questions renforcées', () => {
+  const cases: [string, string][] = [
+    ['Donne-moi les priorités pastorales.', 'suivis_prioritaires'],
+    ['Qui doit être contacté en premier ?', 'suivis_prioritaires'],
+    ['Qui n’a pas de note pastorale ?', 'notes_manquantes'],
+    ['Quels suivis semblent urgents ?', 'suivis_prioritaires'],
+    ['Quelles recommandations proposes-tu cette semaine ?', 'rapport_global'],
+  ]
+  for (const [q, expected] of cases) {
+    it(`"${q}" → ${expected}`, () => {
+      const r = routeIntent(q)
+      expect(r.intent).toBe(expected)
+      expect(r.confidence).toBe('sure')
+    })
+  }
+  it('les 9 questions suggérées sont toutes routables (aucune unknown)', async () => {
+    const { SUGGESTED_QUESTIONS } = await import('@/lib/pastoral/intent-router')
+    for (const q of SUGGESTED_QUESTIONS) expect(routeIntent(q).intent).not.toBe('unknown')
   })
 })

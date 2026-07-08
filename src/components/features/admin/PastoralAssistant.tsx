@@ -7,9 +7,11 @@
  */
 import { useState } from 'react'
 import Link from 'next/link'
-import { Sparkles, Loader2, ArrowRight, Send, ShieldCheck, Info } from 'lucide-react'
+import { Sparkles, Loader2, ArrowRight, Send } from 'lucide-react'
 import { SUGGESTED_QUESTIONS } from '@/lib/pastoral/intent-router'
 import type { AssistantResponse } from '@/lib/pastoral/assistant-report'
+import { InfoDisclosure } from '@/components/features/admin/InfoDisclosure'
+import { PastoralExportButtons } from '@/components/features/admin/PastoralExportButtons'
 
 const SEV: Record<string, { label: string; color: string }> = {
   haute: { label: 'À prioriser', color: '#EF4444' },
@@ -132,16 +134,20 @@ export function PastoralAssistant() {
             </div>
           )}
 
-          {resp.limits.length > 0 && (
-            <div className="rounded-lg border border-white/[0.06] bg-white/[0.015] p-3">
-              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-pearl/35 font-inter mb-1.5"><ShieldCheck className="w-3 h-3" /> Limites des données</div>
-              <ul className="space-y-1 font-inter text-[11px] text-pearl/45 list-disc pl-5">
-                {resp.limits.map((l, i) => <li key={i}>{l}</li>)}
-              </ul>
-            </div>
-          )}
+          {/* Export / partage client-side (Partie C — lecture seule, aucun envoi réel) */}
+          <PastoralExportButtons response={resp} />
 
-          <p className="flex items-center gap-1.5 font-inter text-[11px] text-pearl/35"><Info className="w-3 h-3" /> {resp.dataBasis}</p>
+          {/* Transparence DISCRÈTE (Partie A) : provenance + limites regroupées dans un popover */}
+          <div className="flex justify-end pt-1" data-print-hide>
+            <InfoDisclosure
+              label="Détails & limites"
+              title="Transparence & limites"
+              groups={[
+                { heading: 'Provenance', items: [resp.dataBasis] },
+                ...(resp.limits.length > 0 ? [{ heading: 'Limites des données', items: resp.limits }] : []),
+              ]}
+            />
+          </div>
         </div>
       )}
     </div>

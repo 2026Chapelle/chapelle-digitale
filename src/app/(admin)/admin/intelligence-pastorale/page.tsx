@@ -9,9 +9,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Loader2, Users, Clock, UserCheck, HeartHandshake, StickyNote, AlertTriangle, Lightbulb, ShieldCheck, HelpCircle, ArrowRight } from 'lucide-react'
+import { Loader2, Users, Clock, UserCheck, HeartHandshake, StickyNote, AlertTriangle, Lightbulb, HelpCircle, ArrowRight } from 'lucide-react'
 import { computeNewcomerIntelligence, type IntakeLite } from '@/lib/pastoral/newcomer-intelligence'
 import { PastoralAssistant } from '@/components/features/admin/PastoralAssistant'
+import { InfoDisclosure } from '@/components/features/admin/InfoDisclosure'
+
+// Transparence (Partie A) : 3 piliers regroupés dans un popover discret (remplace bandeau + carte pleine).
+const SECURITY_GROUPS = [
+  { heading: 'Sécurité & contrôle', items: ['Aucune écriture en base', 'Aucun changement de statut', 'Aucun envoi de message'] },
+  { heading: 'Moteur déterministe', items: ['Règles simples et reproductibles', 'Basé uniquement sur les données existantes', 'Aucune IA externe'] },
+  { heading: 'Périmètre des données', items: ['Demandes « nouveaux venus » (newcomer_intakes)', 'Colonnes assignation & conversion', 'Pas de zone / ville / pays sur les nouveaux venus'] },
+]
 
 const STATUS: Record<string, { label: string; color: string }> = {
   new: { label: 'Nouveau', color: '#0EA5E9' },
@@ -83,10 +91,9 @@ export default function IntelligencePastoralePage() {
           <Link href="/admin/nouveaux-venus" className="btn-gold text-sm px-4 py-2.5 inline-flex items-center gap-2 mt-2">Voir les demandes <ArrowRight className="w-4 h-4" /></Link>
         </div>
 
-        {/* Bandeau lecture seule */}
-        <div className="card-royal p-3 mb-6 flex items-center gap-2" style={{ borderColor: 'rgba(34,197,94,0.25)' }}>
-          <ShieldCheck className="w-4 h-4 flex-shrink-0" style={{ color: '#22C55E' }} />
-          <p className="font-inter text-xs" style={{ color: '#86EFAC' }}>Assistant en <strong>lecture seule</strong> : aucune écriture, aucun changement de statut, aucun envoi. Les recommandations sont dérivées des données disponibles.</p>
+        {/* Transparence DISCRÈTE (Partie A) — remplace le bandeau plein + la carte « Limites & sécurité » */}
+        <div className="flex justify-end mb-4" data-print-hide>
+          <InfoDisclosure title="Transparence & sécurité" groups={SECURITY_GROUPS} />
         </div>
 
         {/* Assistant Pastoral (V2.5-B.2-B-①) — question contrôlée, réponse serveur déterministe */}
@@ -209,18 +216,6 @@ export default function IntelligencePastoralePage() {
                   </div>
                 )
               })()}
-            </div>
-
-            {/* Limites & sécurité */}
-            <div className="card-royal p-5">
-              <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2 mb-3"><ShieldCheck className="w-4 h-4 text-gold" /> Limites &amp; sécurité</h2>
-              <ul className="space-y-1.5 font-inter text-xs text-pearl/55 list-disc pl-5">
-                <li>Assistant strictement en <strong className="text-pearl/75">lecture seule</strong> : il n'écrit rien, ne change aucun statut, n'envoie aucun message.</li>
-                <li>Les recommandations sont <strong className="text-pearl/75">déterministes</strong> (règles simples), fondées uniquement sur les données existantes de <code>newcomer_intakes</code>. Pas d'IA externe.</li>
-                <li>L'assignation et la conversion utilisent des colonnes <strong className="text-pearl/75">déjà présentes</strong> (<code>assigned_to_profile_id</code>, <code>converted_profile_id</code>) exposées en lecture seule — aucune nouvelle donnée, aucune écriture, aucune migration.</li>
-                <li>La donnée <em>zone / territoire / ville / pays</em> <strong className="text-pearl/75">n'existe pas</strong> sur les nouveaux venus : aucune recommandation géographique n'est produite pour eux.</li>
-                <li>Le langage employé reste prudent et bienveillant ; ces indications aident au suivi et ne portent aucun jugement sur les personnes.</li>
-              </ul>
             </div>
           </>
         )}

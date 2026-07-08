@@ -15,6 +15,7 @@ import { computeNewcomerIntelligence, type IntakeLite, type IntelSummary, type P
 const PIPELINE_ACTIVE = new Set(['new', 'to_review', 'contacted']) // exclut converted/duplicate/archived
 const isAssigned = (i: IntakeLite) => !!(i.assigned_to_profile_id && String(i.assigned_to_profile_id).trim())
 const isConvertedLinked = (i: IntakeLite) => !!(i.converted_profile_id && String(i.converted_profile_id).trim())
+const hasNote = (i: IntakeLite) => !!(i.metadata?.admin_note && i.metadata.admin_note.trim())
 
 /** Synthèse chiffrée des demandes « Nouveau Venu » (réutilise le moteur déterministe). */
 export function getNewcomerIntakesSummary(intakes: IntakeLite[], now: number = Date.now()): IntelSummary {
@@ -36,10 +37,16 @@ export function getConversionIssues(intakes: IntakeLite[]): IntakeLite[] {
   return (intakes || []).filter((i) => i.status === 'converted' && !isConvertedLinked(i))
 }
 
+/** Nouveaux venus en pipeline actif sans note pastorale (metadata.admin_note). */
+export function getNewcomersWithoutNotes(intakes: IntakeLite[]): IntakeLite[] {
+  return (intakes || []).filter((i) => PIPELINE_ACTIVE.has(i.status) && !hasNote(i))
+}
+
 /** Nom des fonctions autorisées (contrôle explicite / tests anti-régression de l'allow-list). */
 export const ALLOWED_NEWCOMER_SELECTORS = [
   'getNewcomerIntakesSummary',
   'getNewcomerPriorities',
   'getUnassignedNewcomers',
   'getConversionIssues',
+  'getNewcomersWithoutNotes',
 ] as const

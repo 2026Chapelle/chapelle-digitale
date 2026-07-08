@@ -15,7 +15,7 @@ const rows: IntakeLite[] = [
 
 describe('buildAssistantResponse — structure commune', () => {
   it('inclut toujours dataBasis et limites (mention données disponibles)', () => {
-    for (const intent of ['rapport_global', 'suivis_prioritaires', 'nouveaux_venus', 'non_assignes', 'conversions_a_verifier', 'limites_donnees', 'unknown'] as const) {
+    for (const intent of ['rapport_global', 'suivis_prioritaires', 'nouveaux_venus', 'non_assignes', 'conversions_a_verifier', 'notes_manquantes', 'limites_donnees', 'unknown'] as const) {
       const r = buildAssistantResponse(intent, rows, NOW)
       expect(r.dataBasis).toContain('lecture seule')
       expect(r.limits.length).toBeGreaterThan(0)
@@ -40,6 +40,11 @@ describe('buildAssistantResponse — par intent', () => {
     const ids = r.people.map((p) => p.id)
     expect(ids).toEqual(['d'])          // d converted sans converted_profile_id
     expect(ids).not.toContain('e')      // e converted AVEC profil lié
+  })
+  it('notes_manquantes → actifs (non convertis) sans note pastorale', () => {
+    const r = buildAssistantResponse('notes_manquantes', rows, NOW)
+    const ids = r.people.map((p) => p.id).sort()
+    expect(ids).toEqual(['a', 'b']) // a(new,sans note) + b(to_review,sans note) ; c a une note ; d/e convertis
   })
   it('nouveaux_venus → arrivées ≤ 7 jours', () => {
     const r = buildAssistantResponse('nouveaux_venus', rows, NOW)
