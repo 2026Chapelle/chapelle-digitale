@@ -60,7 +60,7 @@ describe('computeNewcomerIntelligence — recommandations & questions', () => {
   })
   it('fournit des réponses rapides déterministes', () => {
     const r = computeNewcomerIntelligence(rows, NOW)
-    expect(r.quick.length).toBe(4)
+    expect(r.quick.length).toBe(6)
     for (const q of r.quick) { expect(q.question).toBeTruthy(); expect(q.answer).toBeTruthy() }
   })
   it('gère une liste vide sans planter', () => {
@@ -68,6 +68,89 @@ describe('computeNewcomerIntelligence — recommandations & questions', () => {
     expect(r.summary.total).toBe(0)
     expect(r.priorities).toEqual([])
     expect(r.recommendations).toEqual([])
-    expect(r.quick.length).toBe(4)
+    expect(r.quick.length).toBe(6)
+  })
+})
+
+// ── V2.5-B.2-A — signaux enrichis (colonnes existantes uniquement) ──────────────
+const enriched: IntakeLite[] = [
+  { id: 'n1', prenom: 'Ada', nom: 'K', status: 'new', created_at: iso(2), metadata: null, assigned_to_profile_id: null },                         // actif, non assigné
+  { id: 'n2', prenom: 'Ben', nom: 'L', status: 'to_review', created_at: iso(3), metadata: null, assigned_to_profile_id: 'prof-1' },               // actif, assigné
+  { id: 'n3', prenom: 'Cyd', nom: 'M', status: 'contacted', created_at: iso(10), processed_at: iso(6), metadata: { admin_note: 'ok' }, assigned_to_profile_id: 'prof-2' }, // traité en 4j
+  { id: 'n4', prenom: 'Dan', nom: 'O', status: 'converted', created_at: iso(30), processed_at: iso(24), metadata: { admin_note: 'suivi' }, converted_profile_id: null },   // converti SANS profil lié
+  { id: 'n5', prenom: 'Eve', nom: 'P', status: 'converted', created_at: iso(40), processed_at: iso(30), metadata: { admin_note: 'suivi' }, converted_profile_id: 'prof-9' }, // converti AVEC profil lié
+]
+
+describe('computeNewcomerIntelligence — enrichissement V2.5-B.2-A', () => {
+  const r = computeNewcomerIntelligence(enriched, NOW)
+
+  it('compte assignés / non assignés sur les demandes actives', () => {
+    // actifs = n1,n2,n3,n4,n5 (aucun duplicate/archived). Assignés = n2,n3.
+    expect(r.summary.assignes).toBe(2)
+    expect(r.summary.nonAssignes).toBe(3)
+  })
+  it('compte les conversions et celles à vérifier (sans profil lié)', () => {
+    expect(r.summary.convertis).toBe(2)            // n4 + n5
+    expect(r.summary.conversionsAVerifier).toBe(1) // n4 (converted_profile_id null)
+  })
+  it('calcule un délai moyen de premier contact à partir de processed_at', () => {
+    // n3: 4j, n4: 6j, n5: 10j → moyenne ≈ 7
+    expect(r.summary.delaiContactMoyenJours).toBe(7)
+  })
+  it('produit les recommandations enrichies prudentes', () => {
+    const ids = r.recommendations.map((x) => x.id)
+    expect(ids).toContain('assigner')
+    expect(ids).toContain('conversion-verifier')
+    for (const rec of r.recommendations) expect(rec.count).toBeGreaterThan(0)
+  })
+  it('relève la sévérité via le champ priority existant sans élargir la liste', () => {
+    const urgent: IntakeLite[] = [{ id: 'u1', prenom: 'Zoe', nom: 'Q', status: 'to_review', created_at: iso(15), metadata: null, priority: 'urgent' }]
+    const ru = computeNewcomerIntelligence(urgent, NOW)
+    // 15 jours → normalement 'moyenne' ; priority urgent → relevé à 'haute'
+    expect(ru.priorities).toHaveLength(1)
+    expect(ru.priorities[0].severity).toBe('haute')
+  })
+  it('délai null quand aucune demande n’a été traitée', () => {
+    const untouched: IntakeLite[] = [{ id: 'x', prenom: 'X', nom: null, status: 'new', created_at: iso(1), metadata: null }]
+    expect(computeNewcomerIntelligence(untouched, NOW).summary.delaiContactMoyenJours).toBeNull()
+  })
+  it('reste rétro-compatible : rows sans champs enrichis → tout non assigné', () => {
+    const r2 = computeNewcomerIntelligence(rows, NOW)
+    expect(r2.summary.nonAssignes).toBeGreaterThan(0)
+    expect(r2.summary.assignes).toBe(0)
+  })
+})
+
+describe('computeNewcomerIntelligence — items cliquables des questions rapides', () => {
+  const r = computeNewcomerIntelligence(rows, NOW)
+  const q = (id: string) => r.quick.find((x) => x.id === id)!
+
+  it('chaque question porte une liste items (éventuellement vide)', () => {
+    for (const item of r.quick) expect(Array.isArray(item.items)).toBe(true)
+  })
+  it('« qui contacter » liste les non contactés actifs, exclut duplicate/archived', () => {
+    const ids = q('q-contact').items.map((i) => i.id)
+    expect(ids).toContain('a')
+    expect(ids).toContain('b')
+    expect(ids).not.toContain('c') // déjà contacté
+    expect(ids).not.toContain('e') // archived
+    expect(ids).not.toContain('f') // duplicate
+  })
+  it('les items exposent reason / status / createdAt / severity (pour href et badges UI)', () => {
+    const it = q('q-contact').items[0]
+    expect(it.id).toBeTruthy()
+    expect(it.name).toBeTruthy()
+    expect(it.reason).toBeTruthy()
+    expect(it.status).toBeTruthy()
+    expect(it.createdAt).toBeTruthy()
+    expect(['haute', 'moyenne', 'douce']).toContain(it.severity)
+  })
+  it('« intégrés ou en suivi » liste converted + contacted', () => {
+    const ids = q('q-suivi').items.map((i) => i.id).sort()
+    expect(ids).toEqual(['c', 'd'])
+  })
+  it('liste vide → items vides sur chaque question', () => {
+    const empty = computeNewcomerIntelligence([], NOW)
+    for (const item of empty.quick) expect(item.items).toEqual([])
   })
 })

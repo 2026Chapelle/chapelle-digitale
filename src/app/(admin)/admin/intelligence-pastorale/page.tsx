@@ -36,6 +36,19 @@ function Kpi({ icon: Icon, label, value, color }: { icon: any; label: string; va
   )
 }
 
+/** Signal enrichi (V2.5-B.2-A) — variante compacte acceptant une valeur numérique ou textuelle (ex. « — », « 7 j »). */
+function Signal({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${color}20` }}><Icon className="w-4 h-4" style={{ color }} /></div>
+      <div>
+        <div className="font-cinzel text-lg font-black text-pearl leading-none">{value}</div>
+        <div className="text-[11px] text-pearl/45 font-inter mt-1">{label}</div>
+      </div>
+    </div>
+  )
+}
+
 export default function IntelligencePastoralePage() {
   const [intakes, setIntakes] = useState<IntakeLite[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,6 +101,17 @@ export default function IntelligencePastoralePage() {
               <Kpi icon={UserCheck} label="Contactés" value={intel.summary.contactes} color="#8B5CF6" />
               <Kpi icon={HeartHandshake} label="Intégrés / en suivi" value={intel.summary.integresOuSuivi} color="#22C55E" />
               <Kpi icon={StickyNote} label="Avec note pastorale" value={intel.summary.avecNote} color="#0EA5E9" />
+            </div>
+
+            {/* Signaux enrichis (V2.5-B.2-A) — assignation & conversion, colonnes existantes uniquement */}
+            <div className="card-royal p-5 mb-8">
+              <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2 mb-4"><UserCheck className="w-4 h-4 text-gold" /> Assignation &amp; conversion</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Signal icon={UserCheck} label="Demandes assignées" value={intel.summary.assignes} color="#22C55E" />
+                <Signal icon={Users} label="Actives sans responsable" value={intel.summary.nonAssignes} color="#F59E0B" />
+                <Signal icon={AlertTriangle} label="Conversions à vérifier" value={intel.summary.conversionsAVerifier} color="#EF4444" />
+                <Signal icon={Clock} label="Délai moyen 1ᵉʳ contact" value={intel.summary.delaiContactMoyenJours === null ? '—' : `${intel.summary.delaiContactMoyenJours} j`} color="#8B5CF6" />
+              </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6 mb-6">
@@ -146,11 +170,41 @@ export default function IntelligencePastoralePage() {
                     className={`text-xs font-inter px-3 py-1.5 rounded-full border transition-colors ${openQ === q.id ? 'text-gold bg-gold/10 border-gold/30' : 'text-pearl/60 border-white/10 bg-white/[0.03] hover:bg-white/[0.07] hover:text-gold'}`}>{q.question}</button>
                 ))}
               </div>
-              {openQ && (
-                <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-                  <p className="font-inter text-sm text-pearl/80">{intel.quick.find((q) => q.id === openQ)?.answer}</p>
-                </div>
-              )}
+              {openQ && (() => {
+                const q = intel.quick.find((x) => x.id === openQ)
+                if (!q) return null
+                const LIMIT = 5
+                const shown = q.items.slice(0, LIMIT)
+                const extra = q.items.length - shown.length
+                return (
+                  <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+                    <p className="font-inter text-sm text-pearl/80">{q.answer}</p>
+                    {q.items.length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        {shown.map((it) => {
+                          const st = STATUS[it.status] || { label: it.status, color: '#6B7280' }
+                          const sev = SEV[it.severity] || { label: it.severity, color: '#6B7280' }
+                          return (
+                            <Link key={it.id} href={`/admin/nouveaux-venus/${it.id}`} className="block rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] p-2.5 transition-colors">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-inter text-sm text-pearl/85">{it.name}</span>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold font-inter" style={{ background: `${sev.color}22`, color: sev.color }}>{sev.label}</span>
+                              </div>
+                              <p className="font-inter text-xs text-pearl/55 mt-0.5">{it.reason}</p>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold font-inter mt-1.5" style={{ background: `${st.color}18`, color: st.color }}>{st.label}</span>
+                            </Link>
+                          )
+                        })}
+                        {extra > 0 && (
+                          <Link href="/admin/nouveaux-venus" className="block text-center text-xs font-inter text-gold/80 hover:text-gold py-1.5">+{extra} autre(s) — voir toutes les demandes</Link>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="font-inter text-xs text-pearl/40 mt-2">Aucune demande concernée pour le moment.</p>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Limites & sécurité */}
@@ -159,7 +213,8 @@ export default function IntelligencePastoralePage() {
               <ul className="space-y-1.5 font-inter text-xs text-pearl/55 list-disc pl-5">
                 <li>Assistant strictement en <strong className="text-pearl/75">lecture seule</strong> : il n'écrit rien, ne change aucun statut, n'envoie aucun message.</li>
                 <li>Les recommandations sont <strong className="text-pearl/75">déterministes</strong> (règles simples), fondées uniquement sur les données existantes de <code>newcomer_intakes</code>. Pas d'IA externe.</li>
-                <li>La donnée <em>zone / territoire</em> n'existe pas sur ces demandes : aucune recommandation géographique n'est produite.</li>
+                <li>L'assignation et la conversion utilisent des colonnes <strong className="text-pearl/75">déjà présentes</strong> (<code>assigned_to_profile_id</code>, <code>converted_profile_id</code>) exposées en lecture seule — aucune nouvelle donnée, aucune écriture, aucune migration.</li>
+                <li>La donnée <em>zone / territoire / ville / pays</em> <strong className="text-pearl/75">n'existe pas</strong> sur les nouveaux venus : aucune recommandation géographique n'est produite pour eux.</li>
                 <li>Le langage employé reste prudent et bienveillant ; ces indications aident au suivi et ne portent aucun jugement sur les personnes.</li>
               </ul>
             </div>

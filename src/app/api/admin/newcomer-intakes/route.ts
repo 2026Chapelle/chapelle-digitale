@@ -15,7 +15,11 @@ import { mergeAdminNote, normalizeAdminNote } from '@/lib/pastoral/newcomer-note
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const COLS = 'id, prenom, nom, telephone, email, source, message, priority, status, created_at, processed_at, archived_at, metadata'
+// V2.5-B.2-A : on expose EN PLUS trois colonnes DÉJÀ existantes (aucune migration,
+// aucune écriture) — assigned_to_profile_id / converted_profile_id / intake_payload —
+// pour que le moteur d'intelligence pastorale puisse raisonner sur l'assignation et
+// la conversion. Lecture seule stricte : ces colonnes ne sont jamais écrites ici.
+const COLS = 'id, prenom, nom, telephone, email, source, message, priority, status, created_at, processed_at, archived_at, metadata, assigned_to_profile_id, converted_profile_id, intake_payload'
 const ALLOWED_STATUS = ['new', 'to_review', 'contacted', 'converted', 'duplicate', 'archived'] as const
 
 export async function GET(req: NextRequest) {
