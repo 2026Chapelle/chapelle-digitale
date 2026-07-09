@@ -11,7 +11,8 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Loader2, ArrowLeft, Phone, MessageCircle, Mail, StickyNote, User, Calendar, Tag, History, Save } from 'lucide-react'
+import { Loader2, ArrowLeft, Phone, MessageCircle, Mail, StickyNote, User, Calendar, Tag, History, Save, Clock, AlertTriangle } from 'lucide-react'
+import { triageNewcomer, heardFrom, relativeDaysLabel } from '@/lib/pastoral/newcomer-triage'
 
 interface Intake {
   id: string
@@ -27,6 +28,7 @@ interface Intake {
   processed_at: string | null
   archived_at: string | null
   metadata?: { admin_note?: string; admin_note_at?: string } | null
+  intake_payload?: { heard_from?: string | null } | null
 }
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -123,6 +125,9 @@ export default function NewcomerDetailPage() {
     ? (intake.status === 'archived' ? intake.archived_at
       : (intake.status === 'contacted' || intake.status === 'converted') ? intake.processed_at : null)
     : null
+  // Triage pastoral (V2.6-A) — dérivé des champs existants, aucun SQL.
+  const tri = intake ? triageNewcomer(intake, Date.now()) : null
+  const hf = intake ? heardFrom(intake.intake_payload) : null
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -144,7 +149,16 @@ export default function NewcomerDetailPage() {
               <PageHeader eyebrow="Accueil pastoral · fiche"
                 title={<>{intake.prenom} <span className="text-cinematic-gold">{intake.nom || ''}</span></>}
                 description={`Reçue le ${fmtDate(intake.created_at)} · ${sourceLabel(intake.source)}`} />
-              {st && <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold font-inter mt-2" style={{ background: `${st.color}22`, color: st.color }}>{st.label}</span>}
+              <div className="flex flex-col items-end gap-1.5 mt-2">
+                {st && <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold font-inter" style={{ background: `${st.color}22`, color: st.color }}>{st.label}</span>}
+                {tri && (
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    <span className="text-[11px] text-pearl/40 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {relativeDaysLabel(tri.ageDays)}</span>
+                    {tri.isOverdue && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1" style={{ background: '#EF444422', color: '#F87171' }}><AlertTriangle className="w-2.5 h-2.5" /> En retard</span>}
+                    {tri.followUpDue && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1" style={{ background: '#F59E0B22', color: '#FBBF24' }}><AlertTriangle className="w-2.5 h-2.5" /> À relancer</span>}
+                  </div>
+                )}
+              </div>
             </div>
 
             {error && <div className="card-royal p-3 mb-4 text-sm text-danger font-inter">{error}</div>}
@@ -157,6 +171,7 @@ export default function NewcomerDetailPage() {
                   <div className="flex justify-between gap-3"><dt className="text-pearl/40">Prénom</dt><dd className="text-pearl/85">{intake.prenom}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-pearl/40">Nom</dt><dd className="text-pearl/85">{intake.nom || '—'}</dd></div>
                   <div className="flex justify-between gap-3"><dt className="text-pearl/40 inline-flex items-center gap-1"><Tag className="w-3 h-3" /> Source</dt><dd className="text-pearl/70 text-right">{sourceLabel(intake.source)}</dd></div>
+                  {hf && <div className="flex justify-between gap-3"><dt className="text-pearl/40">Comment nous a connus</dt><dd className="text-pearl/70 text-right">{hf}</dd></div>}
                   <div className="flex justify-between gap-3"><dt className="text-pearl/40 inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> Reçue le</dt><dd className="text-pearl/70 text-right">{fmtDate(intake.created_at)}</dd></div>
                 </dl>
               </div>
@@ -232,6 +247,18 @@ export default function NewcomerDetailPage() {
                   <p className="font-inter text-sm text-pearl/85">Statut pastoral actuel : <span style={{ color: st?.color }}>{st?.label}</span></p>
                   {statusSince && <p className="font-inter text-[11px] text-pearl/40 mt-0.5">Depuis le {fmtDate(statusSince)}</p>}
                 </li>
+                {/* Urgence pastorale dérivée (V2.6-A) — seulement si en retard / à relancer */}
+                {tri && (tri.isOverdue || tri.followUpDue) && (
+                  <li className="relative pl-5" data-marker="MARKER_TIMELINE_URGENCY_OK">
+                    <span className="absolute -left-[6px] top-1.5 w-2.5 h-2.5 rounded-full" style={{ background: tri.isOverdue ? '#EF4444' : '#F59E0B' }} />
+                    <p className="font-inter text-sm text-pearl/85">{tri.isOverdue ? 'En attente de contact' : 'À relancer'}</p>
+                    <p className="font-inter text-[11px] text-pearl/50 mt-0.5">
+                      {tri.isOverdue
+                        ? `Reçue il y a ${tri.ageDays} j, pas encore contactée.`
+                        : `Contactée il y a ${tri.sinceContactDays} j, sans intégration.`}
+                    </p>
+                  </li>
+                )}
                 {/* Dernière note pastorale (si disponible) */}
                 {intake.metadata?.admin_note && (
                   <li className="relative pl-5">

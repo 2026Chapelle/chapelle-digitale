@@ -9,9 +9,10 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import Link from 'next/link'
-import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search, QrCode, Download, Copy, Check, ExternalLink, Eye, MoreHorizontal } from 'lucide-react'
+import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search, QrCode, Download, Copy, Check, ExternalLink, Eye, MoreHorizontal, Clock, AlertTriangle, UserCheck } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { filterNewcomers } from '@/lib/pastoral/newcomer-filter'
+import { summarizeTriage, triageNewcomer, compareByPastoralUrgency, heardFrom, relativeDaysLabel } from '@/lib/pastoral/newcomer-triage'
 
 interface Intake {
   id: string
@@ -27,6 +28,7 @@ interface Intake {
   processed_at: string | null
   archived_at: string | null
   metadata?: { admin_note?: string; admin_note_at?: string } | null
+  intake_payload?: { heard_from?: string | null } | null
 }
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -64,6 +66,7 @@ export default function AdminNouveauxVenusPage() {
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
   const [query, setQuery] = useState('')
+  const [sortMode, setSortMode] = useState<'recent' | 'pastoral'>('recent')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [noteOpenId, setNoteOpenId] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
@@ -168,6 +171,16 @@ export default function AdminNouveauxVenusPage() {
   // Filtre statut + recherche texte, côté client, sur la liste complète (V2.2-C).
   const filtered = useMemo(() => filterNewcomers(intakes, { status: statusFilter, query }), [intakes, statusFilter, query])
 
+  // Triage pastoral (V2.6-A) — dérivé des champs existants (created_at/processed_at), aucun SQL.
+  const nowMs = Date.now()
+  const summary = useMemo(() => summarizeTriage(intakes, Date.now()), [intakes])
+  // Tri « priorité pastorale » (plus anciens à traiter d'abord) ou « plus récents » (défaut = ordre API).
+  const sorted = useMemo(() => {
+    if (sortMode === 'recent') return filtered
+    const now = Date.now()
+    return [...filtered].sort((a, b) => compareByPastoralUrgency(a, b, now))
+  }, [filtered, sortMode])
+
   return (
     <div className="min-h-screen pt-24 pb-16">
       <div className="container-royal">
@@ -181,6 +194,30 @@ export default function AdminNouveauxVenusPage() {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Rafraîchir
           </button>
         </div>
+
+        {/* Synthèse pastorale (V2.6-A) — compteurs dérivés des champs existants, aucun SQL. */}
+        {!loading && intakes.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 mb-2" data-marker="MARKER_TRIAGE_KPI_OK">
+            <div className="card-royal p-4">
+              <div className="flex items-center gap-2 text-pearl/45 text-[11px] uppercase tracking-wider font-inter mb-1"><Inbox className="w-3.5 h-3.5" /> À contacter</div>
+              <div className="font-cinzel text-2xl text-pearl/90">{summary.toContact}</div>
+              {summary.overdue > 0 && <div className="text-[11px] font-inter mt-1 inline-flex items-center gap-1" style={{ color: '#F87171' }}><AlertTriangle className="w-3 h-3" /> {summary.overdue} en retard</div>}
+            </div>
+            <div className="card-royal p-4">
+              <div className="flex items-center gap-2 text-pearl/45 text-[11px] uppercase tracking-wider font-inter mb-1"><Clock className="w-3.5 h-3.5" /> En cours</div>
+              <div className="font-cinzel text-2xl text-pearl/90">{summary.inProgress}</div>
+              {summary.followUpDue > 0 && <div className="text-[11px] font-inter mt-1 inline-flex items-center gap-1" style={{ color: '#FBBF24' }}><AlertTriangle className="w-3 h-3" /> {summary.followUpDue} à relancer</div>}
+            </div>
+            <div className="card-royal p-4">
+              <div className="flex items-center gap-2 text-pearl/45 text-[11px] uppercase tracking-wider font-inter mb-1"><UserCheck className="w-3.5 h-3.5" /> Intégrés</div>
+              <div className="font-cinzel text-2xl text-pearl/90">{summary.integrated}</div>
+            </div>
+            <div className="card-royal p-4">
+              <div className="flex items-center gap-2 text-pearl/45 text-[11px] uppercase tracking-wider font-inter mb-1"><Inbox className="w-3.5 h-3.5" /> Total</div>
+              <div className="font-cinzel text-2xl text-pearl/90">{summary.total}</div>
+            </div>
+          </div>
+        )}
 
         {/* QR Code Nouveau Venu (V2.4-A) — lien public d'accueil */}
         <div className="card-royal p-5 mb-6 flex flex-col sm:flex-row items-center gap-5">
@@ -232,9 +269,20 @@ export default function AdminNouveauxVenusPage() {
           })}
         </div>
 
-        <p className="text-[11px] text-pearl/35 font-inter mb-4">
-          {filtered.length} / {intakes.length} demande(s) affichée(s){intakes.length >= 500 ? ' · 500 plus récentes (plafond)' : ''}
-        </p>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+          <p className="text-[11px] text-pearl/35 font-inter">
+            {filtered.length} / {intakes.length} demande(s) affichée(s){intakes.length >= 500 ? ' · 500 plus récentes (plafond)' : ''}
+          </p>
+          <div className="inline-flex items-center gap-1 text-[11px] font-inter" data-marker="MARKER_TRIAGE_SORT_OK">
+            <span className="text-pearl/35">Trier :</span>
+            {([['recent', 'Plus récents'], ['pastoral', 'Priorité pastorale']] as const).map(([val, label]) => (
+              <button key={val} onClick={() => setSortMode(val)}
+                className={`px-2.5 py-1 rounded-full font-semibold transition-all ${sortMode === val ? 'bg-gold text-black' : 'bg-pearl/5 text-pearl/50 hover:bg-pearl/10 hover:text-pearl/80'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {error && <div className="card-royal p-3 mb-4 text-sm text-danger font-inter">{error}</div>}
 
@@ -263,8 +311,10 @@ export default function AdminNouveauxVenusPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((i) => {
+                  {sorted.map((i) => {
                     const st = STATUS[i.status] || { label: i.status, color: '#6B7280' }
+                    const tri = triageNewcomer(i, nowMs)
+                    const hf = heardFrom(i.intake_payload)
                     return (
                       <Fragment key={i.id}>
                         <tr className="border-b border-white/[0.03] hover:bg-white/[0.02] align-top">
@@ -283,12 +333,20 @@ export default function AdminNouveauxVenusPage() {
                         </td>
                         <td className="px-4 py-3 text-pearl/60 font-inter">
                           <span className="inline-block max-w-[180px] text-xs" title={i.source || undefined}>{sourceLabel(i.source)}</span>
+                          {hf && <div className="text-[11px] text-pearl/40 mt-0.5 truncate max-w-[180px]" title={hf}>via « {hf} »</div>}
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold font-inter"
                             style={{ background: `${st.color}22`, color: st.color }}>{st.label}</span>
                         </td>
-                        <td className="px-4 py-3 text-pearl/50 font-inter whitespace-nowrap">{fmtDate(i.created_at)}</td>
+                        <td className="px-4 py-3 text-pearl/50 font-inter whitespace-nowrap">
+                          <div>{fmtDate(i.created_at)}</div>
+                          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] text-pearl/40 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {relativeDaysLabel(tri.ageDays)}</span>
+                            {tri.isOverdue && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1" style={{ background: '#EF444422', color: '#F87171' }}><AlertTriangle className="w-2.5 h-2.5" /> En retard</span>}
+                            {tri.followUpDue && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-flex items-center gap-1" style={{ background: '#F59E0B22', color: '#FBBF24' }}><AlertTriangle className="w-2.5 h-2.5" /> À relancer</span>}
+                          </div>
+                        </td>
                         {/* MARKER_NO_SQL_V24E — actions UI uniquement, réutilisent les fonctions existantes (aucun SQL, aucune API modifiée) */}
                         <td className="sticky right-0 z-10 px-4 py-3 bg-[#120d1f]/95 border-l border-white/10 shadow-[-12px_0_24px_rgba(0,0,0,0.16)]" data-marker="MARKER_ACTIONS_REDESIGN_OK">
                           <div className="flex items-center gap-1.5 justify-end whitespace-nowrap">
