@@ -30,6 +30,10 @@ describe('readJourneyFields (tolérant)', () => {
     expect(f.last_contacted_at).toBeNull()
     expect(f.journey_completed_at).toBeNull()
   })
+  it('lit last_contacted_at quand présent (régression V2.8-A.1)', () => {
+    const f = readJourneyFields({ journey_status: 'active', last_contacted_at: '2026-07-09T12:00:00Z' })
+    expect(f.last_contacted_at).toBe('2026-07-09T12:00:00Z')
+  })
   it('objet vide / null / non-objet → tout null', () => {
     for (const x of [null, undefined, 42, 'x', []]) {
       const f = readJourneyFields(x)

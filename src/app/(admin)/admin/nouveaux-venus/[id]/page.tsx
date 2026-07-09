@@ -109,7 +109,12 @@ export default function NewcomerDetailPage() {
       })
       const j = await r.json().catch(() => ({}))
       if (!r.ok || j?.ok !== true) setError(j?.message || 'Mise à jour du parcours impossible. Réessayez.')
-      else { setStepDraft(''); setJFollowDraft(''); await load() }
+      else {
+        setStepDraft(''); setJFollowDraft('')
+        // Mise à jour immédiate depuis la réponse AUTORITATIVE du serveur (évite tout cache de rechargement).
+        if (j?.data && typeof j.data === 'object') setIntake((prev) => (prev ? { ...prev, ...j.data } : prev))
+        await load()
+      }
     } catch { setError('Mise à jour du parcours impossible. Réessayez.') }
     setJourneyBusy(null)
   }
@@ -156,7 +161,7 @@ export default function NewcomerDetailPage() {
     if (!id) return
     setLoading(true); setError(null)
     try {
-      const r = await fetch('/api/admin/newcomer-intakes', { credentials: 'same-origin' })
+      const r = await fetch('/api/admin/newcomer-intakes', { credentials: 'same-origin', cache: 'no-store' })
       const j = await r.json().catch(() => ({}))
       if (!r.ok || j?.ok !== true) { setError('Impossible de charger la fiche. Réessayez.'); setLoading(false); return }
       const found: Intake | null = (j.data?.intakes || []).find((x: Intake) => x.id === id) || null
@@ -165,7 +170,7 @@ export default function NewcomerDetailPage() {
         setIntake(found); setNoteDraft(found.metadata?.admin_note || ''); setStepCatalog(buildStepCatalog(j.data?.journeySteps))
         // V2.7-B — historique de parcours (best-effort, lecture seule ; échec silencieux).
         try {
-          const er = await fetch(`/api/admin/newcomer-journey?intake_id=${encodeURIComponent(found.id)}`, { credentials: 'same-origin' })
+          const er = await fetch(`/api/admin/newcomer-journey?intake_id=${encodeURIComponent(found.id)}`, { credentials: 'same-origin', cache: 'no-store' })
           const ej = await er.json().catch(() => ({}))
           setJourneyEvents(er.ok && ej?.ok === true ? normalizeEvents(ej.data?.events) : [])
         } catch { setJourneyEvents([]) }
