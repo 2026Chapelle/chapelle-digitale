@@ -1,8 +1,9 @@
 {
-  "name": "La Chapelle Internationale des Élus du Royaume",
-  "short_name": "CIER",
-  "description": "Une Église Ouverte au Monde — Communauté chrétienne francophone mondiale",
+  "name": "Citadelle — La Chapelle",
+  "short_name": "Citadelle",
+  "description": "Application pastorale digitale de La Chapelle Internationale des Élus du Royaume — prier, suivre les cultes, grandir, donner et rester connecté à la famille.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#050505",
   "theme_color": "#050505",

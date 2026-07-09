@@ -7,6 +7,11 @@ import { GrowSection } from '@/components/sections/GrowSection'
 import { CommunitySection } from '@/components/sections/CommunitySection'
 import { JoinSection } from '@/components/sections/JoinSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
+import { HomeJoinPopup } from '@/components/home/HomeJoinPopup'
+import { FeaturedEventsSection } from '@/components/home/FeaturedEventsSection'
+import { InstallCitadelleSection } from '@/components/home/InstallCitadelleSection'
+import { PastoralAppSection } from '@/components/home/PastoralAppSection'
+import { GlobalPresenceSection } from '@/components/home/GlobalPresenceSection'
 
 /**
  * Accueil PILOTÉ PAR LE CMS (table cms_homepage_blocks).
@@ -63,15 +68,25 @@ export async function HomeSections() {
 
   return (
     <div className="bg-charbon relative">
+      {/* Popup première visite (V2.7-A) — rendu une fois, s'ouvre après 5 s. */}
+      <HomeJoinPopup />
+
+      {/* Blocs CMS existants (préservés). Injection additive : événements réels après le hero. */}
       {ordered.map((key, i) => {
         const Section = COMPONENTS[key]
         return (
           <div key={key}>
             {i > 0 && <SectionGlow />}
             <Section block={byKey[key]} />
+            {key === 'hero' && (<><SectionGlow /><FeaturedEventsSection /></>)}
           </div>
         )
       })}
+
+      {/* Sections premium « application pastorale » (V2.7-A) — toujours visibles, avant le footer. */}
+      <SectionGlow /><InstallCitadelleSection />
+      <SectionGlow /><PastoralAppSection />
+      <SectionGlow /><GlobalPresenceSection />
     </div>
   )
 }
