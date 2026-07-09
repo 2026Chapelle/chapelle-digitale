@@ -16,7 +16,12 @@ import { triageNewcomer, heardFrom, relativeDaysLabel } from '@/lib/pastoral/new
 import { deriveJourneyStage } from '@/lib/pastoral/newcomer-journey'
 import { getMessagesForStage, interpolateMessage } from '@/lib/pastoral/newcomer-messages'
 import { PASTORAL_ACTIONS, parseJourney, isStepDone } from '@/lib/pastoral/newcomer-actions'
-import { CalendarClock, BellRing, X } from 'lucide-react'
+import { CalendarClock, BellRing, X, Route } from 'lucide-react'
+import {
+  readJourneyFields, hasJourney, journeyStatusLabel, journeyStepLabel, fmtWhen, isFollowUpOverdue,
+  eventLine, normalizeEvents, FALLBACK_NO_JOURNEY, FALLBACK_NO_FOLLOWUP, FALLBACK_NO_CONTACT, FALLBACK_NO_HISTORY,
+  type NewcomerJourneyEvent,
+} from '@/lib/pastoral/newcomer-journey-model'
 
 // Liens d'ORIENTATION recommandée (routes admin vérifiées existantes) — lecture seule.
 const ORIENTATION_LINKS = [
@@ -86,6 +91,7 @@ export default function NewcomerDetailPage() {
   const [actionBusy, setActionBusy] = useState<string | null>(null)
   const [followUpBusy, setFollowUpBusy] = useState(false)
   const [followUpDraft, setFollowUpDraft] = useState('')
+  const [journeyEvents, setJourneyEvents] = useState<NewcomerJourneyEvent[]>([])
 
   async function copyMessage(id: string, body: string) {
     try { await navigator.clipboard.writeText(body); setCopiedMsgId(id); setTimeout(() => setCopiedMsgId((c) => (c === id ? null : c)), 2000) }
@@ -134,7 +140,15 @@ export default function NewcomerDetailPage() {
       if (!r.ok || j?.ok !== true) { setError('Impossible de charger la fiche. Réessayez.'); setLoading(false); return }
       const found: Intake | null = (j.data?.intakes || []).find((x: Intake) => x.id === id) || null
       if (!found) setNotFound(true)
-      else { setIntake(found); setNoteDraft(found.metadata?.admin_note || '') }
+      else {
+        setIntake(found); setNoteDraft(found.metadata?.admin_note || '')
+        // V2.7-B — historique de parcours (best-effort, lecture seule ; échec silencieux).
+        try {
+          const er = await fetch(`/api/admin/newcomer-journey?intake_id=${encodeURIComponent(found.id)}`, { credentials: 'same-origin' })
+          const ej = await er.json().catch(() => ({}))
+          setJourneyEvents(er.ok && ej?.ok === true ? normalizeEvents(ej.data?.events) : [])
+        } catch { setJourneyEvents([]) }
+      }
     } catch { setError('Impossible de charger la fiche. Réessayez.') }
     setLoading(false)
   }, [id])
@@ -186,6 +200,8 @@ export default function NewcomerDetailPage() {
   const stageMessages = journey ? getMessagesForStage(journey.stage) : []
   // V2.6-C — actions pastorales persistées (lecture du metadata.pastoral_journey réel).
   const pj = intake ? parseJourney(intake.metadata) : null
+  // V2.7-B — champs de parcours du modèle SQL (tolérant : null si absent).
+  const jf = intake ? readJourneyFields(intake) : null
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -246,6 +262,42 @@ export default function NewcomerDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Parcours pastoral (V2.7-B) — modèle SQL, lecture seule, tolérant aux champs absents */}
+            {jf && (
+              <div className="card-royal p-5 mb-4" data-marker="MARKER_JOURNEY_SQL_OK">
+                <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2 mb-3"><Route className="w-4 h-4 text-gold" /> Parcours pastoral</h2>
+                {hasJourney(jf) ? (
+                  <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm font-inter">
+                    <div className="flex justify-between gap-3"><dt className="text-pearl/40">Étape actuelle</dt><dd className="text-pearl/85 text-right">{journeyStepLabel(jf.journey_step_key)}</dd></div>
+                    <div className="flex justify-between gap-3"><dt className="text-pearl/40">Statut</dt><dd className="text-pearl/85 text-right">{journeyStatusLabel(jf.journey_status)}</dd></div>
+                    <div className="flex justify-between gap-3"><dt className="text-pearl/40">Relance prévue</dt><dd className={`text-right ${isFollowUpOverdue(jf, Date.now()) ? 'text-[#F87171]' : 'text-pearl/70'}`}>{jf.follow_up_due_at ? fmtWhen(jf.follow_up_due_at) : FALLBACK_NO_FOLLOWUP}</dd></div>
+                    <div className="flex justify-between gap-3"><dt className="text-pearl/40">Dernier contact</dt><dd className="text-pearl/70 text-right">{jf.last_contacted_at ? fmtWhen(jf.last_contacted_at) : FALLBACK_NO_CONTACT}</dd></div>
+                    <div className="flex justify-between gap-3"><dt className="text-pearl/40">Mise à jour</dt><dd className="text-pearl/60 text-right">{fmtWhen(jf.journey_updated_at)}</dd></div>
+                    {jf.journey_completed_at && <div className="flex justify-between gap-3"><dt className="text-pearl/40">Terminé le</dt><dd className="text-[#22C55E]/80 text-right">{fmtWhen(jf.journey_completed_at)}</dd></div>}
+                  </dl>
+                ) : (
+                  <p className="text-sm font-inter text-pearl/40">{FALLBACK_NO_JOURNEY}.</p>
+                )}
+                <p className="text-[11px] uppercase tracking-wider text-pearl/35 font-inter mt-4 mb-2">Historique récent</p>
+                {journeyEvents.length > 0 ? (
+                  <ol className="relative ml-2 border-l border-white/10 space-y-3">
+                    {journeyEvents.map((ev, idx) => {
+                      const l = eventLine(ev)
+                      return (
+                        <li key={ev.id || idx} className="relative pl-4">
+                          <span className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-gold/60" />
+                          <p className="font-inter text-[13px] text-pearl/80">{l.label}</p>
+                          {l.when && <p className="font-inter text-[11px] text-pearl/40 mt-0.5">{l.when}</p>}
+                        </li>
+                      )
+                    })}
+                  </ol>
+                ) : (
+                  <p className="text-sm font-inter text-pearl/40">{FALLBACK_NO_HISTORY}.</p>
+                )}
+              </div>
+            )}
 
             {/* Accompagnement pastoral guidé (V2.6-B) — dérivé, lecture seule, aucun SQL */}
             {journey && (

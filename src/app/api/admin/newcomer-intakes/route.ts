@@ -37,7 +37,26 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await query
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
-    return NextResponse.json({ ok: true, data: { intakes: data || [] } })
+
+    // V2.7-B (best-effort, lecture seule) : enrichit chaque demande avec les colonnes de
+    // parcours (modèle SQL V2.7-A) via une requête SÉPARÉE. Si ces colonnes n'existent pas
+    // encore, on ignore silencieusement — l'inbox n'est jamais cassée (compatibilité totale).
+    let intakes = data || []
+    try {
+      const ids = intakes.map((i: { id: string }) => i.id).filter(Boolean)
+      if (ids.length) {
+        const { data: jrows, error: jerr } = await supabaseAdmin
+          .from('newcomer_intakes')
+          .select('id, journey_step_key, journey_status, journey_updated_at, journey_completed_at, follow_up_due_at, last_contacted_at')
+          .in('id', ids)
+        if (!jerr && Array.isArray(jrows)) {
+          const map = new Map((jrows as Array<{ id: string }>).map((r) => [r.id, r]))
+          intakes = intakes.map((i) => ({ ...i, ...(map.get(i.id) || {}) }))
+        }
+      }
+    } catch { /* modèle parcours absent → fallback UI « Parcours non renseigné » */ }
+
+    return NextResponse.json({ ok: true, data: { intakes } })
   } catch (e: unknown) {
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : 'Erreur' }, { status: 500 })
   }
