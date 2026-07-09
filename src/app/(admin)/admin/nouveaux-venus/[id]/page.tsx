@@ -11,8 +11,17 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { Loader2, ArrowLeft, Phone, MessageCircle, Mail, StickyNote, User, Calendar, Tag, History, Save, Clock, AlertTriangle } from 'lucide-react'
+import { Loader2, ArrowLeft, Phone, MessageCircle, Mail, StickyNote, User, Calendar, Tag, History, Save, Clock, AlertTriangle, Compass, ListChecks, CheckCircle2, Circle, Copy, Check, GraduationCap, Users, ExternalLink, ArrowRight } from 'lucide-react'
 import { triageNewcomer, heardFrom, relativeDaysLabel } from '@/lib/pastoral/newcomer-triage'
+import { deriveJourneyStage } from '@/lib/pastoral/newcomer-journey'
+import { getMessagesForStage, interpolateMessage } from '@/lib/pastoral/newcomer-messages'
+
+// Liens d'ORIENTATION recommandée (routes admin vérifiées existantes) — lecture seule.
+const ORIENTATION_LINKS = [
+  { href: '/admin/tunnel-integration', label: "Parcours d'intégration", Icon: GraduationCap },
+  { href: '/admin/formations', label: 'Formations', Icon: GraduationCap },
+  { href: '/admin/groupes', label: 'Cellules / groupes', Icon: Users },
+] as const
 
 interface Intake {
   id: string
@@ -71,6 +80,12 @@ export default function NewcomerDetailPage() {
   const [busy, setBusy] = useState(false)
   const [noteDraft, setNoteDraft] = useState('')
   const [savingNote, setSavingNote] = useState(false)
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null)
+
+  async function copyMessage(id: string, body: string) {
+    try { await navigator.clipboard.writeText(body); setCopiedMsgId(id); setTimeout(() => setCopiedMsgId((c) => (c === id ? null : c)), 2000) }
+    catch { setCopiedMsgId(null) }
+  }
 
   const load = useCallback(async () => {
     if (!id) return
@@ -128,6 +143,9 @@ export default function NewcomerDetailPage() {
   // Triage pastoral (V2.6-A) — dérivé des champs existants, aucun SQL.
   const tri = intake ? triageNewcomer(intake, Date.now()) : null
   const hf = intake ? heardFrom(intake.intake_payload) : null
+  // Accompagnement guidé (V2.6-B) — dérivé de status + triage, 100% lecture seule.
+  const journey = intake && tri ? deriveJourneyStage(intake.status, tri, { hasNote: !!intake.metadata?.admin_note }) : null
+  const stageMessages = journey ? getMessagesForStage(journey.stage) : []
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -188,6 +206,70 @@ export default function NewcomerDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Accompagnement pastoral guidé (V2.6-B) — dérivé, lecture seule, aucun SQL */}
+            {journey && (
+              <div className="card-royal p-5 mb-4" data-marker="MARKER_JOURNEY_GUIDE_OK">
+                <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2 mb-3"><Compass className="w-4 h-4 text-gold" /> Accompagnement pastoral guidé</h2>
+                <div className="flex items-center gap-2 flex-wrap mb-3">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-inter" style={{ background: journey.isUrgent ? '#EF444422' : 'rgba(212,175,55,0.12)', color: journey.isUrgent ? '#F87171' : '#D4AF37' }}>
+                    Étape {journey.step} · {journey.label}
+                  </span>
+                </div>
+                <p className="text-[11px] uppercase tracking-wider text-pearl/35 font-inter mb-1">Prochaine action recommandée</p>
+                <p className="text-sm font-inter text-pearl/75 mb-4 flex items-start gap-2"><ArrowRight className="w-4 h-4 text-gold flex-shrink-0 mt-0.5" /> {journey.nextAction}</p>
+                <p className="text-[11px] uppercase tracking-wider text-pearl/35 font-inter mb-2 inline-flex items-center gap-1"><ListChecks className="w-3 h-3" /> Checklist pastorale (indicative)</p>
+                <ul className="space-y-1.5 mb-4">
+                  {journey.checklist.map((c) => (
+                    <li key={c.label} className="flex items-center gap-2 text-sm font-inter">
+                      {c.done ? <CheckCircle2 className="w-4 h-4 text-[#22C55E] flex-shrink-0" /> : <Circle className="w-4 h-4 text-pearl/25 flex-shrink-0" />}
+                      <span className={c.done ? 'text-pearl/70' : 'text-pearl/45'}>{c.label}</span>
+                    </li>
+                  ))}
+                </ul>
+                {journey.orientations.length > 0 && (
+                  <>
+                    <p className="text-[11px] uppercase tracking-wider text-pearl/35 font-inter mb-2">Parcours recommandé <span className="text-pearl/25 normal-case tracking-normal">— orientation, pas une progression synchronisée</span></p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ORIENTATION_LINKS.map((l) => (
+                        <Link key={l.href} href={l.href} className="text-[11px] font-inter px-2.5 py-1 rounded-md border border-white/10 bg-white/[0.03] text-pearl/70 hover:text-gold hover:bg-white/[0.07] transition-colors inline-flex items-center gap-1">
+                          <l.Icon className="w-3 h-3" /> {l.label} <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Messages prêts à copier (V2.6-B) — préparation seule, aucun envoi automatique */}
+            {journey && stageMessages.length > 0 && (
+              <div className="card-royal p-5 mb-4" data-marker="MARKER_JOURNEY_MESSAGES_OK">
+                <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2 mb-1"><MessageCircle className="w-4 h-4 text-gold" /> Messages prêts à copier</h2>
+                <p className="text-[11px] text-pearl/35 font-inter mb-3">Personnalisés avec le prénom. À copier puis envoyer via WhatsApp, e-mail ou appel — aucun envoi automatique.</p>
+                <div className="space-y-2.5">
+                  {stageMessages.map((m) => {
+                    const body = interpolateMessage(m.body, { prenom: intake.prenom })
+                    return (
+                      <div key={m.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="text-xs font-inter font-semibold text-pearl/80">{m.label}</span>
+                          <button onClick={() => copyMessage(m.id, body)} className="text-[11px] font-inter px-2 py-1 rounded-md border border-white/10 bg-white/[0.03] text-pearl/60 hover:text-gold hover:bg-white/[0.07] transition-colors inline-flex items-center gap-1">
+                            {copiedMsgId === m.id ? <><Check className="w-3 h-3" /> Copié</> : <><Copy className="w-3 h-3" /> Copier</>}
+                          </button>
+                        </div>
+                        <p className="text-[13px] font-inter text-pearl/60 leading-relaxed whitespace-pre-line">{body}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <a href={waLink(intake.telephone)} target="_blank" rel="noreferrer" className="text-xs font-inter px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5" style={{ background: 'rgba(34,197,94,0.12)', color: '#86EFAC', border: '1px solid rgba(34,197,94,0.3)' }}><MessageCircle className="w-3.5 h-3.5" /> Ouvrir WhatsApp</a>
+                  {intake.email && <a href={`mailto:${intake.email}`} className="text-xs font-inter px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5" style={{ background: 'rgba(255,255,255,0.06)', color: '#F5E6D8', border: '1px solid rgba(255,255,255,0.12)' }}><Mail className="w-3.5 h-3.5" /> Email</a>}
+                  <a href={`tel:${intake.telephone}`} className="text-xs font-inter px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5" style={{ background: 'rgba(255,255,255,0.06)', color: '#F5E6D8', border: '1px solid rgba(255,255,255,0.12)' }}><Phone className="w-3.5 h-3.5" /> Appeler</a>
+                </div>
+              </div>
+            )}
 
             {/* Suivi pastoral */}
             <div className="card-royal p-5 mb-4">
