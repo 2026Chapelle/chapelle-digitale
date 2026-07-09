@@ -47,6 +47,10 @@ export function Navbar() {
   const pathname = usePathname()
   const { user } = useAuth()
 
+  // En contexte back-office (/admin/*), le bouton d'espace doit rester dans l'univers
+  // administration (et non renvoyer vers l'espace membre). Purement UX — aucun RBAC ici.
+  const isAdminArea = pathname?.startsWith('/admin') ?? false
+
   // The entire platform is now cinematic dark — keep boolean for legacy checks
   const isDarkPage = true
 
@@ -230,7 +234,7 @@ export function Navbar() {
                 <>
                   <NotificationBell endpoint="/api/member/notifications" storageKey="notif_read_member" realtimeTable="app_notifications" markEndpoint="/api/member/notifications" />
                   <Link
-                    href="/member/dashboard"
+                    href={isAdminArea ? '/admin/dashboard' : '/member/dashboard'}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl font-inter text-xs font-semibold transition-all duration-200"
                     style={
                       isDarkPage
@@ -238,8 +242,8 @@ export function Navbar() {
                         : { background: '#111827', color: '#FFFFFF', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }
                     }
                   >
-                    <UserCircle className="w-3.5 h-3.5" />
-                    <span className="hidden sm:block">Mon Espace</span>
+                    {isAdminArea ? <Shield className="w-3.5 h-3.5" /> : <UserCircle className="w-3.5 h-3.5" />}
+                    <span className="hidden sm:block">{isAdminArea ? 'Back-office' : 'Mon Espace'}</span>
                   </Link>
                 </>
               ) : (
@@ -386,10 +390,10 @@ export function Navbar() {
               <div className="pt-5 border-t flex flex-col gap-2.5"
                 style={{ borderColor: isDarkPage ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
                 {user ? (
-                  <Link href="/member/dashboard" onClick={closeAll}
+                  <Link href={isAdminArea ? '/admin/dashboard' : '/member/dashboard'} onClick={closeAll}
                     className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-inter font-semibold text-sm"
                     style={{ background: '#111827', color: '#FFFFFF' }}>
-                    Mon Espace Membre
+                    {isAdminArea ? 'Back-office' : 'Mon Espace Membre'}
                   </Link>
                 ) : (
                   <>
