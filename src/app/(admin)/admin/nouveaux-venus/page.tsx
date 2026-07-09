@@ -15,7 +15,7 @@ import { filterNewcomers } from '@/lib/pastoral/newcomer-filter'
 import { summarizeTriage, triageNewcomer, compareByPastoralUrgency, heardFrom, relativeDaysLabel } from '@/lib/pastoral/newcomer-triage'
 import { deriveJourneyStage } from '@/lib/pastoral/newcomer-journey'
 import { parseJourney } from '@/lib/pastoral/newcomer-actions'
-import { readJourneyFields, hasJourney, journeyStatusLabel, journeyStepLabel, isFollowUpOverdue } from '@/lib/pastoral/newcomer-journey-model'
+import { readJourneyFields, hasJourney, journeyStatusLabel, journeyStepLabel, isFollowUpOverdue, buildStepCatalog, type NewcomerJourneyStep } from '@/lib/pastoral/newcomer-journey-model'
 
 interface Intake {
   id: string
@@ -76,6 +76,7 @@ export default function AdminNouveauxVenusPage() {
   const [savingNote, setSavingNote] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [stepCatalog, setStepCatalog] = useState<NewcomerJourneyStep[]>([])
   const qrRef = useRef<HTMLDivElement>(null)
 
   async function copyLink() {
@@ -121,7 +122,7 @@ export default function AdminNouveauxVenusPage() {
       const r = await fetch('/api/admin/newcomer-intakes', { credentials: 'same-origin' })
       const j = await r.json().catch(() => ({}))
       if (!r.ok || j?.ok !== true) { setError('Impossible de charger les demandes. Réessayez.'); setIntakes([]) }
-      else setIntakes(j.data?.intakes || [])
+      else { setIntakes(j.data?.intakes || []); setStepCatalog(buildStepCatalog(j.data?.journeySteps)) }
     } catch { setError('Impossible de charger les demandes. Réessayez.'); setIntakes([]) }
     setLoading(false)
   }, [])
@@ -348,8 +349,8 @@ export default function AdminNouveauxVenusPage() {
                           {pj.last_action && <div className="text-[10px] text-pearl/45 font-inter mt-0.5 truncate max-w-[160px]" title={pj.last_action.label} data-marker="MARKER_LAST_ACTION_OK">✓ {pj.last_action.label}</div>}
                           {pj.next_follow_up_at && <div className="text-[10px] text-gold/60 font-inter mt-0.5 inline-flex items-center gap-1 whitespace-nowrap"><BellRing className="w-2.5 h-2.5" /> Relance {new Date(pj.next_follow_up_at).toLocaleDateString('fr-FR')}</div>}
                           {hasJourney(jf) && (
-                            <div className="text-[10px] text-pearl/45 font-inter mt-0.5 truncate max-w-[170px]" data-marker="MARKER_JOURNEY_SQL_LIST_OK" title={`${journeyStatusLabel(jf.journey_status)} · ${journeyStepLabel(jf.journey_step_key)}`}>
-                              ⛩ {journeyStatusLabel(jf.journey_status)} · {journeyStepLabel(jf.journey_step_key)}
+                            <div className="text-[10px] text-pearl/45 font-inter mt-0.5 truncate max-w-[170px]" data-marker="MARKER_JOURNEY_SQL_LIST_OK" title={`${journeyStatusLabel(jf.journey_status)} · ${journeyStepLabel(jf.journey_step_key, stepCatalog)}`}>
+                              ⛩ {journeyStatusLabel(jf.journey_status)} · {journeyStepLabel(jf.journey_step_key, stepCatalog)}
                             </div>
                           )}
                           {jf.follow_up_due_at && <div className={`text-[10px] font-inter mt-0.5 whitespace-nowrap ${isFollowUpOverdue(jf, nowMs) ? 'text-[#F87171]' : 'text-pearl/40'}`}>Relance parcours {new Date(jf.follow_up_due_at).toLocaleDateString('fr-FR')}</div>}

@@ -56,7 +56,18 @@ export async function GET(req: NextRequest) {
       }
     } catch { /* modèle parcours absent → fallback UI « Parcours non renseigné » */ }
 
-    return NextResponse.json({ ok: true, data: { intakes } })
+    // V2.7-C (best-effort, lecture seule) : référentiel d'étapes pour libellés FR.
+    // Si la table est absente/vide, on renvoie [] → l'app applique ses libellés FR intégrés.
+    let journeySteps: unknown[] = []
+    try {
+      const { data: steps, error: serr } = await supabaseAdmin
+        .from('newcomer_journey_steps')
+        .select('step_key, label, sort_order')
+        .order('sort_order', { ascending: true })
+      if (!serr && Array.isArray(steps)) journeySteps = steps
+    } catch { /* référentiel absent → fallback FR intégré côté app */ }
+
+    return NextResponse.json({ ok: true, data: { intakes, journeySteps } })
   } catch (e: unknown) {
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : 'Erreur' }, { status: 500 })
   }

@@ -28,14 +28,19 @@ export interface NewcomerJourneyStep {
   [k: string]: unknown
 }
 
-/** Événement d'historique (schéma tolérant — on lit ce qui existe). */
+/** Événement d'historique (schéma V2.7-A ; tolérant — on lit ce qui existe). */
 export interface NewcomerJourneyEvent {
   id?: string
   newcomer_intake_id?: string
   event_type?: string | null
+  from_step_key?: string | null
+  to_step_key?: string | null
+  from_status?: string | null
+  to_status?: string | null
   step_key?: string | null
   label?: string | null
   note?: string | null
+  created_by?: string | null
   created_at?: string | null
   at?: string | null
   [k: string]: unknown
@@ -96,13 +101,41 @@ export function journeyStatusLabel(status: string | null | undefined): string {
 }
 
 /**
- * Libellé d'étape : privilégie le catalogue (newcomer_journey_steps) si fourni,
- * sinon humanise la clé. Repli sobre si aucune étape.
+ * Libellés FR intégrés des étapes connues (V2.7-C) — repli si le référentiel SQL
+ * newcomer_journey_steps est indisponible. Le catalogue SQL reste prioritaire.
+ */
+export const STEP_LABELS_FR: Record<string, string> = {
+  received: 'Fiche reçue',
+  needs_contact: 'À contacter',
+  first_contact_done: 'Premier contact effectué',
+  pastoral_orientation: 'Orientation pastorale',
+  integration_invited: 'Invitation intégration',
+  integration_started: 'Intégration commencée',
+  discipleship_followup: 'Suivi discipulat',
+  completed: 'Parcours terminé',
+}
+
+/** Construit un catalogue d'étapes depuis des lignes SQL (step_key/label), tolérant. */
+export function buildStepCatalog(rows: unknown): NewcomerJourneyStep[] {
+  if (!Array.isArray(rows)) return []
+  return rows
+    .filter((r): r is Record<string, unknown> => !!r && typeof r === 'object' && !Array.isArray(r))
+    .map((r) => ({
+      key: String(r.step_key ?? r.key ?? ''),
+      label: s(r.label),
+      position: typeof r.sort_order === 'number' ? r.sort_order : null,
+    }))
+    .filter((c) => c.key)
+}
+
+/**
+ * Libellé d'étape (priorité : catalogue SQL → libellés FR intégrés → humanisation).
+ * Repli sobre si aucune étape.
  */
 export function journeyStepLabel(stepKey: string | null | undefined, catalog?: NewcomerJourneyStep[]): string {
   if (!stepKey) return FALLBACK_NO_JOURNEY
   const found = catalog?.find((c) => c && c.key === stepKey)
-  return (found && s(found.label)) || humanizeKey(stepKey)
+  return (found && s(found.label)) || STEP_LABELS_FR[stepKey] || humanizeKey(stepKey)
 }
 
 /** Formate une date ISO en fr-FR ; repli fourni si absente/invalide. */
@@ -120,16 +153,21 @@ export function isFollowUpOverdue(f: NewcomerIntakeJourneyFields, nowMs: number)
   return !Number.isNaN(t) && t < nowMs
 }
 
-/** Ligne lisible pour un événement d'historique (tolérante au schéma). */
-export function eventLine(ev: NewcomerJourneyEvent): { label: string; when: string } {
-  const label = s(ev.label) || journeyStepLabelFromEvent(ev) || humanizeKey(s(ev.event_type) || s(ev.step_key) || '') || 'Événement'
+/**
+ * Ligne lisible pour un événement d'historique (tolérante au schéma).
+ * Utilise le catalogue d'étapes pour afficher des libellés FR (transition from → to).
+ */
+export function eventLine(ev: NewcomerJourneyEvent, catalog?: NewcomerJourneyStep[]): { label: string; when: string } {
+  const to = s(ev.to_step_key)
+  const from = s(ev.from_step_key)
+  let label: string
+  if (s(ev.label)) label = s(ev.label) as string
+  else if (to) label = from ? `${journeyStepLabel(from, catalog)} → ${journeyStepLabel(to, catalog)}` : journeyStepLabel(to, catalog)
+  else if (s(ev.step_key)) label = journeyStepLabel(s(ev.step_key), catalog)
+  else if (s(ev.event_type)) label = humanizeKey(s(ev.event_type))
+  else label = 'Événement'
   const when = fmtWhen(s(ev.created_at) || s(ev.at), '')
   return { label, when }
-}
-
-function journeyStepLabelFromEvent(ev: NewcomerJourneyEvent): string {
-  const k = s(ev.step_key)
-  return k ? humanizeKey(k) : ''
 }
 
 /** Normalise un tableau d'événements (filtre le bruit, borne). */

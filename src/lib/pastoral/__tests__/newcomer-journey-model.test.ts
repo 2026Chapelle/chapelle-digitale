@@ -5,6 +5,8 @@ import {
   humanizeKey,
   journeyStatusLabel,
   journeyStepLabel,
+  buildStepCatalog,
+  STEP_LABELS_FR,
   fmtWhen,
   isFollowUpOverdue,
   eventLine,
@@ -71,15 +73,44 @@ describe('journeyStatusLabel', () => {
 })
 
 describe('journeyStepLabel', () => {
-  it('utilise le catalogue si présent', () => {
-    const cat: NewcomerJourneyStep[] = [{ key: 'welcome', label: 'Accueil chaleureux' }]
-    expect(journeyStepLabel('welcome', cat)).toBe('Accueil chaleureux')
+  it('priorité 1 : catalogue SQL si présent', () => {
+    const cat: NewcomerJourneyStep[] = [{ key: 'received', label: 'Dossier reçu (SQL)' }]
+    expect(journeyStepLabel('received', cat)).toBe('Dossier reçu (SQL)')
   })
-  it('humanise si pas de catalogue', () => {
-    expect(journeyStepLabel('pastoral_need')).toBe('Pastoral need')
+  it('priorité 2 : libellés FR intégrés (V2.7-C) — corrige « Received »', () => {
+    expect(journeyStepLabel('received')).toBe('Fiche reçue')
+    expect(journeyStepLabel('needs_contact')).toBe('À contacter')
+    expect(journeyStepLabel('first_contact_done')).toBe('Premier contact effectué')
+    expect(journeyStepLabel('completed')).toBe('Parcours terminé')
+  })
+  it('priorité 3 : humanise une clé inconnue', () => {
+    expect(journeyStepLabel('some_new_step')).toBe('Some new step')
   })
   it('absent → fallback', () => {
     expect(journeyStepLabel(null)).toBe(FALLBACK_NO_JOURNEY)
+  })
+})
+
+describe('STEP_LABELS_FR + buildStepCatalog', () => {
+  it('couvre les 8 étapes connues', () => {
+    expect(Object.keys(STEP_LABELS_FR)).toEqual([
+      'received', 'needs_contact', 'first_contact_done', 'pastoral_orientation',
+      'integration_invited', 'integration_started', 'discipleship_followup', 'completed',
+    ])
+  })
+  it('construit un catalogue depuis des lignes SQL (step_key/label/sort_order)', () => {
+    const cat = buildStepCatalog([
+      { step_key: 'received', label: 'Fiche reçue', sort_order: 1 },
+      { step_key: '', label: 'ignoré' },
+      null,
+      'bruit',
+    ])
+    expect(cat).toHaveLength(1)
+    expect(cat[0]).toEqual({ key: 'received', label: 'Fiche reçue', position: 1 })
+  })
+  it('rows non-array → []', () => {
+    expect(buildStepCatalog(null)).toEqual([])
+    expect(buildStepCatalog('x')).toEqual([])
   })
 })
 
@@ -111,6 +142,14 @@ describe('eventLine + normalizeEvents (tolérant au schéma)', () => {
     expect(eventLine({ event_type: 'status_change' }).label).toBe('Status change')
     expect(eventLine({ step_key: 'welcome_message' }).label).toBe('Welcome message')
     expect(eventLine({}).label).toBe('Événement')
+  })
+  it('transition from_step_key → to_step_key en libellés FR', () => {
+    expect(eventLine({ from_step_key: 'received', to_step_key: 'needs_contact' }).label).toBe('Fiche reçue → À contacter')
+    expect(eventLine({ to_step_key: 'completed' }).label).toBe('Parcours terminé')
+  })
+  it('transition utilise le catalogue SQL si fourni', () => {
+    const cat: NewcomerJourneyStep[] = [{ key: 'received', label: 'Reçu (SQL)' }]
+    expect(eventLine({ to_step_key: 'received' }, cat).label).toBe('Reçu (SQL)')
   })
   it('normalizeEvents filtre le bruit et borne', () => {
     const rows = [{ label: 'a' }, null, 5, { label: 'b' }]
