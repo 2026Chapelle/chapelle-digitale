@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { isAdminRequest } from '@/lib/admin-auth'
 import { mergeAdminNote, normalizeAdminNote } from '@/lib/pastoral/newcomer-notes'
+import { isValidActionKey, applyAction, setNextFollowUp, parseJourney, mergePastoralJourney, toValidIso } from '@/lib/pastoral/newcomer-actions'
 
 /**
  * Demandes « Nouveau Venu » (back-office) — table public.newcomer_intakes.
@@ -50,27 +51,45 @@ export async function PATCH(req: NextRequest) {
     const id = typeof body?.id === 'string' ? body.id : ''
     const status = typeof body?.status === 'string' ? body.status : ''
     const note = normalizeAdminNote(body?.note)
+    // V2.6-C (additif, 0 SQL) : action pastorale enregistrable + relance manuelle, stockées
+    // dans metadata.pastoral_journey via un merge NON destructif (préserve admin_note).
+    const action = typeof body?.action === 'string' ? body.action : ''
+    const followUpProvided = body?.clear_follow_up === true || Object.prototype.hasOwnProperty.call(body ?? {}, 'next_follow_up_at')
+    const followUpValue: string | null = body?.clear_follow_up === true ? null : (typeof body?.next_follow_up_at === 'string' ? body.next_follow_up_at : null)
+
     if (!id) return NextResponse.json({ ok: false, message: 'id requis.' }, { status: 400 })
-    if (!status && !note) return NextResponse.json({ ok: false, message: 'status ou note requis.' }, { status: 400 })
+    if (!status && !note && !action && !followUpProvided) return NextResponse.json({ ok: false, message: 'status, note, action ou relance requis.' }, { status: 400 })
     if (status && !(ALLOWED_STATUS as readonly string[]).includes(status)) {
       return NextResponse.json({ ok: false, message: 'Statut invalide.' }, { status: 400 })
     }
+    if (action && !isValidActionKey(action)) return NextResponse.json({ ok: false, message: 'Action inconnue.' }, { status: 400 })
+    if (followUpProvided && followUpValue !== null && !toValidIso(followUpValue)) return NextResponse.json({ ok: false, message: 'Date de relance invalide.' }, { status: 400 })
 
+    const nowIso = new Date().toISOString()
     const patch: Record<string, unknown> = {}
     if (status) {
       patch.status = status
-      if (status === 'archived') patch.archived_at = new Date().toISOString()
-      if (status === 'contacted' || status === 'converted') patch.processed_at = new Date().toISOString()
+      if (status === 'archived') patch.archived_at = nowIso
+      if (status === 'contacted' || status === 'converted') patch.processed_at = nowIso
     }
-    if (note) {
-      // Note pastorale : lecture du metadata courant puis merge NON destructif (préserve les autres clés).
+    // Toute écriture metadata part du metadata COURANT (lecture unique) et applique des
+    // merges NON destructifs successifs — admin_note et pastoral_journey coexistent.
+    if (note || action || followUpProvided) {
       const { data: cur, error: readErr } = await supabaseAdmin
         .from('newcomer_intakes')
         .select('metadata')
         .eq('id', id)
         .single()
       if (readErr || !cur) return NextResponse.json({ ok: false, message: readErr?.message || 'Demande introuvable.' }, { status: 400 })
-      patch.metadata = mergeAdminNote(cur.metadata, note, new Date().toISOString()).metadata
+      let meta: unknown = cur.metadata
+      if (note) meta = mergeAdminNote(meta, note, nowIso).metadata
+      if (action || followUpProvided) {
+        let journey = parseJourney(meta)
+        if (action) journey = applyAction(journey, action, nowIso)
+        if (followUpProvided) journey = setNextFollowUp(journey, followUpValue)
+        meta = mergePastoralJourney(meta, journey, nowIso).metadata
+      }
+      patch.metadata = meta
     }
 
     const { data, error } = await supabaseAdmin

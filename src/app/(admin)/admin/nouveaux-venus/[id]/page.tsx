@@ -15,6 +15,8 @@ import { Loader2, ArrowLeft, Phone, MessageCircle, Mail, StickyNote, User, Calen
 import { triageNewcomer, heardFrom, relativeDaysLabel } from '@/lib/pastoral/newcomer-triage'
 import { deriveJourneyStage } from '@/lib/pastoral/newcomer-journey'
 import { getMessagesForStage, interpolateMessage } from '@/lib/pastoral/newcomer-messages'
+import { PASTORAL_ACTIONS, parseJourney, isStepDone } from '@/lib/pastoral/newcomer-actions'
+import { CalendarClock, BellRing, X } from 'lucide-react'
 
 // Liens d'ORIENTATION recommandée (routes admin vérifiées existantes) — lecture seule.
 const ORIENTATION_LINKS = [
@@ -81,10 +83,46 @@ export default function NewcomerDetailPage() {
   const [noteDraft, setNoteDraft] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null)
+  const [actionBusy, setActionBusy] = useState<string | null>(null)
+  const [followUpBusy, setFollowUpBusy] = useState(false)
+  const [followUpDraft, setFollowUpDraft] = useState('')
 
   async function copyMessage(id: string, body: string) {
     try { await navigator.clipboard.writeText(body); setCopiedMsgId(id); setTimeout(() => setCopiedMsgId((c) => (c === id ? null : c)), 2000) }
     catch { setCopiedMsgId(null) }
+  }
+
+  // V2.6-C — enregistre une action pastorale (metadata.pastoral_journey, via PATCH additif).
+  async function markAction(key: string) {
+    if (!intake || actionBusy) return
+    setActionBusy(key); setError(null)
+    try {
+      const r = await fetch('/api/admin/newcomer-intakes', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ id: intake.id, action: key }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || j?.ok !== true) setError("Enregistrement de l'action impossible. Réessayez.")
+      else await load()
+    } catch { setError("Enregistrement de l'action impossible. Réessayez.") }
+    setActionBusy(null)
+  }
+
+  // V2.6-C — programme ou retire une relance manuelle (iso = null → annuler).
+  async function saveFollowUp(iso: string | null) {
+    if (!intake || followUpBusy) return
+    setFollowUpBusy(true); setError(null)
+    try {
+      const payload = iso === null ? { id: intake.id, clear_follow_up: true } : { id: intake.id, next_follow_up_at: iso }
+      const r = await fetch('/api/admin/newcomer-intakes', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify(payload),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || j?.ok !== true) setError('Enregistrement de la relance impossible. Réessayez.')
+      else { setFollowUpDraft(''); await load() }
+    } catch { setError('Enregistrement de la relance impossible. Réessayez.') }
+    setFollowUpBusy(false)
   }
 
   const load = useCallback(async () => {
@@ -146,6 +184,8 @@ export default function NewcomerDetailPage() {
   // Accompagnement guidé (V2.6-B) — dérivé de status + triage, 100% lecture seule.
   const journey = intake && tri ? deriveJourneyStage(intake.status, tri, { hasNote: !!intake.metadata?.admin_note }) : null
   const stageMessages = journey ? getMessagesForStage(journey.stage) : []
+  // V2.6-C — actions pastorales persistées (lecture du metadata.pastoral_journey réel).
+  const pj = intake ? parseJourney(intake.metadata) : null
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -238,6 +278,47 @@ export default function NewcomerDetailPage() {
                       ))}
                     </div>
                   </>
+                )}
+              </div>
+            )}
+
+            {/* Actions pastorales enregistrables + relance (V2.6-C) — metadata.pastoral_journey, 0 SQL */}
+            {journey && pj && (
+              <div className="card-royal p-5 mb-4" data-marker="MARKER_ACTIONS_RECORD_OK">
+                <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2 mb-3"><CheckCircle2 className="w-4 h-4 text-gold" /> Actions pastorales</h2>
+                {pj.last_action ? (
+                  <p className="text-[12px] text-pearl/60 font-inter mb-3">Dernière action : <span className="text-gold/80">{pj.last_action.label}</span> · {fmtDate(pj.last_action.at)}</p>
+                ) : (
+                  <p className="text-[12px] text-pearl/40 font-inter mb-3">Aucune action enregistrée pour l&apos;instant.</p>
+                )}
+                <p className="text-[11px] uppercase tracking-wider text-pearl/35 font-inter mb-2">Marquer une action comme faite</p>
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {PASTORAL_ACTIONS.map((a) => {
+                    const done = isStepDone(pj, a.key)
+                    return (
+                      <button key={a.key} onClick={() => markAction(a.key)} disabled={actionBusy === a.key}
+                        className={`text-[11px] font-inter px-2.5 py-1.5 rounded-md border transition-colors inline-flex items-center gap-1 disabled:opacity-50 ${done ? 'text-[#22C55E] border-[#22C55E]/30 bg-[#22C55E]/10' : 'text-pearl/70 border-white/10 bg-white/[0.03] hover:text-gold hover:bg-white/[0.07]'}`}>
+                        {actionBusy === a.key ? <Loader2 className="w-3 h-3 animate-spin" /> : done ? <CheckCircle2 className="w-3 h-3" /> : <Circle className="w-3 h-3" />}
+                        {a.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[11px] uppercase tracking-wider text-pearl/35 font-inter mb-2 inline-flex items-center gap-1"><BellRing className="w-3 h-3" /> Relance prévue</p>
+                {pj.next_follow_up_at ? (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-[12px] font-inter text-gold/80 inline-flex items-center gap-1"><CalendarClock className="w-3.5 h-3.5" /> {fmtDate(pj.next_follow_up_at)}</span>
+                    <button onClick={() => saveFollowUp(null)} disabled={followUpBusy} className="text-[11px] font-inter text-pearl/50 hover:text-danger inline-flex items-center gap-1 disabled:opacity-50"><X className="w-3 h-3" /> Annuler</button>
+                    {followUpBusy && <Loader2 className="w-3.5 h-3.5 animate-spin text-pearl/40" />}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button onClick={() => saveFollowUp(new Date(Date.now() + 3 * 86400000).toISOString())} disabled={followUpBusy} className="text-[11px] font-inter px-2.5 py-1.5 rounded-md border border-white/10 bg-white/[0.03] text-pearl/70 hover:text-gold hover:bg-white/[0.07] transition-colors disabled:opacity-50">Dans 3 jours</button>
+                    <button onClick={() => saveFollowUp(new Date(Date.now() + 7 * 86400000).toISOString())} disabled={followUpBusy} className="text-[11px] font-inter px-2.5 py-1.5 rounded-md border border-white/10 bg-white/[0.03] text-pearl/70 hover:text-gold hover:bg-white/[0.07] transition-colors disabled:opacity-50">Dans 1 semaine</button>
+                    <input type="date" value={followUpDraft} onChange={(e) => setFollowUpDraft(e.target.value)} className="input-royal text-xs py-1.5 px-2 max-w-[160px]" />
+                    <button onClick={() => followUpDraft && saveFollowUp(new Date(followUpDraft + 'T10:00:00').toISOString())} disabled={followUpBusy || !followUpDraft} className="btn-gold text-[11px] px-3 py-1.5 disabled:opacity-50">Programmer</button>
+                    {followUpBusy && <Loader2 className="w-3.5 h-3.5 animate-spin text-pearl/40" />}
+                  </div>
                 )}
               </div>
             )}

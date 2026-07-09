@@ -9,11 +9,12 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import Link from 'next/link'
-import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search, QrCode, Download, Copy, Check, ExternalLink, Eye, MoreHorizontal, Clock, AlertTriangle, UserCheck } from 'lucide-react'
+import { Loader2, Phone, Mail, MessageCircle, Inbox, RefreshCw, StickyNote, Search, QrCode, Download, Copy, Check, ExternalLink, Eye, MoreHorizontal, Clock, AlertTriangle, UserCheck, BellRing } from 'lucide-react'
 import QRCode from 'react-qr-code'
 import { filterNewcomers } from '@/lib/pastoral/newcomer-filter'
 import { summarizeTriage, triageNewcomer, compareByPastoralUrgency, heardFrom, relativeDaysLabel } from '@/lib/pastoral/newcomer-triage'
 import { deriveJourneyStage } from '@/lib/pastoral/newcomer-journey'
+import { parseJourney } from '@/lib/pastoral/newcomer-actions'
 
 interface Intake {
   id: string
@@ -317,6 +318,7 @@ export default function AdminNouveauxVenusPage() {
                     const tri = triageNewcomer(i, nowMs)
                     const hf = heardFrom(i.intake_payload)
                     const jrn = deriveJourneyStage(i.status, tri, { hasNote: !!i.metadata?.admin_note })
+                    const pj = parseJourney(i.metadata)
                     return (
                       <Fragment key={i.id}>
                         <tr className="border-b border-white/[0.03] hover:bg-white/[0.02] align-top">
@@ -341,6 +343,8 @@ export default function AdminNouveauxVenusPage() {
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold font-inter"
                             style={{ background: `${st.color}22`, color: st.color }}>{st.label}</span>
                           <div className="text-[10px] text-pearl/40 font-inter mt-1 whitespace-nowrap" data-marker="MARKER_JOURNEY_BADGE_OK">Étape {jrn.step} · {jrn.label}</div>
+                          {pj.last_action && <div className="text-[10px] text-pearl/45 font-inter mt-0.5 truncate max-w-[160px]" title={pj.last_action.label} data-marker="MARKER_LAST_ACTION_OK">✓ {pj.last_action.label}</div>}
+                          {pj.next_follow_up_at && <div className="text-[10px] text-gold/60 font-inter mt-0.5 inline-flex items-center gap-1 whitespace-nowrap"><BellRing className="w-2.5 h-2.5" /> Relance {new Date(pj.next_follow_up_at).toLocaleDateString('fr-FR')}</div>}
                         </td>
                         <td className="px-4 py-3 text-pearl/50 font-inter whitespace-nowrap">
                           <div>{fmtDate(i.created_at)}</div>
