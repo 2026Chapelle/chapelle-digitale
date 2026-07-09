@@ -19,7 +19,8 @@ import { PASTORAL_ACTIONS, parseJourney, isStepDone } from '@/lib/pastoral/newco
 import { CalendarClock, BellRing, X, Route } from 'lucide-react'
 import {
   readJourneyFields, hasJourney, journeyStatusLabel, journeyStepLabel, fmtWhen, isFollowUpOverdue,
-  eventLine, normalizeEvents, buildStepCatalog, FALLBACK_NO_JOURNEY, FALLBACK_NO_FOLLOWUP, FALLBACK_NO_CONTACT, FALLBACK_NO_HISTORY,
+  eventLine, normalizeEvents, buildStepCatalog, JOURNEY_STEP_KEYS, JOURNEY_STATUSES,
+  FALLBACK_NO_JOURNEY, FALLBACK_NO_FOLLOWUP, FALLBACK_NO_CONTACT, FALLBACK_NO_HISTORY,
   type NewcomerJourneyEvent, type NewcomerJourneyStep,
 } from '@/lib/pastoral/newcomer-journey-model'
 
@@ -93,6 +94,25 @@ export default function NewcomerDetailPage() {
   const [followUpDraft, setFollowUpDraft] = useState('')
   const [journeyEvents, setJourneyEvents] = useState<NewcomerJourneyEvent[]>([])
   const [stepCatalog, setStepCatalog] = useState<NewcomerJourneyStep[]>([])
+  const [journeyBusy, setJourneyBusy] = useState<string | null>(null)
+  const [stepDraft, setStepDraft] = useState('')
+  const [jFollowDraft, setJFollowDraft] = useState('')
+
+  // V2.8-A — mutation du parcours pastoral (POST /api/admin/newcomer-journey).
+  async function journeyMutate(tag: string, payload: Record<string, unknown>) {
+    if (!intake || journeyBusy) return
+    setJourneyBusy(tag); setError(null)
+    try {
+      const r = await fetch('/api/admin/newcomer-journey', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ id: intake.id, ...payload }),
+      })
+      const j = await r.json().catch(() => ({}))
+      if (!r.ok || j?.ok !== true) setError(j?.message || 'Mise à jour du parcours impossible. Réessayez.')
+      else { setStepDraft(''); setJFollowDraft(''); await load() }
+    } catch { setError('Mise à jour du parcours impossible. Réessayez.') }
+    setJourneyBusy(null)
+  }
 
   async function copyMessage(id: string, body: string) {
     try { await navigator.clipboard.writeText(body); setCopiedMsgId(id); setTimeout(() => setCopiedMsgId((c) => (c === id ? null : c)), 2000) }
@@ -280,6 +300,43 @@ export default function NewcomerDetailPage() {
                 ) : (
                   <p className="text-sm font-inter text-pearl/40">{FALLBACK_NO_JOURNEY}.</p>
                 )}
+                {/* Actions parcours (V2.8-A) — mutations réelles du modèle SQL */}
+                <div className="mt-4 pt-4 border-t border-white/5" data-marker="MARKER_JOURNEY_MUTATIONS_OK">
+                  <p className="text-[11px] uppercase tracking-wider text-pearl/35 font-inter mb-2">Actions parcours</p>
+                  <button onClick={() => journeyMutate('contact', { action: 'mark_contact' })} disabled={journeyBusy === 'contact'}
+                    className="btn-gold text-[11px] px-3 py-1.5 inline-flex items-center gap-1 disabled:opacity-50 mb-3">
+                    {journeyBusy === 'contact' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Phone className="w-3 h-3" />} Marquer contact effectué
+                  </button>
+                  <p className="text-[10px] uppercase tracking-wider text-pearl/30 font-inter mb-1">Étape</p>
+                  <div className="flex items-center gap-2 flex-wrap mb-3">
+                    <select value={stepDraft} onChange={(e) => setStepDraft(e.target.value)} className="input-royal text-xs py-1.5 px-2 max-w-[220px]">
+                      <option value="">Choisir une étape…</option>
+                      {JOURNEY_STEP_KEYS.map((k) => <option key={k} value={k}>{journeyStepLabel(k, stepCatalog)}</option>)}
+                    </select>
+                    <button onClick={() => stepDraft && journeyMutate('step', { action: 'change_step', step_key: stepDraft })} disabled={journeyBusy === 'step' || !stepDraft}
+                      className="text-[11px] font-inter px-3 py-1.5 rounded-md border border-white/10 bg-white/[0.03] text-pearl/70 hover:text-gold hover:bg-white/[0.07] transition-colors disabled:opacity-50">Appliquer l&apos;étape</button>
+                  </div>
+                  <p className="text-[10px] uppercase tracking-wider text-pearl/30 font-inter mb-1">Statut</p>
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {JOURNEY_STATUSES.map((stt) => {
+                      const active = jf.journey_status === stt
+                      return (
+                        <button key={stt} onClick={() => !active && journeyMutate('status:' + stt, { action: 'change_status', status: stt })} disabled={journeyBusy === 'status:' + stt || active}
+                          className={`text-[11px] font-inter px-2.5 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${active ? 'text-gold bg-gold/10 border-gold/30' : 'text-pearl/70 border-white/10 bg-white/[0.03] hover:text-gold hover:bg-white/[0.07]'}`}>{journeyStatusLabel(stt)}</button>
+                      )
+                    })}
+                  </div>
+                  <p className="text-[10px] uppercase tracking-wider text-pearl/30 font-inter mb-1">Relance parcours</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button onClick={() => journeyMutate('fu3', { action: 'schedule_follow_up', follow_up_due_at: new Date(Date.now() + 3 * 86400000).toISOString() })} disabled={!!journeyBusy} className="text-[11px] font-inter px-2.5 py-1.5 rounded-md border border-white/10 bg-white/[0.03] text-pearl/70 hover:text-gold hover:bg-white/[0.07] transition-colors disabled:opacity-50">Dans 3 jours</button>
+                    <button onClick={() => journeyMutate('fu7', { action: 'schedule_follow_up', follow_up_due_at: new Date(Date.now() + 7 * 86400000).toISOString() })} disabled={!!journeyBusy} className="text-[11px] font-inter px-2.5 py-1.5 rounded-md border border-white/10 bg-white/[0.03] text-pearl/70 hover:text-gold hover:bg-white/[0.07] transition-colors disabled:opacity-50">Dans 1 semaine</button>
+                    <input type="date" value={jFollowDraft} onChange={(e) => setJFollowDraft(e.target.value)} className="input-royal text-xs py-1.5 px-2 max-w-[150px]" />
+                    <button onClick={() => jFollowDraft && journeyMutate('fud', { action: 'schedule_follow_up', follow_up_due_at: new Date(jFollowDraft + 'T10:00:00').toISOString() })} disabled={!!journeyBusy || !jFollowDraft} className="btn-gold text-[11px] px-3 py-1.5 disabled:opacity-50">Programmer</button>
+                    {jf.follow_up_due_at && <button onClick={() => journeyMutate('fuc', { action: 'schedule_follow_up', clear: true })} disabled={!!journeyBusy} className="text-[11px] font-inter text-pearl/50 hover:text-danger inline-flex items-center gap-1 disabled:opacity-50"><X className="w-3 h-3" /> Annuler</button>}
+                    {journeyBusy && <Loader2 className="w-3.5 h-3.5 animate-spin text-pearl/40" />}
+                  </div>
+                </div>
+
                 <p className="text-[11px] uppercase tracking-wider text-pearl/35 font-inter mt-4 mb-2">Historique récent</p>
                 {journeyEvents.length > 0 ? (
                   <ol className="relative ml-2 border-l border-white/10 space-y-3">

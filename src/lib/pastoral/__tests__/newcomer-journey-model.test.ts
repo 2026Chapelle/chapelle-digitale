@@ -7,6 +7,10 @@ import {
   journeyStepLabel,
   buildStepCatalog,
   STEP_LABELS_FR,
+  JOURNEY_STATUSES,
+  isValidJourneyStatus,
+  isValidJourneyStepKey,
+  isPreContactStep,
   fmtWhen,
   isFollowUpOverdue,
   eventLine,
@@ -88,6 +92,28 @@ describe('journeyStepLabel', () => {
   })
   it('absent → fallback', () => {
     expect(journeyStepLabel(null)).toBe(FALLBACK_NO_JOURNEY)
+  })
+})
+
+describe('validateurs de mutation (V2.8-A)', () => {
+  it('isValidJourneyStatus : whitelist stricte', () => {
+    expect(JOURNEY_STATUSES).toEqual(['active', 'paused', 'completed', 'closed'])
+    for (const v of JOURNEY_STATUSES) expect(isValidJourneyStatus(v)).toBe(true)
+    expect(isValidJourneyStatus('archived')).toBe(false)
+    expect(isValidJourneyStatus(null)).toBe(false)
+    expect(isValidJourneyStatus('Active')).toBe(false)
+  })
+  it('isValidJourneyStepKey : seulement les clés du référentiel connu', () => {
+    expect(isValidJourneyStepKey('received')).toBe(true)
+    expect(isValidJourneyStepKey('completed')).toBe(true)
+    expect(isValidJourneyStepKey('inconnu')).toBe(false)
+    expect(isValidJourneyStepKey(42)).toBe(false)
+  })
+  it('isPreContactStep : received/needs_contact uniquement', () => {
+    expect(isPreContactStep('received')).toBe(true)
+    expect(isPreContactStep('needs_contact')).toBe(true)
+    expect(isPreContactStep('first_contact_done')).toBe(false)
+    expect(isPreContactStep(null)).toBe(false)
   })
 })
 

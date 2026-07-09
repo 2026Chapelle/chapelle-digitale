@@ -115,6 +115,25 @@ export const STEP_LABELS_FR: Record<string, string> = {
   completed: 'Parcours terminé',
 }
 
+/** Statuts de parcours autorisés (V2.8-A mutations). */
+export const JOURNEY_STATUSES = ['active', 'paused', 'completed', 'closed'] as const
+export type JourneyStatusValue = (typeof JOURNEY_STATUSES)[number]
+export function isValidJourneyStatus(x: unknown): x is JourneyStatusValue {
+  return typeof x === 'string' && (JOURNEY_STATUSES as readonly string[]).includes(x)
+}
+
+/** Clés d'étapes reconnues pour une mutation (référentiel V2.7-A connu). */
+export const JOURNEY_STEP_KEYS = Object.keys(STEP_LABELS_FR)
+export function isValidJourneyStepKey(x: unknown): x is string {
+  return typeof x === 'string' && JOURNEY_STEP_KEYS.includes(x)
+}
+
+/** Étapes « à contacter » d'où « Marquer contact » fait passer à first_contact_done. */
+export const PRE_CONTACT_STEPS = ['received', 'needs_contact'] as const
+export function isPreContactStep(stepKey: string | null | undefined): boolean {
+  return !!stepKey && (PRE_CONTACT_STEPS as readonly string[]).includes(stepKey)
+}
+
 /** Construit un catalogue d'étapes depuis des lignes SQL (step_key/label), tolérant. */
 export function buildStepCatalog(rows: unknown): NewcomerJourneyStep[] {
   if (!Array.isArray(rows)) return []
