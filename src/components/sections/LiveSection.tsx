@@ -62,7 +62,9 @@ export function LiveSection() {
   const inView = useInView(ref, { once: true, margin: '-80px' })
 
   // Direct réel (cms_lives) — même source que /live. Aucun faux contenu.
-  const [liveNow, setLiveNow] = useState<{ titre: string } | null>(null)
+  // V2.7-A.1 : on capte l'URL réelle (youtube_url/video_url) pour rendre la vidéo
+  // directement ouvrable/lisible depuis l'accueil (au lieu d'un simple lien vers /live).
+  const [liveNow, setLiveNow] = useState<{ titre: string; url: string } | null>(null)
   useEffect(() => {
     if (IS_DEMO_MODE) return
     let cancelled = false
@@ -71,11 +73,15 @@ export function LiveSection() {
         const { data } = await supabase.from('cms_lives').select('*').in('status', ['live', 'scheduled', 'published'])
         if (cancelled || !data) return
         const row: any = data.find((d: any) => (d.status === 'live' || d.is_live) && (d.youtube_url || d.video_url))
-        if (row) setLiveNow({ titre: row.title })
+        if (row) setLiveNow({ titre: row.title, url: String(row.youtube_url || row.video_url) })
       } catch { /* aucun direct */ }
     })()
     return () => { cancelled = true }
   }, [])
+
+  // Destination « regarder » : la vraie vidéo si disponible (nouvel onglet), sinon la page /live.
+  const watchHref = liveNow?.url || '/live'
+  const watchExternal = !!liveNow?.url
 
   // Compte à rebours (client only → pas de mismatch SSR).
   const [next, setNext] = useState<NextService | null>(null)
@@ -179,7 +185,7 @@ export function LiveSection() {
               </h4>
               <div className="space-y-2.5">
                 {SCHEDULE.map((item) => (
-                  <div key={item.jour}
+                  <div key={`${item.jour}-${item.heure}`}
                     className="flex items-center justify-between py-1.5 border-b last:border-0"
                     style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
                     <div className="flex items-center gap-3">
@@ -202,9 +208,10 @@ export function LiveSection() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link href="/live" onClick={() => events.ctaClick('live_section')} className="btn-gold-cinematic">
-                <Radio className="w-4 h-4" />
-                {liveNow ? 'Rejoindre le direct' : 'Accéder aux cultes'}
+              <Link href={watchHref} target={watchExternal ? '_blank' : undefined} rel={watchExternal ? 'noreferrer' : undefined}
+                onClick={() => events.ctaClick('live_section')} className="btn-gold-cinematic">
+                {liveNow ? <Play className="w-4 h-4" /> : <Radio className="w-4 h-4" />}
+                {liveNow ? 'Regarder le direct' : 'Accéder aux cultes'}
               </Link>
               <Link href="/live?tab=replays" className="btn-glass-cinematic">
                 Voir les Replays
@@ -220,9 +227,11 @@ export function LiveSection() {
             transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           >
             <Link
-              href="/live"
+              href={watchHref}
+              target={watchExternal ? '_blank' : undefined}
+              rel={watchExternal ? 'noreferrer' : undefined}
               onClick={() => events.ctaClick('live_preview')}
-              aria-label={liveNow ? `Rejoindre le direct : ${liveNow.titre}` : 'Accéder à la page des cultes en direct'}
+              aria-label={liveNow ? `Regarder le direct : ${liveNow.titre}` : 'Accéder à la page des cultes en direct'}
               className="relative block rounded-3xl overflow-hidden group"
               style={{
                 aspectRatio: '16/10',
@@ -264,7 +273,7 @@ export function LiveSection() {
                   {liveNow ? liveNow.titre : 'Cultes & veillées en direct'}
                 </p>
                 <p className="font-inter text-xs mt-1" style={{ color: 'rgba(245,230,216,0.4)' }}>
-                  {liveNow ? 'En direct maintenant' : 'Cliquez pour accéder à la diffusion'}
+                  {liveNow ? 'En direct maintenant · cliquez pour regarder' : 'Cliquez pour accéder à la diffusion'}
                 </p>
               </div>
 

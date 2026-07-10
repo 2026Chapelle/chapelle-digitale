@@ -1,12 +1,14 @@
 'use client'
 /**
- * Section « Prochains rendez-vous » (V2.7-A) — événements RÉELS depuis cms_events
- * (mêmes données que la page /evenements). Grandes cartes premium. État vide propre.
- * Aucun événement fictif : si rien à venir, message sobre.
+ * Section « Prochains rendez-vous » (V2.7-A.1) — carousel horizontal d'événements RÉELS
+ * (cms_events). Règles : image d'affiche PROPRE (aucun texte ajouté par-dessus), texte
+ * (titre/date/lieu/CTA) placé HORS de l'image, sous la carte. Grandes images larges.
+ * Défilement auto gauche → droite avec pause au survol/focus, contrôles préc./suiv.,
+ * et respect de prefers-reduced-motion (auto-défilement désactivé). Aucun événement fictif.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Calendar, MapPin, ArrowRight, CalendarDays } from 'lucide-react'
+import { Calendar, MapPin, ArrowRight, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 
 interface HomeEvent {
@@ -20,18 +22,16 @@ interface HomeEvent {
   cta_href: string | null
 }
 
-const fmtDate = (iso: string | null) => {
+const fmtShortDate = (iso: string | null) => {
   if (!iso) return ''
-  try { return new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) } catch { return '' }
-}
-const fmtTime = (iso: string | null) => {
-  if (!iso) return ''
-  try { return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) } catch { return '' }
+  try { return new Date(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) } catch { return '' }
 }
 
 export function FeaturedEventsSection() {
   const [events, setEvents] = useState<HomeEvent[]>([])
   const [loaded, setLoaded] = useState(false)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -44,7 +44,7 @@ export function FeaturedEventsSection() {
           .eq('status', 'published')
           .gte('starts_at', nowIso)
           .order('starts_at', { ascending: true })
-          .limit(3)
+          .limit(8)
         if (alive) setEvents(Array.isArray(data) ? (data as HomeEvent[]) : [])
       } catch { if (alive) setEvents([]) }
       if (alive) setLoaded(true)
@@ -53,43 +53,95 @@ export function FeaturedEventsSection() {
     return () => { alive = false }
   }, [])
 
+  // Défilement auto gauche → droite (pause survol/focus, désactivé si reduced-motion).
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el || events.length < 2) return
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (reduce) return
+    const id = window.setInterval(() => {
+      if (paused) return
+      const card = el.querySelector('[data-ev-card]') as HTMLElement | null
+      const step = card ? card.offsetWidth + 24 : 360
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 8
+      el.scrollTo({ left: atEnd ? 0 : el.scrollLeft + step, behavior: 'smooth' })
+    }, 4000)
+    return () => window.clearInterval(id)
+  }, [events.length, paused])
+
+  const scrollBy = (dir: 1 | -1) => {
+    const el = trackRef.current
+    if (!el) return
+    const card = el.querySelector('[data-ev-card]') as HTMLElement | null
+    const step = card ? card.offsetWidth + 24 : 360
+    el.scrollBy({ left: dir * step, behavior: 'smooth' })
+  }
+
+  const hasEvents = events.length > 0
+
   return (
     <section className="py-20 sm:py-24">
       <div className="container-royal">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-inter mb-4" style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37' }}>
-            <CalendarDays className="w-3.5 h-3.5" /> Agenda
+        <div className="flex items-end justify-between gap-4 mb-10 flex-wrap">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-inter mb-4" style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37' }}>
+              <CalendarDays className="w-3.5 h-3.5" /> Agenda
+            </div>
+            <h2 className="font-cinzel font-bold text-2xl sm:text-3xl leading-tight mb-3">
+              Prochains rendez-vous <span className="text-cinematic-gold">à ne pas manquer</span>
+            </h2>
+            <p className="font-inter text-pearl/60 leading-relaxed">Vivez des temps forts de prière, d&apos;enseignement et de communion.</p>
           </div>
-          <h2 className="font-cinzel font-bold text-2xl sm:text-3xl leading-tight mb-3">
-            Prochains rendez-vous <span className="text-cinematic-gold">à ne pas manquer</span>
-          </h2>
-          <p className="font-inter text-pearl/60 leading-relaxed">Vivez des temps forts de prière, d&apos;enseignement, de communion et de transformation.</p>
+          {hasEvents && events.length > 1 && (
+            <div className="flex items-center gap-2">
+              <button onClick={() => scrollBy(-1)} aria-label="Précédent" className="w-10 h-10 rounded-full flex items-center justify-center border border-white/10 bg-white/[0.03] text-pearl/70 hover:text-gold hover:bg-white/[0.07] transition-colors"><ChevronLeft className="w-5 h-5" /></button>
+              <button onClick={() => scrollBy(1)} aria-label="Suivant" className="w-10 h-10 rounded-full flex items-center justify-center border border-white/10 bg-white/[0.03] text-pearl/70 hover:text-gold hover:bg-white/[0.07] transition-colors"><ChevronRight className="w-5 h-5" /></button>
+            </div>
+          )}
         </div>
 
-        {loaded && events.length === 0 ? (
-          <div className="card-royal text-center py-14 max-w-xl mx-auto">
+        {loaded && !hasEvents ? (
+          <div className="card-royal text-center py-16 max-w-xl mx-auto">
             <Calendar className="w-8 h-8 mx-auto mb-3 text-pearl/30" />
             <p className="font-cinzel text-lg text-pearl/60">Les prochains événements seront bientôt annoncés.</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-5">
-            {(events.length ? events : Array.from({ length: 3 })).map((ev, i) => {
+          <div
+            ref={trackRef}
+            onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+            onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
+            className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-3 -mx-2 px-2 scrollbar-none"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            {(hasEvents ? events : Array.from({ length: 3 })).map((ev, i) => {
               const e = ev as HomeEvent | undefined
               const href = e?.slug ? `/evenements/${e.slug}` : (e?.cta_href || '/evenements')
               return (
-                <Link key={e?.id || i} href={events.length ? href : '/evenements'}
-                  className="group card-royal overflow-hidden flex flex-col hover:-translate-y-1 transition-transform duration-300">
-                  <div className="relative aspect-[16/10] overflow-hidden bg-white/[0.03]">
-                    {e?.cover_url
-                      ? <img src={e.cover_url} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                      : <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'radial-gradient(300px 160px at 50% 20%, rgba(212,175,55,0.18), transparent 60%)' }}><Calendar className="w-8 h-8 text-gold/40" /></div>}
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(5,3,8,0.85) 100%)' }} />
+                <Link key={e?.id || i} href={hasEvents ? href : '/evenements'} data-ev-card
+                  className="group snap-start shrink-0 w-[86%] sm:w-[460px] rounded-2xl overflow-hidden border border-white/8 hover:border-gold/25 bg-white/[0.02] transition-colors">
+                  {/* Affiche PROPRE — aucune écriture ajoutée par-dessus */}
+                  <div className="relative w-full aspect-[16/9] overflow-hidden bg-white/[0.03]">
+                    {e?.cover_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={e.cover_url} alt={e.title || ''} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'radial-gradient(420px 240px at 50% 40%, rgba(212,175,55,0.2), transparent 60%), linear-gradient(120deg, #0d0918, #050308)' }}>
+                        <Calendar className="w-9 h-9 text-gold/40" />
+                      </div>
+                    )}
                   </div>
-                  <div className="p-5 flex flex-col flex-1">
-                    {e?.starts_at && <p className="text-[11px] font-inter text-gold/80 mb-1.5 inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> {fmtDate(e.starts_at)}{fmtTime(e.starts_at) && ` · ${fmtTime(e.starts_at)}`}</p>}
-                    <h3 className="font-cinzel font-bold text-pearl text-base leading-snug mb-2 line-clamp-2">{e?.title || 'Événement'}</h3>
-                    <p className="text-xs font-inter text-pearl/50 inline-flex items-center gap-1 mb-4"><MapPin className="w-3 h-3" /> {e?.location || (e?.is_online ? 'En ligne' : 'À préciser')}</p>
-                    <span className="mt-auto text-xs font-inter font-semibold text-gold inline-flex items-center gap-1 group-hover:gap-2 transition-all">Participer <ArrowRight className="w-3.5 h-3.5" /></span>
+                  {/* Texte HORS image */}
+                  <div className="p-5">
+                    {e?.starts_at && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-inter font-semibold px-2.5 py-1 rounded-full mb-2.5" style={{ background: 'rgba(212,175,55,0.14)', color: '#D4AF37' }}>
+                        <Calendar className="w-3 h-3" /> {fmtShortDate(e.starts_at)}
+                      </span>
+                    )}
+                    <h3 className="font-cinzel font-bold text-pearl text-lg leading-snug mb-1.5 line-clamp-2">{e?.title || 'Événement'}</h3>
+                    {(e?.location || e?.is_online) && (
+                      <p className="text-[13px] font-inter text-pearl/55 inline-flex items-center gap-1 mb-3"><MapPin className="w-3.5 h-3.5" /> {e?.location || 'En ligne'}</p>
+                    )}
+                    <span className="text-sm font-inter font-semibold text-gold inline-flex items-center gap-1 group-hover:gap-2 transition-all">Participer <ArrowRight className="w-4 h-4" /></span>
                   </div>
                 </Link>
               )
@@ -97,7 +149,7 @@ export function FeaturedEventsSection() {
           </div>
         )}
 
-        <div className="text-center mt-10">
+        <div className="text-center mt-8">
           <Link href="/evenements" className="text-sm font-inter text-pearl/60 hover:text-gold inline-flex items-center gap-1.5 transition-colors">
             Voir tout l&apos;agenda <ArrowRight className="w-4 h-4" />
           </Link>

@@ -9,8 +9,6 @@ import { JoinSection } from '@/components/sections/JoinSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
 import { HomeJoinPopup } from '@/components/home/HomeJoinPopup'
 import { FeaturedEventsSection } from '@/components/home/FeaturedEventsSection'
-import { InstallCitadelleSection } from '@/components/home/InstallCitadelleSection'
-import { PastoralAppSection } from '@/components/home/PastoralAppSection'
 import { GlobalPresenceSection } from '@/components/home/GlobalPresenceSection'
 
 /**
@@ -83,9 +81,9 @@ export async function HomeSections() {
         )
       })}
 
-      {/* Sections premium « application pastorale » (V2.7-A) — toujours visibles, avant le footer. */}
-      <SectionGlow /><InstallCitadelleSection />
-      <SectionGlow /><PastoralAppSection />
+      {/* V2.7-A.1 : sections « Installer » (CTA unique désormais dans le popup) et
+          « Bientôt disponible / Confiance » (teaser rappels+passkeys) RETIRÉES de la home.
+          Seule la présence internationale (globe) reste, juste avant le footer. */}
       <SectionGlow /><GlobalPresenceSection />
     </div>
   )
