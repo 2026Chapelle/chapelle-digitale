@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from 'next'
 import { Suspense } from 'react'
 import { Inter, Cinzel, Cormorant_Garamond, Poppins, DM_Sans } from 'next/font/google'
 import '@/styles/globals.css'
+import '@/styles/liquid-glass.css'
 import { Toaster } from 'react-hot-toast'
+import { LiquidGlassDefs } from '@/components/ui/LiquidGlass'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { AuthProvider } from '@/components/providers/AuthProvider'
@@ -223,6 +225,8 @@ export default function RootLayout({
           </QueryProvider>
           </MotionProvider>
         </ThemeProvider>
+        {/* Filtre de réfraction Liquid Glass — monté une seule fois pour tout le site. */}
+        <LiquidGlassDefs scale={45} />
       </body>
     </html>
   )

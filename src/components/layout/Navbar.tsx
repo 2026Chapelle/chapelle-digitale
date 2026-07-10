@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, type CSSProperties } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -51,6 +51,11 @@ export function Navbar() {
   // administration (et non renvoyer vers l'espace membre). Purement UX — aucun RBAC ici.
   const isAdminArea = pathname?.startsWith('/admin') ?? false
 
+  // Page d'accueil → matériau « Liquid Glass » (verre translucide + réfraction SVG).
+  // Ailleurs, on conserve strictement l'entête existant (règle des acquis : on étend,
+  // on ne remplace pas). Le verre ne « prend » que sur un fond riche : le hero animé.
+  const isHome = pathname === '/'
+
   // The entire platform is now cinematic dark — keep boolean for legacy checks
   const isDarkPage = true
 
@@ -85,13 +90,33 @@ export function Navbar() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-          scrolled
-            ? 'bg-[#050308]/85 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/[0.06] shadow-[0_8px_30px_rgba(0,0,0,0.5)]'
-            : 'bg-gradient-to-b from-black/40 via-black/10 to-transparent backdrop-blur-md'
+          'z-50 transition-all duration-500',
+          isHome
+            // Verre liquide sur l'accueil. `!fixed` force la position fixe au-dessus
+            // du `position: relative` porté par la classe `.lg`. `border-b` donne le
+            // liseré bas discret d'une barre translucide pleine largeur.
+            ? 'lg lg--refract !fixed top-0 left-0 right-0 border-b border-white/[0.08]'
+            : cn(
+                'fixed top-0 left-0 right-0',
+                scrolled
+                  ? 'bg-[#050308]/85 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/[0.06] shadow-[0_8px_30px_rgba(0,0,0,0.5)]'
+                  : 'bg-gradient-to-b from-black/40 via-black/10 to-transparent backdrop-blur-md'
+              )
         )}
+        style={
+          isHome
+            ? ({
+                // Barre pleine largeur → pas d'arrondi ; frost/tint discrets pour
+                // laisser le hero doré transparaître et garder le texte lisible.
+                '--lg-radius': '0px',
+                '--lg-tint': scrolled ? '0.10' : '0.06',
+                '--lg-blur': scrolled ? '16px' : '10px',
+                '--lg-stroke': '0.16',
+              } as CSSProperties)
+            : undefined
+        }
       >
-        <div className="container-royal">
+        <div className="container-royal relative z-10">
           <div className="flex items-center justify-between h-20">
 
             {/* LOGO */}

@@ -1,0 +1,96 @@
+/* =============================================================================
+ * Liquid Glass — Apple-style translucent material for the web.
+ * No dependencies. Add class="lg" (+ modifiers) to any element.
+ * Requires the SVG filter #lg-distort to be present once in the DOM for the
+ * refraction layer (LiquidGlass.tsx mounts it; or paste assets/lg-filter.svg).
+ * ========================================================================== */
+
+:root {
+  --lg-blur: 8px;    /* frost strength                          */
+  --lg-tint: 0.10;   /* white fill alpha (0 = clear, 1 = milky) */
+  --lg-stroke: 0.26; /* brightness of the specular rim          */
+  --lg-radius: 24px; /* default corner radius                   */
+}
+
+/* ---- base material --------------------------------------------------------- */
+.lg {
+  position: relative;
+  border-radius: var(--lg-radius);
+  isolation: isolate; /* own stacking context so backdrop-filter behaves */
+
+  /* Layer 1 — frost. Keep the background semi-transparent or the blur vanishes. */
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, calc(var(--lg-tint) + 0.06)),
+    rgba(255, 255, 255, var(--lg-tint)) 55%,
+    rgba(255, 255, 255, calc(var(--lg-tint) - 0.04))
+  );
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(1.8);
+  backdrop-filter: blur(var(--lg-blur)) saturate(1.8);
+
+  /* Layer 2 — specular edge: bright rim + soft inner top light + drop shadow. */
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.55),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.10),
+    inset 0 0 0 1px rgba(255, 255, 255, var(--lg-stroke)),
+    0 14px 40px rgba(4, 2, 14, 0.45),
+    0 3px 10px rgba(4, 2, 14, 0.30);
+}
+
+/* Layer 2b — swept sheen across the top-left corner. */
+.lg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0) 42%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.4;
+}
+
+/* ---- Layer 3 — refraction (opt-in via .lg--refract) ------------------------ */
+/* Chrome/Edge/Safari warp the backdrop through the SVG filter. Firefox ignores
+   the url() and simply keeps the frost above — graceful degradation. */
+.lg--refract {
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(1.8) url(#lg-distort);
+  backdrop-filter: blur(var(--lg-blur)) saturate(1.8) url(#lg-distort);
+}
+
+/* ---- optional modifiers ---------------------------------------------------- */
+.lg--pill  { border-radius: 999px; }
+.lg--round { border-radius: 50%; }
+.lg--thin  { --lg-blur: 4px; --lg-tint: 0.06; }
+.lg--heavy { --lg-blur: 14px; --lg-tint: 0.14; }
+
+/* Interactive glass (buttons, chips) */
+.lg--btn {
+  border: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: transform 0.16s ease;
+  border-radius: 14px;
+}
+.lg--btn:hover { transform: translateY(-1px); }
+.lg--btn:active { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lg--btn { transition: none; }
+}
+
+/* ---- accessibility fallback ----------------------------------------------- */
+/* Respect users who ask the OS to reduce transparency: drop the blur/refraction
+   for an opaque dark surface so text stays legible (recommended by the skill). */
+@media (prefers-reduced-transparency: reduce) {
+  .lg {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgb(6 4 12 / 0.94);
+  }
+  .lg::after { opacity: 0; }
+}
