@@ -1,32 +1,63 @@
 /**
- * Section « Présence internationale » (V2.7-A.1) — globe premium ÉPURÉ en CSS/SVG léger.
- * Pas de cartes de pays, pas de silhouettes de continents, aucun label géographique ni
- * bloc de données inventé. Rendu propre : lumière, grille, texture pointillée d'océan,
- * halo atmosphérique, rotation lente, profondeur. Aucune dépendance lourde.
- * Composant serveur statique ; animations respectant prefers-reduced-motion.
+ * Section « Présence internationale » (V2.7-A.4) — GLOBE IMAGE léger, stable mobile.
+ *
+ * Réécriture volontairement minimale pour ne PLUS jamais bloquer les appareils Samsung :
+ *   - une seule image réelle : public/images/home/globe-nations.png (PNG 1280×720) ;
+ *   - conteneur carré + circulaire, `object-cover object-center` (recadrage naturel) ;
+ *   - rotation lente par un simple `transform: rotate()` (linéaire, infinie) ;
+ *   - 14 « lumières des nations » (constellation symbolique) pulsant en opacity + scale.
+ *
+ * Interdits stricts respectés dans ce composant : aucun SVG de globe, aucun canvas,
+ * aucun WebGL/Three.js, aucun `filter: blur`, aucun `backdrop-filter`, aucun `blur-3xl`,
+ * aucune ombre géante animée, aucune dépendance supplémentaire.
+ *
+ * Accessibilité : `prefers-reduced-motion: reduce` coupe rotation ET pulsations.
+ * Composant serveur statique (aucun hook, aucune API client).
  */
 import { Globe2 } from 'lucide-react'
 
-// Signaux lumineux génériques (aucun label, aucune donnée géographique).
-const PULSES = [
-  { top: '52%', left: '46%', delay: '0s' },
-  { top: '38%', left: '58%', delay: '1s' },
-  { top: '60%', left: '60%', delay: '2s' },
+// Constellation SYMBOLIQUE des nations où des drapeaux apparaissent réellement sur les
+// pages publiques (MovementSection + Contact). Positions décoratives — ce n'est PAS une
+// cartographie exacte. Aucun chiffre, aucune statistique. Exactement 14 lumières.
+const NATION_LIGHTS = [
+  { name: 'RDC',            flag: '🇨🇩', top: '30%', left: '44%', delay: '0s'   },
+  { name: 'France',         flag: '🇫🇷', top: '21%', left: '61%', delay: '0.4s' },
+  { name: 'Belgique',       flag: '🇧🇪', top: '37%', left: '72%', delay: '0.8s' },
+  { name: 'Canada',         flag: '🇨🇦', top: '18%', left: '33%', delay: '1.2s' },
+  { name: "Côte d'Ivoire",  flag: '🇨🇮', top: '55%', left: '39%', delay: '1.6s' },
+  { name: 'Cameroun',       flag: '🇨🇲', top: '48%', left: '57%', delay: '2s'   },
+  { name: 'Ghana',          flag: '🇬🇭', top: '63%', left: '51%', delay: '2.4s' },
+  { name: 'Sénégal',        flag: '🇸🇳', top: '43%', left: '27%', delay: '2.8s' },
+  { name: 'Suisse',         flag: '🇨🇭', top: '29%', left: '68%', delay: '0.2s' },
+  { name: 'Royaume-Uni',    flag: '🇬🇧', top: '25%', left: '49%', delay: '0.6s' },
+  { name: 'États-Unis',     flag: '🇺🇸', top: '41%', left: '18%', delay: '1s'   },
+  { name: 'Allemagne',      flag: '🇩🇪', top: '20%', left: '77%', delay: '1.4s' },
+  { name: 'Gabon',          flag: '🇬🇦', top: '68%', left: '61%', delay: '1.8s' },
+  { name: 'Italie',         flag: '🇮🇹', top: '58%', left: '74%', delay: '2.2s' },
 ]
 
-// CSS injecté via dangerouslySetInnerHTML : évite l'échappement des quotes de `content: ''`
-// (sinon hydration mismatch server/client sur le <style>).
+// CSS injecté via dangerouslySetInnerHTML (quotes de `content` non échappées → pas de
+// mismatch d'hydratation). Rotation : 120s mobile, 90s dès 768px. Pulsations légères.
 const GLOBE_CSS = `
   @keyframes citadelleGlobeSpin { to { transform: rotate(360deg); } }
-  @keyframes citadellePulse { 0% { transform: scale(0.6); opacity: 0.9; } 70% { transform: scale(2.4); opacity: 0; } 100% { opacity: 0; } }
-  .citadelle-globe-rotate { transform-origin: 100px 100px; animation: citadelleGlobeSpin 60s linear infinite; }
+  @keyframes citadelleNationPulse {
+    0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.82); }
+    50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.18); }
+  }
+  .citadelle-globe-rotate {
+    animation: citadelleGlobeSpin 120s linear infinite;
+    will-change: transform;
+  }
+  @media (min-width: 768px) {
+    .citadelle-globe-rotate { animation-duration: 90s; }
+  }
+  .citadelle-nation {
+    transform: translate(-50%, -50%);
+    animation: citadelleNationPulse 3.4s ease-in-out infinite;
+  }
   @media (prefers-reduced-motion: reduce) {
     .citadelle-globe-rotate { animation: none; }
-    .citadelle-pulse::after { animation: none; }
-  }
-  .citadelle-pulse::after {
-    content: ""; position: absolute; inset: 0; border-radius: 9999px;
-    background: rgba(212,175,55,0.5); animation: citadellePulse 3s ease-out infinite;
+    .citadelle-nation { animation: none; opacity: 0.85; }
   }
 `
 
@@ -48,41 +79,44 @@ export function GlobalPresenceSection() {
           </p>
         </div>
 
-        {/* Globe épuré */}
+        {/* Globe image — carré, circulaire ; diamètre borné (≈300px mobile, ≈460px desktop).
+            `max-w` en vw pour garantir zéro débordement horizontal sur petits écrans. */}
         <div className="flex justify-center">
-          <div className="relative w-[320px] h-[320px] sm:w-[440px] sm:h-[440px] lg:w-[520px] lg:h-[520px]">
-            <div className="absolute inset-0 rounded-full blur-3xl" style={{ background: 'radial-gradient(circle at 50% 42%, rgba(212,175,55,0.3), transparent 62%)' }} />
-            <div className="absolute inset-0 rounded-full overflow-hidden border border-gold/20"
-              style={{ background: 'radial-gradient(circle at 34% 26%, #1e1740 0%, #0b0819 52%, #050308 100%)', boxShadow: 'inset -30px -30px 90px rgba(0,0,0,0.8), inset 24px 20px 60px rgba(120,140,220,0.06), 0 40px 130px rgba(0,0,0,0.6)' }}>
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 200" fill="none" aria-hidden>
-                <defs>
-                  <clipPath id="citadelleGlobeClip"><circle cx="100" cy="100" r="98" /></clipPath>
-                  <pattern id="citadelleDots" width="5" height="5" patternUnits="userSpaceOnUse">
-                    <circle cx="1" cy="1" r="0.5" fill="rgba(150,170,220,0.14)" />
-                  </pattern>
-                </defs>
-                {/* Océan texturé */}
-                <circle cx="100" cy="100" r="98" fill="url(#citadelleDots)" clipPath="url(#citadelleGlobeClip)" />
-                {/* Grille longitude/latitude en rotation lente */}
-                <g className="citadelle-globe-rotate" clipPath="url(#citadelleGlobeClip)">
-                  <ellipse cx="100" cy="100" rx="98" ry="33" stroke="rgba(212,175,55,0.12)" />
-                  <ellipse cx="100" cy="100" rx="98" ry="66" stroke="rgba(212,175,55,0.09)" />
-                  <ellipse cx="100" cy="100" rx="33" ry="98" stroke="rgba(212,175,55,0.12)" />
-                  <ellipse cx="100" cy="100" rx="66" ry="98" stroke="rgba(212,175,55,0.09)" />
-                  <circle cx="100" cy="100" r="98" stroke="rgba(212,175,55,0.1)" />
-                  <line x1="2" y1="100" x2="198" y2="100" stroke="rgba(212,175,55,0.12)" />
-                </g>
-                {/* Reflet atmosphérique + liseré */}
-                <circle cx="72" cy="66" r="30" fill="rgba(255,255,255,0.05)" clipPath="url(#citadelleGlobeClip)" />
-                <circle cx="100" cy="100" r="98" stroke="rgba(212,175,55,0.22)" />
-              </svg>
-              {/* Signaux lumineux génériques (sans label) */}
-              {PULSES.map((p, i) => (
-                <span key={i} className="citadelle-pulse absolute w-3 h-3" style={{ top: p.top, left: p.left, animationDelay: p.delay }}>
-                  <span className="absolute inset-0 rounded-full" style={{ background: '#F5E6A7', boxShadow: '0 0 14px rgba(245,230,167,0.95)' }} />
-                </span>
-              ))}
+          <div className="relative aspect-square w-[300px] max-w-[82vw] md:w-[460px] md:max-w-none">
+            {/* Image en rotation (seule transformation appliquée). */}
+            <div className="citadelle-globe-rotate absolute inset-0 rounded-full overflow-hidden">
+              {/* <img> simple : aucune dépendance, aucun domaine à déclarer, pas de conversion. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/home/globe-nations.png"
+                alt="Globe terrestre — la portée internationale de La Citadelle"
+                width={460}
+                height={460}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover object-center select-none"
+                draggable={false}
+              />
             </div>
+
+            {/* 14 lumières des nations — constellation symbolique, fixes (ne tournent pas).
+                Pulsations opacity + scale uniquement ; petite lueur fixe autorisée (pas de blur). */}
+            {NATION_LIGHTS.map((n) => (
+              <span
+                key={n.name}
+                role="img"
+                title={`${n.name} ${n.flag}`}
+                aria-label={`${n.name} ${n.flag}`}
+                className="citadelle-nation absolute block w-[7px] h-[7px] rounded-full"
+                style={{
+                  top: n.top,
+                  left: n.left,
+                  animationDelay: n.delay,
+                  background: '#F5E6A7',
+                  boxShadow: '0 0 8px 2px rgba(245,230,167,0.75)',
+                }}
+              />
+            ))}
           </div>
         </div>
       </div>

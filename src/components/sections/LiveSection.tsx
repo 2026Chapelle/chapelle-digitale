@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
 import {
-  Play, Clock, Calendar, ArrowRight, Radio,
+  Play, Clock, Calendar, ChevronDown, ArrowRight, Radio,
   Church, BookOpen, Sunrise, Flame,
   type LucideIcon,
 } from 'lucide-react'
@@ -106,9 +106,10 @@ export function LiveSection() {
     return () => { cancelled = true }
   }, [])
 
-  // Destination « regarder » : la vraie vidéo si disponible (nouvel onglet), sinon la page /live.
-  const watchHref = liveNow?.url || '/live'
-  const watchExternal = !!liveNow?.url
+  // V2.7-A.4 (complément final) : la lecture se fait TOUJOURS sur le site — page /live et son
+  // lecteur intégré. Aucun lien externe YouTube, aucun nouvel onglet. L'URL réelle du direct
+  // ne sert qu'à extraire l'ID pour la miniature (youtubeId). Analytics conservées.
+  const watchHref = '/live'
 
   // Compte à rebours (client only → pas de mismatch SSR).
   const [next, setNext] = useState<NextService | null>(null)
@@ -143,7 +144,7 @@ export function LiveSection() {
           >
             <div className="section-label-dark">
               <Radio className="w-3 h-3" />
-              Live &amp; Cultes
+              Cultes
             </div>
             <h2 className="heading-cinematic-lg mb-6">
               L&apos;Église
@@ -203,40 +204,45 @@ export function LiveSection() {
               )}
             </div>
 
-            {/* Programme hebdomadaire compact */}
-            <div className="card-cinematic p-5 md:p-6 mb-8">
-              <h4 className="font-cinzel text-[11px] font-bold tracking-[0.2em] uppercase mb-4 flex items-center gap-2"
-                style={{ color: '#D4AF37' }}>
-                <Calendar className="w-3.5 h-3.5" />
-                Programme hebdomadaire
-              </h4>
-              <div className="space-y-2.5">
+            {/* Programme hebdomadaire — accordéon natif <details>, FERMÉ par défaut (V2.7-A.4).
+                Aucune modale, aucun backdrop, aucun JS : compact au repos, accessible clavier
+                (focus visible sur le summary, chevron pivotant via group-open). */}
+            <details className="group card-cinematic mb-8 overflow-hidden">
+              <summary className="flex items-center justify-between gap-3 p-4 md:p-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/60">
+                <span className="font-cinzel text-[11px] font-bold tracking-[0.2em] uppercase flex items-center gap-2"
+                  style={{ color: '#D4AF37' }}>
+                  <Calendar className="w-3.5 h-3.5" />
+                  Voir le programme hebdomadaire
+                </span>
+                <ChevronDown className="w-4 h-4 flex-shrink-0 transition-transform duration-300 group-open:rotate-180"
+                  style={{ color: 'rgba(245,230,216,0.6)' }} />
+              </summary>
+              <div className="px-4 md:px-5 pb-4 md:pb-5 -mt-1 space-y-1.5">
                 {SCHEDULE.map((item) => (
                   <div key={`${item.jour}-${item.heure}`}
-                    className="flex items-center justify-between py-1.5 border-b last:border-0"
+                    className="flex items-center justify-between gap-2 py-1 border-b last:border-0"
                     style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ background: 'rgba(212,175,55,0.10)', border: '1px solid rgba(212,175,55,0.22)' }}>
-                        <item.icon className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
+                        <item.icon className="w-3 h-3" style={{ color: '#D4AF37' }} />
                       </div>
-                      <div>
-                        <span className="font-inter text-sm font-semibold text-white">{item.jour}</span>
-                        <span className="font-inter text-xs ml-2" style={{ color: 'rgba(245,230,216,0.4)' }}>{item.heure}</span>
+                      <div className="min-w-0">
+                        <span className="font-inter text-xs font-semibold text-white">{item.jour}</span>
+                        <span className="font-inter text-[11px] ml-1.5" style={{ color: 'rgba(245,230,216,0.4)' }}>{item.heure}</span>
                       </div>
                     </div>
-                    <span className="text-[11px] font-medium font-inter px-2.5 py-1 rounded-full"
+                    <span className="text-[10px] font-medium font-inter px-2 py-0.5 rounded-full truncate max-w-[46%] text-right"
                       style={{ background: 'rgba(212,175,55,0.10)', color: 'rgba(245,230,216,0.75)', border: '1px solid rgba(212,175,55,0.20)' }}>
                       {item.type}
                     </span>
                   </div>
                 ))}
               </div>
-            </div>
+            </details>
 
             <div className="flex flex-wrap gap-3">
-              <Link href={watchHref} target={watchExternal ? '_blank' : undefined} rel={watchExternal ? 'noreferrer' : undefined}
-                onClick={() => events.ctaClick('live_section')} className="btn-gold-cinematic">
+              <Link href={watchHref} onClick={() => events.ctaClick('live_section')} className="btn-gold-cinematic">
                 {liveNow ? <Play className="w-4 h-4" /> : <Radio className="w-4 h-4" />}
                 {liveNow ? 'Regarder le direct' : 'Accéder aux cultes'}
               </Link>
@@ -255,8 +261,6 @@ export function LiveSection() {
           >
             <Link
               href={watchHref}
-              target={watchExternal ? '_blank' : undefined}
-              rel={watchExternal ? 'noreferrer' : undefined}
               onClick={() => events.ctaClick('live_preview')}
               aria-label={liveNow ? `Regarder le direct : ${liveNow.titre}` : 'Accéder à la page des cultes en direct'}
               className="relative block rounded-3xl overflow-hidden group"
@@ -267,19 +271,17 @@ export function LiveSection() {
               }}>
               <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
                 {liveNow?.thumbnail ? (
-                  <>
-                    {/* Miniature réelle du direct (cover_url ou vignette YouTube). <img> simple :
-                        aucun domaine à déclarer dans next.config, aucune iframe/autoplay. */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={liveNow.thumbnail}
-                      alt={`Miniature du direct : ${liveNow.titre}`}
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,3,8,0.35) 0%, rgba(5,3,8,0.78) 100%)' }} />
-                  </>
+                  /* Miniature réelle du direct (cover_url ou vignette YouTube). <img> simple :
+                     aucun domaine à déclarer, aucune iframe/autoplay. V2.7-A.4 : image nette,
+                     sans texte ni gradient de lisibilité superposé. */
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={liveNow.thumbnail}
+                    alt={`Miniature du direct : ${liveNow.titre}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
                 ) : (
                   <PremiumImage image={HERO_IMAGES.worship} preferRemote fill overlay="cinematic" sizes="(max-width: 1024px) 100vw, 50vw" />
                 )}
@@ -299,11 +301,12 @@ export function LiveSection() {
                 )}
               </div>
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {/* Bouton Play central — aucun texte sur l'image (V2.7-A.4). */}
+              <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
                   animate={{ scale: [1, 1.08, 1] }}
                   transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
-                  className="w-20 h-20 rounded-full flex items-center justify-center mb-4 transition-transform group-hover:scale-110"
+                  className="w-20 h-20 rounded-full flex items-center justify-center transition-transform group-hover:scale-110"
                   style={{
                     background: 'rgba(212,175,55,0.18)',
                     border: '2px solid rgba(212,175,55,0.5)',
@@ -312,27 +315,19 @@ export function LiveSection() {
                   }}>
                   <Play className="w-7 h-7 ml-1" style={{ color: '#FFFFFF' }} fill="#FFFFFF" />
                 </motion.div>
-                <p className="font-cinzel text-sm tracking-wider uppercase font-semibold" style={{ color: 'rgba(245,230,216,0.7)' }}>
-                  {liveNow ? liveNow.titre : 'Cultes & veillées en direct'}
-                </p>
-                <p className="font-inter text-xs mt-1" style={{ color: 'rgba(245,230,216,0.4)' }}>
-                  {liveNow ? 'En direct maintenant · cliquez pour regarder' : 'Cliquez pour accéder à la diffusion'}
-                </p>
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-4"
-                style={{ background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%)' }}>
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <h3 className="font-cinzel text-sm font-bold text-white truncate">{liveNow ? liveNow.titre : 'La Chapelle Royale — Diffusion'}</h3>
-                    <p className="font-inter text-[11px] mt-0.5" style={{ color: 'rgba(245,230,216,0.55)' }}>
-                      Streaming HD · Replay disponible · Accessible partout
-                    </p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 flex-shrink-0 transition-transform group-hover:translate-x-1" style={{ color: '#D4AF37' }} />
-                </div>
               </div>
             </Link>
+
+            {/* V2.7-A.4 (complément) — Sous la miniature : DEUX petites lignes discrètes.
+                AUCUN titre vidéo ici (jamais liveNow.titre), aucune répétition. */}
+            <div className="mt-4 text-center lg:text-left">
+              <p className="font-inter text-xs text-pearl/50">
+                {liveNow ? 'En direct maintenant · cliquez pour regarder' : 'Cliquez pour accéder à la diffusion'}
+              </p>
+              <p className="font-inter text-[11px] mt-0.5 text-pearl/35">
+                Streaming HD · Replay disponible · Accessible partout
+              </p>
+            </div>
           </motion.div>
         </div>
       </div>

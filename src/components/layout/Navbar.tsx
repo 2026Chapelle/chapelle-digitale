@@ -13,7 +13,7 @@ import { NotificationBell } from '@/components/features/notifications/Notificati
 const NAV_ITEMS = [
   { label: 'Accueil', href: '/', icon: Home },
   {
-    label: 'Live & Cultes',
+    label: 'Cultes',
     href: '/live',
     icon: Tv,
     badge: 'DIRECT',

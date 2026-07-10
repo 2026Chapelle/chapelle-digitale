@@ -6,16 +6,13 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { X, Download, ArrowRight } from 'lucide-react'
-import { usePwaInstall } from '@/components/home/pwa-install'
+import { X, ArrowRight } from 'lucide-react'
 
 const STORAGE_KEY = 'citadelle_home_join_popup_seen_v27'
 
 export function HomeJoinPopup() {
   const [open, setOpen] = useState(false)
-  const [hint, setHint] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
-  const { canInstall, installed, promptInstall } = usePwaInstall()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -38,11 +35,6 @@ export function HomeJoinPopup() {
     closeRef.current?.focus()
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
-
-  async function onPrimary() {
-    if (canInstall) { await promptInstall(); dismiss() }
-    else setHint(true)
-  }
 
   if (!open) return null
 
@@ -74,32 +66,12 @@ export function HomeJoinPopup() {
           <h2 id="home-popup-title" className="font-cinzel font-bold text-pearl text-xl leading-tight mb-2">Bienvenue sur Citadelle</h2>
           <p id="home-popup-description" className="font-inter text-sm text-pearl/65 leading-relaxed mb-5">Rejoignez. Grandissez. Suivez votre parcours.</p>
 
-          {installed ? (
-            <Link href="/rejoindre" onClick={dismiss} className="btn-gold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 font-semibold w-full">
-              Rejoindre la Chapelle <ArrowRight className="w-4 h-4" />
-            </Link>
-          ) : canInstall ? (
-            <button onClick={onPrimary} className="btn-gold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 font-semibold w-full">
-              <Download className="w-4 h-4" /> Installer Citadelle
-            </button>
-          ) : (
-            <Link href="/rejoindre" onClick={dismiss} className="btn-gold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 font-semibold w-full">
-              Rejoindre la Chapelle <ArrowRight className="w-4 h-4" />
-            </Link>
-          )}
-
-          {!installed && canInstall && (
-            <Link href="/rejoindre" onClick={dismiss} className="block mt-3 text-xs font-inter text-pearl/45 hover:text-pearl/70 transition-colors">Découvrir</Link>
-          )}
-          {!canInstall && (
-            <button onClick={dismiss} className="block w-full mt-3 text-xs font-inter text-pearl/40 hover:text-pearl/65 transition-colors">Plus tard</button>
-          )}
-
-          {hint && (
-            <p className="mt-4 text-[12px] font-inter text-pearl/50 leading-relaxed border-t border-white/10 pt-3">
-              Ajoutez Citadelle à votre écran d&apos;accueil depuis le menu de votre navigateur.
-            </p>
-          )}
+          {/* V2.7-A.4 : CTA interne unique vers /rejoindre — plus AUCUNE mention d'installation
+              ici (le bandeau « Installer Citadelle » de l'accueil est le seul CTA d'install). */}
+          <Link href="/rejoindre" onClick={dismiss} className="btn-gold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 font-semibold w-full">
+            Rejoindre la Chapelle <ArrowRight className="w-4 h-4" />
+          </Link>
+          <button onClick={dismiss} className="block w-full mt-3 text-xs font-inter text-pearl/40 hover:text-pearl/65 transition-colors">Plus tard</button>
         </div>
       </div>
     </div>

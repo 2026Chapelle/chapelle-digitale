@@ -15,7 +15,37 @@ import { events } from '@/lib/analytics'
    ============================================================ */
 
 const PLATFORM_LIST = Object.values(PLATEFORMES)
-const NATIONS = ['🇨🇩', '🇫🇷', '🇧🇪', '🇨🇦', '🇨🇮', '🇨🇲', '🇬🇭', '🇸🇳', '🇨🇭', '🇬🇧', '🇺🇸', '🇩🇪']
+
+// Nations où des drapeaux apparaissent réellement (MovementSection + Contact).
+// V2.7-A.4 : de vrais PNG locaux (public/images/flags) — sur Windows les emojis 🇨🇩
+// tombaient en abréviations « CD FR… ». Aucun chargement CDN au runtime.
+const NATIONS: { code: string; pays: string }[] = [
+  { code: 'cd', pays: 'République démocratique du Congo' },
+  { code: 'fr', pays: 'France' },
+  { code: 'be', pays: 'Belgique' },
+  { code: 'ca', pays: 'Canada' },
+  { code: 'ci', pays: "Côte d'Ivoire" },
+  { code: 'cm', pays: 'Cameroun' },
+  { code: 'gh', pays: 'Ghana' },
+  { code: 'sn', pays: 'Sénégal' },
+  { code: 'ch', pays: 'Suisse' },
+  { code: 'gb', pays: 'Royaume-Uni' },
+  { code: 'us', pays: 'États-Unis' },
+  { code: 'de', pays: 'Allemagne' },
+]
+
+// Flottement léger des drapeaux — uniquement `transform` (translateY + micro-rotation).
+// Durée/décalage variés par drapeau (voir style inline) ; coupé en reduced-motion.
+// Aucun blur, aucun backdrop-filter, aucune ombre animée.
+const FLAG_CSS = `
+  @keyframes citadelleFlagFloat {
+    0%, 100% { transform: translateY(-5px) rotate(-1.5deg); }
+    50%      { transform: translateY(5px)  rotate(1.5deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .citadelle-flag { animation: none !important; }
+  }
+`
 
 export function MovementSection() {
   const ref = useRef<HTMLDivElement>(null)
@@ -23,6 +53,7 @@ export function MovementSection() {
 
   return (
     <section ref={ref} className="section-cinematic">
+      <style dangerouslySetInnerHTML={{ __html: FLAG_CSS }} />
       <div className="halo-gold w-[900px] h-[520px] -top-10 left-1/2 -translate-x-1/2" />
       <div className="halo-light w-[600px] h-[400px] bottom-0 -right-40" />
 
@@ -55,10 +86,26 @@ export function MovementSection() {
             portées par une même vision : faire des disciples, pour toutes les nations.
           </p>
 
-          {/* Une seule rangée de nations */}
-          <div className="flex flex-wrap gap-2 justify-center mt-7">
-            {NATIONS.map((flag) => (
-              <span key={flag} className="text-2xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{flag}</span>
+          {/* Une seule rangée de nations — vrais drapeaux PNG locaux (rendu identique sur
+              Windows/desktop et mobile ; wrap propre ; aucune abréviation, aucun emoji). */}
+          <div className="flex flex-wrap gap-2.5 justify-center mt-7">
+            {NATIONS.map((n, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={n.code}
+                src={`/images/flags/${n.code}.png`}
+                alt={`Drapeau de ${n.pays}`}
+                title={n.pays}
+                loading="lazy"
+                decoding="async"
+                width={34}
+                className="citadelle-flag w-[34px] h-auto rounded-[3px] shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
+                style={{
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  animation: `citadelleFlagFloat ${(4 + (i % 4) * 0.9).toFixed(1)}s ease-in-out infinite`,
+                  animationDelay: `-${(i * 0.7).toFixed(1)}s`,
+                }}
+              />
             ))}
           </div>
         </motion.div>

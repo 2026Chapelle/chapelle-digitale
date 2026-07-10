@@ -1,83 +1,81 @@
 'use client'
 /**
- * Section « Installer Citadelle » (V2.7-A) — présente Citadelle comme application
- * installable. Utilise le prompt PWA si disponible, sinon affiche une aide manuelle.
+ * Bandeau « Installer Citadelle » (V2.7-A.4) — UNIQUE CTA d'installation de l'accueil.
+ *
+ * Compact (pas une grande section). Déclenche le prompt PWA natif si disponible
+ * (`beforeinstallprompt` capté par usePwaInstall) ; sinon affiche une aide manuelle
+ * adaptée à la plateforme. Aucun lien store, aucun APK, aucun window.location, aucun
+ * téléchargement de fichier : le navigateur affiche sa fenêtre native, l'utilisateur confirme.
  */
 import { useState } from 'react'
-import { Download, Smartphone, Zap, BookOpen, Heart, Bell, Check } from 'lucide-react'
+import { Download, Smartphone, Check } from 'lucide-react'
 import { usePwaInstall } from '@/components/home/pwa-install'
 
-const BENEFITS = [
-  { icon: Zap, label: 'Accès rapide aux cultes' },
-  { icon: BookOpen, label: 'Parcours spirituels à portée de main' },
-  { icon: Heart, label: 'Formations et prières plus faciles à suivre' },
-  { icon: Smartphone, label: "Expérience proche d'une application mobile" },
-  { icon: Bell, label: 'Préparation aux rappels pastoraux' },
-]
+/** Aide manuelle compacte quand le prompt natif n'est pas disponible. */
+function installHint(): string {
+  if (typeof navigator === 'undefined') {
+    return 'Ajoutez Citadelle à votre écran d’accueil depuis le menu de votre navigateur.'
+  }
+  const ua = navigator.userAgent
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    return 'Sur iPhone/iPad : appuyez sur Partager, puis « Sur l’écran d’accueil ».'
+  }
+  if (/Android/i.test(ua)) {
+    return 'Sur Android : menu ⋮ puis « Installer l’application » ou « Ajouter à l’écran d’accueil ».'
+  }
+  return 'Sur ordinateur : cliquez sur l’icône Installer dans la barre d’adresse (ou le menu ⋮) de Chrome/Edge.'
+}
 
 export function InstallCitadelleSection() {
   const { canInstall, installed, promptInstall } = usePwaInstall()
-  const [hint, setHint] = useState(false)
+  const [hint, setHint] = useState<string | null>(null)
 
   async function onInstall() {
-    if (canInstall) await promptInstall()
-    else setHint(true)
+    // Prompt natif si disponible — rien d'autre. Sinon aide manuelle contextuelle.
+    if (canInstall) { await promptInstall(); return }
+    setHint(installHint())
   }
 
   return (
-    <section className="py-20 sm:py-24">
+    <section className="py-8 sm:py-10">
       <div className="container-royal">
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-inter mb-4" style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37' }}>
-              <Smartphone className="w-3.5 h-3.5" /> Application
-            </div>
-            <h2 className="font-cinzel font-bold text-2xl sm:text-3xl leading-tight mb-4">
-              Installez <span className="text-cinematic-gold">Citadelle</span> sur votre téléphone
-            </h2>
-            <p className="font-inter text-pearl/70 leading-relaxed mb-6 max-w-lg">
-              Ajoutez Citadelle à votre écran d&apos;accueil et accédez plus rapidement aux cultes, aux prières, aux formations, aux événements et à votre espace membre.
+        <div
+          className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 rounded-2xl border border-gold/20 px-5 py-5 sm:px-7"
+          style={{ background: 'radial-gradient(600px 200px at 0% 0%, rgba(212,175,55,0.10), transparent 60%), linear-gradient(180deg, rgba(13,9,24,0.92), rgba(6,4,9,0.92))' }}
+        >
+          <span
+            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.25)' }}
+          >
+            <Smartphone className="w-5 h-5 text-gold" />
+          </span>
+
+          <div className="flex-1 text-center sm:text-left">
+            <h2 className="font-cinzel font-bold text-lg text-pearl leading-tight">Installer Citadelle</h2>
+            <p className="font-inter text-sm text-pearl/60 mt-0.5">
+              Accédez directement à Citadelle depuis votre écran d&apos;accueil.
             </p>
-            <ul className="space-y-2.5 mb-7">
-              {BENEFITS.map((b) => (
-                <li key={b.label} className="flex items-center gap-3 font-inter text-sm text-pearl/80">
-                  <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)' }}>
-                    <b.icon className="w-3.5 h-3.5 text-gold" />
-                  </span>
-                  {b.label}
-                </li>
-              ))}
-            </ul>
-            {installed ? (
-              <p className="inline-flex items-center gap-2 text-sm font-inter text-[#86EFAC]"><Check className="w-4 h-4" /> Citadelle est installée sur cet appareil.</p>
-            ) : (
-              <button onClick={onInstall} className="btn-gold text-sm px-6 py-3 inline-flex items-center gap-2 font-semibold">
-                <Download className="w-4 h-4" /> Installer Citadelle
-              </button>
-            )}
-            {hint && !installed && (
-              <p className="mt-4 text-[13px] font-inter text-pearl/55 leading-relaxed max-w-lg">
-                Ajoutez Citadelle à votre écran d&apos;accueil depuis le menu de votre navigateur (« Ajouter à l&apos;écran d&apos;accueil »).
-              </p>
-            )}
           </div>
 
-          {/* Aperçu premium type téléphone */}
-          <div className="flex justify-center">
-            <div className="relative w-[220px] h-[440px] rounded-[2.2rem] border border-white/10 p-3 shadow-[0_40px_120px_rgba(0,0,0,0.6)]"
-              style={{ background: 'linear-gradient(180deg, #0d0918 0%, #060409 100%)' }}>
-              <div className="absolute left-1/2 -translate-x-1/2 top-2 w-16 h-1.5 rounded-full bg-white/15" />
-              <div className="mt-5 h-full rounded-[1.6rem] overflow-hidden flex flex-col items-center justify-center text-center px-5"
-                style={{ background: 'radial-gradient(400px 240px at 50% 15%, rgba(212,175,55,0.18), transparent 60%), linear-gradient(180deg, #0b0713, #050308)' }}>
-                <div className="w-14 h-14 rounded-2xl mb-4 flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.25)' }}>
-                  <span className="font-cinzel text-gold text-xl">C</span>
-                </div>
-                <p className="font-cinzel text-pearl text-sm font-bold">Citadelle</p>
-                <p className="font-inter text-[11px] text-pearl/45 mt-1">La Chapelle · dans votre poche</p>
-              </div>
-            </div>
-          </div>
+          {installed ? (
+            <p className="inline-flex items-center gap-2 text-sm font-inter text-[#86EFAC] flex-shrink-0">
+              <Check className="w-4 h-4" /> Citadelle est installée
+            </p>
+          ) : (
+            <button
+              onClick={onInstall}
+              className="btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2 font-semibold flex-shrink-0"
+            >
+              <Download className="w-4 h-4" /> Installer Citadelle
+            </button>
+          )}
         </div>
+
+        {hint && !installed && (
+          <p className="mt-3 text-[13px] font-inter text-pearl/55 leading-relaxed text-center sm:text-left max-w-2xl mx-auto sm:mx-0">
+            {hint}
+          </p>
+        )}
       </div>
     </section>
   )

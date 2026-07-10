@@ -9,6 +9,8 @@ import { JoinSection } from '@/components/sections/JoinSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
 import { HomeJoinPopup } from '@/components/home/HomeJoinPopup'
 import { FeaturedEventsSection } from '@/components/home/FeaturedEventsSection'
+import { InstallCitadelleSection } from '@/components/home/InstallCitadelleSection'
+import { GlobalPresenceSection } from '@/components/home/GlobalPresenceSection'
 
 /**
  * Accueil PILOTÉ PAR LE CMS (table cms_homepage_blocks).
@@ -80,10 +82,14 @@ export async function HomeSections() {
         )
       })}
 
-      {/* V2.7-A.1 : sections « Installer » (CTA unique désormais dans le popup) et
-          « Bientôt disponible / Confiance » (teaser rappels+passkeys) RETIRÉES de la home.
-          V2.7-A.3 : la présence internationale (globe) est également retirée de l'accueil.
-          Le composant GlobalPresenceSection reste conservé au dépôt mais n'est plus rendu ici. */}
+      {/* V2.7-A.4 : bandeau compact « Installer Citadelle » = UNIQUE CTA d'installation de
+          l'accueil (le popup ne propose plus l'installation), placé AVANT la section
+          internationale. Puis la présence internationale (nouveau globe image, léger et stable
+          mobile) RESTAURÉE en fin d'accueil — plus d'ancien SVG, aucun blur/WebGL/canvas. */}
+      <SectionGlow />
+      <InstallCitadelleSection />
+      <SectionGlow />
+      <GlobalPresenceSection />
     </div>
   )
 }
