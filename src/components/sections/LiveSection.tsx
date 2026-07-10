@@ -57,6 +57,25 @@ function diff(target: Date, now: Date): Countdown {
   return { d, h, m, s }
 }
 
+/** Extraction robuste de l'ID YouTube (11 caractères) depuis les formats courants. */
+function youtubeId(url: string): string | null {
+  if (!url) return null
+  const patterns = [
+    /youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})/,
+    /youtu\.be\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/live\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
+  ]
+  for (const re of patterns) {
+    const m = url.match(re)
+    if (m) return m[1]
+  }
+  const raw = url.trim()
+  if (/^[A-Za-z0-9_-]{11}$/.test(raw)) return raw
+  return null
+}
+
 export function LiveSection() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
@@ -64,7 +83,8 @@ export function LiveSection() {
   // Direct réel (cms_lives) — même source que /live. Aucun faux contenu.
   // V2.7-A.1 : on capte l'URL réelle (youtube_url/video_url) pour rendre la vidéo
   // directement ouvrable/lisible depuis l'accueil (au lieu d'un simple lien vers /live).
-  const [liveNow, setLiveNow] = useState<{ titre: string; url: string } | null>(null)
+  // V2.7-A.3 : on capte aussi la miniature réelle (cover_url, sinon vignette YouTube).
+  const [liveNow, setLiveNow] = useState<{ titre: string; url: string; thumbnail: string } | null>(null)
   useEffect(() => {
     if (IS_DEMO_MODE) return
     let cancelled = false
@@ -73,7 +93,14 @@ export function LiveSection() {
         const { data } = await supabase.from('cms_lives').select('*').in('status', ['live', 'scheduled', 'published'])
         if (cancelled || !data) return
         const row: any = data.find((d: any) => (d.status === 'live' || d.is_live) && (d.youtube_url || d.video_url))
-        if (row) setLiveNow({ titre: row.title, url: String(row.youtube_url || row.video_url) })
+        if (row) {
+          const yt = youtubeId(String(row.youtube_url || ''))
+          // Priorité : cover_url réelle → vignette YouTube → (vide = fallback générique côté rendu).
+          const thumbnail = row.cover_url
+            ? String(row.cover_url)
+            : (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : '')
+          setLiveNow({ titre: row.title, url: String(row.youtube_url || row.video_url), thumbnail })
+        }
       } catch { /* aucun direct */ }
     })()
     return () => { cancelled = true }
@@ -239,7 +266,23 @@ export function LiveSection() {
                 boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 0 40px rgba(212,175,55,0.08)',
               }}>
               <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
-                <PremiumImage image={HERO_IMAGES.worship} preferRemote fill overlay="cinematic" sizes="(max-width: 1024px) 100vw, 50vw" />
+                {liveNow?.thumbnail ? (
+                  <>
+                    {/* Miniature réelle du direct (cover_url ou vignette YouTube). <img> simple :
+                        aucun domaine à déclarer dans next.config, aucune iframe/autoplay. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={liveNow.thumbnail}
+                      alt={`Miniature du direct : ${liveNow.titre}`}
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(5,3,8,0.35) 0%, rgba(5,3,8,0.78) 100%)' }} />
+                  </>
+                ) : (
+                  <PremiumImage image={HERO_IMAGES.worship} preferRemote fill overlay="cinematic" sizes="(max-width: 1024px) 100vw, 50vw" />
+                )}
               </div>
 
               <div className="absolute top-4 left-4 flex items-center gap-2">

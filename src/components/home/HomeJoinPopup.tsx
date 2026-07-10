@@ -2,7 +2,7 @@
 /**
  * Popup d'accueil première visite (V2.7-A.1). Une seule image, très peu de mots,
  * un CTA principal unique (Installer si PWA disponible, sinon Rejoindre). S'ouvre
- * après 5 s, une seule fois (localStorage). Fermeture bouton / overlay / Échap.
+ * après 25 s, une seule fois (localStorage). Fermeture bouton / overlay / Échap.
  */
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -22,7 +22,7 @@ export function HomeJoinPopup() {
     let seen = false
     try { seen = window.localStorage.getItem(STORAGE_KEY) === '1' } catch { seen = false }
     if (seen) return
-    const t = window.setTimeout(() => setOpen(true), 5000)
+    const t = window.setTimeout(() => setOpen(true), 25000)
     return () => window.clearTimeout(t)
   }, [])
 

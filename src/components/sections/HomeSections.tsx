@@ -9,7 +9,6 @@ import { JoinSection } from '@/components/sections/JoinSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
 import { HomeJoinPopup } from '@/components/home/HomeJoinPopup'
 import { FeaturedEventsSection } from '@/components/home/FeaturedEventsSection'
-import { GlobalPresenceSection } from '@/components/home/GlobalPresenceSection'
 
 /**
  * Accueil PILOTÉ PAR LE CMS (table cms_homepage_blocks).
@@ -66,7 +65,7 @@ export async function HomeSections() {
 
   return (
     <div className="bg-charbon relative">
-      {/* Popup première visite (V2.7-A) — rendu une fois, s'ouvre après 5 s. */}
+      {/* Popup première visite (V2.7-A) — rendu une fois, s'ouvre après 25 s. */}
       <HomeJoinPopup />
 
       {/* Blocs CMS existants (préservés). Injection additive : événements réels après le hero. */}
@@ -83,8 +82,8 @@ export async function HomeSections() {
 
       {/* V2.7-A.1 : sections « Installer » (CTA unique désormais dans le popup) et
           « Bientôt disponible / Confiance » (teaser rappels+passkeys) RETIRÉES de la home.
-          Seule la présence internationale (globe) reste, juste avant le footer. */}
-      <SectionGlow /><GlobalPresenceSection />
+          V2.7-A.3 : la présence internationale (globe) est également retirée de l'accueil.
+          Le composant GlobalPresenceSection reste conservé au dépôt mais n'est plus rendu ici. */}
     </div>
   )
 }
