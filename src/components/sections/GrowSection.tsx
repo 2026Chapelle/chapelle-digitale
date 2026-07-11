@@ -8,6 +8,7 @@ import {
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
 import { events } from '@/lib/analytics'
+import { selectHomeFormations, deriveDisplayType } from '@/lib/cms/featured'
 
 /* ============================================================
    BLOC 5 — GRANDIR (fusion Formations + Podcast)
@@ -19,7 +20,7 @@ import { events } from '@/lib/analytics'
 interface FormationCard {
   slug: string; titre: string; description: string; niveau: string;
   duree: string; modules: number; gratuit: boolean; emoji: string; plateforme: string
-  image: string | null
+  image: string | null; displayType: string
 }
 
 const PODCAST_PLATFORMS = [
@@ -45,12 +46,19 @@ export function GrowSection() {
     let cancelled = false
     ;(async () => {
       try {
-        // Formations PUBLIÉES uniquement, plus récentes d'abord (ordre déterministe).
+        // V2.9-B : formations PUBLIÉES ; vedettes (is_featured) triées par featured_order,
+        // sinon repli déterministe (plus récentes). Fusion tous types (le badge garde le
+        // type réel). Vedettes remontées d'abord côté requête pour un pool suffisant.
         const { data } = await supabase.from('formations').select('*')
-          .eq('statut', 'publie').order('date_publication', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false }).limit(3)
+          .eq('statut', 'publie')
+          .order('is_featured', { ascending: false })
+          .order('featured_order', { ascending: true })
+          .order('date_publication', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .limit(12)
         if (!cancelled) {
-          setFormations((data || []).map((f: any) => ({
+          const selected = selectHomeFormations((data || []) as any[], 3)
+          setFormations(selected.map((f: any) => ({
             slug: f.slug || f.id,
             titre: f.titre || f.title || 'Formation',
             description: f.description || f.contenu_court || '',
@@ -62,6 +70,8 @@ export function GrowSection() {
             plateforme: f.plateforme || f.categorie || '',
             // Image de couverture RÉELLE (CMS). null → repli visuel (icône) seulement si absente.
             image: f.image_couverture || null,
+            // Type réel (Parcours / Formation / Enseignement / Programme).
+            displayType: deriveDisplayType(f.type),
           })))
         }
       } catch { /* vide */ } finally { if (!cancelled) setFLoaded(true) }
@@ -161,7 +171,7 @@ export function GrowSection() {
                     )}
 
                     <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-                      <span className="chip-gold backdrop-blur-md">{f.niveau}</span>
+                      <span className="chip-gold backdrop-blur-md">{f.displayType}</span>
                       {f.gratuit ? (
                         <span className="text-[9px] font-inter font-bold tracking-widest uppercase px-2 py-0.5 rounded-full backdrop-blur-md"
                           style={{ background: 'rgba(34,197,94,0.3)', color: '#86EFAC', border: '1px solid rgba(34,197,94,0.5)' }}>

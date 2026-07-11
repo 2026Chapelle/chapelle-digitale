@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Calendar, MapPin, ArrowRight, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { selectHomeEvents } from '@/lib/cms/featured'
 
 interface HomeEvent {
   id: string
@@ -39,13 +40,17 @@ export function FeaturedEventsSection() {
       if (IS_DEMO_MODE) { setLoaded(true); return }
       try {
         const nowIso = new Date().toISOString()
+        // Publiés & futurs (filtre préservé). On récupère un pool puis on applique la
+        // sélection V2.9-B : vedettes (is_featured) d'abord triées par sort_order, sinon
+        // repli auto (starts_at asc). La sélection partielle n'est jamais complétée.
         const { data } = await supabase.from('cms_events')
-          .select('id, slug, title, starts_at, location, is_online, cover_url, cta_href, status')
+          .select('id, slug, title, starts_at, location, is_online, cover_url, cta_href, status, is_featured, sort_order')
           .eq('status', 'published')
           .gte('starts_at', nowIso)
           .order('starts_at', { ascending: true })
-          .limit(8)
-        if (alive) setEvents(Array.isArray(data) ? (data as HomeEvent[]) : [])
+          .limit(20)
+        const selected = selectHomeEvents(Array.isArray(data) ? (data as any[]) : [], 6, 8)
+        if (alive) setEvents(selected as HomeEvent[])
       } catch { if (alive) setEvents([]) }
       if (alive) setLoaded(true)
     }

@@ -16,7 +16,7 @@ import {
   Inbox, Film, FileText, TrendingUp, Radio, Mic,
   MessageSquare, HandCoins, Newspaper, Mail, AtSign,
   GraduationCap, Layers, Route, Sparkles, Globe, Activity, Crown, ShoppingBag,
-  Command, Globe2, HeartHandshake, ShieldCheck, Megaphone, CalendarCheck, LifeBuoy, UserPlus,
+  Command, Globe2, HeartHandshake, ShieldCheck, Megaphone, CalendarCheck, LifeBuoy, UserPlus, Star,
 } from 'lucide-react'
 
 export type AdminScopeHint = 'global' | 'national' | 'antenne' | 'local' | 'plateforme'
@@ -91,6 +91,7 @@ export const NAV_SECTIONS: AdminNavSection[] = [
     id: 'contenu', label: 'Contenu & CMS', icon: FileText,
     items: [
       { label: 'Accueil (sections)', href: '/admin/homepage-blocks', icon: LayoutDashboard, color: '#D4AF37' },
+      { label: 'Contenus en vedette', href: '/admin/contenus-en-vedette', icon: Star, color: '#FBBF24' },
       { label: 'Pages', href: '/admin/pages', icon: FileText, color: '#14B8A6' },
       { label: 'Articles', href: '/admin/articles', icon: Newspaper, color: '#34D399' },
       { label: 'Médias', href: '/admin/medias', icon: Film, color: '#EF4444' },

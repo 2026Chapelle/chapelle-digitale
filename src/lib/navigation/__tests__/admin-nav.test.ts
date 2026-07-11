@@ -3,13 +3,14 @@ import { NAV_SECTIONS, PINNED_DASHBOARD, allNavHrefs } from '@/lib/navigation/ad
 import { getVisibleSections, isItemVisible } from '@/lib/navigation/nav-visibility'
 import type { AdminNavItem } from '@/lib/navigation/admin-nav'
 
-// Liste EXACTE des 48 liens de l'ancienne sidebar plate (référence anti-régression).
+// Liste EXACTE des liens de navigation admin (référence anti-régression).
+// 48 liens historiques + V2.9-B : /admin/contenus-en-vedette.
 const LEGACY_HREFS = [
   '/admin/command-center', '/admin/global-command', '/admin/dashboard', '/admin/pastoral',
   '/admin/nouveaux-venus', '/admin/intelligence-pastorale', '/admin/gouvernement', '/admin/gouvernance',
   '/admin/international', '/admin/nation-dashboard', '/admin/sante-spirituelle', '/admin/activites',
   '/admin/cartographie', '/admin/membres', '/admin/roles', '/admin/communication', '/admin/tunnel-integration',
-  '/admin/homepage-blocks', '/admin/pages', '/admin/articles', '/admin/medias', '/admin/lives', '/admin/podcasts',
+  '/admin/homepage-blocks', '/admin/contenus-en-vedette', '/admin/pages', '/admin/articles', '/admin/medias', '/admin/lives', '/admin/podcasts',
   '/admin/enseignements', '/admin/formations', '/admin/modules', '/admin/parcours', '/admin/questions-formations',
   '/admin/evenements', '/admin/inscriptions', '/admin/temoignages', '/admin/dons', '/admin/transactions',
   '/admin/marketplace', '/admin/notifications', '/admin/prieres', '/admin/prieres-guides', '/admin/temoignages-prieres',
@@ -18,7 +19,7 @@ const LEGACY_HREFS = [
 ]
 
 describe('admin-nav — préservation des liens (anti-régression)', () => {
-  it('conserve EXACTEMENT les 48 liens historiques, sans perte', () => {
+  it('conserve EXACTEMENT les liens attendus, sans perte', () => {
     const hrefs = allNavHrefs()
     expect(new Set(hrefs)).toEqual(new Set(LEGACY_HREFS))
     expect(hrefs.length).toBe(LEGACY_HREFS.length)
