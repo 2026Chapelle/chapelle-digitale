@@ -393,7 +393,10 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
                             {chosen && (
                               <div className="flex items-center gap-3 p-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
                                 {chosen.thumbnail_url && /\.(png|jpe?g|gif|webp|avif)$/i.test(String(chosen.thumbnail_url)) && (
-                                  <img src={String(chosen.thumbnail_url)} alt="" className="w-16 h-10 object-cover rounded border border-white/10" />
+                                  // Miniature ENTIÈREMENT visible (object-contain) sur fond neutre : aucun recadrage ni déformation.
+                                  <div className="w-28 h-16 flex-shrink-0 flex items-center justify-center rounded border border-white/10 overflow-hidden bg-black/40">
+                                    <img src={String(chosen.thumbnail_url)} alt="" className="max-w-full max-h-full object-contain" />
+                                  </div>
                                 )}
                                 <div className="min-w-0">
                                   <p className="text-xs text-pearl/70 font-inter truncate">{chosen.title}</p>

@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { getSessionProfile } from '@/lib/member-auth'
 import { parcoursGate } from '@/lib/formations/parcours-gate-server'
-import { resolveVideoSource, hasPlayableVideo } from '@/lib/formations/video-validation'
+import { resolveVideoSource, hasPlayableVideo, resolveYouTubeId, youtubeThumbnail } from '@/lib/formations/video-validation'
 import { can } from '@/lib/permissions'
 
 /**
@@ -126,8 +126,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         id: m.id, ordre: m.ordre, titre: m.titre, description: m.description,
         type: m.type,
         source_video: src,
-        youtube_id: (reveal && src === 'youtube') ? m.youtube_id : null,
+        // ID YouTube dérivé (gère l'URL collée dans video_url) — jamais exposé si verrouillé.
+        youtube_id: (reveal && src === 'youtube') ? resolveYouTubeId(m) : null,
         video_url: (reveal && src === 'internal') ? internalUrl : null,
+        // Miniature (poster public) — gatée comme la vidéo : l'URL contient l'ID,
+        // donc jamais exposée pour un module verrouillé (anti-contournement).
+        thumbnail_url: reveal ? youtubeThumbnail(m) : null,
         // PDF déverrouillé UNIQUEMENT après validation du module (visionnage ≥ 90 %).
         pdf_url: (reveal && isDone) ? m.pdf_url : null,
         contenu_texte: reveal ? m.contenu_texte : null,

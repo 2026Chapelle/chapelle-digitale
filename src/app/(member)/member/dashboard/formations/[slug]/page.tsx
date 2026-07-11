@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Clock, Award, CheckCircle, Lock, BookOpen, Loader2, FileText, PlayCircle, Check, Trophy, Download, Send, HelpCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock, Award, CheckCircle, Lock, BookOpen, Loader2, FileText, PlayCircle, Check, Trophy, Download, Send, HelpCircle, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import toast from 'react-hot-toast'
@@ -11,6 +11,7 @@ import { WATCH_THRESHOLD, remainingToWatch } from '@/lib/formations/video-valida
 interface Module {
   id: string; ordre: number; titre: string; description?: string; type: string
   youtube_id?: string; video_url?: string; pdf_url?: string; contenu_texte?: string
+  thumbnail_url?: string | null
   duree_minutes: number; acces_min_statut: string
   completed: boolean; locked: boolean; lock_reason?: string | null
   has_video?: boolean; has_pdf?: boolean; pdf_locked?: boolean
@@ -48,6 +49,13 @@ export default function FormationDetailPage({ params }: { params: { slug: string
   const [qSending, setQSending] = useState(false)
   const [qSent, setQSent] = useState(false)
   const [questions, setQuestions] = useState<Array<{ id: string; question: string; reponse: string | null; statut: string; auteur: string | null; user_id: string | null; created_at: string }>>([])
+  // Accordéon des vidéos (P3) : modules dépliés dans la liste du parcours.
+  const [openModuleIds, setOpenModuleIds] = useState<Set<string>>(new Set())
+  const toggleModule = (id: string) => setOpenModuleIds((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
 
   const loadQuestions = useCallback(async (formationId: string) => {
     try {
@@ -404,21 +412,74 @@ export default function FormationDetailPage({ params }: { params: { slug: string
 
             <div className="card-royal h-fit">
               <h3 className="font-cinzel font-bold text-pearl text-sm mb-4">Modules ({progress.total})</h3>
-              <div className="space-y-1.5">
-                {modules.map((m) => (
-                  <button key={m.id} onClick={() => setActive(m)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all"
-                    style={{ background: active?.id === m.id ? 'rgba(212,175,55,0.1)' : 'rgba(255,255,255,0.02)', border: `1px solid ${active?.id === m.id ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.05)'}` }}>
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: m.completed ? 'rgba(34,197,94,0.15)' : m.locked ? 'rgba(255,255,255,0.04)' : 'rgba(212,175,55,0.12)' }}>
-                      {m.completed ? <CheckCircle className="w-4 h-4 text-green-400" /> : m.locked ? <Lock className="w-3.5 h-3.5 text-pearl/30" /> : <PlayCircle className="w-4 h-4 text-gold" />}
+              <div className="space-y-2">
+                {modules.map((m) => {
+                  const open = openModuleIds.has(m.id)
+                  const isActive = active?.id === m.id
+                  const panelId = `module-panel-${m.id}`
+                  const watchLabel = m.completed ? 'Revoir la vidéo' : ((m.video_percent ?? 0) > 0 ? 'Reprendre la vidéo' : 'Regarder la vidéo')
+                  return (
+                    <div key={m.id} className="rounded-xl overflow-hidden"
+                      style={{ background: isActive ? 'rgba(212,175,55,0.1)' : 'rgba(255,255,255,0.02)', border: `1px solid ${isActive ? 'rgba(212,175,55,0.3)' : 'rgba(255,255,255,0.05)'}` }}>
+                      {/* En-tête : titre cliquable + chevron « Voir les vidéos » (accordéon accessible) */}
+                      <button type="button" onClick={() => toggleModule(m.id)} aria-expanded={open} aria-controls={panelId}
+                        className="w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-white/[0.02]">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: m.completed ? 'rgba(34,197,94,0.15)' : m.locked ? 'rgba(255,255,255,0.04)' : 'rgba(212,175,55,0.12)' }}>
+                          {m.completed ? <CheckCircle className="w-4 h-4 text-green-400" /> : m.locked ? <Lock className="w-3.5 h-3.5 text-pearl/30" /> : <PlayCircle className="w-4 h-4 text-gold" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-inter truncate ${m.locked ? 'text-pearl/30' : 'text-pearl/80'}`}>{m.ordre}. {m.titre}</p>
+                          {m.duree_minutes > 0 && <p className="text-[10px] text-pearl/30 font-inter">{m.duree_minutes} min</p>}
+                        </div>
+                        <ChevronDown className={`w-4 h-4 flex-shrink-0 text-pearl/40 transition-transform ${open ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {/* Panneau déplié : miniature entière + résumé + action (ou verrou / aucune vidéo) */}
+                      {open && (
+                        <div id={panelId} role="region" className="px-3 pb-3">
+                          {m.locked ? (
+                            <div className="flex items-start gap-2 text-xs text-pearl/40 font-inter rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                              <Lock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                              <span>{m.lock_reason === 'prerequis' ? 'Terminez le module précédent pour débloquer cette vidéo.'
+                                : m.lock_reason === 'inscription' ? 'Inscrivez-vous au parcours pour accéder à cette vidéo.'
+                                : m.lock_reason === 'parcours' ? 'Terminez le parcours précédent pour débloquer cette vidéo.'
+                                : `Accès réservé (statut requis : ${m.acces_min_statut}).`}</span>
+                            </div>
+                          ) : m.has_video ? (
+                            <div className="space-y-2.5">
+                              {/* Miniature ENTIÈREMENT visible (object-contain), aucun texte sur l'image */}
+                              {m.thumbnail_url ? (
+                                <div className="w-full rounded-lg overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center" style={{ aspectRatio: '16/9' }}>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={m.thumbnail_url} alt={`Miniature : ${m.titre}`} loading="lazy" decoding="async" className="max-w-full max-h-full object-contain" />
+                                </div>
+                              ) : (
+                                <div className="w-full rounded-lg border border-white/10 flex items-center justify-center" style={{ aspectRatio: '16/9', background: 'rgba(255,255,255,0.02)' }}>
+                                  <PlayCircle className="w-8 h-8 text-gold/40" />
+                                </div>
+                              )}
+                              {m.description && <p className="text-xs text-pearl/60 font-inter whitespace-pre-wrap break-words">{m.description}</p>}
+                              {!m.completed && (m.video_percent ?? 0) > 0 && (
+                                <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ width: `${Math.min(100, m.video_percent ?? 0)}%`, background: 'linear-gradient(90deg,#4B0082,#D4AF37)' }} />
+                                </div>
+                              )}
+                              <button type="button" onClick={() => setActive(m)}
+                                className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 w-full justify-center">
+                                <PlayCircle className="w-3.5 h-3.5" /> {watchLabel}
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-pearl/40 font-inter rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
+                              Aucune vidéo disponible pour ce module.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-inter truncate ${m.locked ? 'text-pearl/30' : 'text-pearl/80'}`}>{m.ordre}. {m.titre}</p>
-                      {m.duree_minutes > 0 && <p className="text-[10px] text-pearl/30 font-inter">{m.duree_minutes} min</p>}
-                    </div>
-                  </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
