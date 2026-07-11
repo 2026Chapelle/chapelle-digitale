@@ -19,6 +19,7 @@ import { events } from '@/lib/analytics'
 interface FormationCard {
   slug: string; titre: string; description: string; niveau: string;
   duree: string; modules: number; gratuit: boolean; emoji: string; plateforme: string
+  image: string | null
 }
 
 const PODCAST_PLATFORMS = [
@@ -44,18 +45,23 @@ export function GrowSection() {
     let cancelled = false
     ;(async () => {
       try {
-        const { data } = await supabase.from('formations').select('*').limit(3)
+        // Formations PUBLIÉES uniquement, plus récentes d'abord (ordre déterministe).
+        const { data } = await supabase.from('formations').select('*')
+          .eq('statut', 'publie').order('date_publication', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false }).limit(3)
         if (!cancelled) {
           setFormations((data || []).map((f: any) => ({
             slug: f.slug || f.id,
             titre: f.titre || f.title || 'Formation',
-            description: f.description || '',
+            description: f.description || f.contenu_court || '',
             niveau: f.niveau || 'Tous niveaux',
             duree: f.duree_heures ? `${f.duree_heures}h` : (f.duree || ''),
             modules: Number(f.nb_modules || f.modules || 0),
             gratuit: f.gratuit === true || Number(f.prix) === 0,
             emoji: f.emoji || '📖',
             plateforme: f.plateforme || f.categorie || '',
+            // Image de couverture RÉELLE (CMS). null → repli visuel (icône) seulement si absente.
+            image: f.image_couverture || null,
           })))
         }
       } catch { /* vide */ } finally { if (!cancelled) setFLoaded(true) }
@@ -129,17 +135,30 @@ export function GrowSection() {
                   className="block h-full card-cinematic overflow-hidden group"
                 >
                   <div className="relative h-44 overflow-hidden">
-                    <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110"
-                      style={{
-                        background:
-                          'radial-gradient(circle at 30% 30%, rgba(212,175,55,0.30) 0%, transparent 60%),' +
-                          'radial-gradient(circle at 70% 70%, rgba(212,175,55,0.16) 0%, transparent 60%),' +
-                          'linear-gradient(135deg, rgba(212,175,55,0.16) 0%, #050308 100%)',
-                      }} />
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(5,3,8,0.85) 100%)' }} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-7xl drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]">{f.emoji}</span>
-                    </div>
+                    {f.image ? (
+                      <>
+                        {/* Image de couverture RÉELLE — remplit la zone (object-cover), sans déformation. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={f.image} alt={f.titre} loading="lazy" decoding="async"
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(5,3,8,0.85) 100%)' }} />
+                      </>
+                    ) : (
+                      <>
+                        {/* Repli visuel (icône) UNIQUEMENT si aucune image de couverture réelle. */}
+                        <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110"
+                          style={{
+                            background:
+                              'radial-gradient(circle at 30% 30%, rgba(212,175,55,0.30) 0%, transparent 60%),' +
+                              'radial-gradient(circle at 70% 70%, rgba(212,175,55,0.16) 0%, transparent 60%),' +
+                              'linear-gradient(135deg, rgba(212,175,55,0.16) 0%, #050308 100%)',
+                          }} />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(5,3,8,0.85) 100%)' }} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-7xl drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]">{f.emoji}</span>
+                        </div>
+                      </>
+                    )}
 
                     <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
                       <span className="chip-gold backdrop-blur-md">{f.niveau}</span>
