@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { Lock, Mail, Loader2, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react'
 import { getBrowserClient } from '@/lib/supabase-browser'
+import { PasskeyLoginButton } from '../parametres/PasskeysManager'
 
 export default function AdminLoginPage() {
   return (
@@ -194,6 +195,8 @@ function AdminLoginInner() {
             <p className="font-inter text-[11px] text-pearl/35 text-center">Réservé aux comptes disposant d&apos;un accès administrateur.</p>
           </form>
         )}
+
+        <PasskeyLoginButton onSuccess={() => { router.replace(redirect); router.refresh() }} />
 
         <p className="font-inter text-[11px] text-pearl/30 text-center mt-6">
           Accès journalisé. Réservé à l&apos;équipe pastorale &amp; technique.

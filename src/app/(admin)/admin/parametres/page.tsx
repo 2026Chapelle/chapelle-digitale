@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { PasskeysManager } from './PasskeysManager'
 
 const SECTIONS = [
   { id: 'general', label: 'Général', icon: Settings, color: '#D4AF37' },
@@ -242,6 +243,8 @@ export default function AdminParametresPage() {
             )}
 
             {activeSection === 'securite' && (
+              <>
+              <PasskeysManager />
               <div className="card-royal">
                 <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-gold" />
@@ -284,6 +287,7 @@ export default function AdminParametresPage() {
                   </div>
                 </div>
               </div>
+              </>
             )}
 
             {activeSection === 'paiements' && (

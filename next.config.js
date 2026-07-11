@@ -5,6 +5,10 @@ const nextConfig = {
   // minimal. Voir app.js (point d'entrée Passenger) et le dossier deploy-citadelle.
   output: 'standalone',
   reactStrictMode: true,
+  // Passkeys/WebAuthn : @simplewebauthn/server est transpilé pour garantir un
+  // bundle standalone portable (Passenger/PlanetHoster). Import serveur uniquement
+  // (routes runtime='nodejs') — jamais dans le middleware Edge.
+  transpilePackages: ['@simplewebauthn/server'],
   // Le type-checking TypeScript reste actif (sécurité). ESLint est désactivé
   // pendant le build : la résolution du plugin @typescript-eslint est instable
   // dans l'environnement de build portable (next/typescript). Lint en dev via
