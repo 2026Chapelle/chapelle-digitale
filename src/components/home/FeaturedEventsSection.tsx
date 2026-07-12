@@ -33,6 +33,8 @@ export function FeaturedEventsSection() {
   const [loaded, setLoaded] = useState(false)
   const trackRef = useRef<HTMLDivElement>(null)
   const [paused, setPaused] = useState(false)
+  // V2.10-A perf : l'auto-défilement ne tourne que lorsque le carousel est à l'écran.
+  const [onScreen, setOnScreen] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -58,10 +60,19 @@ export function FeaturedEventsSection() {
     return () => { alive = false }
   }, [])
 
-  // Défilement auto gauche → droite (pause survol/focus, désactivé si reduced-motion).
+  // Observe la visibilité du carousel (perf : ne pas animer/hydrater le timer hors écran).
   useEffect(() => {
     const el = trackRef.current
-    if (!el || events.length < 2) return
+    if (!el || typeof IntersectionObserver === 'undefined') { setOnScreen(true); return }
+    const io = new IntersectionObserver((entries) => setOnScreen(entries[0]?.isIntersecting ?? false), { threshold: 0.1 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+
+  // Défilement auto gauche → droite (pause survol/focus, hors écran, ou reduced-motion).
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el || events.length < 2 || !onScreen) return
     const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     if (reduce) return
     const id = window.setInterval(() => {
@@ -72,7 +83,7 @@ export function FeaturedEventsSection() {
       el.scrollTo({ left: atEnd ? 0 : el.scrollLeft + step, behavior: 'smooth' })
     }, 4000)
     return () => window.clearInterval(id)
-  }, [events.length, paused])
+  }, [events.length, paused, onScreen])
 
   const scrollBy = (dir: 1 | -1) => {
     const el = trackRef.current

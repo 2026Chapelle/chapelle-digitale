@@ -90,7 +90,13 @@ export function LiveSection() {
     let cancelled = false
     ;(async () => {
       try {
-        const { data } = await supabase.from('cms_lives').select('*').in('status', ['live', 'scheduled', 'published'])
+        // V2.10-A perf : colonnes explicites + bornage (évite de tirer les descriptions
+        // et l'historique complet des replays « published » sur chaque visite d'accueil).
+        const { data } = await supabase.from('cms_lives')
+          .select('title, status, is_live, youtube_url, video_url, cover_url')
+          .in('status', ['live', 'scheduled', 'published'])
+          .order('created_at', { ascending: false })
+          .limit(10)
         if (cancelled || !data) return
         const row: any = data.find((d: any) => (d.status === 'live' || d.is_live) && (d.youtube_url || d.video_url))
         if (row) {
@@ -122,9 +128,12 @@ export function LiveSection() {
       setCd(ns ? diff(ns.at, now) : null)
     }
     tick()
+    // V2.10-A perf : le tick 1 s ne tourne que lorsque la section est visible — évite un
+    // re-render/seconde d'une section hors écran pendant la fenêtre LCP de l'accueil.
+    if (!inView) return
     const t = setInterval(tick, 1000)
     return () => clearInterval(t)
-  }, [])
+  }, [inView])
 
   const pad = (n: number) => String(n).padStart(2, '0')
 

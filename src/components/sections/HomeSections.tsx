@@ -7,7 +7,7 @@ import { GrowSection } from '@/components/sections/GrowSection'
 import { CommunitySection } from '@/components/sections/CommunitySection'
 import { JoinSection } from '@/components/sections/JoinSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
-import { HomeJoinPopup } from '@/components/home/HomeJoinPopup'
+import { HomeJoinPopupLazy } from '@/components/home/HomeJoinPopupLazy'
 import { FeaturedEventsSection } from '@/components/home/FeaturedEventsSection'
 import { InstallCitadelleSection } from '@/components/home/InstallCitadelleSection'
 import { GlobalPresenceSection } from '@/components/home/GlobalPresenceSection'
@@ -67,8 +67,8 @@ export async function HomeSections() {
 
   return (
     <div className="bg-charbon relative">
-      {/* Popup première visite (V2.7-A) — rendu une fois, s'ouvre après 25 s. */}
-      <HomeJoinPopup />
+      {/* Popup première visite (V2.7-A) — s'ouvre après 25 s. V2.10-A : chargé dynamiquement (hors bundle initial). */}
+      <HomeJoinPopupLazy />
 
       {/* Blocs CMS existants (préservés). Injection additive : événements réels après le hero. */}
       {ordered.map((key, i) => {

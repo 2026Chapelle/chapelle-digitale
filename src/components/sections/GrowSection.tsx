@@ -49,7 +49,9 @@ export function GrowSection() {
         // V2.9-B : formations PUBLIÉES ; vedettes (is_featured) triées par featured_order,
         // sinon repli déterministe (plus récentes). Fusion tous types (le badge garde le
         // type réel). Vedettes remontées d'abord côté requête pour un pool suffisant.
-        const { data } = await supabase.from('formations').select('*')
+        const { data } = await supabase.from('formations')
+          // V2.10-A perf : colonnes explicites (réduit le payload — pas d'objectifs/tags/méta/compteurs).
+          .select('id, slug, titre, description, contenu_court, niveau, duree_heures, gratuit, prix, image_couverture, type, statut, is_featured, featured_order, date_publication, created_at')
           .eq('statut', 'publie')
           .order('is_featured', { ascending: false })
           .order('featured_order', { ascending: true })
@@ -75,7 +77,9 @@ export function GrowSection() {
           })))
         }
       } catch { /* vide */ } finally { if (!cancelled) setFLoaded(true) }
-
+    })()
+    // V2.10-A perf : podcasts lus EN PARALLÈLE des formations (lectures indépendantes → pas de waterfall).
+    ;(async () => {
       try {
         const { data } = await supabase.from('cms_podcasts').select('*').eq('status', 'published').order('episode', { ascending: false }).limit(4)
         if (!cancelled) {
