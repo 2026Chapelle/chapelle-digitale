@@ -58,7 +58,7 @@ export function HomeJoinPopup() {
         {/* Une seule image */}
         <div className="relative h-44 w-full overflow-hidden sm:h-auto sm:aspect-[4/3]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/platformes/jeunesse.png" alt="" loading="eager" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
+          <img src="/images/platformes/jeunesse.webp" alt="" loading="eager" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 45%, rgba(5,3,8,0.95) 100%)' }} />
         </div>
 

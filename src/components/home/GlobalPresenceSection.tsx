@@ -2,7 +2,7 @@
  * Section « Présence internationale » (V2.7-A.4) — GLOBE IMAGE léger, stable mobile.
  *
  * Réécriture volontairement minimale pour ne PLUS jamais bloquer les appareils Samsung :
- *   - une seule image réelle : public/images/home/globe-nations.png (PNG 1280×720) ;
+ *   - une seule image réelle : public/images/home/globe-nations.webp (PNG 1280×720) ;
  *   - conteneur carré + circulaire, `object-cover object-center` (recadrage naturel) ;
  *   - rotation lente par un simple `transform: rotate()` (linéaire, infinie) ;
  *   - 14 « lumières des nations » (constellation symbolique) pulsant en opacity + scale.
@@ -88,7 +88,7 @@ export function GlobalPresenceSection() {
               {/* <img> simple : aucune dépendance, aucun domaine à déclarer, pas de conversion. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/images/home/globe-nations.png"
+                src="/images/home/globe-nations.webp"
                 alt="Globe terrestre — la portée internationale de La Citadelle"
                 width={460}
                 height={460}

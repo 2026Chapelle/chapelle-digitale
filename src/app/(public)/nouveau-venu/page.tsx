@@ -37,7 +37,7 @@ export default function NouveauVenuPage() {
               style={{ border: "1px solid rgba(212,175,55,0.28)", boxShadow: "0 30px 80px -24px rgba(0,0,0,0.75)" }}>
               {/* Photo d'accueil (fichier réel dans public/) */}
               <Image
-                src="/images/nouveau-venu/accueil.png"
+                src="/images/nouveau-venu/accueil.webp"
                 alt="Accueil chaleureux à La Citadelle"
                 fill
                 sizes="(max-width: 1024px) 0px, 480px"
