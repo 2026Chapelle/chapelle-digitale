@@ -7,6 +7,7 @@ import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 import { ModuleVideoPlayer } from '@/components/features/member/ModuleVideoPlayer'
 import { WATCH_THRESHOLD, remainingToWatch } from '@/lib/formations/video-validation'
+import { DAILY_LOCK_MESSAGE, formatRemainingUntil, isDailyUnlockParcours } from '@/lib/formations/module-daily-unlock'
 
 interface Module {
   id: string; ordre: number; titre: string; description?: string; type: string
@@ -16,6 +17,20 @@ interface Module {
   completed: boolean; locked: boolean; lock_reason?: string | null
   has_video?: boolean; has_pdf?: boolean; pdf_locked?: boolean
   video_percent?: number; video_last_position?: number
+  /** Option C — ISO minuit de déblocage (si lock_reason === 'daily'). */
+  next_available_at?: string | null
+  remaining_label?: string | null
+}
+
+/** Libellé pédagogique pour un module sous verrou quotidien (Option C). */
+function dailyLockCopy(m: Module, now: Date = new Date()): { main: string; countdown: string | null } {
+  const main = DAILY_LOCK_MESSAGE
+  if (m.next_available_at) {
+    const next = new Date(m.next_available_at)
+    const countdown = Number.isNaN(next.getTime()) ? (m.remaining_label ?? null) : formatRemainingUntil(now, next)
+    return { main, countdown }
+  }
+  return { main, countdown: m.remaining_label ?? null }
 }
 
 /** Type d'affichage dérivé du champ ADMINISTRABLE `formations.type`. Fallback propre. */
@@ -107,7 +122,15 @@ export default function FormationDetailPage({ params }: { params: { slug: string
       })
       const j = await r.json()
       if (j.ok) {
-        toast.success(j.data.progression >= 100 ? '🎓 Félicitations ! Vous avez terminé cette formation.' : '✅ Bravo, module terminé — continuez sur votre lancée !')
+        const done = j.data.progression >= 100
+        const dailyScope = isDailyUnlockParcours(formation.slug)
+        toast.success(
+          done
+            ? '🎓 Félicitations ! Vous avez terminé cette formation.'
+            : dailyScope
+              ? '✅ Bravo, module terminé ! Votre prochain module sera disponible demain à 00h00.'
+              : '✅ Bravo, module terminé — continuez sur votre lancée !',
+        )
         if (j.data.integration_certificate) toast.success('🏅 Certificat d\'Intégration CIER délivré !')
         await loadModules(formation.id)
       } else toast.error(j.message || 'Échec')
@@ -304,7 +327,20 @@ export default function FormationDetailPage({ params }: { params: { slug: string
                   <Lock className="w-8 h-8 mx-auto mb-3 text-gold/50" />
                   <p className="font-cinzel text-pearl/60">Module verrouillé</p>
                   <p className="font-inter text-xs text-pearl/35 mt-1">
-                    {active.lock_reason === 'prerequis' ? 'Terminez le module précédent pour débloquer celui-ci.' : `Accès réservé (statut requis : ${active.acces_min_statut}).`}
+                    {active.lock_reason === 'daily' ? (() => {
+                      const copy = dailyLockCopy(active)
+                      return (
+                        <>
+                          <span className="block text-pearl/50">{copy.main}</span>
+                          {copy.countdown && <span className="block mt-1.5 text-gold/70">{copy.countdown}</span>}
+                          <span className="block mt-2 text-pearl/30">Prenez ce temps pour méditer et mettre en pratique ce que vous avez reçu.</span>
+                        </>
+                      )
+                    })()
+                      : active.lock_reason === 'prerequis' ? 'Terminez le module précédent pour débloquer celui-ci.'
+                      : active.lock_reason === 'parcours' ? 'Terminez le parcours précédent pour débloquer celui-ci.'
+                      : active.lock_reason === 'inscription' ? 'Inscrivez-vous au parcours pour accéder à ce module.'
+                      : `Accès réservé (statut requis : ${active.acces_min_statut}).`}
                   </p>
                 </div>
               ) : !active.has_video ? (
@@ -441,7 +477,16 @@ export default function FormationDetailPage({ params }: { params: { slug: string
                           {m.locked ? (
                             <div className="flex items-start gap-2 text-xs text-pearl/40 font-inter rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
                               <Lock className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                              <span>{m.lock_reason === 'prerequis' ? 'Terminez le module précédent pour débloquer cette vidéo.'
+                              <span>{m.lock_reason === 'daily' ? (() => {
+                                const copy = dailyLockCopy(m)
+                                return (
+                                  <>
+                                    {copy.main}
+                                    {copy.countdown ? ` ${copy.countdown}` : ''}
+                                  </>
+                                )
+                              })()
+                                : m.lock_reason === 'prerequis' ? 'Terminez le module précédent pour débloquer cette vidéo.'
                                 : m.lock_reason === 'inscription' ? 'Inscrivez-vous au parcours pour accéder à cette vidéo.'
                                 : m.lock_reason === 'parcours' ? 'Terminez le parcours précédent pour débloquer cette vidéo.'
                                 : `Accès réservé (statut requis : ${m.acces_min_statut}).`}</span>

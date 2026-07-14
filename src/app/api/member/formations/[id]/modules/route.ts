@@ -4,6 +4,7 @@ import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { getSessionProfile } from '@/lib/member-auth'
 import { parcoursGate } from '@/lib/formations/parcours-gate-server'
 import { resolveVideoSource, hasPlayableVideo, resolveYouTubeId, youtubeThumbnail } from '@/lib/formations/video-validation'
+import { evaluateDailyLock, DAILY_LOCK_REASON } from '@/lib/formations/module-daily-unlock'
 import { can } from '@/lib/permissions'
 
 /**
@@ -102,21 +103,34 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       vpById = new Map((vp || []).map((v: any) => [v.module_id, v]))
     } catch { /* pas de reprise si la table n'est pas encore appliquée */ }
 
+    // Option C : verrou quotidien (minuit suivant) — uniquement 4 parcours d'intégration.
+    // next_available_at calculé depuis completed_at du prérequis (pas de colonne SQL).
+    const now = new Date()
+
     const modules = await Promise.all((mods || []).map(async (m: any) => {
       const accessOk = bypassStatus || memberLevel >= levelOf(m.acces_min_statut)
       const prereqOk = !m.prerequis_module_id || done.has(m.prerequis_module_id)
+      const prereqCompletedAt = m.prerequis_module_id ? (done.get(m.prerequis_module_id) || null) : null
+      // Daily lock seulement si le prérequis est déjà validé (sinon lock_reason = prerequis).
+      const daily = (prereqOk && prereqCompletedAt)
+        ? evaluateDailyLock(formation?.slug, prereqCompletedAt, now)
+        : { locked: false, next_available_at: null as string | null, remaining_label: null as string | null }
+      const dailyOk = !daily.locked
       const src = resolveVideoSource(m)                    // 'youtube' | 'internal' | 'none'
       const hasVideo = hasPlayableVideo(m)
       const hasPdf = !!m.pdf_url
       const isDone = done.has(m.id)
       // Verrouillé si : parcours précédent non terminé, non inscrit, statut
-      // insuffisant, ou prérequis non validé. L'override (berger/admin) lève tout.
-      const locked = override ? false : (parcoursLocked || !isEnrolled || !accessOk || !prereqOk)
+      // insuffisant, prérequis non validé, ou attente minuit (Option C).
+      // L'override (berger/admin) lève tout, y compris le verrou quotidien.
+      const locked = override ? false : (parcoursLocked || !isEnrolled || !accessOk || !prereqOk || !dailyOk)
       const lock_reason = override ? null
         : parcoursLocked ? 'parcours'
         : !isEnrolled ? 'inscription'
         : !accessOk ? 'statut'
-        : (!prereqOk ? 'prerequis' : null)
+        : !prereqOk ? 'prerequis'
+        : daily.locked ? DAILY_LOCK_REASON
+        : null
       // Anti-contournement : ne JAMAIS exposer le contenu d'un module verrouillé.
       const reveal = !locked
       const v = vpById.get(m.id)
@@ -147,6 +161,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         completed_at: done.get(m.id) || null,
         locked,
         lock_reason,
+        // Option C : exposé uniquement utile pour l'UX (compteur / message minuit).
+        next_available_at: daily.locked ? daily.next_available_at : null,
+        remaining_label: daily.locked ? daily.remaining_label : null,
       }
     }))
 
