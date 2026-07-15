@@ -1,16 +1,17 @@
-# Core ERP Citadelle — Fondation TypeScript (Lot 0.5)
+# Core ERP Citadelle — Fondation TypeScript
 
 ## Rôle
 
 Le module `src/core/erp` définit des **contrats TypeScript purs** pour la fondation multi-tenant SaaS de Citadelle :
 
 - organisations et adhésions ;
-- contexte d’organisation active ;
-- pont de permissions ERP (sans remplacer le RBAC produit) ;
+- résolution de l’organisation active (contrat) ;
+- pont de permissions ERP (contrats uniquement, sans moteur) ;
 - audit unifié (contrat) ;
-- paramètres d’organisation (types).
+- paramètres d’organisation (types) ;
+- contexte organisationnel enrichi (Lot 0.6-A).
 
-**Lot 0.5** : aucun branchement runtime (routes, middleware, UI, Supabase). Aucune migration SQL.
+**Lots 0.5 / 0.6-A** : aucun branchement runtime (routes, middleware, UI, Supabase). Aucune migration SQL.
 
 ## Hiérarchie
 
@@ -24,38 +25,37 @@ Citadelle SaaS
     └── Membres
 ```
 
-Une **Organization** est l’entité contractuelle cliente. Elle **ne remplace pas** nation, antenne, plateforme, groupe ou cellule — elle en est le parent SaaS futur.
+Une **Organization** est l’entité contractuelle cliente. Elle **ne remplace pas** nation, antenne, plateforme, groupe ou cellule.
 
 ## Trois axes de « rôle » (ne pas fusionner)
 
 | Axe | Emplacement | Rôle |
 |-----|-------------|------|
 | `organization_members.membershipRole` | Core ERP / futur SQL | Gouvernance SaaS : `owner` \| `admin` \| `staff` \| `member` |
-| `profiles.role` | `src/lib/roles.ts`, `permissions.ts` | Capacité métier Citadelle (formateur, admin, …) |
-| `profiles.membre_statut` | profil | Progression spirituelle (leader_cellule, berger, …) |
+| `profiles.role` | `src/lib/roles.ts`, `permissions.ts` | Capacité métier Citadelle |
+| `profiles.membre_statut` | profil | Progression spirituelle |
 
 Le Core **ne remplace pas** `src/lib/permissions.ts` ni `src/lib/admin/admin-context.ts`.
+
+## Lot 0.6-A — Contexte organisationnel
+
+- **`OrganizationContext`** étend **`ActiveOrganizationContext`** (Lot 0.5) en ajoutant uniquement `permissions` (snapshot fourni) et `settings`.
+- **`buildOrganizationContext`** : factory pure qui valide les invariants (org active, membership actif, IDs cohérents). **Aucun droit n’est calculé** selon `membershipRole`.
+- **`CurrentOrganizationProvider`** : port abstrait uniquement (`getCurrentOrganizationContext`). **Pas d’implémentation concrète** tant que le Lot 1 n’a pas de repositories réels.
+- **Aucun adapter Supabase**, aucun moteur de permissions supplémentaire, aucun registre de modules ERP.
 
 ## Non implémenté (volontaire)
 
 - Tables SQL `organizations` / `organization_members`
 - Colonnes `organization_id` sur les tables métier
-- Implémentations repository / resolver
-- Évaluateur de permissions ERP réel
-- Writer d’audit réel
-- UI, API, cookies d’organisation, URLs multi-tenant
-
-## Intégration des modules futurs
-
-1. Implémenter les interfaces (`OrganizationRepository`, etc.) dans des modules serveur dédiés.
-2. Brancher le résolveur **après** seed mono-tenant (Lot 1).
-3. Isoler les données métier (Lot 2+) **avant** d’activer une 2ᵉ organisation réelle.
-4. Importer uniquement depuis `@/core/erp`.
+- Isolation multi-tenant réelle
+- Implémentation Supabase des repositories
+- UI, API, cookies d’organisation
 
 ## Limite de sécurité
 
-Tant que `organization_id` n’est pas porté par les tables métier et filtré côté serveur (y compris les routes `supabaseAdmin`), le Core **n’offre pas** d’isolation multi-tenant. Une 2ᵉ organisation en production serait dangereuse.
+Tant que `organization_id` n’est pas porté par les tables métier et filtré côté serveur, le Core **n’offre pas** d’isolation multi-tenant. **Aucune seconde organisation réelle avant le Lot 2.**
 
 ## Prochain lot
 
-**Lot 1 — Organisations SaaS (SQL + seed Chapelle + module de résolution)** : migration additive, rattachement des profils existants, résolveur d’organisation active, sans refonte UI ni migration massive des tables métier.
+**Lot 1** — après validation du design : tables `organizations` et `organization_members` uniquement (+ seed / resolve), sans isolation des tables métier.

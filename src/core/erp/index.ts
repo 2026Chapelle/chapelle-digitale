@@ -2,13 +2,19 @@
  * Core ERP Citadelle — point d'entrée public.
  *
  * Contrats TypeScript purs pour la fondation multi-tenant SaaS.
- * Non branché au runtime (routes, middleware, UI) dans le Lot 0.5.
+ * Non branché au runtime (routes, middleware, UI).
  *
  * @example
- * import type { Organization, OrganizationMembership, ActiveOrganizationContext } from '@/core/erp'
+ * import type {
+ *   Organization,
+ *   OrganizationMembership,
+ *   ActiveOrganizationContext,
+ *   OrganizationContext,
+ *   CurrentOrganizationProvider,
+ * } from '@/core/erp'
  */
 
-// Organization
+// Organization (Lot 0.5)
 export type {
   OrganizationId,
   ErpUserId,
@@ -36,7 +42,7 @@ export {
   isActiveOrganizationMembership,
 } from './organization'
 
-// Permissions ERP (pont futur — ne remplace pas @/lib/permissions)
+// Permissions ERP — contrats uniquement (Lot 0.5), pas d'évaluateur
 export type {
   ErpPermissionKey,
   PermissionDecisionSource,
@@ -64,3 +70,13 @@ export type {
   OrganizationSettings,
   OrganizationSettingsRepository,
 } from './settings'
+
+// Context (Lot 0.6-A) — enrichit ActiveOrganizationContext
+export type {
+  OrganizationContext,
+  OrganizationContextBuildInput,
+  OrganizationContextBuildResult,
+  CurrentOrganizationProvider,
+} from './context'
+
+export { buildOrganizationContext } from './context'
