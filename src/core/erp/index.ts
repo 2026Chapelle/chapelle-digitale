@@ -40,6 +40,13 @@ export {
   isOrganizationMembershipRole,
   isOrganizationMembershipStatus,
   isActiveOrganizationMembership,
+  resolveActiveOrganizationFromData,
+  createActiveOrganizationResolver,
+} from './organization'
+
+export type {
+  ResolveActiveOrganizationData,
+  ActiveOrganizationDataLoader,
 } from './organization'
 
 // Permissions ERP — contrats uniquement (Lot 0.5), pas d'évaluateur

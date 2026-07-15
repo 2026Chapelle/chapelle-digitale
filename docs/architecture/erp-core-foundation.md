@@ -5,13 +5,13 @@
 Le module `src/core/erp` définit des **contrats TypeScript purs** pour la fondation multi-tenant SaaS de Citadelle :
 
 - organisations et adhésions ;
-- résolution de l’organisation active (contrat) ;
+- résolution de l’organisation active (contrat + implémentation pure Lot 1) ;
 - pont de permissions ERP (contrats uniquement, sans moteur) ;
 - audit unifié (contrat) ;
 - paramètres d’organisation (types) ;
 - contexte organisationnel enrichi (Lot 0.6-A).
 
-**Lots 0.5 / 0.6-A** : aucun branchement runtime (routes, middleware, UI, Supabase). Aucune migration SQL.
+L’infrastructure de lecture authentifiée vit sous **`src/lib/erp/**`** (pas dans le Core).
 
 ## Hiérarchie
 
@@ -25,37 +25,53 @@ Citadelle SaaS
     └── Membres
 ```
 
-Une **Organization** est l’entité contractuelle cliente. Elle **ne remplace pas** nation, antenne, plateforme, groupe ou cellule.
-
 ## Trois axes de « rôle » (ne pas fusionner)
 
 | Axe | Emplacement | Rôle |
 |-----|-------------|------|
-| `organization_members.membershipRole` | Core ERP / futur SQL | Gouvernance SaaS : `owner` \| `admin` \| `staff` \| `member` |
+| `organization_members.membershipRole` | Core / futur SQL | Gouvernance SaaS |
 | `profiles.role` | `src/lib/roles.ts`, `permissions.ts` | Capacité métier Citadelle |
 | `profiles.membre_statut` | profil | Progression spirituelle |
 
-Le Core **ne remplace pas** `src/lib/permissions.ts` ni `src/lib/admin/admin-context.ts`.
-
 ## Lot 0.6-A — Contexte organisationnel
 
-- **`OrganizationContext`** étend **`ActiveOrganizationContext`** (Lot 0.5) en ajoutant uniquement `permissions` (snapshot fourni) et `settings`.
-- **`buildOrganizationContext`** : factory pure qui valide les invariants (org active, membership actif, IDs cohérents). **Aucun droit n’est calculé** selon `membershipRole`.
-- **`CurrentOrganizationProvider`** : port abstrait uniquement (`getCurrentOrganizationContext`). **Pas d’implémentation concrète** tant que le Lot 1 n’a pas de repositories réels.
-- **Aucun adapter Supabase**, aucun moteur de permissions supplémentaire, aucun registre de modules ERP.
+- **`OrganizationContext`** étend **`ActiveOrganizationContext`** + `permissions` (snapshot) + `settings`.
+- **`buildOrganizationContext`** : invariants purs ; **aucun** droit calculé selon `membershipRole`.
+- **`CurrentOrganizationProvider`** : port abstrait (non branché runtime global).
 
-## Non implémenté (volontaire)
+## Lot 1 — Organizations SaaS (préparé, non appliqué)
 
-- Tables SQL `organizations` / `organization_members`
-- Colonnes `organization_id` sur les tables métier
-- Isolation multi-tenant réelle
-- Implémentation Supabase des repositories
-- UI, API, cookies d’organisation
+### Migration locale (fichier uniquement)
+
+Fichier : `supabase/migrations/20260715120000_citadelle_erp_lot1_organizations.sql`
+
+- Tables **`public.organizations`** et **`public.organization_members`** (CREATE fail-fast).
+- Seed canonique **`chapelle-du-royaume`** + contrôle de drift.
+- Seed memberships insert-only depuis `profiles` (mapping legacy hors Core).
+- RLS **ENABLE** (pas FORCE) ; **3 policies SELECT** ; **aucune** policy de mutation.
+- Helpers `erp_org_*` SECURITY DEFINER.
+- **Non exécutée** dans le dépôt tant qu’un GO SQL distinct n’est pas donné.
+
+### Code
+
+| Zone | Contenu |
+|------|---------|
+| `src/core/erp/organization/resolve-active.ts` | Resolve **pur** |
+| `src/lib/erp/*` | Mappers + repositories **session authentifiée** |
+
+### Règles
+
+- **Aucun** `supabaseAdmin` dans repositories / resolve.
+- **Aucune** table métier avec `organization_id`.
+- **Aucun** comportement runtime UI/middleware/API encore branché.
+- **Interdit** de créer une 2ᵉ organisation réelle avant le Lot 2 (isolation métier).
 
 ## Limite de sécurité
 
-Tant que `organization_id` n’est pas porté par les tables métier et filtré côté serveur, le Core **n’offre pas** d’isolation multi-tenant. **Aucune seconde organisation réelle avant le Lot 2.**
+Tant que les données métier ne sont pas filtrées par organisation côté serveur, le Core + tables org **n’offrent pas** d’isolation multi-tenant. `supabaseAdmin` contourne la RLS.
 
-## Prochain lot
+## Prochaines étapes
 
-**Lot 1** — après validation du design : tables `organizations` et `organization_members` uniquement (+ seed / resolve), sans isolation des tables métier.
+1. GO SQL : appliquer la migration en environnement contrôlé.
+2. Brancher éventuellement `CurrentOrganizationProvider` (hors scope Lot 1 minimal).
+3. Lot 2 : `organization_id` métier + filtres serveur avant multi-org.
