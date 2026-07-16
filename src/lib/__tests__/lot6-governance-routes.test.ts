@@ -62,18 +62,31 @@ import * as membershipByIdRoute from '@/app/api/admin/organization-unit-membersh
 import * as transferRoute from '@/app/api/admin/organization-unit-memberships/[id]/transfer/route'
 import * as revokeRoute from '@/app/api/admin/organization-unit-invitations/[id]/revoke/route'
 import * as acceptRoute from '@/app/api/invite/unit/accept/route'
+import * as eventsRoute from '@/app/api/admin/organization-unit-governance-events/route'
 
-function actor(role: string, home = 'ci-1') {
+const ORG = '11111111-1111-4111-8111-111111111111'
+const ACTOR = '22222222-2222-4222-8222-222222222222'
+const CI1 = '33333333-3333-4333-8333-333333333331'
+const CI2 = '33333333-3333-4333-8333-333333333332'
+const AF1 = '44444444-4444-4444-8444-444444444441'
+const HQ1 = '55555555-5555-4555-8555-555555555551'
+const MEM1 = '66666666-6666-4666-8666-666666666661'
+const USER2 = '77777777-7777-4777-8777-777777777771'
+const INV1 = '88888888-8888-4888-8888-888888888881'
+const INV_MISSING = '88888888-8888-4888-8888-888888888899'
+const EU99 = '99999999-9999-4999-8999-999999999999'
+
+function actor(role: string, home = CI1) {
   return {
-    userId: 'actor-1',
+    userId: ACTOR,
     email: 'a@x.com',
-    organizationId: 'org-1',
+    organizationId: ORG,
     memberships: [
       {
         id: 'm',
-        organization_id: 'org-1',
+        organization_id: ORG,
         organization_unit_id: home,
-        user_id: 'actor-1',
+        user_id: ACTOR,
         unit_role: role,
         status: 'active',
         is_primary: true,
@@ -90,11 +103,11 @@ function actor(role: string, home = 'ci-1') {
   }
 }
 
-function guarded(role = 'zone_admin', home = 'af-1') {
+function guarded(role = 'zone_admin', home = AF1) {
   return {
     actor: actor(role, home),
-    organizationId: 'org-1',
-    userId: 'actor-1',
+    organizationId: ORG,
+    userId: ACTOR,
     email: 'a@x.com',
   }
 }
@@ -109,10 +122,10 @@ function mockReq(method: string, url: string, body?: unknown) {
 }
 
 const memRow = {
-  id: 'mem-1',
-  organization_id: 'org-1',
-  organization_unit_id: 'ci-1',
-  user_id: 'user-2',
+  id: MEM1,
+  organization_id: ORG,
+  organization_unit_id: CI1,
+  user_id: USER2,
   unit_role: 'national_admin',
   status: 'active',
   is_primary: false,
@@ -142,7 +155,7 @@ describe('Lot 6 — memberships routes', () => {
     const res = await membershipsRoute.POST(
       mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships', {
         actor_user_id: 'evil-actor',
-        organization_unit_id: 'ci-1',
+        organization_unit_id: CI1,
         user_id: 'u2',
         unit_role: 'member',
       }),
@@ -153,18 +166,18 @@ describe('Lot 6 — memberships routes', () => {
 
   it('POST auto-promotion refuse', async () => {
     ;(requireGuardedAdminUnit as any).mockResolvedValue({
-      ...guarded('national_admin', 'ci-1'),
-      actor: actor('national_admin', 'ci-1'),
+      ...guarded('national_admin', CI1),
+      actor: actor('national_admin', CI1),
     })
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'ci-1',
+      id: CI1,
       unit_type: 'national_central_church',
       name: 'CI',
     })
     const res = await membershipsRoute.POST(
       mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships', {
-        organization_unit_id: 'ci-1',
-        user_id: 'actor-1',
+        organization_unit_id: CI1,
+        user_id: ACTOR,
         unit_role: 'zone_admin',
       }),
     )
@@ -173,28 +186,28 @@ describe('Lot 6 — memberships routes', () => {
   })
 
   it('POST nominate appelle RPC avec actor serveur (ignore client)', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'ci-1',
+      id: CI1,
       unit_type: 'national_central_church',
       name: 'CI',
     })
     ;(rpcNominate as any).mockResolvedValue({ id: 'mem-new', error: null })
     const res = await membershipsRoute.POST(
       mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships', {
-        organization_unit_id: 'ci-1',
-        user_id: 'user-2',
+        organization_unit_id: CI1,
+        user_id: USER2,
         unit_role: 'national_admin',
       }),
     )
     expect(res.status).toBe(200)
     expect(rpcNominate).toHaveBeenCalledWith(
       expect.objectContaining({
-        orgId: 'org-1',
-        unitId: 'ci-1',
-        userId: 'user-2',
+        orgId: ORG,
+        unitId: CI1,
+        userId: USER2,
         role: 'national_admin',
-        actorId: 'actor-1',
+        actorId: ACTOR,
       }),
     )
   })
@@ -206,47 +219,47 @@ describe('Lot 6 — transfer route', () => {
   })
 
   it('transfert autorisé appelle RPC avec actor serveur', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     ;(getMembershipById as any).mockResolvedValue(memRow)
     ;(assertUnitAccess as any).mockImplementation(async (_a: unknown, unitId: string) => ({
       id: unitId,
-      unit_type: unitId === 'ci-2' ? 'national_central_church' : 'national_central_church',
+      unit_type: unitId === CI2 ? 'national_central_church' : 'national_central_church',
       name: unitId,
     }))
     ;(rpcTransfer as any).mockResolvedValue({ id: 'mem-t', error: null })
     const res = await transferRoute.POST(
-      mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships/mem-1/transfer', {
-        to_unit_id: 'ci-2',
+      mockReq('POST', "http://localhost/api/admin/organization-unit-memberships/" + MEM1 + "/transfer", {
+        to_unit_id: CI2,
         unit_role: 'national_admin',
         organization_id: 'evil-org',
         actor_user_id: 'evil-actor',
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(200)
-    expect(getMembershipById).toHaveBeenCalledWith('org-1', 'mem-1')
+    expect(getMembershipById).toHaveBeenCalledWith(ORG, MEM1)
     expect(rpcTransfer).toHaveBeenCalledWith({
-      membershipId: 'mem-1',
-      toUnitId: 'ci-2',
-      actorId: 'actor-1',
+      membershipId: MEM1,
+      toUnitId: CI2,
+      actorId: ACTOR,
       role: 'national_admin',
     })
   })
 
   it('transfert hors périmètre refusé', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     ;(getMembershipById as any).mockResolvedValue(memRow)
     ;(assertUnitAccess as any).mockImplementation(async (_a: unknown, unitId: string) => {
-      if (unitId === 'ci-1') {
-        return { id: 'ci-1', unit_type: 'national_central_church', name: 'CI' }
+      if (unitId === CI1) {
+        return { id: CI1, unit_type: 'national_central_church', name: 'CI' }
       }
       throw new UnitAccessError('Hors périmètre', 403)
     })
     const res = await transferRoute.POST(
-      mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships/mem-1/transfer', {
-        to_unit_id: 'eu-99',
+      mockReq('POST', "http://localhost/api/admin/organization-unit-memberships/" + MEM1 + "/transfer", {
+        to_unit_id: EU99,
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(403)
     expect(rpcTransfer).not.toHaveBeenCalled()
@@ -261,11 +274,11 @@ describe('Lot 6 — change role / status route', () => {
   it('PATCH refuse organization_id / user_id client', async () => {
     ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded())
     const res = await membershipByIdRoute.PATCH(
-      mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/mem-1', {
+      mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         organization_id: 'evil',
         unit_role: 'member',
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(400)
     expect(rpcChangeRole).not.toHaveBeenCalled()
@@ -273,122 +286,122 @@ describe('Lot 6 — change role / status route', () => {
   })
 
   it('changement de rôle autorisé', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     ;(getMembershipById as any).mockResolvedValue(memRow)
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'ci-1',
+      id: CI1,
       unit_type: 'national_central_church',
       name: 'CI',
     })
-    ;(rpcChangeRole as any).mockResolvedValue({ id: 'mem-1', error: null })
+    ;(rpcChangeRole as any).mockResolvedValue({ id: MEM1, error: null })
     const res = await membershipByIdRoute.PATCH(
-      mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/mem-1', {
+      mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         unit_role: 'staff',
         actor_user_id: 'evil',
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(200)
     expect(rpcChangeRole).toHaveBeenCalledWith({
-      membershipId: 'mem-1',
+      membershipId: MEM1,
       newRole: 'staff',
-      actorId: 'actor-1',
+      actorId: ACTOR,
     })
   })
 
   it('rôle supérieur / pair refusé (non attribuable)', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     ;(getMembershipById as any).mockResolvedValue(memRow)
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'ci-1',
+      id: CI1,
       unit_type: 'national_central_church',
       name: 'CI',
     })
     const res = await membershipByIdRoute.PATCH(
-      mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/mem-1', {
+      mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         unit_role: 'zone_admin',
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(403)
     expect(rpcChangeRole).not.toHaveBeenCalled()
   })
 
   it('suspension', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     ;(getMembershipById as any).mockResolvedValue(memRow)
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'ci-1',
+      id: CI1,
       unit_type: 'national_central_church',
       name: 'CI',
     })
-    ;(rpcSetStatus as any).mockResolvedValue({ id: 'mem-1', error: null })
+    ;(rpcSetStatus as any).mockResolvedValue({ id: MEM1, error: null })
     const res = await membershipByIdRoute.PATCH(
-      mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/mem-1', {
+      mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         status: 'suspended',
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(200)
     expect(rpcSetStatus).toHaveBeenCalledWith({
-      membershipId: 'mem-1',
+      membershipId: MEM1,
       status: 'suspended',
-      actorId: 'actor-1',
+      actorId: ACTOR,
       notes: null,
     })
   })
 
   it('réactivation', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     ;(getMembershipById as any).mockResolvedValue({ ...memRow, status: 'suspended' })
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'ci-1',
+      id: CI1,
       unit_type: 'national_central_church',
       name: 'CI',
     })
-    ;(rpcSetStatus as any).mockResolvedValue({ id: 'mem-1', error: null })
+    ;(rpcSetStatus as any).mockResolvedValue({ id: MEM1, error: null })
     const res = await membershipByIdRoute.PATCH(
-      mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/mem-1', {
+      mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         status: 'active',
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(200)
     expect(rpcSetStatus).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'active', actorId: 'actor-1' }),
+      expect.objectContaining({ status: 'active', actorId: ACTOR }),
     )
   })
 
   it('retrait', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     ;(getMembershipById as any).mockResolvedValue(memRow)
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'ci-1',
+      id: CI1,
       unit_type: 'national_central_church',
       name: 'CI',
     })
-    ;(rpcSetStatus as any).mockResolvedValue({ id: 'mem-1', error: null })
+    ;(rpcSetStatus as any).mockResolvedValue({ id: MEM1, error: null })
     const res = await membershipByIdRoute.PATCH(
-      mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/mem-1', {
+      mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         status: 'removed',
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(200)
     expect(rpcSetStatus).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'removed', actorId: 'actor-1' }),
+      expect.objectContaining({ status: 'removed', actorId: ACTOR }),
     )
   })
 
   it('dernier world_super_admin protégé (erreur RPC remontée)', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('world_super_admin', 'hq-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('world_super_admin', HQ1))
     ;(getMembershipById as any).mockResolvedValue({
       ...memRow,
       unit_role: 'world_super_admin',
-      organization_unit_id: 'hq-1',
+      organization_unit_id: HQ1,
     })
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'hq-1',
+      id: HQ1,
       unit_type: 'world_headquarters',
       name: 'HQ',
     })
@@ -397,10 +410,10 @@ describe('Lot 6 — change role / status route', () => {
       error: 'Lot6: cannot suspend/remove last world_super_admin',
     })
     const res = await membershipByIdRoute.PATCH(
-      mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/mem-1', {
+      mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         status: 'removed',
       }),
-      { params: { id: 'mem-1' } },
+      { params: { id: MEM1 } },
     )
     expect(res.status).toBe(400)
     const body = await res.json()
@@ -414,12 +427,12 @@ describe('Lot 6 — revoke invitation', () => {
   })
 
   it('révocation d’invitation autorisée', async () => {
-    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', 'af-1'))
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     const maybeSingle = vi.fn().mockResolvedValue({
       data: {
-        id: 'inv-1',
-        organization_unit_id: 'ci-1',
-        organization_id: 'org-1',
+        id: INV1,
+        organization_unit_id: CI1,
+        organization_id: ORG,
       },
       error: null,
     })
@@ -431,23 +444,23 @@ describe('Lot 6 — revoke invitation', () => {
       }),
     })
     ;(assertUnitAccess as any).mockResolvedValue({
-      id: 'ci-1',
+      id: CI1,
       unit_type: 'national_central_church',
       name: 'CI',
     })
     ;(revokeInvitation as any).mockResolvedValue(undefined)
     const res = await revokeRoute.POST(
-      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations/inv-1/revoke', {
+      mockReq('POST', "http://localhost/api/admin/organization-unit-invitations/" + INV1 + "/revoke", {
         organization_id: 'evil',
         actor_user_id: 'evil',
       }),
-      { params: { id: 'inv-1' } },
+      { params: { id: INV1 } },
     )
     expect(res.status).toBe(200)
     expect(revokeInvitation).toHaveBeenCalledWith({
-      orgId: 'org-1',
-      invitationId: 'inv-1',
-      actorId: 'actor-1',
+      orgId: ORG,
+      invitationId: INV1,
+      actorId: ACTOR,
     })
   })
 
@@ -462,8 +475,8 @@ describe('Lot 6 — revoke invitation', () => {
       }),
     })
     const res = await revokeRoute.POST(
-      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations/inv-x/revoke', {}),
-      { params: { id: 'inv-x' } },
+      mockReq('POST', "http://localhost/api/admin/organization-unit-invitations/" + INV_MISSING + "/revoke", {}),
+      { params: { id: INV_MISSING } },
     )
     expect(res.status).toBe(404)
     expect(revokeInvitation).not.toHaveBeenCalled()
@@ -559,5 +572,89 @@ describe('Lot 6 — accept invitation', () => {
     expect(res.status).toBe(403)
     const body = await res.json()
     expect(body.message).toMatch(/suspended or removed/i)
+  })
+})
+
+describe('Lot 6 — UUID invalide → 400 avant Supabase/RPC', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded())
+  })
+
+  it('POST nominate UUID invalide → 400, pas de RPC ni assertUnitAccess', async () => {
+    const res = await membershipsRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships', {
+        organization_unit_id: 'not-a-uuid',
+        user_id: 'also-bad',
+        unit_role: 'member',
+      }),
+    )
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.message).toMatch(/identifiant invalide/i)
+    expect(assertUnitAccess).not.toHaveBeenCalled()
+    expect(rpcNominate).not.toHaveBeenCalled()
+  })
+
+  it('GET memberships unitId invalide → 400', async () => {
+    const res = await membershipsRoute.GET(
+      mockReq('GET', 'http://localhost/api/admin/organization-unit-memberships?unitId=not-a-uuid'),
+    )
+    expect(res.status).toBe(400)
+    expect(assertUnitAccess).not.toHaveBeenCalled()
+  })
+
+  it('GET governance events unitId invalide → 400', async () => {
+    const res = await eventsRoute.GET(
+      mockReq('GET', 'http://localhost/api/admin/organization-unit-governance-events?unitId=bad'),
+    )
+    expect(res.status).toBe(400)
+    expect(assertUnitAccess).not.toHaveBeenCalled()
+  })
+
+  it('PATCH membership id invalide → 400, pas de lecture membership', async () => {
+    const res = await membershipByIdRoute.PATCH(
+      mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/not-a-uuid', {
+        status: 'suspended',
+      }),
+      { params: { id: 'not-a-uuid' } },
+    )
+    expect(res.status).toBe(400)
+    expect(getMembershipById).not.toHaveBeenCalled()
+    expect(rpcSetStatus).not.toHaveBeenCalled()
+  })
+
+  it('transfer to_unit_id invalide → 400', async () => {
+    const res = await transferRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships/' + MEM1 + '/transfer', {
+        to_unit_id: 'not-a-uuid',
+      }),
+      { params: { id: MEM1 } },
+    )
+    expect(res.status).toBe(400)
+    expect(getMembershipById).not.toHaveBeenCalled()
+    expect(rpcTransfer).not.toHaveBeenCalled()
+  })
+
+  it('transfer membership id invalide → 400', async () => {
+    const res = await transferRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships/bad-id/transfer', {
+        to_unit_id: CI2,
+      }),
+      { params: { id: 'bad-id' } },
+    )
+    expect(res.status).toBe(400)
+    expect(getMembershipById).not.toHaveBeenCalled()
+    expect(rpcTransfer).not.toHaveBeenCalled()
+  })
+
+  it('revoke invitation id invalide → 400, pas de from() Supabase', async () => {
+    const res = await revokeRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations/not-uuid/revoke', {}),
+      { params: { id: 'not-uuid' } },
+    )
+    expect(res.status).toBe(400)
+    expect(supabaseFrom).not.toHaveBeenCalled()
+    expect(revokeInvitation).not.toHaveBeenCalled()
   })
 })

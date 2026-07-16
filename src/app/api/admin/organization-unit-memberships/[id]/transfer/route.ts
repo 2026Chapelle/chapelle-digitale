@@ -11,6 +11,7 @@ import {
   UnitAccessError,
 } from '@/lib/erp'
 import { isOrganizationUnitRole, type OrganizationUnitRole } from '@/core/erp/unit'
+import { isUuid } from '@/lib/erp/unit-governance-rules'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,10 +21,16 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
   if (guarded instanceof NextResponse) return guarded
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   try {
+    if (!isUuid(ctx.params.id)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
+    }
     const body = await req.json().catch(() => ({}))
     const toUnitId = typeof body.to_unit_id === 'string' ? body.to_unit_id : ''
     if (!toUnitId) {
       return NextResponse.json({ ok: false, message: 'to_unit_id requis.' }, { status: 400 })
+    }
+    if (!isUuid(toUnitId)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
     }
     const mem = await getMembershipById(guarded.organizationId, ctx.params.id)
     if (!mem) return NextResponse.json({ ok: false, message: 'Affectation introuvable.' }, { status: 404 })

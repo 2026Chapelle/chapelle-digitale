@@ -7,6 +7,7 @@ import {
   assertUnitAccess,
   revokeInvitation,
   UnitAccessError,
+  isUuid,
 } from '@/lib/erp'
 
 export const runtime = 'nodejs'
@@ -17,6 +18,9 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
   if (guarded instanceof NextResponse) return guarded
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   try {
+    if (!isUuid(ctx.params.id)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
+    }
     const { data: inv } = await supabaseAdmin
       .from('organization_unit_invitations')
       .select('id, organization_unit_id, organization_id')

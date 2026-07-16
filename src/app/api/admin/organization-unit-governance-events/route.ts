@@ -6,6 +6,7 @@ import {
   mapUnitGuardError,
   assertUnitAccess,
   listGovernanceEvents,
+  isUuid,
 } from '@/lib/erp'
 
 export const runtime = 'nodejs'
@@ -18,6 +19,9 @@ export async function GET(req: NextRequest) {
   try {
     const unitId = req.nextUrl.searchParams.get('unitId') || ''
     if (!unitId) return NextResponse.json({ ok: false, message: 'unitId requis.' }, { status: 400 })
+    if (!isUuid(unitId)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
+    }
     await assertUnitAccess(guarded.actor, unitId)
     const events = await listGovernanceEvents(guarded.organizationId, unitId)
     return NextResponse.json({ ok: true, data: { events } })

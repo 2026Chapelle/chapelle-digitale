@@ -11,7 +11,7 @@ import {
   UnitAccessError,
 } from '@/lib/erp'
 import { isOrganizationUnitRole, type OrganizationUnitRole } from '@/core/erp/unit'
-import { isSelfPromotion } from '@/lib/erp/unit-governance-rules'
+import { isSelfPromotion, isUuid } from '@/lib/erp/unit-governance-rules'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,6 +23,9 @@ export async function GET(req: NextRequest) {
   try {
     const unitId = req.nextUrl.searchParams.get('unitId') || ''
     if (!unitId) return NextResponse.json({ ok: false, message: 'unitId requis.' }, { status: 400 })
+    if (!isUuid(unitId)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
+    }
     await assertUnitAccess(guarded.actor, unitId)
     const memberships = await listMembershipsForUnit(guarded.organizationId, unitId)
     return NextResponse.json({ ok: true, data: { memberships } })
@@ -46,6 +49,9 @@ export async function POST(req: NextRequest) {
     const notes = typeof body.notes === 'string' ? body.notes : null
     if (!unitId || !userId || !isOrganizationUnitRole(role)) {
       return NextResponse.json({ ok: false, message: 'Payload invalide.' }, { status: 400 })
+    }
+    if (!isUuid(unitId) || !isUuid(userId)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
     }
     const unit = await assertUnitAccess(guarded.actor, unitId, { write: true })
     if (!canAssignRoleOnUnit(guarded.actor, role as OrganizationUnitRole, unit.unit_type as any)) {

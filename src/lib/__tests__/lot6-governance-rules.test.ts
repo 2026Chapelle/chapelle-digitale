@@ -7,6 +7,7 @@ import {
   isSelfPromotion,
   isSelfSensitiveDemotion,
   normalizeEmail,
+  isUuid,
   INVITATION_TTL_MS,
 } from '@/lib/erp/unit-governance-rules'
 import { assignableRolesFor, canAssignRoleOnUnit, type ActorUnitContext } from '@/lib/erp/unit-access'
@@ -84,5 +85,12 @@ describe('Lot 6 — governance rules pure', () => {
 
   it('normalizeEmail', () => {
     expect(normalizeEmail('  A@B.C  ')).toBe('a@b.c')
+  })
+
+  it('isUuid rejette les identifiants malformés', () => {
+    expect(isUuid('11111111-1111-4111-8111-111111111111')).toBe(true)
+    expect(isUuid('not-a-uuid')).toBe(false)
+    expect(isUuid('')).toBe(false)
+    expect(isUuid(null)).toBe(false)
   })
 })

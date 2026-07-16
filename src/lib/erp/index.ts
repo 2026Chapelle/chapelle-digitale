@@ -69,6 +69,7 @@ export {
   isSelfPromotion,
   isSelfSensitiveDemotion,
   normalizeEmail,
+  isUuid,
 } from './unit-governance-rules'
 
 export {

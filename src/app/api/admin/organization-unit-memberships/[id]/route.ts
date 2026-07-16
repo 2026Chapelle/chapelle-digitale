@@ -12,6 +12,7 @@ import {
   UnitAccessError,
 } from '@/lib/erp'
 import { isOrganizationUnitRole, type OrganizationUnitRole } from '@/core/erp/unit'
+import { isUuid } from '@/lib/erp/unit-governance-rules'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,9 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
   if (guarded instanceof NextResponse) return guarded
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   try {
+    if (!isUuid(ctx.params.id)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
+    }
     const body = await req.json().catch(() => ({}))
     if ('organization_id' in body || 'user_id' in body || 'organization_unit_id' in body) {
       return NextResponse.json({ ok: false, message: 'Champs non modifiables.' }, { status: 400 })

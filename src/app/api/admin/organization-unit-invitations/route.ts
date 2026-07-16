@@ -11,7 +11,7 @@ import {
   createInvitation,
   UnitAccessError,
 } from '@/lib/erp'
-import { isInvitableRole, normalizeEmail } from '@/lib/erp/unit-governance-rules'
+import { isInvitableRole, normalizeEmail, isUuid } from '@/lib/erp/unit-governance-rules'
 import type { OrganizationUnitRole } from '@/core/erp/unit'
 
 export const runtime = 'nodejs'
@@ -31,6 +31,9 @@ export async function POST(req: NextRequest) {
     const role = body.unit_role
     if (!unitId || !email.includes('@') || !isInvitableRole(role)) {
       return NextResponse.json({ ok: false, message: 'Payload invalide.' }, { status: 400 })
+    }
+    if (!isUuid(unitId)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
     }
     if (role === 'world_super_admin') {
       return NextResponse.json({ ok: false, message: 'Rôle non invitable.' }, { status: 400 })
