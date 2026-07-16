@@ -11,6 +11,7 @@ import {
 import { PageHeader } from '@/components/ui/PageHeader'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { PasskeysManager } from './PasskeysManager'
+import { OrganizationEssentialsForm } from './OrganizationEssentialsForm'
 
 const SECTIONS = [
   { id: 'general', label: 'Général', icon: Settings, color: '#D4AF37' },
@@ -100,67 +101,7 @@ export default function AdminParametresPage() {
             {activeSection === 'general' && (
               <>
                 <LivretSetting />
-                <div className="card-royal">
-                  <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-gold" />
-                    Identité de l'Église
-                  </h2>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Nom de l'église</label>
-                      <input
-                        className="input-royal w-full"
-                        value={form.churchName}
-                        onChange={e => setForm({ ...form, churchName: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Slogan</label>
-                      <input
-                        className="input-royal w-full"
-                        value={form.slogan}
-                        onChange={e => setForm({ ...form, slogan: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Email de contact</label>
-                        <input className="input-royal w-full" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-                      </div>
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Téléphone</label>
-                        <input className="input-royal w-full" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Fuseau horaire</label>
-                        <select className="input-royal w-full" value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })}>
-                          <option value="Europe/Paris">Europe/Paris (UTC+1)</option>
-                          <option value="Africa/Kinshasa">Africa/Kinshasa (UTC+1)</option>
-                          <option value="Africa/Abidjan">Africa/Abidjan (UTC)</option>
-                          <option value="America/Montreal">America/Montréal (UTC-4)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Langue</label>
-                        <select className="input-royal w-full" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}>
-                          <option value="fr">Français</option>
-                          <option value="en">English</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Devise</label>
-                        <select className="input-royal w-full" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}>
-                          <option value="EUR">EUR — Euro</option>
-                          <option value="USD">USD — Dollar</option>
-                          <option value="XAF">XAF — Franc CFA</option>
-                          <option value="GBP">GBP — Livre</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <OrganizationEssentialsForm />
 
                 <div className="card-royal">
                   <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
