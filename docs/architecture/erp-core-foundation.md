@@ -39,32 +39,51 @@ Citadelle SaaS
 - **`buildOrganizationContext`** : invariants purs ; **aucun** droit calculé selon `membershipRole`.
 - **`CurrentOrganizationProvider`** : port abstrait (non branché runtime global).
 
-## Lot 1 — Organizations SaaS (préparé, non appliqué)
+## Lot 1 — Organizations SaaS (code + SQL manuellement appliqué)
 
-### Migration locale (fichier uniquement)
+### Source Git
 
-Fichier : `supabase/migrations/20260715120000_citadelle_erp_lot1_organizations.sql`
+| Élément | Valeur |
+|---------|--------|
+| Commit | `5543107b2557c8eca5378be314c54935d6fcefcd` |
+| Fichier | `supabase/migrations/20260715120000_citadelle_erp_lot1_organizations.sql` |
+| Blob | `d64cff2bcf9596c9d6493d92fb4474500b634c33` |
 
-- Tables **`public.organizations`** et **`public.organization_members`** (CREATE fail-fast).
-- Seed canonique **`chapelle-du-royaume`** + contrôle de drift.
-- Seed memberships insert-only depuis `profiles` (mapping legacy hors Core).
-- RLS **ENABLE** (pas FORCE) ; **3 policies SELECT** ; **aucune** policy de mutation.
-- Helpers `erp_org_*` SECURITY DEFINER.
-- **Non exécutée** dans le dépôt tant qu’un GO SQL distinct n’est pas donné.
+### Application SQL (manuel)
 
-### Code
+- **Appliquée manuellement** via Supabase SQL Editor (pas via `supabase db push`).
+- Postcheck structurel visible le **2026-07-15 23:35:40 UTC** — marqueur `CITADELLE_ERP_LOT1_SQL_APPLIED_CHECK`.
+- Postcheck structurel : **`all_checks_ok=true`**.
+
+### QA RLS (transactionnelle, ROLLBACK)
+
+Aucune donnée persistante modifiée par la QA.
+
+| Profil | Résumé | `all_checks_ok` |
+|--------|--------|-----------------|
+| **member** | orgs=1, memberships=1, own=1, others=0, `has_active_membership=true`, `is_owner_or_admin=false` | true |
+| **owner** | orgs=1, memberships=13, own=1, others=12, `has_active_membership=true`, `is_owner_or_admin=true` | true |
+
+### Historique de migration Supabase
+
+- `migration_history_rows=0` après exécution manuelle (attendu hors `db push`).
+- **Ne pas** lancer `supabase db push` en aveugle : risquerait de rejouer ou de désaligner l’historique.
+- **Ne pas** réparer manuellement `supabase_migrations.schema_migrations` sans **GO séparé**.
+- L’alignement de l’historique de migration reste un chantier **ultérieur contrôlé**.
+
+### Code (inchangé fonctionnellement)
 
 | Zone | Contenu |
 |------|---------|
 | `src/core/erp/organization/resolve-active.ts` | Resolve **pur** |
 | `src/lib/erp/*` | Mappers + repositories **session authentifiée** |
 
-### Règles
+### Limites et interdictions (toujours en vigueur)
 
+- **Aucune isolation tenant** des tables métier : le Lot 1 ne rend **pas** encore le monolithe multi-tenant.
+- **Interdit** de créer une **deuxième organisation réelle** avant le **Lot 2**.
 - **Aucun** `supabaseAdmin` dans repositories / resolve.
-- **Aucune** table métier avec `organization_id`.
-- **Aucun** comportement runtime UI/middleware/API encore branché.
-- **Interdit** de créer une 2ᵉ organisation réelle avant le Lot 2 (isolation métier).
+- Runtime UI / middleware / API **non branché** sur le tenant org.
 
 ## Limite de sécurité
 
@@ -72,6 +91,6 @@ Tant que les données métier ne sont pas filtrées par organisation côté serv
 
 ## Prochaines étapes
 
-1. GO SQL : appliquer la migration en environnement contrôlé.
+1. GO séparé éventuel : historique `schema_migrations` (sans réparation improvisée).
 2. Brancher éventuellement `CurrentOrganizationProvider` (hors scope Lot 1 minimal).
-3. Lot 2 : `organization_id` métier + filtres serveur avant multi-org.
+3. Lot 2 : `organization_id` métier + filtres serveur **avant** multi-org réel.
