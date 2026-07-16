@@ -634,3 +634,464 @@ Lot 3 officiellement clôturé en production.
 La dernière tranche du socle reste soumise à un GO séparé :
 
 **Lot 4 — Paramètres essentiels par organisation et QA finale.**
+
+## Lot 4 — Paramètres essentiels par organisation et clôture finale de la Fondation ERP
+
+**Commit applicatif** : `3e2db1a4f180798e6c00699fcac6dd9e35587166`
+**Message** : `feat(citadelle): add essential organization settings`
+**Parent** : `643592f09eb917b57e3041ecf81a1a2142a12c3f`
+
+### 1. Objectif
+
+Le Lot 4 constitue la dernière tranche de la Fondation ERP SaaS :
+
+- exposer les paramètres essentiels de l’organisation canonique ;
+- permettre leur lecture et leur mise à jour contrôlée ;
+- conserver le bornage tenant côté serveur ;
+- exiger une membership active `owner` ou `admin` ;
+- ne faire confiance à aucun identifiant d’organisation fourni par le client ;
+- valider transversalement les Lots 1 à 4 en production ;
+- clôturer le socle sans élargissement fonctionnel.
+
+### 2. Décision d’audit
+
+Audit préalable :
+
+`CITADELLE_ERP_LOT4_FAST_FINAL_AUDIT_READONLY_OK`
+
+Décision :
+
+- `NO SQL REQUIRED` ;
+- tables `organizations` et `organization_members` existantes suffisantes ;
+- aucune migration nécessaire ;
+- aucune modification de l’historique des migrations ;
+- aucune nouvelle table ;
+- aucune configuration SaaS avancée ajoutée.
+
+### 3. Scope Git applicatif
+
+Commit :
+
+`3e2db1a4f180798e6c00699fcac6dd9e35587166`
+
+Fichiers exactement inclus :
+
+- `src/app/(admin)/admin/parametres/OrganizationEssentialsForm.tsx` ;
+- `src/app/(admin)/admin/parametres/page.tsx` ;
+- `src/app/api/admin/organization/route.ts` ;
+- `src/lib/__tests__/organization-admin-routes.test.ts`.
+
+Diff :
+
+- exactement 4 fichiers ;
+- 1 009 insertions ;
+- 61 suppressions ;
+- aucun fichier hors scope ;
+- `package.json` et `package-lock.json` inchangés ;
+- aucune migration ;
+- aucun fichier protégé.
+
+Marqueur local :
+
+`CITADELLE_ERP_LOT4_FAST_FINAL_LOCAL_COMMIT_OK`
+
+### 4. API des paramètres essentiels
+
+Endpoint :
+
+`/api/admin/organization`
+
+Méthodes :
+
+- `GET` ;
+- `PATCH`.
+
+Ordre des gardes avant tout usage de `service_role` :
+
+1. `isAdminRequest` ;
+2. `resolveAdminOrganizationForRequest(true)` ;
+3. `requireActiveOwnerOrAdmin` ;
+4. opération bornée par l’identifiant de l’organisation canonique.
+
+#### GET
+
+- sélection limitée aux champs publics ;
+- requête bornée par `.eq('id', organizationId)` ;
+- aucun `organization_id` client ;
+- `404` si l’organisation est absente ;
+- `200` avec l’organisation canonique si elle existe.
+
+#### PATCH
+
+Liste blanche exacte :
+
+- `name` ;
+- `country` ;
+- `timezone` ;
+- `default_locale` ;
+- `default_currency`.
+
+Champs protégés ou inconnus rejetés avec `400`, notamment :
+
+- `id` ;
+- `slug` ;
+- `status` ;
+- `created_by` ;
+- timestamps ;
+- `logo_url` ;
+- `organization_id` ;
+- `organizationId`.
+
+Validations :
+
+- `name` : trim, non vide, maximum 200 caractères ;
+- `country` : trim ou `null`, maximum 100 caractères ;
+- `timezone` : fuseau IANA valide ;
+- `default_locale` : normalisée en minuscules ;
+- `default_currency` : trois lettres majuscules.
+
+L’update reste strictement limité à l’organisation canonique. Aucun changement de `slug` ou de `status` n’est permis.
+
+### 5. Interface administrative
+
+Page :
+
+`/admin/parametres`
+
+Comportements livrés :
+
+- nouveau composant `OrganizationEssentialsForm` ;
+- remplacement du bloc mock « Identité de l’Église » ;
+- cinq champs réels ;
+- chargement par `GET` ;
+- enregistrement par `PATCH` ;
+- états de chargement, erreur et succès ;
+- formulaire désactivé avant chargement ;
+- aucune valeur mock `EUR` ou `Europe/Paris` envoyée ;
+- slug et statut affichés mais non modifiables ;
+- sections Livret d’accueil, passkeys et autres paramètres préservées ;
+- navigation, middleware et authentification administrative inchangés.
+
+Valeurs de production validées :
+
+- organisation : `La Chapelle Internationale des Élus du Royaume` ;
+- identifiant : `0504dc6a-c75c-441a-a206-8b1ddfe599e6` ;
+- slug : `chapelle-du-royaume` ;
+- statut : `active` ;
+- pays : `CI` ;
+- fuseau : `Africa/Abidjan` ;
+- langue : `fr` ;
+- devise : `XOF`.
+
+### 6. Validations locales
+
+Tests ciblés Lot 4 :
+
+- 27 réussis ;
+- exit `0`.
+
+Régression Lot 3 :
+
+- 27 réussis ;
+- exit `0`.
+
+Régression Lot 2-A :
+
+- 11 réussis ;
+- exit `0`.
+
+Suite complète :
+
+- Test Files : 60 passed ;
+- Tests : 685 passed ;
+- exit `0`.
+
+TypeScript :
+
+`TSC_EXIT=0`
+
+Build :
+
+- `BUILD_EXIT=0` ;
+- `BUILD_ID=wAreTexeETfv5rDLgCjLT`.
+
+Aucun SQL n’a été exécuté.
+
+### 7. Push applicatif
+
+Marqueur :
+
+`CITADELLE_ERP_LOT4_PUSH_OK`
+
+État après push :
+
+- local : `3e2db1a4f180798e6c00699fcac6dd9e35587166` ;
+- distant : `3e2db1a4f180798e6c00699fcac6dd9e35587166` ;
+- avance/retard : `0/0` ;
+- working tree préexistant inchangé.
+
+### 8. Release locale
+
+Archive :
+
+`citadelle-erp-lot4-3e2db1a-wAreTexeETfv5rDLgCjLT-strict-linuxsafe.tar.gz`
+
+SHA256 :
+
+`75771fa936052cfa20e2bcb9f425970b271ae8d03537b4c930b9042489887fa1`
+
+Taille :
+
+32 588 251 octets
+
+Entrées :
+
+4 026
+
+Contrôles :
+
+- `app.js` présent ;
+- `server.js` présent ;
+- `package.json` présent ;
+- `.next/BUILD_ID` présent ;
+- `BUILD_INFO.txt` présent ;
+- `.next/static/` présent ;
+- `public/` présent ;
+- chemins Linux-safe ;
+- fichiers interdits absents ;
+- aucun rebuild ;
+- working tree local inchangé.
+
+Marqueurs :
+
+- `CITADELLE_ERP_LOT4_RELEASE_LOCAL_READY` ;
+- `CITADELLE_ERP_LOT4_RELEASE_LOCAL_VALIDATED`.
+
+### 9. Déploiement production
+
+Archive téléversée :
+
+`/home/frprszbd/releases/uploads/citadelle-erp-lot4-3e2db1a-wAreTexeETfv5rDLgCjLT-strict-linuxsafe.tar.gz`
+
+Backup pré-déploiement :
+
+`/home/frprszbd/releases/backups/citadelle-active-before-erp-lot4-3e2db1a-20260716-135642.tar.gz`
+
+SHA256 du backup :
+
+`f88ac1c1d36a2dc7c409910ec43c1bd141d4af79d6ecb92ab5b35764425b400d`
+
+Staging :
+
+`/home/frprszbd/releases/staging/citadelle-erp-lot4-3e2db1a-20260716-135642`
+
+Résultat :
+
+- archive validée par SHA256 ;
+- structure et `BUILD_INFO.txt` validés ;
+- backup créé avant promotion ;
+- staging validé ;
+- dry-run `rsync` exécuté ;
+- promotion `rsync` réussie ;
+- commit actif correct ;
+- `BUILD_ID` actif correct ;
+- fichiers protégés inchangés ;
+- restart Passenger déclenché le `2026-07-16 13:58:31 UTC` ;
+- aucun build ;
+- aucun `npm install` ;
+- aucun `git pull` ;
+- aucun SQL ;
+- aucune migration.
+
+Marqueur :
+
+`CITADELLE_ERP_LOT4_REMOTE_SWITCH_RESTART_OK`
+
+### 10. QA HTTP Lot 4
+
+Identité active :
+
+- commit : `3e2db1a4f180798e6c00699fcac6dd9e35587166` ;
+- `BUILD_ID` : `wAreTexeETfv5rDLgCjLT`.
+
+Résultats :
+
+- `GET /` → `200` ;
+- `GET /admin/login` → `200` ;
+- `GET /admin/parametres` → `307` vers `/admin/login?redirect=%2Fadmin%2Fparametres` ;
+- `GET /api/admin/organization` sans session → `401` ;
+- `PATCH /api/admin/organization` sans session → `401` ;
+- corps API : `{"ok":false,"message":"Non autorisé."}` ;
+- tentative `PATCH` rejetée avant mutation ;
+- aucune donnée modifiée.
+
+Marqueur :
+
+`CITADELLE_ERP_LOT4_PRODUCTION_HTTP_QA_OK`
+
+### 11. QA connectée réversible Lot 4
+
+Lecture initiale :
+
+- organisation canonique correctement chargée ;
+- pays initial : `CI`.
+
+Mutation contrôlée :
+
+- champ unique : `country` ;
+- valeur temporaire : `CI [QA LOT 4]` ;
+- `PATCH` → succès ;
+- relecture `GET` → valeur temporaire confirmée.
+
+Restauration :
+
+- retour exact à `CI` ;
+- `PATCH` de restauration → succès ;
+- relecture finale → état fonctionnel identique à l’état initial ;
+- `MUTATION_CONFIRMED=true` ;
+- `RESTORATION_CONFIRMED=true` ;
+- aucun champ protégé modifié ;
+- aucune deuxième organisation ;
+- aucun SQL.
+
+Marqueur :
+
+`CITADELLE_ERP_LOT4_CONNECTED_REVERSIBLE_QA_OK`
+
+### 12. QA finale transversale du socle
+
+#### QA serveur N0C
+
+Identité et intégrité :
+
+- commit actif conforme ;
+- `BUILD_ID` conforme ;
+- archive de release conforme à son SHA256 ;
+- backup pré-déploiement conforme à son SHA256.
+
+Fichiers protégés strictement identiques au backup :
+
+| Fichier | SHA256 |
+|---------|--------|
+| `.env` | `4680a76f70fb7f3b0021c59c3627aebb5a627bb466d1672de1d8027b78fe5073` |
+| `.env.exemple-production` | `20ff174beb6c38a7fcef11952fa35833ecfd58ab2ca3528215e00738de2fe04e` |
+| `.htaccess` | `2edfc6726dc471eadd69a8cd7d270a83f364928ee4328d70c0a615085832aa52` |
+| `app.js` | `910030c42f41fdb8d1d5bcd0f3676d03d50cecad04d6c072b3580211a46ae6ac` |
+
+Disponibilité :
+
+- `/` → `200` ;
+- `/nouveau-venu` → `200` ;
+- `/admin/login` → `200`.
+
+Frontières administratives sans session :
+
+- `/admin/membres` → `307` vers login ;
+- `/admin/nouveaux-venus` → `307` vers login ;
+- `/admin/parametres` → `307` vers login ;
+- `/api/admin/organization` → `401` ;
+- `/api/admin/membres` → `401` ;
+- `/api/admin/newcomer-intakes` → `401`.
+
+Marqueur :
+
+`CITADELLE_ERP_FOUNDATION_FINAL_SERVER_QA_OK`
+
+#### QA connectée transversale en lecture seule
+
+Lot 1 :
+
+- organisation canonique unique validée ;
+- slug `chapelle-du-royaume` ;
+- statut `active`.
+
+Lot 2-A :
+
+- 3 demandes nouveaux venus ;
+- 3 identifiants uniques ;
+- statuts conformes ;
+- 8 étapes du référentiel de parcours ;
+- aucune fuite d’`organization_id`.
+
+Lot 2-B :
+
+- fiche membre 360° autorisée chargée ;
+- membership active vérifiée avant chargement.
+
+Lot 3 :
+
+- 13 membres ;
+- 13 retournés ;
+- 13 actifs ;
+- 0 suspendu ;
+- 13 identifiants uniques ;
+- accès owner/admin fonctionnel.
+
+Lot 4 :
+
+- pays `CI` ;
+- fuseau `Africa/Abidjan` ;
+- langue `fr` ;
+- devise `XOF`.
+
+Pages connectées :
+
+- `/admin/membres` ;
+- fiche membre 360° ;
+- `/admin/nouveaux-venus` ;
+- `/admin/parametres`.
+
+Aucun `PATCH`, aucun `POST`, aucune mutation et aucun SQL durant cette QA.
+
+Marqueur :
+
+`CITADELLE_ERP_FOUNDATION_FINAL_CONNECTED_READONLY_QA_OK`
+
+Décision :
+
+`CITADELLE_ERP_FOUNDATION_FINAL_TRANSVERSE_QA_VALIDATED`
+
+### 13. Limites acceptées du socle
+
+- cookie admin legacy conservé comme première couche ;
+- membership individuelle non portée par le cookie ;
+- `service_role` utilisé uniquement derrière les gardes serveur ;
+- une seule organisation canonique réelle ;
+- stratégie `.in(id, allowedIds)` adaptée au MVP actuel ;
+- page paramètres encore partiellement mock hors carte ERP ;
+- pas d’email, téléphone, logo ou branding organisationnel dans le Lot 4 ;
+- aucune deuxième organisation réelle ;
+- aucune facturation ;
+- aucun abonnement SaaS ;
+- aucune configuration avancée ;
+- aucune migration générale des modules métier hors socle ;
+- aucun second RBAC ;
+- aucune nouvelle infrastructure d’audit.
+
+Ces limites sont documentées et ne bloquent pas la clôture du socle Fondation ERP.
+
+### 14. Décision finale
+
+Les Lots suivants sont officiellement clôturés :
+
+- Lot 0 — Audit ;
+- Lot 1 — Organisations SaaS ;
+- Lot 2-A — Isolation tenant des nouveaux venus ;
+- Lot 2-B — Isolation tenant des profils administratifs ;
+- Lot 3 — Permissions centrales minimales des membres ;
+- Lot 4 — Paramètres essentiels par organisation et QA finale.
+
+La Fondation ERP SaaS de Citadelle est validée :
+
+- localement ;
+- sur GitHub ;
+- en release ;
+- en production ;
+- par QA HTTP ;
+- par QA connectée réversible ;
+- par QA transversale en lecture seule ;
+- avec fichiers protégés inchangés ;
+- sans SQL au Lot 4 ;
+- sans élargissement de périmètre.
+
+`CITADELLE_ERP_FOUNDATION_COMPLETED`
