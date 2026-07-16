@@ -35,14 +35,21 @@ export function requireOrganizationId(value: unknown): ScopedOrganizationId {
   return trimmed as ScopedOrganizationId
 }
 
-/** Retire toute clé organization_id d'un payload entrant (client non autorité). */
+/** Retire toute clé organization_id / organization_unit_id d'un payload entrant (client non autorité). */
 export function stripClientOrganizationId<T extends Record<string, unknown>>(
   payload: T,
-): Omit<T, 'organization_id' | 'organizationId'> {
+): Omit<T, 'organization_id' | 'organizationId' | 'organization_unit_id' | 'organizationUnitId'> {
   const {
     organization_id: _snake,
     organizationId: _camel,
+    organization_unit_id: _unitSnake,
+    organizationUnitId: _unitCamel,
     ...rest
-  } = payload as T & { organization_id?: unknown; organizationId?: unknown }
+  } = payload as T & {
+    organization_id?: unknown
+    organizationId?: unknown
+    organization_unit_id?: unknown
+    organizationUnitId?: unknown
+  }
   return rest
 }

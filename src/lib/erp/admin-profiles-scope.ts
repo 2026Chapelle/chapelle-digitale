@@ -119,3 +119,63 @@ export async function requireActiveOwnerOrAdmin(organizationId: unknown): Promis
     throw new AdminProfileScopeError('Autorisation organisationnelle insuffisante.', 403)
   }
 }
+
+/**
+ * Lot 5 — user_ids rattachés à des unités (organization_unit_members actives).
+ * Ne jamais passer [] à .in() sans early-return côté route.
+ */
+export async function getActiveUserIdsForUnits(
+  organizationId: unknown,
+  unitIds: string[],
+  client: DbClient = supabaseAdmin as any,
+): Promise<string[]> {
+  const orgId = requireOrganizationId(organizationId)
+  if (!unitIds.length) return []
+
+  const { data, error } = await client
+    .from('organization_unit_members')
+    .select('user_id')
+    .eq('organization_id', orgId)
+    .in('organization_unit_id', unitIds)
+    .eq('status', 'active')
+
+  if (error) {
+    throw new AdminProfileScopeError(error.message, 500)
+  }
+
+  const ids = (data || [])
+    .map((r: any) => r.user_id)
+    .filter((id: unknown): id is string => typeof id === 'string' && id.trim().length > 0)
+
+  return Array.from(new Set(ids))
+}
+
+/**
+ * Lot 5 — exige que CE userId ait une membership org active owner/admin.
+ * Ne se contente pas de l'existence d'un autre admin.
+ */
+export async function requireActorOrgOwnerOrAdmin(
+  organizationId: unknown,
+  userId: string,
+): Promise<void> {
+  const orgId = requireOrganizationId(organizationId)
+  if (!userId || typeof userId !== 'string') {
+    throw new AdminProfileScopeError('Identité administrateur requise.', 403)
+  }
+
+  const { data, error } = await (supabaseAdmin as any)
+    .from('organization_members')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('user_id', userId)
+    .in('membership_role', ['owner', 'admin'])
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (error) {
+    throw new AdminProfileScopeError(error.message, 500)
+  }
+  if (!data) {
+    throw new AdminProfileScopeError('Autorisation organisationnelle insuffisante.', 403)
+  }
+}

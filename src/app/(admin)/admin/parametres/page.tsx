@@ -12,9 +12,14 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { PasskeysManager } from './PasskeysManager'
 import { OrganizationEssentialsForm } from './OrganizationEssentialsForm'
+import { UnitHierarchyNav, type HierarchyUnit } from './UnitHierarchyNav'
+import { UnitSettingsForm } from './UnitSettingsForm'
+import { PastoralSettingsPanel } from './PastoralSettingsPanel'
 
 const SECTIONS = [
   { id: 'general', label: 'Général', icon: Settings, color: '#D4AF37' },
+  { id: 'hierarchie', label: 'Hiérarchie & unité', icon: Church, color: '#D4AF37' },
+  { id: 'pastoral', label: 'Parcours pastoral', icon: BookOpen, color: '#8B5CF6' },
   { id: 'notifications', label: 'Notifications', icon: Bell, color: '#0EA5E9' },
   { id: 'securite', label: 'Sécurité', icon: Shield, color: '#EF4444' },
   { id: 'plateformes', label: 'Plateformes', icon: Globe, color: '#22C55E' },
@@ -26,18 +31,19 @@ export default function AdminParametresPage() {
   const [activeSection, setActiveSection] = useState('general')
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [activeUnit, setActiveUnit] = useState<HierarchyUnit | null>(null)
   const [form, setForm] = useState({
-    churchName: 'La Chapelle Internationale des Élus du Royaume',
-    slogan: 'Une Église Ouverte au Monde',
-    email: 'info@chapelleduroyaume.org',
-    phone: '+33 1 23 45 67 89',
-    timezone: 'Europe/Paris',
-    language: 'fr',
-    currency: 'EUR',
+    churchName: '',
+    slogan: '',
+    email: '',
+    phone: '',
+    timezone: '',
+    language: '',
+    currency: '',
     apiKey: '••••••••••••••••••••••••••',
     emailProvider: 'resend',
-    emailFrom: 'noreply@chapelleduroyaume.org',
-    emailFromName: 'CIER — La Chapelle',
+    emailFrom: '',
+    emailFromName: '',
     maintenanceMode: false,
     registrationOpen: true,
     requireEmailVerification: true,
@@ -57,8 +63,8 @@ export default function AdminParametresPage() {
 
         <PageHeader
           eyebrow="Administration"
-          title={<>Paramètres <span className="text-cinematic-gold">Globaux</span></>}
-          description="Configuration générale de la plateforme CIER."
+          title={<>Paramètres <span className="text-cinematic-gold">Organisation</span></>}
+          description="Hiérarchie mondiale, identité, unités et parcours pastoral (ERP Lot 5)."
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -98,15 +104,41 @@ export default function AdminParametresPage() {
             transition={{ duration: 0.3 }}
             className="lg:col-span-3 space-y-6"
           >
+            {activeSection === 'hierarchie' && (
+              <>
+                <UnitHierarchyNav
+                  activeUnitId={activeUnit?.id || null}
+                  onSelect={setActiveUnit}
+                />
+                <UnitSettingsForm
+                  unitId={activeUnit?.id || null}
+                  unitLabel={activeUnit?.name}
+                  unitType={activeUnit?.unit_type}
+                />
+              </>
+            )}
+
+            {activeSection === 'pastoral' && <PastoralSettingsPanel />}
+
             {activeSection === 'general' && (
               <>
                 <LivretSetting />
                 <OrganizationEssentialsForm />
+                <UnitHierarchyNav
+                  activeUnitId={activeUnit?.id || null}
+                  onSelect={setActiveUnit}
+                />
+                <UnitSettingsForm
+                  unitId={activeUnit?.id || null}
+                  unitLabel={activeUnit?.name}
+                  unitType={activeUnit?.unit_type}
+                />
 
                 <div className="card-royal">
                   <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-gold" />
                     Fonctionnalités Plateforme
+                    <span className="text-[10px] text-pearl/30 font-inter font-normal ml-2">(legacy mock)</span>
                   </h2>
                   <div className="space-y-4">
                     {[

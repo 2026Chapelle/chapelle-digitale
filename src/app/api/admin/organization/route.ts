@@ -4,8 +4,9 @@ import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { isAdminRequest } from '@/lib/admin-auth'
 import {
   resolveAdminOrganizationForRequest,
-  requireActiveOwnerOrAdmin,
+  requireActorOrgOwnerOrAdmin,
 } from '@/lib/erp/admin-profiles-scope'
+import { resolveAdminActorProfile, UnitAccessError } from '@/lib/erp/unit-access'
 
 /**
  * Lot 4 — Paramètres essentiels de l'organisation canonique.
@@ -67,7 +68,13 @@ function publicOrgPayload(row: Record<string, unknown>) {
 }
 
 function mapGuardError(e: unknown): NextResponse | null {
-  const err = e as { code?: string; status?: number; message?: string }
+  const err = e as { code?: string; status?: number; message?: string; errorCode?: string }
+  if (err?.code === 'unit_access_error') {
+    return NextResponse.json(
+      { ok: false, message: err.message || 'Accès refusé.', code: err.errorCode },
+      { status: err.status || 403 },
+    )
+  }
   if (err?.code === 'admin_profile_scope_error' || err?.message?.includes('Autorisation')) {
     return NextResponse.json(
       { ok: false, message: err.message || 'Autorisation organisationnelle insuffisante.' },
@@ -192,8 +199,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const actorProfile = await resolveAdminActorProfile()
     const organizationId = await resolveAdminOrganizationForRequest(true)
-    await requireActiveOwnerOrAdmin(organizationId)
+    await requireActorOrgOwnerOrAdmin(organizationId, actorProfile.userId)
 
     const { data, error } = await supabaseAdmin
       .from('organizations')
@@ -232,8 +240,10 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ ok: false, message: parsed.message }, { status: 400 })
     }
 
+    // Mutations sensibles : identité réelle de l'appelant (pas « un » admin quelconque)
+    const actorProfile = await resolveAdminActorProfile()
     const organizationId = await resolveAdminOrganizationForRequest(true)
-    await requireActiveOwnerOrAdmin(organizationId)
+    await requireActorOrgOwnerOrAdmin(organizationId, actorProfile.userId)
 
     const { data, error } = await supabaseAdmin
       .from('organizations')

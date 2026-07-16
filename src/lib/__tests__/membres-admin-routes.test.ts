@@ -21,8 +21,21 @@ vi.mock('@/lib/admin-auth', () => ({
 vi.mock('@/lib/erp/admin-profiles-scope', () => ({
   resolveAdminOrganizationForRequest: vi.fn(),
   getActiveMemberUserIdsForOrganization: vi.fn(),
+  getActiveUserIdsForUnits: vi.fn(),
   assertProfileBelongsToActiveMembership: vi.fn(),
   requireActiveOwnerOrAdmin: vi.fn(),
+  requireActorOrgOwnerOrAdmin: vi.fn(),
+}))
+vi.mock('@/lib/erp/unit-access', () => ({
+  resolveAdminActorProfile: vi.fn(),
+  resolveActorUnitContext: vi.fn(),
+  listAccessibleUnitIds: vi.fn(),
+  UnitAccessError: class UnitAccessError extends Error {
+    code = 'unit_access_error'
+    constructor(message: string, public status = 403, public errorCode?: string) {
+      super(message)
+    }
+  },
 }))
 vi.mock('@/lib/pastoral/member-360-server', () => ({
   getMemberDossier: vi.fn(),
@@ -38,9 +51,15 @@ import { isAdminRequest } from '@/lib/admin-auth'
 import {
   resolveAdminOrganizationForRequest,
   getActiveMemberUserIdsForOrganization,
+  getActiveUserIdsForUnits,
   assertProfileBelongsToActiveMembership,
   requireActiveOwnerOrAdmin,
 } from '@/lib/erp/admin-profiles-scope'
+import {
+  resolveAdminActorProfile,
+  resolveActorUnitContext,
+  listAccessibleUnitIds,
+} from '@/lib/erp/unit-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getMemberDossier } from '@/lib/pastoral/member-360-server'
 
@@ -66,8 +85,20 @@ describe('Lot 2-B — Route security (membres admin)', () => {
     ;(isAdminRequest as any).mockReturnValue(true)
     ;(resolveAdminOrganizationForRequest as any).mockResolvedValue(ORG_ID)
     ;(getActiveMemberUserIdsForOrganization as any).mockResolvedValue([USER_IN])
+    ;(getActiveUserIdsForUnits as any).mockResolvedValue([USER_IN])
     ;(assertProfileBelongsToActiveMembership as any).mockResolvedValue(undefined)
     ;(getMemberDossier as any).mockResolvedValue({ id: USER_IN, prenom: 'Test' })
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'admin-1', email: 'a@x.com', role: 'admin' })
+    ;(resolveActorUnitContext as any).mockResolvedValue({
+      userId: 'admin-1',
+      organizationId: ORG_ID,
+      memberships: [],
+      homeUnitIds: ['unit-1'],
+      isWorldScope: true,
+      highestRole: 'world_admin',
+      email: 'a@x.com',
+    })
+    ;(listAccessibleUnitIds as any).mockResolvedValue(['unit-1'])
 
     const mockFrom = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
@@ -235,8 +266,20 @@ describe('Lot 3 — admin membres list and create (organization permissions)', (
     ;(isAdminRequest as any).mockReturnValue(true)
     ;(resolveAdminOrganizationForRequest as any).mockResolvedValue(ORG_ID)
     ;(getActiveMemberUserIdsForOrganization as any).mockResolvedValue([USER_IN])
+    ;(getActiveUserIdsForUnits as any).mockResolvedValue([USER_IN])
     ;(requireActiveOwnerOrAdmin as any).mockResolvedValue(undefined)
     ;(assertProfileBelongsToActiveMembership as any).mockResolvedValue(undefined)
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'admin-1', email: 'a@x.com', role: 'admin' })
+    ;(resolveActorUnitContext as any).mockResolvedValue({
+      userId: 'admin-1',
+      organizationId: ORG_ID,
+      memberships: [],
+      homeUnitIds: ['unit-1'],
+      isWorldScope: true,
+      highestRole: 'world_admin',
+      email: 'a@x.com',
+    })
+    ;(listAccessibleUnitIds as any).mockResolvedValue(['unit-1'])
 
     const mockFrom = vi.fn().mockImplementation((table: string) => ({
       select: vi.fn().mockReturnThis(),
@@ -246,6 +289,7 @@ describe('Lot 3 — admin membres list and create (organization permissions)', (
       order: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
       insert: vi.fn().mockResolvedValue({ error: null }),
+      delete: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: { id: USER_IN }, error: null }),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       limit: vi.fn().mockReturnThis(),
@@ -267,7 +311,10 @@ describe('Lot 3 — admin membres list and create (organization permissions)', (
   })
 
   it('GET /api/admin/membres refuse si pas de membership owner/admin active', async () => {
-    ;(requireActiveOwnerOrAdmin as any).mockRejectedValue(new Error('Autorisation organisationnelle insuffisante.'))
+    const { UnitAccessError } = await import('@/lib/erp/unit-access')
+    ;(resolveActorUnitContext as any).mockRejectedValue(
+      new (UnitAccessError as any)('Aucune affectation d’unité active.', 403, 'no_unit_membership'),
+    )
     const req = createMockRequest('GET', 'http://localhost/api/admin/membres')
     const res = await adminMembresRoute.GET(req)
     expect(res.status).toBe(403)
@@ -297,7 +344,10 @@ describe('Lot 3 — admin membres list and create (organization permissions)', (
   })
 
   it('POST /api/admin/membres refuse membership insuffisante', async () => {
-    ;(requireActiveOwnerOrAdmin as any).mockRejectedValue(new Error('Autorisation...'))
+    const { UnitAccessError } = await import('@/lib/erp/unit-access')
+    ;(resolveActorUnitContext as any).mockRejectedValue(
+      new (UnitAccessError as any)('Aucune affectation d’unité active.', 403, 'no_unit_membership'),
+    )
     const req = createMockRequest('POST', 'http://localhost/api/admin/membres', { email: 'test@example.com', prenom: 'T', nom: 'U' })
     const res = await adminMembresRoute.POST(req)
     expect(res.status).toBe(403)

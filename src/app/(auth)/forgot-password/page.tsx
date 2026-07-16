@@ -20,10 +20,12 @@ export default function ForgotPasswordPage() {
     if (!EMAIL_RE.test(email)) { setStatus('error'); setMessage('Entrez une adresse email valide.'); return }
     setStatus('loading'); setMessage('')
     try {
+      // redirectTo same-origin only ; next allowlisté côté /auth/callback
       const { error } = await authClient().auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?next=/member/dashboard/parametres`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/member/dashboard/parametres')}`,
       })
-      if (error) { setStatus('error'); setMessage(error.message) }
+      // Message neutre anti-énumération (ne pas exposer error.message provider)
+      if (error) { setStatus('sent') }
       else setStatus('sent')
     } catch {
       setStatus('error'); setMessage('Envoi impossible. Réessayez.')
@@ -55,7 +57,7 @@ export default function ForgotPasswordPage() {
               <div className="flex flex-col items-center text-center gap-3 py-4">
                 <CheckCircle2 className="w-10 h-10 text-green-400" />
                 <p className="font-inter text-sm text-pearl/70">
-                  Si un compte existe pour <span className="text-pearl font-semibold">{email}</span>, un lien de réinitialisation vient d’être envoyé.
+                  Si ce compte existe, un lien de réinitialisation a été envoyé.
                 </p>
                 <Link href="/login" className="btn-gold w-full justify-center py-3 mt-2">Retour à la connexion</Link>
               </div>

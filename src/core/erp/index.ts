@@ -87,3 +87,28 @@ export type {
 } from './context'
 
 export { buildOrganizationContext } from './context'
+
+// Units (Lot 5)
+export type {
+  OrganizationUnitId,
+  OrganizationUnitType,
+  OrganizationUnitStatus,
+  OrganizationUnitRole,
+  OrganizationUnit,
+  OrganizationUnitMembership,
+  OrganizationUnitSettings,
+} from './unit'
+
+export {
+  ORGANIZATION_UNIT_TYPES,
+  ORGANIZATION_UNIT_ROLES,
+  WORLD_ROLES,
+  ADMIN_UNIT_ROLES,
+  isOrganizationUnitType,
+  isOrganizationUnitRole,
+  isWorldUnitRole,
+  roleSeesDescendants,
+  expectedChildType,
+  expectedDepth,
+  isPathDescendantOrSelf,
+} from './unit'

@@ -25,3 +25,30 @@ export {
   ErpDataError,
   type ErpSessionClient,
 } from './auth-client'
+
+export {
+  resolveAdminActorProfile,
+  resolveActorUnitContext,
+  listAccessibleUnitIds,
+  assertUnitAccess,
+  canManageWorldSettings,
+  canUnlockBranding,
+  canEditPastoralTemplate,
+  assignableRolesFor,
+  UnitAccessError,
+  type ActorUnitContext,
+} from './unit-access'
+
+export {
+  requireGuardedAdminUnit,
+  mapUnitGuardError,
+} from './admin-unit-guard'
+
+export {
+  resolveInheritedUnitSettings,
+  ancestorUnitIdsFromPath,
+  inheritFieldsList,
+  type UnitSettingsRow,
+  type OrgLocaleDefaults,
+  type InheritField,
+} from './unit-settings-inheritance'

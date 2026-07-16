@@ -16,10 +16,17 @@ const DEMO_MODE =
 export async function middleware(req: NextRequest) {
   const { pathname: adminPath } = req.nextUrl
 
-  // ── Porte du back-office : protège /admin/* (sauf la page de login) ──
-  // Fonctionne en mode démo ET réel — l'admin n'est jamais accessible sans le
-  // cookie de session posé par /api/admin/auth.
-  if (adminPath.startsWith('/admin') && adminPath !== '/admin/login') {
+  // ── Porte du back-office : protège /admin/* ──
+  // Exceptions sans cookie `cier_admin` :
+  //   - /admin/login
+  //   - /admin/forgot-password (demande de reset)
+  //   - /admin/update-password (session recovery Supabase uniquement)
+  // Fonctionne en mode démo ET réel.
+  const adminPublic =
+    adminPath === '/admin/login' ||
+    adminPath === '/admin/forgot-password' ||
+    adminPath === '/admin/update-password'
+  if (adminPath.startsWith('/admin') && !adminPublic) {
     const token = req.cookies.get('cier_admin')?.value
     if (!isValidAdminToken(token)) {
       const url = req.nextUrl.clone()

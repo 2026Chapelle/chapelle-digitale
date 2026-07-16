@@ -19,14 +19,25 @@ vi.mock('@/lib/admin-auth', () => ({
 vi.mock('@/lib/erp/admin-profiles-scope', () => ({
   resolveAdminOrganizationForRequest: vi.fn(),
   requireActiveOwnerOrAdmin: vi.fn(),
+  requireActorOrgOwnerOrAdmin: vi.fn(),
+}))
+vi.mock('@/lib/erp/unit-access', () => ({
+  resolveAdminActorProfile: vi.fn(),
+  UnitAccessError: class UnitAccessError extends Error {
+    code = 'unit_access_error'
+    constructor(message: string, public status = 403, public errorCode?: string) {
+      super(message)
+    }
+  },
 }))
 
 import * as organizationRoute from '@/app/api/admin/organization/route'
 import { isAdminRequest } from '@/lib/admin-auth'
 import {
   resolveAdminOrganizationForRequest,
-  requireActiveOwnerOrAdmin,
+  requireActorOrgOwnerOrAdmin,
 } from '@/lib/erp/admin-profiles-scope'
+import { resolveAdminActorProfile } from '@/lib/erp/unit-access'
 import { supabaseAdmin } from '@/lib/supabase'
 
 const ORG_ID = 'org-canon-uuid'
@@ -123,7 +134,8 @@ describe('Lot 4 — GET /api/admin/organization', () => {
     vi.clearAllMocks()
     ;(isAdminRequest as any).mockReturnValue(true)
     ;(resolveAdminOrganizationForRequest as any).mockResolvedValue(ORG_ID)
-    ;(requireActiveOwnerOrAdmin as any).mockResolvedValue(undefined)
+    ;(requireActorOrgOwnerOrAdmin as any).mockResolvedValue(undefined)
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'admin-1', email: 'a@x.com', role: 'admin' })
   })
 
   it('1. GET 401 sans admin', async () => {
@@ -146,7 +158,7 @@ describe('Lot 4 — GET /api/admin/organization', () => {
   })
 
   it('3. GET 403 si owner/admin échoue', async () => {
-    ;(requireActiveOwnerOrAdmin as any).mockRejectedValue(
+    ;(requireActorOrgOwnerOrAdmin as any).mockRejectedValue(
       Object.assign(new Error('Autorisation organisationnelle insuffisante.'), {
         code: 'admin_profile_scope_error',
         status: 403,
@@ -164,11 +176,15 @@ describe('Lot 4 — GET /api/admin/organization', () => {
       order.push('isAdminRequest')
       return true
     })
+    ;(resolveAdminActorProfile as any).mockImplementation(async () => {
+      order.push('actor')
+      return { userId: 'admin-1', email: 'a@x.com', role: 'admin' }
+    })
     ;(resolveAdminOrganizationForRequest as any).mockImplementation(async () => {
       order.push('resolve')
       return ORG_ID
     })
-    ;(requireActiveOwnerOrAdmin as any).mockImplementation(async () => {
+    ;(requireActorOrgOwnerOrAdmin as any).mockImplementation(async () => {
       order.push('requireOwnerAdmin')
     })
     const mock = createOrgQueryMock({ selectData: ORG_ROW })
@@ -179,7 +195,8 @@ describe('Lot 4 — GET /api/admin/organization', () => {
 
     const req = createMockRequest('GET', 'http://localhost/api/admin/organization')
     await organizationRoute.GET(req)
-    expect(order.indexOf('isAdminRequest')).toBeLessThan(order.indexOf('resolve'))
+    expect(order.indexOf('isAdminRequest')).toBeLessThan(order.indexOf('actor'))
+    expect(order.indexOf('actor')).toBeLessThan(order.indexOf('resolve'))
     expect(order.indexOf('resolve')).toBeLessThan(order.indexOf('requireOwnerAdmin'))
     expect(order.indexOf('requireOwnerAdmin')).toBeLessThan(order.indexOf('from:organizations'))
   })
@@ -235,7 +252,8 @@ describe('Lot 4 — PATCH /api/admin/organization', () => {
     vi.clearAllMocks()
     ;(isAdminRequest as any).mockReturnValue(true)
     ;(resolveAdminOrganizationForRequest as any).mockResolvedValue(ORG_ID)
-    ;(requireActiveOwnerOrAdmin as any).mockResolvedValue(undefined)
+    ;(requireActorOrgOwnerOrAdmin as any).mockResolvedValue(undefined)
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'admin-1', email: 'a@x.com', role: 'admin' })
   })
 
   it('8. PATCH 401 sans admin', async () => {
@@ -249,7 +267,7 @@ describe('Lot 4 — PATCH /api/admin/organization', () => {
   })
 
   it('9. PATCH 403 rôle insuffisant', async () => {
-    ;(requireActiveOwnerOrAdmin as any).mockRejectedValue(
+    ;(requireActorOrgOwnerOrAdmin as any).mockRejectedValue(
       Object.assign(new Error('Autorisation organisationnelle insuffisante.'), {
         code: 'admin_profile_scope_error',
         status: 403,

@@ -66,6 +66,8 @@ export type ListNewcomerIntakesOpts = {
   columns: string
   status?: string
   limit?: number
+  /** Lot 5 — filtre unités accessibles (bornage serveur). */
+  unitIds?: string[]
 }
 
 export function createNewcomerIntakesRepository(client: NewcomerDbClient) {
@@ -107,6 +109,9 @@ export function createNewcomerIntakesRepository(client: NewcomerDbClient) {
 
       if (opts.status) {
         q = q.eq('status', opts.status)
+      }
+      if (opts.unitIds && opts.unitIds.length > 0) {
+        q = q.in('organization_unit_id', opts.unitIds)
       }
 
       const { data, error } = await q

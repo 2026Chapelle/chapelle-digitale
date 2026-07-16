@@ -9,7 +9,14 @@ import { notifyResponsableAssigned, notifyStatusReached } from '@/lib/notificati
 import {
   resolveAdminOrganizationForRequest,
   assertProfileBelongsToActiveMembership,
+  getActiveUserIdsForUnits,
+  getActiveMemberUserIdsForOrganization,
 } from '@/lib/erp/admin-profiles-scope'
+import {
+  resolveAdminActorProfile,
+  resolveActorUnitContext,
+  listAccessibleUnitIds,
+} from '@/lib/erp/unit-access'
 
 const ASSIGNABLE = new Set(['visiteur', 'membre', 'disciple', 'leader', 'berger', 'pasteur', 'formateur', 'responsable_integration', 'responsable_national', 'pasteur_national', 'admin', 'super_admin'])
 
@@ -33,9 +40,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const id = params.id
 
   try {
-    // Garde tenant AVANT toute lecture ou mutation sur le profil cible (Lot 2-B)
+    // Garde tenant + acteur + périmètre unité (Lot 2-B / Lot 5)
+    const actorProfile = await resolveAdminActorProfile()
     const organizationId = await resolveAdminOrganizationForRequest(true)
+    const actor = await resolveActorUnitContext(organizationId, actorProfile.userId)
     await assertProfileBelongsToActiveMembership(organizationId, id)
+    if (!actor.isWorldScope) {
+      const unitIds = await listAccessibleUnitIds(actor)
+      const allowed = await getActiveUserIdsForUnits(organizationId, unitIds)
+      if (!allowed.includes(id)) {
+        return NextResponse.json({ ok: false, message: 'Membre introuvable.' }, { status: 404 })
+      }
+    } else {
+      const allowed = await getActiveMemberUserIdsForOrganization(organizationId)
+      if (!allowed.includes(id)) {
+        return NextResponse.json({ ok: false, message: 'Membre introuvable.' }, { status: 404 })
+      }
+    }
 
     const body = await req.json().catch(() => ({}))
     const action = (body.action || '').toString()

@@ -6,20 +6,39 @@ import { isAdminRequest } from '@/lib/admin-auth'
 import {
   resolveAdminOrganizationForRequest,
   getActiveMemberUserIdsForOrganization,
-  requireActiveOwnerOrAdmin,
+  getActiveUserIdsForUnits,
 } from '@/lib/erp/admin-profiles-scope'
+import {
+  resolveAdminActorProfile,
+  resolveActorUnitContext,
+  listAccessibleUnitIds,
+  UnitAccessError,
+} from '@/lib/erp/unit-access'
 
 /**
- * Membres (back-office pastoral).
- *   GET  /api/admin/membres?q=&role=&statut=&pays=&page=&pageSize=  → liste réelle
- *   POST /api/admin/membres  { email, prenom, nom, telephone?, pays?, ville?, password? }
- *        → crée un membre (Supabase Auth + profil).
- * Garde : cookie admin. Service role.
+ * Membres (back-office pastoral) — Lot 3 + Lot 5 unit scope.
+ * Garde : cookie admin + acteur Supabase + périmètre unités.
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const COLS = 'id, prenom, nom, email, avatar_url, telephone, pays, ville, role, statut, membre_statut, score_engagement, date_inscription, derniere_connexion, archived_at, berger_id'
+
+function mapMembreError(e: any) {
+  if (e?.code === 'unit_access_error') {
+    return NextResponse.json(
+      { ok: false, message: e.message, code: e.errorCode },
+      { status: e.status || 403 },
+    )
+  }
+  if (e?.code === 'admin_profile_scope_error' || e?.message?.includes('Autorisation')) {
+    return NextResponse.json({ ok: false, message: e.message }, { status: e.status || 403 })
+  }
+  if (e?.code === 'canonical_organization_error') {
+    return NextResponse.json({ ok: false, message: 'Erreur serveur' }, { status: 500 })
+  }
+  return NextResponse.json({ ok: false, message: e?.message || 'Erreur' }, { status: 500 })
+}
 
 export async function GET(req: NextRequest) {
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
@@ -34,10 +53,17 @@ export async function GET(req: NextRequest) {
     const pageSize = Math.min(100, Math.max(1, parseInt(sp.get('pageSize') || '25', 10) || 25))
     const from = (page - 1) * pageSize
 
+    const profile = await resolveAdminActorProfile()
     const organizationId = await resolveAdminOrganizationForRequest(true)
-    await requireActiveOwnerOrAdmin(organizationId)
+    const actor = await resolveActorUnitContext(organizationId, profile.userId)
 
-    const allowedIds = await getActiveMemberUserIdsForOrganization(organizationId)
+    let allowedIds: string[]
+    if (actor.isWorldScope) {
+      allowedIds = await getActiveMemberUserIdsForOrganization(organizationId)
+    } else {
+      const unitIds = await listAccessibleUnitIds(actor)
+      allowedIds = await getActiveUserIdsForUnits(organizationId, unitIds)
+    }
 
     if (allowedIds.length === 0) {
       return NextResponse.json({ ok: true, data: { members: [], total: 0, page, pageSize } })
@@ -55,13 +81,7 @@ export async function GET(req: NextRequest) {
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
     return NextResponse.json({ ok: true, data: { members: data || [], total: count ?? 0, page, pageSize } })
   } catch (e: any) {
-    if (e?.code === 'admin_profile_scope_error' || e?.message?.includes('Autorisation')) {
-      return NextResponse.json({ ok: false, message: e.message }, { status: e.status || 403 })
-    }
-    if (e?.code === 'canonical_organization_error') {
-      return NextResponse.json({ ok: false, message: 'Erreur serveur' }, { status: 500 })
-    }
-    return NextResponse.json({ ok: false, message: e?.message || 'Erreur' }, { status: 500 })
+    return mapMembreError(e)
   }
 }
 
@@ -76,13 +96,25 @@ export async function POST(req: NextRequest) {
     const nom = (body.nom || '').toString().slice(0, 80)
     const password = (body.password || '').toString() || randomUUID()
 
-    // Rejeter organization_id client et champs inconnus/protégés
-    if ('organization_id' in body || 'organizationId' in body) {
+    if (
+      'organization_id' in body ||
+      'organizationId' in body ||
+      'organization_unit_id' in body ||
+      'unit_role' in body ||
+      'membership_role' in body
+    ) {
       return NextResponse.json({ ok: false, message: 'Champs non modifiables.' }, { status: 400 })
     }
 
+    const profile = await resolveAdminActorProfile()
     const organizationId = await resolveAdminOrganizationForRequest(true)
-    await requireActiveOwnerOrAdmin(organizationId)
+    const actor = await resolveActorUnitContext(organizationId, profile.userId)
+
+    // Unité d'affectation : home primary de l'acteur (pas de unit_id client)
+    const targetUnitId = actor.homeUnitIds[0]
+    if (!targetUnitId) {
+      throw new UnitAccessError('Unité d’affectation introuvable.', 403)
+    }
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email, password, email_confirm: true, user_metadata: { prenom, nom },
@@ -90,7 +122,6 @@ export async function POST(req: NextRequest) {
     if (error || !created?.user) return NextResponse.json({ ok: false, message: error?.message || 'Création impossible.' }, { status: 400 })
     const uid = created.user.id
 
-    // Le trigger handle_new_user crée le profil ; on complète les champs additionnels.
     await supabaseAdmin.from('profiles').update({
       prenom, nom,
       telephone: (body.telephone || '').toString().slice(0, 40) || null,
@@ -99,7 +130,6 @@ export async function POST(req: NextRequest) {
       source_inscription: 'admin',
     }).eq('id', uid)
 
-    // Rattacher uniquement à l'organisation canonique avec rôle member
     const { error: memError } = await supabaseAdmin.from('organization_members').insert({
       organization_id: organizationId,
       user_id: uid,
@@ -110,25 +140,33 @@ export async function POST(req: NextRequest) {
     })
 
     if (memError) {
-      // Compensation limitée au nouvel utilisateur créé par cette requête
-      try {
-        await supabaseAdmin.auth.admin.deleteUser(uid)
-      } catch {}
+      try { await supabaseAdmin.auth.admin.deleteUser(uid) } catch {}
       return NextResponse.json({ ok: false, message: 'Création de rattachement impossible.' }, { status: 500 })
     }
 
+    const { error: unitMemError } = await supabaseAdmin.from('organization_unit_members').insert({
+      organization_id: organizationId,
+      organization_unit_id: targetUnitId,
+      user_id: uid,
+      unit_role: 'member',
+      status: 'active',
+      is_primary: true,
+    })
+
+    if (unitMemError) {
+      try {
+        await supabaseAdmin.from('organization_members').delete().eq('user_id', uid).eq('organization_id', organizationId)
+        await supabaseAdmin.auth.admin.deleteUser(uid)
+      } catch {}
+      return NextResponse.json({ ok: false, message: 'Rattachement d’unité impossible.' }, { status: 500 })
+    }
+
     await supabaseAdmin.from('pastoral_actions_log').insert({
-      member_id: uid, admin_nom: 'Admin', action: 'create', detail: { email },
+      member_id: uid, admin_nom: 'Admin', action: 'create', detail: { email, unit_id: targetUnitId },
     }).then(() => {}, () => {})
 
-    return NextResponse.json({ ok: true, data: { id: uid } })
+    return NextResponse.json({ ok: true, data: { id: uid, organization_unit_id: targetUnitId } })
   } catch (e: any) {
-    if (e?.code === 'admin_profile_scope_error' || e?.message?.includes('Autorisation')) {
-      return NextResponse.json({ ok: false, message: e.message }, { status: e.status || 403 })
-    }
-    if (e?.code === 'canonical_organization_error') {
-      return NextResponse.json({ ok: false, message: 'Erreur serveur' }, { status: 500 })
-    }
-    return NextResponse.json({ ok: false, message: e?.message || 'Erreur' }, { status: 500 })
+    return mapMembreError(e)
   }
 }

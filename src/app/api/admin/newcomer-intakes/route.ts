@@ -12,6 +12,12 @@ import {
 import { NewcomerRepositoryError } from '@/lib/pastoral/newcomer-intakes-repository'
 import { NewcomerTenantScopeError } from '@/lib/pastoral/newcomer-tenant-scope'
 import { supabaseAdmin } from '@/lib/supabase'
+import {
+  resolveAdminActorProfile,
+  resolveActorUnitContext,
+  listAccessibleUnitIds,
+  UnitAccessError,
+} from '@/lib/erp/unit-access'
 
 /**
  * Demandes « Nouveau Venu » (back-office) — table public.newcomer_intakes.
@@ -42,16 +48,24 @@ export async function GET(req: NextRequest) {
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true, data: { intakes: [] } })
   try {
+    const profile = await resolveAdminActorProfile()
     const organizationId = await resolveAdminOrg(req)
+    const actor = await resolveActorUnitContext(organizationId, profile.userId)
     const repo = getNewcomerIntakesRepository()
     const status = req.nextUrl.searchParams.get('status') || ''
     const statusFilter =
       status && (ALLOWED_STATUS as readonly string[]).includes(status) ? status : undefined
 
+    const unitIds = actor.isWorldScope ? undefined : await listAccessibleUnitIds(actor)
+    if (!actor.isWorldScope && (!unitIds || unitIds.length === 0)) {
+      return NextResponse.json({ ok: true, data: { intakes: [], journeySteps: [] } })
+    }
+
     let intakes = await repo.listForOrganization(organizationId, {
-      columns: COLS,
+      columns: COLS + ', organization_unit_id',
       status: statusFilter,
       limit: 500,
+      unitIds,
     })
 
     // V2.7-B (best-effort, lecture seule) : enrichit chaque demande avec les colonnes de
@@ -78,6 +92,9 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, data: { intakes, journeySteps } })
   } catch (e: unknown) {
+    if (e instanceof UnitAccessError) {
+      return NextResponse.json({ ok: false, message: e.message, code: e.errorCode }, { status: e.status || 403 })
+    }
     if (e instanceof NewcomerTenantScopeError) {
       return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
     }
@@ -89,15 +106,18 @@ export async function PATCH(req: NextRequest) {
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   try {
+    const profile = await resolveAdminActorProfile()
     const organizationId = await resolveAdminOrg(req)
+    const actor = await resolveActorUnitContext(organizationId, profile.userId)
     const repo = getNewcomerIntakesRepository()
 
     const body = await req.json().catch(() => ({}))
+    if ('organization_unit_id' in body || 'organizationUnitId' in body || 'organization_id' in body) {
+      return NextResponse.json({ ok: false, message: 'Champs non modifiables.' }, { status: 400 })
+    }
     const id = typeof body?.id === 'string' ? body.id : ''
     const status = typeof body?.status === 'string' ? body.status : ''
     const note = normalizeAdminNote(body?.note)
-    // V2.6-C (additif, 0 SQL) : action pastorale enregistrable + relance manuelle, stockées
-    // dans metadata.pastoral_journey via un merge NON destructif (préserve admin_note).
     const action = typeof body?.action === 'string' ? body.action : ''
     const followUpProvided = body?.clear_follow_up === true || Object.prototype.hasOwnProperty.call(body ?? {}, 'next_follow_up_at')
     const followUpValue: string | null = body?.clear_follow_up === true ? null : (typeof body?.next_follow_up_at === 'string' ? body.next_follow_up_at : null)
@@ -110,6 +130,27 @@ export async function PATCH(req: NextRequest) {
     if (action && !isValidActionKey(action)) return NextResponse.json({ ok: false, message: 'Action inconnue.' }, { status: 400 })
     if (followUpProvided && followUpValue !== null && !toValidIso(followUpValue)) return NextResponse.json({ ok: false, message: 'Date de relance invalide.' }, { status: 400 })
 
+    // Lot 5 : vérifier que l'intake est dans le périmètre unit de l'acteur
+    if (!actor.isWorldScope) {
+      const unitIds = await listAccessibleUnitIds(actor)
+      const scoped = await repo.listForOrganization(organizationId, {
+        columns: 'id',
+        limit: 1,
+        unitIds,
+      })
+      // Re-check by id under unit filter
+      const { data: row } = await supabaseAdmin
+        .from('newcomer_intakes')
+        .select('id, organization_unit_id')
+        .eq('organization_id', organizationId)
+        .eq('id', id)
+        .maybeSingle()
+      if (!row || !row.organization_unit_id || !unitIds.includes(row.organization_unit_id as string)) {
+        return NextResponse.json({ ok: false, message: 'Demande introuvable.' }, { status: 400 })
+      }
+      void scoped
+    }
+
     const nowIso = new Date().toISOString()
     const patch: Record<string, unknown> = {}
     if (status) {
@@ -117,12 +158,9 @@ export async function PATCH(req: NextRequest) {
       if (status === 'archived') patch.archived_at = nowIso
       if (status === 'contacted' || status === 'converted') patch.processed_at = nowIso
     }
-    // Toute écriture metadata part du metadata COURANT (lecture tenant-scoped) et applique des
-    // merges NON destructifs successifs — admin_note et pastoral_journey coexistent.
     if (note || action || followUpProvided) {
       const cur = await repo.getMetadataForOrganization(organizationId, id)
       if (!cur) {
-        // Absent dans ce tenant (ou autre org) — message unique, pas de fuite inter-tenant.
         return NextResponse.json({ ok: false, message: 'Demande introuvable.' }, { status: 400 })
       }
       let meta: unknown = cur.metadata
@@ -140,13 +178,16 @@ export async function PATCH(req: NextRequest) {
       organizationId,
       id,
       patch,
-      'id, status, processed_at, archived_at, metadata',
+      'id, status, processed_at, archived_at, metadata, organization_unit_id',
     )
     if (!data) {
       return NextResponse.json({ ok: false, message: 'Demande introuvable.' }, { status: 400 })
     }
     return NextResponse.json({ ok: true, data })
   } catch (e: unknown) {
+    if (e instanceof UnitAccessError) {
+      return NextResponse.json({ ok: false, message: e.message, code: e.errorCode }, { status: e.status || 403 })
+    }
     if (e instanceof NewcomerTenantScopeError) {
       return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
     }
