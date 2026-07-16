@@ -10,86 +10,50 @@
  * supabaseAdmin reste hors src/core/erp/** ; ce module vit sous src/lib/**.
  */
 
-import { CHAPELLE_ORGANIZATION_SLUG, type OrganizationId } from '@/core/erp'
+/**
+ * Re-exports neutres depuis src/lib/erp (résolution canonique partagée).
+ * Lot 2-B : les flux admin profils partagent la logique sans dépendance inverse vers pastoral.
+ * Aucune modification fonctionnelle pour newcomer.
+ */
+import {
+  resolveCanonicalOrganizationId as _resolveCanonical,
+  resolveAdminOrganizationId as _resolveAdmin,
+  type OrgLookupClient,
+  CanonicalOrganizationError,
+} from '@/lib/erp/resolve-canonical-organization'
 import { requireOrganizationId, type ScopedOrganizationId } from './newcomer-organization-id'
+import type { OrganizationId } from '@/core/erp'
 
-/** Surface minimale PostgREST pour résoudre l'org canonique (injectable en tests). */
-export type OrgLookupClient = {
-  from: (table: string) => {
-    select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        limit: (n: number) => PromiseLike<{
-          data: Array<{ id: string }> | null
-          error: { message: string } | null
-        }>
-      }
-    }
-  }
-}
-
-export class NewcomerTenantScopeError extends Error {
-  readonly code = 'newcomer_tenant_scope_error' as const
-  constructor(message: string) {
-    super(message)
-    this.name = 'NewcomerTenantScopeError'
-  }
-}
+export type { OrgLookupClient }
+export { CanonicalOrganizationError as NewcomerTenantScopeError }
 
 /**
- * Résout l'id de l'organisation canonique chapelle-du-royaume.
- * Échoue si absente ou dupliquée (même garde que la migration Lot 2-A).
+ * Wrappers de compat (délèguent au helper neutre ERP).
+ * Aucune logique dupliquée, aucun changement de comportement pour les callers newcomer.
  */
 export async function resolveCanonicalOrganizationId(
   client: OrgLookupClient,
 ): Promise<ScopedOrganizationId> {
-  const { data, error } = await client
-    .from('organizations')
-    .select('id')
-    .eq('slug', CHAPELLE_ORGANIZATION_SLUG)
-    .limit(2)
-
-  if (error) {
-    throw new NewcomerTenantScopeError(error.message)
-  }
-
-  const rows = Array.isArray(data) ? data : []
-  if (rows.length === 0) {
-    throw new NewcomerTenantScopeError(
-      `Organisation canonique slug=${CHAPELLE_ORGANIZATION_SLUG} absente.`,
-    )
-  }
-  if (rows.length > 1) {
-    throw new NewcomerTenantScopeError(
-      `Organisation canonique slug=${CHAPELLE_ORGANIZATION_SLUG} dupliquée.`,
-    )
-  }
-
-  return requireOrganizationId(rows[0]?.id)
+  const id = await _resolveCanonical(client)
+  return requireOrganizationId(id)
 }
 
-/**
- * Scope admin pour routes newcomer protégées par isAdminRequest (cookie cier_admin).
- *
- * FALLBACK TEMPORAIRE Lot 2-A :
- *   cier_admin conserve l'accès, mais UNIQUEMENT sur l'organisation canonique.
- *   Ne pas introduire de deuxième organisation tant que ce fallback existe.
- *   La session Supabase n'est pas obligatoire (login legacy code → cookie).
- */
 export async function resolveNewcomerAdminOrganizationId(
   client: OrgLookupClient,
   opts: { adminCookieOk: boolean },
 ): Promise<ScopedOrganizationId> {
   if (!opts.adminCookieOk) {
-    throw new NewcomerTenantScopeError('Non autorisé.')
+    throw new CanonicalOrganizationError('Non autorisé.')
   }
-  return resolveCanonicalOrganizationId(client)
+  const id = await _resolveAdmin({ adminCookieOk: opts.adminCookieOk }, client)
+  return requireOrganizationId(id)
 }
 
-/** Alias documenté pour l'insert public (mono-tenant transition). */
 export async function resolvePublicNewcomerOrganizationId(
   client: OrgLookupClient,
 ): Promise<ScopedOrganizationId> {
-  return resolveCanonicalOrganizationId(client)
+  const id = await _resolveCanonical(client)
+  return requireOrganizationId(id)
 }
 
 export type { OrganizationId }

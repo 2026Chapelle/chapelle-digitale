@@ -6,6 +6,10 @@ import { sendEmail, emailLayout } from '@/lib/email'
 import { siteUrl } from '@/lib/site-url'
 import { canModifyRole, wouldRemoveLastSuperAdmin } from '@/lib/permissions'
 import { notifyResponsableAssigned, notifyStatusReached } from '@/lib/notifications/events'
+import {
+  resolveAdminOrganizationForRequest,
+  assertProfileBelongsToActiveMembership,
+} from '@/lib/erp/admin-profiles-scope'
 
 const ASSIGNABLE = new Set(['visiteur', 'membre', 'disciple', 'leader', 'berger', 'pasteur', 'formateur', 'responsable_integration', 'responsable_national', 'pasteur_national', 'admin', 'super_admin'])
 
@@ -27,7 +31,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const id = params.id
+
   try {
+    // Garde tenant AVANT toute lecture ou mutation sur le profil cible (Lot 2-B)
+    const organizationId = await resolveAdminOrganizationForRequest(true)
+    await assertProfileBelongsToActiveMembership(organizationId, id)
+
     const body = await req.json().catch(() => ({}))
     const action = (body.action || '').toString()
 
@@ -155,6 +164,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json({ ok: false, message: 'Action inconnue.' }, { status: 400 })
     }
   } catch (e: any) {
+    if (e?.message === 'Membre introuvable.' || e?.code === 'admin_profile_scope_error') {
+      return NextResponse.json({ ok: false, message: 'Membre introuvable.' }, { status: 404 })
+    }
     return NextResponse.json({ ok: false, message: e?.message || 'Erreur' }, { status: 500 })
   }
 }
