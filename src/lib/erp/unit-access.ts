@@ -329,3 +329,41 @@ export function assignableRolesFor(actor: ActorUnitContext): OrganizationUnitRol
   }
   return []
 }
+
+/** Compatibilité rôle ↔ type d'unité (Lot 6). */
+export function roleFitsUnitType(role: OrganizationUnitRole, unitType: OrganizationUnitType): boolean {
+  if (role === 'world_super_admin' || role === 'world_admin') return unitType === 'world_headquarters'
+  if (role === 'zone_admin') return unitType === 'continental_zone'
+  if (role === 'national_admin') return unitType === 'national_central_church'
+  if (role === 'local_admin') return unitType === 'local_church'
+  return role === 'staff' || role === 'member' || role === 'viewer'
+}
+
+export function canAssignRoleOnUnit(
+  actor: ActorUnitContext,
+  role: OrganizationUnitRole,
+  unitType: OrganizationUnitType,
+): boolean {
+  return assignableRolesFor(actor).includes(role) && roleFitsUnitType(role, unitType)
+}
+
+/** Permissions effectives lisibles pour l’UI (dérivées du contexte acteur). */
+export function effectivePermissionsSnapshot(actor: ActorUnitContext): {
+  highestRole: OrganizationUnitRole | null
+  isWorldScope: boolean
+  homeUnitIds: string[]
+  assignableRoles: OrganizationUnitRole[]
+  canManageWorldSettings: boolean
+  canUnlockBranding: boolean
+  canEditPastoralTemplate: boolean
+} {
+  return {
+    highestRole: actor.highestRole,
+    isWorldScope: actor.isWorldScope,
+    homeUnitIds: actor.homeUnitIds,
+    assignableRoles: assignableRolesFor(actor),
+    canManageWorldSettings: canManageWorldSettings(actor),
+    canUnlockBranding: canUnlockBranding(actor),
+    canEditPastoralTemplate: canEditPastoralTemplate(actor),
+  }
+}

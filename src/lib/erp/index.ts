@@ -35,6 +35,9 @@ export {
   canUnlockBranding,
   canEditPastoralTemplate,
   assignableRolesFor,
+  roleFitsUnitType,
+  canAssignRoleOnUnit,
+  effectivePermissionsSnapshot,
   UnitAccessError,
   type ActorUnitContext,
 } from './unit-access'
@@ -52,3 +55,39 @@ export {
   type OrgLocaleDefaults,
   type InheritField,
 } from './unit-settings-inheritance'
+
+export {
+  ROLE_RANK,
+  INVITABLE_ROLES,
+  INVITATION_TTL_MS,
+  roleRank,
+  roleFitsUnitType as governanceRoleFitsUnitType,
+  isInvitableRole,
+  canAssignRole,
+  canManageSubjectRole,
+  isSensitiveAdminRole,
+  isSelfPromotion,
+  isSelfSensitiveDemotion,
+  normalizeEmail,
+} from './unit-governance-rules'
+
+export {
+  hashInviteToken,
+  generateInviteToken,
+  rpcNominate,
+  rpcSetStatus,
+  rpcChangeRole,
+  rpcTransfer,
+  rpcAcceptInvitation,
+} from './unit-governance-rpc'
+
+export {
+  listMembershipsForUnit,
+  getMembershipById,
+  listGovernanceEvents,
+  createInvitation,
+  revokeInvitation,
+  getInvitationByTokenHash,
+  getUnitPublicLabel,
+  countActiveWorldSuperAdmins,
+} from './unit-governance-repository'

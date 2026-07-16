@@ -11,6 +11,7 @@ export const AUTH_CALLBACK_NEXT_ALLOWLIST = [
   '/admin/dashboard',
   '/admin/parametres',
   '/admin/login',
+  '/invite/unit',
 ] as const
 
 export type AuthCallbackNext = (typeof AUTH_CALLBACK_NEXT_ALLOWLIST)[number]

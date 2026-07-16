@@ -15,10 +15,12 @@ import { OrganizationEssentialsForm } from './OrganizationEssentialsForm'
 import { UnitHierarchyNav, type HierarchyUnit } from './UnitHierarchyNav'
 import { UnitSettingsForm } from './UnitSettingsForm'
 import { PastoralSettingsPanel } from './PastoralSettingsPanel'
+import { UnitGovernancePanel } from './UnitGovernancePanel'
 
 const SECTIONS = [
   { id: 'general', label: 'Général', icon: Settings, color: '#D4AF37' },
   { id: 'hierarchie', label: 'Hiérarchie & unité', icon: Church, color: '#D4AF37' },
+  { id: 'acces', label: 'Accès & nominations', icon: Users, color: '#A78BFA' },
   { id: 'pastoral', label: 'Parcours pastoral', icon: BookOpen, color: '#8B5CF6' },
   { id: 'notifications', label: 'Notifications', icon: Bell, color: '#0EA5E9' },
   { id: 'securite', label: 'Sécurité', icon: Shield, color: '#EF4444' },
@@ -114,6 +116,19 @@ export default function AdminParametresPage() {
                   unitId={activeUnit?.id || null}
                   unitLabel={activeUnit?.name}
                   unitType={activeUnit?.unit_type}
+                />
+              </>
+            )}
+
+            {activeSection === 'acces' && (
+              <>
+                <UnitHierarchyNav
+                  activeUnitId={activeUnit?.id || null}
+                  onSelect={setActiveUnit}
+                />
+                <UnitGovernancePanel
+                  unitId={activeUnit?.id || null}
+                  unitLabel={activeUnit?.name}
                 />
               </>
             )}
