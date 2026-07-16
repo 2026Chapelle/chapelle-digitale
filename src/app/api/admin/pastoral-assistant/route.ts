@@ -1,25 +1,28 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { isAdminRequest } from '@/lib/admin-auth'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { routeIntent, DATA_INTENTS } from '@/lib/pastoral/intent-router'
 import { buildAssistantResponse } from '@/lib/pastoral/assistant-report'
 import type { IntakeLite } from '@/lib/pastoral/newcomer-intelligence'
+import {
+  getNewcomerIntakesRepository,
+  getNewcomerOrgLookupClient,
+  resolveNewcomerAdminOrganizationId,
+} from '@/lib/pastoral/newcomer-admin-client'
+import { requireOrganizationId } from '@/lib/pastoral/newcomer-organization-id'
+import { NewcomerTenantScopeError } from '@/lib/pastoral/newcomer-tenant-scope'
 
 /**
- * Assistant Pastoral — route serveur CONTRÔLÉE (V2.5-B.2-B-①).
+ * Assistant Pastoral — route serveur CONTRÔLÉE (V2.5-B.2-B-① + Lot 2-A tenant).
  *
  * POST { question } → { ok, intent, confidence, matched, data }
  *
  * SÉCURITÉ :
  *  - Garde admin obligatoire (isAdminRequest) — sinon 401.
- *  - LECTURE SEULE STRICTE : aucun INSERT/UPDATE/DELETE, aucun changement de statut,
- *    aucun envoi (email/WhatsApp).
- *  - Le texte utilisateur ne sert QU'À choisir un intent (routeIntent, déterministe).
- *    Il n'est JAMAIS interpolé dans une requête ni envoyé à une IA externe.
- *  - Accès données borné : un SEUL lecteur contrôlé (colonnes fixes, table fixe,
- *    limite 500) alimente des sélecteurs allow-listés. Aucun SQL dynamique.
+ *  - Lectures newcomer_intakes bornées par organization_id (scope canonique cier_admin).
+ *  - LECTURE SEULE STRICTE : aucun INSERT/UPDATE/DELETE.
  *  - Intent inconnu / hors périmètre → réponse prudente, jamais d'invention.
  */
 export const runtime = 'nodejs'
@@ -28,19 +31,17 @@ export const dynamic = 'force-dynamic'
 // Colonnes EXPOSÉES au moteur (minimisation : ni téléphone ni email ici).
 const READ_COLS = 'id, prenom, nom, status, priority, created_at, processed_at, metadata, assigned_to_profile_id, converted_profile_id'
 const MAX_QUESTION_LEN = 500
-// Allow-list de l'accès données : DATA_INTENTS est défini dans intent-router (source unique,
-// testée). Les intents hors de cet ensemble (unknown, limites_donnees) n'ouvrent aucune lecture.
 
-/** Lecteur CONTRÔLÉ unique : lecture seule, colonnes/table fixes, borné. */
-async function readNewcomerIntakes(): Promise<IntakeLite[]> {
+/** Lecteur CONTRÔLÉ unique : lecture seule, colonnes/table fixes, borné, tenant-scoped. */
+async function readNewcomerIntakes(organizationId: unknown): Promise<IntakeLite[]> {
   if (IS_DEMO_MODE) return []
-  const { data, error } = await supabaseAdmin
-    .from('newcomer_intakes')
-    .select(READ_COLS)
-    .order('created_at', { ascending: false })
-    .limit(500)
-  if (error) throw new Error(error.message)
-  return (data || []).map((r: Record<string, unknown>) => ({
+  const orgId = requireOrganizationId(organizationId)
+  const repo = getNewcomerIntakesRepository()
+  const data = await repo.listForOrganization(orgId, {
+    columns: READ_COLS,
+    limit: 500,
+  })
+  return data.map((r: Record<string, unknown>) => ({
     id: String(r.id),
     prenom: (r.prenom as string) ?? '',
     nom: (r.nom as string) ?? null,
@@ -75,11 +76,19 @@ export async function POST(req: NextRequest) {
   const { intent, confidence, matched } = routeIntent(question)
 
   try {
-    // N'accède aux données QUE si l'intent le requiert (limites_donnees / unknown → aucune lecture).
-    const intakes = DATA_INTENTS.has(intent) ? await readNewcomerIntakes() : []
+    let organizationId: unknown = null
+    if (DATA_INTENTS.has(intent) && !IS_DEMO_MODE) {
+      organizationId = await resolveNewcomerAdminOrganizationId(getNewcomerOrgLookupClient(), {
+        adminCookieOk: true,
+      })
+    }
+    const intakes = DATA_INTENTS.has(intent) ? await readNewcomerIntakes(organizationId) : []
     const data = buildAssistantResponse(intent, intakes, Date.now())
     return NextResponse.json({ ok: true, intent, confidence, matched, data })
   } catch (e: unknown) {
+    if (e instanceof NewcomerTenantScopeError) {
+      return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
+    }
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message : 'Erreur' }, { status: 500 })
   }
 }

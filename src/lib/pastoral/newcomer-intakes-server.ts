@@ -1,16 +1,19 @@
 /**
- * Statistiques admin « Nouveau Venu » — dérivées de public.newcomer_intakes (V2.2-A).
+ * Statistiques admin « Nouveau Venu » — dérivées de public.newcomer_intakes (V2.2-A + Lot 2-A).
  *
  *  - `computeNewcomerStats(rows, now?, previewLimit?)` : fonction PURE (aucune I/O)
  *    → testable en isolation (cf. src/lib/pastoral/__tests__/newcomer-intakes.test.ts).
- *  - `getNewcomerAdminStats()` : wrapper SERVEUR (service role via supabaseAdmin) qui
- *    lit la table (bornée, lecture seule) puis délègue à la fonction pure.
+ *  - `getNewcomerAdminStats(organizationId, …)` : wrapper SERVEUR tenant-scoped
+ *    (service role) qui lit la table (bornée, lecture seule) puis délègue à la pure.
  *
- * ⚠️ Ce module importe `supabaseAdmin` : SERVEUR UNIQUEMENT. Ne jamais l'importer
- * dans un composant client. Aucune donnée sensible superflue n'est lue ici
- * (ni téléphone ni email) : seulement de quoi compter et afficher un aperçu.
+ * ⚠️ organizationId obligatoire. Ce module importe `supabaseAdmin` via le repository :
+ * SERVEUR UNIQUEMENT. Ni téléphone ni email : seulement de quoi compter et un aperçu.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+
+import {
+  getNewcomerIntakesRepository,
+} from '@/lib/pastoral/newcomer-admin-client'
+import { requireOrganizationId } from '@/lib/pastoral/newcomer-organization-id'
 
 // Statuts réels (miroir du CHECK SQL de newcomer_intakes / de l'API admin).
 export const NEWCOMER_STATUSES = ['new', 'to_review', 'contacted', 'converted', 'duplicate', 'archived'] as const
@@ -107,15 +110,18 @@ export function computeNewcomerStats(
 const STATS_COLS = 'id, prenom, nom, source, status, created_at'
 
 /**
- * Lit newcomer_intakes (service role, borné, lecture seule) et renvoie les stats
- * cockpit. SERVEUR UNIQUEMENT. Lève une erreur si la requête échoue.
+ * Lit newcomer_intakes pour UN tenant (service role, borné, lecture seule).
+ * SERVEUR UNIQUEMENT. organizationId obligatoire (Lot 2-A).
  */
-export async function getNewcomerAdminStats(previewLimit = 5): Promise<NewcomerStats> {
-  const { data, error } = await supabaseAdmin
-    .from('newcomer_intakes')
-    .select(STATS_COLS)
-    .order('created_at', { ascending: false })
-    .limit(2000)
-  if (error) throw new Error(error.message)
-  return computeNewcomerStats((data || []) as NewcomerIntakeRow[], Date.now(), previewLimit)
+export async function getNewcomerAdminStats(
+  organizationId: unknown,
+  previewLimit = 5,
+): Promise<NewcomerStats> {
+  const orgId = requireOrganizationId(organizationId)
+  const repo = getNewcomerIntakesRepository()
+  const data = await repo.listForOrganization(orgId, {
+    columns: STATS_COLS,
+    limit: 2000,
+  })
+  return computeNewcomerStats(data as unknown as NewcomerIntakeRow[], Date.now(), previewLimit)
 }

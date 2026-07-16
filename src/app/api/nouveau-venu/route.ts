@@ -1,18 +1,26 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
+import {
+  getNewcomerIntakesRepository,
+  getNewcomerOrgLookupClient,
+  resolvePublicNewcomerOrganizationId,
+} from '@/lib/pastoral/newcomer-admin-client'
+import {
+  NewcomerRepositoryError,
+} from '@/lib/pastoral/newcomer-intakes-repository'
+import { NewcomerTenantScopeError } from '@/lib/pastoral/newcomer-tenant-scope'
+import { OrganizationIdError } from '@/lib/pastoral/newcomer-organization-id'
 
 /**
- * POST /api/nouveau-venu — capture publique d'un « nouveau venu » (V2.1D-C).
+ * POST /api/nouveau-venu — capture publique d'un « nouveau venu » (V2.1D-C + Lot 2-A).
  *
  * Insère UNIQUEMENT dans public.newcomer_intakes via le client service role
- * (côté serveur). La table est en RLS + FORCE RLS avec `revoke all` pour
- * anon/authenticated : toute écriture directe depuis le navigateur est
- * impossible → elle passe obligatoirement par ce relais serveur.
+ * (côté serveur). organization_id est résolu et injecté côté serveur
+ * (organisation canonique) — jamais depuis le body client.
  *
  * N'écrit JAMAIS dans public.profiles, auth.users ni newcomer_pipeline.
- * La clé service role n'est utilisée QUE côté serveur (jamais exposée au client).
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,7 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, message: 'Requête invalide.' }, { status: 400 })
   }
 
-  // Normalisation.
+  // Normalisation. organization_id / organizationId client ignorés (non autorité).
   const prenom = str(body?.prenom)
   const nom = str(body?.nom)
   const telephone = str(body?.telephone)
@@ -60,30 +68,33 @@ export async function POST(req: NextRequest) {
   if (!consent) return NextResponse.json({ ok: false, message: 'Consentement requis.' }, { status: 400 })
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('newcomer_intakes')
-      .insert({
-        prenom,
-        nom: nom || null,
-        telephone,
-        email,
-        source: 'nouveau_venu_form',
-        message: message || null,
-        consent: true,
-        consented_at: new Date().toISOString(),
-        intake_payload: { heard_from: heardFrom || null },
-        // status ('new') / priority ('normal') : valeurs par défaut de la table.
-      })
-      .select('id')
-      .single()
-
-    if (error || !data) {
-      console.error('[nouveau-venu] insert error:', error?.message)
-      return NextResponse.json({ ok: false, message: 'Une erreur est survenue. Réessayez dans un instant.' }, { status: 500 })
-    }
+    const organizationId = await resolvePublicNewcomerOrganizationId(getNewcomerOrgLookupClient())
+    const repo = getNewcomerIntakesRepository()
+    const data = await repo.insertForOrganization(organizationId, {
+      prenom,
+      nom: nom || null,
+      telephone,
+      email,
+      source: 'nouveau_venu_form',
+      message: message || null,
+      consent: true,
+      consented_at: new Date().toISOString(),
+      intake_payload: { heard_from: heardFrom || null },
+      // Tentative client (ignorée par le repository) — non autorité :
+      organization_id: body?.organization_id,
+      organizationId: body?.organizationId,
+    })
 
     return NextResponse.json({ ok: true, intakeId: data.id })
   } catch (e: unknown) {
+    if (
+      e instanceof NewcomerTenantScopeError ||
+      e instanceof OrganizationIdError ||
+      e instanceof NewcomerRepositoryError
+    ) {
+      console.error('[nouveau-venu] insert error:', e.message)
+      return NextResponse.json({ ok: false, message: 'Une erreur est survenue. Réessayez dans un instant.' }, { status: 500 })
+    }
     console.error('[nouveau-venu] server error:', e instanceof Error ? e.message : e)
     return NextResponse.json({ ok: false, message: 'Une erreur est survenue. Réessayez dans un instant.' }, { status: 500 })
   }

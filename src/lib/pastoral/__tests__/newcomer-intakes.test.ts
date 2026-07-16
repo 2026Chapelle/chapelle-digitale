@@ -1,4 +1,8 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// newcomer-intakes-server importe newcomer-admin-client (supabaseAdmin + server-only).
+vi.mock('server-only', () => ({}))
+
 import { computeNewcomerStats, type NewcomerIntakeRow } from '@/lib/pastoral/newcomer-intakes-server'
 
 const NOW = Date.parse('2026-07-07T12:00:00Z')
