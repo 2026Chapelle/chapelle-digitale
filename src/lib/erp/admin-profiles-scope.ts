@@ -99,3 +99,23 @@ export async function assertProfileBelongsToActiveMembership(
 export async function resolveAdminOrganizationForRequest(adminCookieOk: boolean): Promise<ScopedOrganizationId> {
   return resolveCanonicalOrganizationId() as Promise<ScopedOrganizationId>
 }
+
+/**
+ * Exige qu'il existe au moins une membership active owner ou admin pour l'organisation.
+ * Utilisé pour les flux admin legacy sur l'org canonique.
+ */
+export async function requireActiveOwnerOrAdmin(organizationId: unknown): Promise<void> {
+  const orgId = requireOrganizationId(organizationId)
+
+  const { data, error } = await (supabaseAdmin as any)
+    .from('organization_members')
+    .select('id')
+    .eq('organization_id', orgId)
+    .in('membership_role', ['owner', 'admin'])
+    .eq('status', 'active')
+    .limit(1)
+
+  if (error || !data || data.length === 0) {
+    throw new AdminProfileScopeError('Autorisation organisationnelle insuffisante.', 403)
+  }
+}
