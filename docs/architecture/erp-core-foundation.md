@@ -382,3 +382,255 @@ Passenger redémarré :
 **Décision** :
 
 Lot 2-B officiellement clôturé en production.
+
+## Lot 3 — Permissions centrales minimales des membres administratifs (clôture en production)
+
+**Commit applicatif** : `5f3ec90accf5211900f8122200ad9dcca1019dc1`
+**Message** : `fix(citadelle): enforce organization permissions on member admin`
+**Parent** : `0d7b2dc12a7a595081610c8c1d1f357b606b4afd`
+
+### 1. Objectif
+
+- Supprimer le dernier accès global prouvé sur `GET`/`POST` `/api/admin/membres` ;
+- Appliquer la borne tenant issue de `organization_members` ;
+- Exiger une membership active `owner`/`admin` ;
+- Ne faire confiance à aucun `organization_id` client ;
+- Conserver `service_role` uniquement derrière les gardes ;
+- Éviter tout second RBAC et toute nouvelle infrastructure d’audit.
+
+### 2. Audit préalable
+
+**Marqueur** :
+
+`CITADELLE_ERP_LOT3_PERMISSIONS_AUDIT_CORRECTED_READONLY_OK`
+
+**Constat central** :
+
+- `GET`/`POST` `/api/admin/membres` restait global ;
+- Les routes Lot 2-B étaient déjà tenant-bornées ;
+- Modules CMS, académie, giving, communication et autres exclus du socle ;
+- Décision de Fast Lock limité au cœur ERP membres.
+
+### 3. Scope Git
+
+Commit applicatif complet :
+
+`5f3ec90accf5211900f8122200ad9dcca1019dc1`
+
+Message :
+
+`fix(citadelle): enforce organization permissions on member admin`
+
+Parent :
+
+`0d7b2dc12a7a595081610c8c1d1f357b606b4afd`
+
+Fichiers :
+
+- `src/app/api/admin/membres/route.ts` ;
+- `src/lib/__tests__/membres-admin-routes.test.ts` ;
+- `src/lib/erp/admin-profiles-scope.ts`.
+
+Diff :
+
+- Exactement 3 fichiers ;
+- 181 insertions ;
+- Aucune suppression.
+
+### 4. Comportements livrés
+
+**GET** `/api/admin/membres` :
+
+- Garde admin legacy conservée ;
+- Organisation canonique résolue côté serveur ;
+- Membership active `owner`/`admin` exigée ;
+- `allowedIds` issus des memberships actives ;
+- Requête `profiles` bornée avec `.in('id', allowedIds)` ;
+- Liste vide → `200` sans requête globale `profiles` ;
+- Aucun `organization_id` client utilisé.
+
+**POST** `/api/admin/membres` :
+
+- Gardes exécutées avant `service_role` ;
+- Payload strict ;
+- `organization_id` et champs inconnus/protégés rejetés ;
+- Membership créée uniquement dans l’organisation canonique ;
+- `membership_role` forcé à `member` ;
+- `status` `active` selon le flux validé ;
+- Aucune promotion `owner`/`admin` ;
+- Compensation `deleteUser` limitée au nouvel utilisateur si la membership échoue ;
+- Log `pastoral_actions_log` existant conservé ;
+- Aucune nouvelle table d’audit.
+
+**Helper** :
+
+- `requireActiveOwnerOrAdmin` ;
+- `status='active'` ;
+- `membership_role` `owner` ou `admin` ;
+- `staff`/`member` refusés.
+
+### 5. Validations locales
+
+- Tests ciblés routes membres : 27 réussis ;
+- Tests tenant-scope : 11 réussis ;
+- Suite complète :
+  - Test Files : 59 passed ;
+  - Tests : 658 passed ;
+- TypeScript : `TSC_EXIT=0` ;
+- Build :
+  - `BUILD_EXIT=0` ;
+  - `BUILD_ID=kZ6wWi1Q5IdTx8MEWpsFV`.
+
+### 6. Décision SQL
+
+- **NO SQL REQUIRED** ;
+- `organizations` et `organization_members` existantes suffisantes ;
+- Aucune colonne ajoutée à `profiles` ;
+- Aucune nouvelle table `audit_logs` ;
+- Aucune migration créée ;
+- Aucun SQL exécuté ;
+- Aucune modification de migration history.
+
+### 7. Push Git
+
+**Marqueur** :
+
+`CITADELLE_ERP_LOT3_PUSH_OK`
+
+État après push :
+
+- Local = origin ;
+- Commit `5f3ec90accf5211900f8122200ad9dcca1019dc1` ;
+- Avance/retard `0/0`.
+
+### 8. Release
+
+Archive :
+
+`citadelle-lot3-5f3ec90-kZ6wWi1Q5IdTx8MEWpsFV-strict-linuxsafe.tar.gz`
+
+Taille :
+
+32578375 octets
+
+Entrées :
+
+4022
+
+SHA256 :
+
+`ec863b80f4149b06d6a1baba573101498b02d5228d60a66d311fb442a38485f0`
+
+`BUILD_ID` :
+
+`kZ6wWi1Q5IdTx8MEWpsFV`
+
+`RELEASE-META.json` :
+
+- JSON valide ;
+- UTF-8 sans BOM ;
+- Commit et `BUILD_ID` exacts ;
+- `sql_required=false`.
+
+Upload :
+
+`/home/frprszbd/releases/uploads/citadelle-lot3-5f3ec90-kZ6wWi1Q5IdTx8MEWpsFV-strict-linuxsafe.tar.gz`
+
+Candidat :
+
+`/home/frprszbd/releases/citadelle-lot3-5f3ec90-kZ6wWi1Q5IdTx8MEWpsFV`
+
+### 9. Backup et bascule
+
+Backup :
+
+`/home/frprszbd/releases/backups/citadelle-active-before-lot3-20260716-120116.tar.gz`
+
+Taille :
+
+32623623 octets
+
+Entrées :
+
+4064
+
+SHA256 :
+
+`3f5e57eeba2c46babdecb66440887cd212d2a9ab689afb0e519c84b0f459fede`
+
+Dry-run :
+
+`/home/frprszbd/releases/lot3-rsync-dryrun-20260716-120116.txt`
+
+- 2354 lignes ;
+- 87 suppressions runtime ;
+- Aucun chemin protégé touché.
+
+Log de bascule :
+
+`/home/frprszbd/releases/lot3-rsync-switch-20260716-120856.txt`
+
+Restart Passenger :
+
+`2026-07-16T12:09:04Z`
+
+**Marqueur** :
+
+`CITADELLE_ERP_LOT3_REMOTE_SWITCH_RESTART_OK`
+
+**Fichiers protégés inchangés après switch** :
+
+| Fichier                  | SHA256 |
+|--------------------------|--------|
+| `.env`                   | `4680a76f70fb7f3b0021c59c3627aebb5a627bb466d1672de1d8027b78fe5073` |
+| `.env.exemple-production`| `20ff174beb6c38a7fcef11952fa35833ecfd58ab2ca3528215e00738de2fe04e` |
+| `.htaccess`              | `2edfc6726dc471eadd69a8cd7d270a83f364928ee4328d70c0a615085832aa52` |
+| `app.js`                 | `910030c42f41fdb8d1d5bcd0f3676d03d50cecad04d6c072b3580211a46ae6ac` |
+
+### 10. QA production
+
+**HTTP** :
+
+- `GET /` → 200 ;
+- `GET /admin/login` → 200 ;
+- `GET /admin/membres` → 307 vers login ;
+- `GET /api/admin/membres` → 401 ;
+- `POST /api/admin/membres` sans session → 401 ;
+- `GET /api/membres` → 401 ;
+- `GET /admin/nouveaux-venus` → 307 vers login ;
+- `GET /api/admin/newcomer-intakes` → 401.
+
+**QA connectée** :
+
+**Marqueur** :
+
+`CITADELLE_ERP_LOT3_PRODUCTION_QA_OK`
+
+Captures validées :
+
+- Liste administrative chargée ;
+- 13 membres visibles ;
+- 13 actifs ;
+- 0 suspendu ;
+- Fiche 360° Sarah Leader chargée ;
+- Accès owner/admin fonctionnel ;
+- Aucune mutation effectuée ;
+- Aucune régression visible.
+
+### 11. Limites acceptées
+
+- Stratégie `.in(id, allowedIds)` adaptée au MVP canonique ;
+- À réévaluer avant organisations volumineuses ;
+- Garde admin legacy conservée comme première couche ;
+- `pastoral_actions_log` reste un historique métier et non un audit immuable général ;
+- Aucune migration générale des routes métier hors socle ;
+- Aucune création de seconde organisation réelle ;
+- Création de membre non testée par mutation en production, couverte par les tests automatisés.
+
+### 12. Décision finale
+
+Lot 3 officiellement clôturé en production.
+
+La dernière tranche du socle reste soumise à un GO séparé :
+
+**Lot 4 — Paramètres essentiels par organisation et QA finale.**
