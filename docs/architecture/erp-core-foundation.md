@@ -198,3 +198,187 @@ Tant que les données métier ne sont pas filtrées par organisation côté serv
 
 Lot 2-A officiellement clôturé en production.  
 **Lot 2-B reste NO-GO.**
+
+## Lot 2-B — Isolation tenant des profils administratifs (clôture en production)
+
+**Commit applicatif** : `06a37efaf60ca1a7fa5eae34e8c6a21d602c55d3`
+**Message** : `feat(citadelle): isolate admin profiles by organization`
+
+### 1. Objectif
+
+- Isolation des accès administratifs à `public.profiles` ;
+- `profiles` reste une identité globale ;
+- `organization_members` constitue la borne tenant ;
+- Seules les memberships `status='active'` sont admises ;
+- Aucune confiance dans `organization_id` client ;
+- Organisation canonique résolue côté serveur ;
+- `service_role` conservé derrière les gardes serveur.
+
+### 2. Scope applicatif
+
+Routes sécurisées :
+
+- `GET`/`PATCH` `/api/membres` ;
+- `GET` `/api/admin/membres/[id]` ;
+- Actions `/api/admin/membres/[id]/action`.
+
+Comportements :
+
+- `GET` borné aux `user_id` des memberships actives ;
+- Liste vide → réponse `200` sans requête globale ;
+- `PATCH` vérifie l’appartenance avant mutation ;
+- Profil inexistant, hors tenant ou membership inactive → même `404` ;
+- Liste blanche `PATCH` stricte ;
+- Champs inconnus ou protégés → `400` ;
+- Dossier 360 et actions gardés avant lecture/mutation.
+
+### 3. Architecture
+
+Nouveaux helpers :
+
+- `src/lib/erp/resolve-canonical-organization.ts` ;
+- `src/lib/erp/admin-profiles-scope.ts`.
+
+Compatibilité :
+
+- `src/lib/pastoral/newcomer-tenant-scope.ts` délègue au résolveur ERP neutre ;
+- Aucune modification fonctionnelle de `newcomer_intakes` ;
+- Aucun second RBAC ;
+- Aucune deuxième organisation persistante.
+
+### 4. Scope Git
+
+Commit applicatif complet :
+
+`06a37efaf60ca1a7fa5eae34e8c6a21d602c55d3`
+
+Message :
+
+`feat(citadelle): isolate admin profiles by organization`
+
+Scope :
+
+- Exactement 8 fichiers ;
+- 649 insertions ;
+- 70 suppressions.
+
+### 5. Validations locales
+
+- Tests routes Lot 2-B : 18 réussis ;
+- Tests tenant-scope : 11 réussis ;
+- Test Files : 59 réussis ;
+- Tests : 649 réussis ;
+- `TEST_EXIT=0` ;
+- `TSC_EXIT=0` ;
+- `BUILD_EXIT=0` ;
+- `BUILD_ID=v3CFb0Tr0hDTAvs6EwFWR`.
+
+### 6. Décision SQL
+
+- **NO SQL REQUIRED** ;
+- Aucune migration créée ou exécutée ;
+- `organization_members` existante suffisante ;
+- `profiles` n’a pas reçu `organization_id` ;
+- Aucune réparation de migration history.
+
+### 7. Release
+
+Archive :
+
+`citadelle-lot2b-06a37ef-v3CFb0Tr0hDTAvs6EwFWR-strict-linuxsafe.tar.gz`
+
+Taille :
+
+32580956 octets
+
+Entrées :
+
+4023
+
+SHA256 :
+
+`fc711d39415b0c9e6c0896576f52a26a25f5a5440033d04f1918ad97280e2a8f`
+
+Candidat distant :
+
+`/home/frprszbd/releases/citadelle-lot2b-06a37ef-v3CFb0Tr0hDTAvs6EwFWR`
+
+Backup :
+
+`/home/frprszbd/releases/backups/citadelle-active-before-lot2b-20260716-092747.tar.gz`
+
+Taille backup :
+
+32615940 octets
+
+SHA256 backup :
+
+`2c29c1fd186edc4872c84378d087c2c03bcf5422c6fd04c353218c90f64dba2f`
+
+Particularité non bloquante :
+
+- `RELEASE-META.json` comporte un BOM UTF-8 produit localement ;
+- Métadonnées relues avec `utf-8-sig` ;
+- Manifests runtime JSON standards valides ;
+- Aucun effet sur Next.js ou Passenger.
+
+### 8. Déploiement
+
+Marqueurs :
+
+- `CITADELLE_ERP_LOT2B_REMOTE_CANDIDATE_READY`
+- `CITADELLE_ERP_LOT2B_REMOTE_SWITCH_RESTART_OK`
+
+Logs :
+
+- `/home/frprszbd/releases/lot2b-rsync-dryrun-20260716-094003.txt`
+- `/home/frprszbd/releases/lot2b-rsync-switch-20260716-094003.txt`
+
+Passenger redémarré :
+
+16 juillet 2026 à 09:40:12 UTC.
+
+**Fichiers protégés inchangés après switch** :
+
+| Fichier                  | SHA256 |
+|--------------------------|--------|
+| `.env`                   | `4680a76f70fb7f3b0021c59c3627aebb5a627bb466d1672de1d8027b78fe5073` |
+| `.env.exemple-production`| `20ff174beb6c38a7fcef11952fa35833ecfd58ab2ca3528215e00738de2fe04e` |
+| `.htaccess`              | `2edfc6726dc471eadd69a8cd7d270a83f364928ee4328d70c0a615085832aa52` |
+| `app.js`                 | `910030c42f41fdb8d1d5bcd0f3676d03d50cecad04d6c072b3580211a46ae6ac` |
+
+### 9. QA production
+
+**Domaine** : https://www.citadelle.chapelleduroyaume.org/
+
+**HTTP** :
+
+- `/` → 200 ;
+- `/admin/login` → 200 ;
+- `/admin/membres` → 307 vers login sans session ;
+- `/api/membres` → 401 sans session ;
+- `/admin/nouveaux-venus` → 307 vers login ;
+- `/api/admin/newcomer-intakes` → 401 sans session.
+
+**QA connectée** :
+
+- Liste administrative chargée ;
+- 13 membres visibles ;
+- 13 actifs ;
+- 0 suspendu ;
+- Fiche 360° autorisée chargée ;
+- Aucune mutation de donnée ;
+- Aucune régression visible.
+
+### 10. Limites acceptées
+
+- Stratégie `.in(id, allowedIds)` adaptée au MVP canonique ;
+- À réévaluer avant des organisations très volumineuses ;
+- Garde tenant à l’entrée du dossier 360 ;
+- Tables internes du dossier non migrées dans ce lot ;
+- `service_role` maintenu derrière les gardes ;
+- Aucune deuxième organisation réelle créée.
+
+**Décision** :
+
+Lot 2-B officiellement clôturé en production.
