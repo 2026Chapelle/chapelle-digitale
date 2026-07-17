@@ -79,8 +79,17 @@ export function expectedDepth(unitType: OrganizationUnitType): number {
   }
 }
 
-/** Path descendant : candidate est self ou sous-arbre de ancestor. */
+/**
+ * Path descendant : candidate est self ou sous-arbre de ancestor.
+ * Équivalent SQL: equality OR candidate LIKE rtrim(ancestor,'/') || '/%'
+ * (frontière de segment — évite l'ambiguïté /ab/ vs /abc/).
+ */
 export function isPathDescendantOrSelf(ancestorPath: string, candidatePath: string): boolean {
   if (!ancestorPath || !candidatePath) return false
-  return candidatePath === ancestorPath || candidatePath.startsWith(ancestorPath)
+  const base = ancestorPath.replace(/\/+$/, '')
+  return (
+    candidatePath === ancestorPath ||
+    (base.length > 0 &&
+      (candidatePath === base + '/' || candidatePath.startsWith(base + '/')))
+  )
 }

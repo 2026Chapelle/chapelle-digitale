@@ -80,6 +80,8 @@ export {
   rpcChangeRole,
   rpcTransfer,
   rpcAcceptInvitation,
+  rpcCreateInvitation,
+  rpcRevokeInvitation,
 } from './unit-governance-rpc'
 
 export {
@@ -88,6 +90,7 @@ export {
   listGovernanceEvents,
   createInvitation,
   revokeInvitation,
+  listInvitationsForUnit,
   getInvitationByTokenHash,
   getUnitPublicLabel,
   countActiveWorldSuperAdmins,

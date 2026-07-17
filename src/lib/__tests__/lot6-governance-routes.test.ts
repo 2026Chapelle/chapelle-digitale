@@ -33,6 +33,8 @@ vi.mock('@/lib/erp/unit-governance-rpc', () => ({
   rpcChangeRole: vi.fn(),
   rpcTransfer: vi.fn(),
   rpcAcceptInvitation: vi.fn(),
+  rpcCreateInvitation: vi.fn(),
+  rpcRevokeInvitation: vi.fn(),
   hashInviteToken: (t: string) => `h:${t}`,
   generateInviteToken: () => 'tok',
 }))
@@ -43,8 +45,19 @@ vi.mock('@/lib/erp/unit-governance-repository', async () => {
     getMembershipById: vi.fn(),
     revokeInvitation: vi.fn(),
     createInvitation: vi.fn(),
+    listInvitationsForUnit: vi.fn(),
   }
 })
+vi.mock('@/lib/email', () => ({
+  sendEmail: vi.fn(async () => ({ ok: true, skipped: false })),
+}))
+vi.mock('@/lib/email-templates-unit-governance', () => ({
+  unitGovernanceInviteEmail: () => ({
+    subject: 'Invite',
+    html: '<p>x</p>',
+    text: 'x',
+  }),
+}))
 
 import { requireGuardedAdminUnit } from '@/lib/erp/admin-unit-guard'
 import { assertUnitAccess, UnitAccessError } from '@/lib/erp/unit-access'
@@ -55,11 +68,18 @@ import {
   rpcTransfer,
   rpcAcceptInvitation,
 } from '@/lib/erp/unit-governance-rpc'
-import { getMembershipById, revokeInvitation } from '@/lib/erp/unit-governance-repository'
+import {
+  getMembershipById,
+  revokeInvitation,
+  createInvitation,
+  listInvitationsForUnit,
+} from '@/lib/erp/unit-governance-repository'
+import { sendEmail } from '@/lib/email'
 import { getVerifiedRouteProfile } from '@/lib/member-auth'
 import * as membershipsRoute from '@/app/api/admin/organization-unit-memberships/route'
 import * as membershipByIdRoute from '@/app/api/admin/organization-unit-memberships/[id]/route'
 import * as transferRoute from '@/app/api/admin/organization-unit-memberships/[id]/transfer/route'
+import * as invitationsRoute from '@/app/api/admin/organization-unit-invitations/route'
 import * as revokeRoute from '@/app/api/admin/organization-unit-invitations/[id]/revoke/route'
 import * as acceptRoute from '@/app/api/invite/unit/accept/route'
 import * as eventsRoute from '@/app/api/admin/organization-unit-governance-events/route'
@@ -421,12 +441,177 @@ describe('Lot 6 — change role / status route', () => {
   })
 })
 
-describe('Lot 6 — revoke invitation', () => {
+describe('Lot 6 — invitations list/create/revoke', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('révocation d’invitation autorisée', async () => {
+  it('GET invitations ?unitId= liste pending (sans token_hash côté repo mock)', async () => {
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
+    ;(assertUnitAccess as any).mockResolvedValue({
+      id: CI1,
+      unit_type: 'national_central_church',
+      name: 'CI',
+    })
+    ;(listInvitationsForUnit as any).mockResolvedValue([
+      {
+        id: INV1,
+        email: 'a@b.c',
+        proposed_unit_role: 'member',
+        status: 'pending',
+        expires_at: '2030-01-01T00:00:00.000Z',
+      },
+    ])
+    const res = await invitationsRoute.GET(
+      mockReq(
+        'GET',
+        `http://localhost/api/admin/organization-unit-invitations?unitId=${CI1}`,
+      ),
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.data.invitations).toHaveLength(1)
+    expect(listInvitationsForUnit).toHaveBeenCalledWith(ORG, CI1)
+    expect(assertUnitAccess).toHaveBeenCalled()
+  })
+
+  it('GET invitations unitId invalide → 400', async () => {
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded())
+    const res = await invitationsRoute.GET(
+      mockReq('GET', 'http://localhost/api/admin/organization-unit-invitations?unitId=not-uuid'),
+    )
+    expect(res.status).toBe(400)
+    expect(listInvitationsForUnit).not.toHaveBeenCalled()
+    expect(assertUnitAccess).not.toHaveBeenCalled()
+  })
+
+  it('POST create invitation via createInvitation (RPC sous-jacent)', async () => {
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
+    ;(assertUnitAccess as any).mockResolvedValue({
+      id: CI1,
+      unit_type: 'national_central_church',
+      name: 'CI',
+    })
+    ;(createInvitation as any).mockResolvedValue({
+      invitationId: INV1,
+      token: 'plain-token-never-stored',
+      expiresAt: '2030-01-08T00:00:00.000Z',
+    })
+    ;(sendEmail as any).mockResolvedValue({ ok: true, skipped: false })
+    const res = await invitationsRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations', {
+        organization_unit_id: CI1,
+        email: 'Invite@Example.COM',
+        unit_role: 'member',
+        token: 'must-be-rejected-if-read',
+        token_hash: 'evil',
+        organization_id: 'evil',
+      }),
+    )
+    // token/token_hash/organization_id in body → 400 champs non modifiables
+    expect(res.status).toBe(400)
+    expect(createInvitation).not.toHaveBeenCalled()
+
+    const resOk = await invitationsRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations', {
+        organization_unit_id: CI1,
+        email: 'Invite@Example.COM',
+        unit_role: 'member',
+      }),
+    )
+    expect(resOk.status).toBe(200)
+    const body = await resOk.json()
+    expect(body.ok).toBe(true)
+    expect(body.data.invitation_id).toBe(INV1)
+    expect(body.data.email_outcome).toBe('INVITATION_CREATED_EMAIL_SENT')
+    expect(body.data.email_sent).toBe(true)
+    expect(body.data.message_fr).toBeTruthy()
+    expect(JSON.stringify(body)).not.toMatch(/plain-token|token_hash|"token"/)
+    expect(createInvitation).toHaveBeenCalledWith({
+      orgId: ORG,
+      unitId: CI1,
+      email: 'invite@example.com',
+      proposedRole: 'member',
+      invitedBy: ACTOR,
+    })
+  })
+
+  it('POST invitation — 4 email_outcome + jamais de token en réponse', async () => {
+    ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
+    ;(assertUnitAccess as any).mockResolvedValue({
+      id: CI1,
+      unit_type: 'national_central_church',
+      name: 'CI',
+    })
+    const invPayload = {
+      invitationId: INV1,
+      token: 'secret-token-must-not-leak',
+      expiresAt: '2030-01-08T00:00:00.000Z',
+    }
+    ;(createInvitation as any).mockResolvedValue(invPayload)
+
+    // 1) email sent
+    ;(sendEmail as any).mockResolvedValueOnce({ ok: true, skipped: false, id: 're_1' })
+    let res = await invitationsRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations', {
+        organization_unit_id: CI1,
+        email: 'a@b.c',
+        unit_role: 'member',
+      }),
+    )
+    let body = await res.json()
+    expect(res.status).toBe(200)
+    expect(body.data.email_outcome).toBe('INVITATION_CREATED_EMAIL_SENT')
+    expect(body.data.email_sent).toBe(true)
+    expect(JSON.stringify(body)).not.toContain('secret-token')
+    expect(body.data).not.toHaveProperty('token')
+    expect(body.data).not.toHaveProperty('token_hash')
+
+    // 2) provider unavailable (skipped)
+    ;(sendEmail as any).mockResolvedValueOnce({ ok: false, skipped: true })
+    res = await invitationsRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations', {
+        organization_unit_id: CI1,
+        email: 'a@b.c',
+        unit_role: 'member',
+      }),
+    )
+    body = await res.json()
+    expect(body.data.email_outcome).toBe('INVITATION_CREATED_EMAIL_PROVIDER_UNAVAILABLE')
+    expect(body.data.email_sent).toBe(false)
+    expect(body.data.message_fr).toMatch(/fournisseur/i)
+
+    // 3) delivery failed
+    ;(sendEmail as any).mockResolvedValueOnce({ ok: false, skipped: false, error: 'smtp down' })
+    res = await invitationsRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations', {
+        organization_unit_id: CI1,
+        email: 'a@b.c',
+        unit_role: 'member',
+      }),
+    )
+    body = await res.json()
+    expect(body.data.email_outcome).toBe('INVITATION_CREATED_EMAIL_DELIVERY_FAILED')
+    expect(body.data.email_sent).toBe(false)
+
+    // 4) create failed
+    ;(createInvitation as any).mockRejectedValueOnce(new Error('RPC create boom'))
+    res = await invitationsRoute.POST(
+      mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations', {
+        organization_unit_id: CI1,
+        email: 'a@b.c',
+        unit_role: 'member',
+      }),
+    )
+    body = await res.json()
+    expect(res.status).toBe(400)
+    expect(body.ok).toBe(false)
+    expect(body.code).toBe('INVITATION_CREATE_FAILED')
+    expect(JSON.stringify(body)).not.toContain('secret-token')
+  })
+
+  it('révocation d’invitation autorisée (revokeInvitation → RPC)', async () => {
     ;(requireGuardedAdminUnit as any).mockResolvedValue(guarded('zone_admin', AF1))
     const maybeSingle = vi.fn().mockResolvedValue({
       data: {

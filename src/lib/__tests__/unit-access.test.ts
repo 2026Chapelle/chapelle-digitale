@@ -107,4 +107,19 @@ describe('Lot 5 — hierarchy pure helpers', () => {
     expect(isPathDescendantOrSelf(af, ci)).toBe(true)
     expect(isPathDescendantOrSelf(eu, ci)).toBe(false)
   })
+
+  it('path anti-ambiguïté /ab/ vs /abc/ (frontière rtrim + /%)', () => {
+    // égalité
+    expect(isPathDescendantOrSelf('/ab/', '/ab/')).toBe(true)
+    expect(isPathDescendantOrSelf('/ab', '/ab')).toBe(true)
+    // descendant sous segment
+    expect(isPathDescendantOrSelf('/ab/', '/ab/c/')).toBe(true)
+    expect(isPathDescendantOrSelf('/ab', '/ab/c/')).toBe(true)
+    expect(isPathDescendantOrSelf('/ab', '/ab/')).toBe(true)
+    // pas de faux positif préfixe nu
+    expect(isPathDescendantOrSelf('/ab/', '/abc/')).toBe(false)
+    expect(isPathDescendantOrSelf('/ab', '/abc/')).toBe(false)
+    expect(isPathDescendantOrSelf('/ab', '/abc')).toBe(false)
+    expect(isPathDescendantOrSelf('/hq/af/', '/hq/afx/')).toBe(false)
+  })
 })

@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
           ...snap,
           accessibleUnitCount: unitIds.length,
           assignableRoles: assignableRolesFor(guarded.actor),
+          actorUserId: guarded.userId,
         },
       },
     })

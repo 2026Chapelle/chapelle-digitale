@@ -93,3 +93,39 @@ export async function rpcAcceptInvitation(params: {
   if (data == null) return { id: null, error: 'invitation_expired' }
   return { id: data as string, error: null }
 }
+
+export async function rpcCreateInvitation(params: {
+  orgId: string
+  unitId: string
+  email: string
+  role: string
+  actorId: string
+  tokenHash: string
+  expiresAt: string
+}): Promise<{ id: string | null; error: string | null }> {
+  const { data, error } = await (supabaseAdmin as any).rpc('erp_unit_invitation_create', {
+    p_org_id: params.orgId,
+    p_unit_id: params.unitId,
+    p_email: params.email,
+    p_role: params.role,
+    p_actor_id: params.actorId,
+    p_token_hash: params.tokenHash,
+    p_expires_at: params.expiresAt,
+  })
+  if (error) return { id: null, error: error.message }
+  return { id: data as string, error: null }
+}
+
+export async function rpcRevokeInvitation(params: {
+  orgId: string
+  invitationId: string
+  actorId: string
+}): Promise<{ id: string | null; error: string | null }> {
+  const { data, error } = await (supabaseAdmin as any).rpc('erp_unit_invitation_revoke', {
+    p_org_id: params.orgId,
+    p_invitation_id: params.invitationId,
+    p_actor_id: params.actorId,
+  })
+  if (error) return { id: null, error: error.message }
+  return { id: data as string, error: null }
+}

@@ -12,10 +12,18 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { PasskeysManager } from './PasskeysManager'
 import { OrganizationEssentialsForm } from './OrganizationEssentialsForm'
-import { UnitHierarchyNav, type HierarchyUnit } from './UnitHierarchyNav'
+import { UnitHierarchyNav, type HierarchyUnit, type HierarchyActor } from './UnitHierarchyNav'
 import { UnitSettingsForm } from './UnitSettingsForm'
 import { PastoralSettingsPanel } from './PastoralSettingsPanel'
 import { UnitGovernancePanel } from './UnitGovernancePanel'
+
+const ADMIN_WRITE_ROLES = new Set([
+  'world_super_admin',
+  'world_admin',
+  'zone_admin',
+  'national_admin',
+  'local_admin',
+])
 
 const SECTIONS = [
   { id: 'general', label: 'Général', icon: Settings, color: '#D4AF37' },
@@ -34,6 +42,10 @@ export default function AdminParametresPage() {
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
   const [activeUnit, setActiveUnit] = useState<HierarchyUnit | null>(null)
+  const [hierarchyActor, setHierarchyActor] = useState<HierarchyActor | null>(null)
+  const canWrite = Boolean(
+    hierarchyActor?.highestRole && ADMIN_WRITE_ROLES.has(hierarchyActor.highestRole),
+  )
   const [form, setForm] = useState({
     churchName: '',
     slogan: '',
@@ -111,6 +123,8 @@ export default function AdminParametresPage() {
                 <UnitHierarchyNav
                   activeUnitId={activeUnit?.id || null}
                   onSelect={setActiveUnit}
+                  onActor={setHierarchyActor}
+                  canWrite={canWrite}
                 />
                 <UnitSettingsForm
                   unitId={activeUnit?.id || null}
@@ -125,10 +139,14 @@ export default function AdminParametresPage() {
                 <UnitHierarchyNav
                   activeUnitId={activeUnit?.id || null}
                   onSelect={setActiveUnit}
+                  onActor={setHierarchyActor}
+                  canWrite={canWrite}
                 />
                 <UnitGovernancePanel
                   unitId={activeUnit?.id || null}
                   unitLabel={activeUnit?.name}
+                  unitType={activeUnit?.unit_type}
+                  canWrite={canWrite}
                 />
               </>
             )}
@@ -142,6 +160,8 @@ export default function AdminParametresPage() {
                 <UnitHierarchyNav
                   activeUnitId={activeUnit?.id || null}
                   onSelect={setActiveUnit}
+                  onActor={setHierarchyActor}
+                  canWrite={canWrite}
                 />
                 <UnitSettingsForm
                   unitId={activeUnit?.id || null}

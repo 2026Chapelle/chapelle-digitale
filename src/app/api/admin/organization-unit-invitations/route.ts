@@ -9,6 +9,7 @@ import {
   assertUnitAccess,
   canAssignRoleOnUnit,
   createInvitation,
+  listInvitationsForUnit,
   UnitAccessError,
 } from '@/lib/erp'
 import { isInvitableRole, normalizeEmail, isUuid } from '@/lib/erp/unit-governance-rules'
@@ -17,13 +18,36 @@ import type { OrganizationUnitRole } from '@/core/erp/unit'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+export async function GET(req: NextRequest) {
+  const guarded = await requireGuardedAdminUnit(req)
+  if (guarded instanceof NextResponse) return guarded
+  if (IS_DEMO_MODE) {
+    return NextResponse.json({ ok: true, demo: true, data: { invitations: [] } })
+  }
+  try {
+    const unitId = req.nextUrl.searchParams.get('unitId') || ''
+    if (!unitId) {
+      return NextResponse.json({ ok: false, message: 'unitId requis.' }, { status: 400 })
+    }
+    if (!isUuid(unitId)) {
+      return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
+    }
+    await assertUnitAccess(guarded.actor, unitId)
+    const invitations = await listInvitationsForUnit(guarded.organizationId, unitId)
+    return NextResponse.json({ ok: true, data: { invitations } })
+  } catch (e) {
+    if (e instanceof UnitAccessError) return mapUnitGuardError(e)
+    return mapUnitGuardError(e)
+  }
+}
+
 export async function POST(req: NextRequest) {
   const guarded = await requireGuardedAdminUnit(req)
   if (guarded instanceof NextResponse) return guarded
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   try {
     const body = await req.json().catch(() => ({}))
-    if ('organization_id' in body || 'token' in body || 'token_hash' in body) {
+    if ('organization_id' in body || 'token' in body || 'token_hash' in body || 'actor_user_id' in body) {
       return NextResponse.json({ ok: false, message: 'Champs non modifiables.' }, { status: 400 })
     }
     const unitId = typeof body.organization_unit_id === 'string' ? body.organization_unit_id : ''
@@ -43,13 +67,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, message: 'Rôle non attribuable.' }, { status: 403 })
     }
 
-    const inv = await createInvitation({
-      orgId: guarded.organizationId,
-      unitId,
-      email,
-      proposedRole: role,
-      invitedBy: guarded.userId,
-    })
+    let inv: { invitationId: string; token: string; expiresAt: string }
+    try {
+      inv = await createInvitation({
+        orgId: guarded.organizationId,
+        unitId,
+        email,
+        proposedRole: role,
+        invitedBy: guarded.userId,
+      })
+    } catch (createErr) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: 'INVITATION_CREATE_FAILED',
+          message:
+            createErr instanceof Error
+              ? createErr.message
+              : 'Création de l’invitation impossible.',
+        },
+        { status: 400 },
+      )
+    }
 
     const origin = req.nextUrl.origin
     const acceptUrl = `${origin}/invite/unit?token=${encodeURIComponent(inv.token)}`
@@ -66,18 +105,45 @@ export async function POST(req: NextRequest) {
       text: built.text,
     })
 
+    let email_outcome: string
+    let email_sent: boolean
+    let message_fr: string
+    if (sent.ok && !sent.skipped) {
+      email_outcome = 'INVITATION_CREATED_EMAIL_SENT'
+      email_sent = true
+      message_fr = 'Invitation créée et email envoyé avec succès.'
+    } else if (sent.skipped) {
+      email_outcome = 'INVITATION_CREATED_EMAIL_PROVIDER_UNAVAILABLE'
+      email_sent = false
+      message_fr =
+        'Invitation créée, mais le fournisseur d’email n’est pas configuré (envoi non effectué).'
+    } else {
+      email_outcome = 'INVITATION_CREATED_EMAIL_DELIVERY_FAILED'
+      email_sent = false
+      message_fr =
+        sent.error ||
+        'Invitation créée, mais l’envoi de l’email a échoué. Vous pouvez renvoyer plus tard.'
+    }
+
+    // JAMAIS token / token_hash dans la réponse API
     return NextResponse.json({
       ok: true,
       data: {
         invitation_id: inv.invitationId,
         expires_at: inv.expiresAt,
-        email_sent: !!sent.ok && !sent.skipped,
+        email_outcome,
+        email_sent,
+        message_fr,
       },
     })
   } catch (e) {
     if (e instanceof UnitAccessError) return mapUnitGuardError(e)
     return NextResponse.json(
-      { ok: false, message: e instanceof Error ? e.message : 'Erreur' },
+      {
+        ok: false,
+        code: 'INVITATION_CREATE_FAILED',
+        message: e instanceof Error ? e.message : 'Erreur',
+      },
       { status: 400 },
     )
   }
