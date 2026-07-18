@@ -2,26 +2,31 @@
 import { useEffect, useState } from 'react'
 import { motion, useScroll, useTransform, AnimatePresence, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, Play, ChevronDown, Sparkles } from 'lucide-react'
+import { ArrowRight, Play, ChevronDown, Sparkles, BookOpen, Users, Heart, Smartphone } from 'lucide-react'
 import { PremiumImage } from '@/components/ui/PremiumImage'
 import { HERO_IMAGES } from '@/lib/images'
 import { events } from '@/lib/analytics'
 
 /* ============================================================
-   HERO — « Charbon & Lumière » (refonte premium)
-   Vitrail de lumière vectoriel + photo de communauté incarnée.
-   Un seul CTA dominant · bandeau de confiance · mobile-safe.
-   Palette tenue : or royal × charbon × lumière. Aucun bleu.
+   HERO — plateforme de croissance (premium, tutoiement)
+   CMS peut override subtitle / cta_label / cta_href.
+   Aucune statistique inventée.
    ============================================================ */
 
 const ROTATING_WORDS = [
-  'transformé par Sa Présence',
-  'relevé par Sa Grâce',
-  'envoyé vers les Nations',
-  'établi dans Sa Gloire',
+  'grandir dans ta foi',
+  'rester connecté à ta maison',
+  'avancer avec ta communauté',
+  'vivre ta destinée',
 ]
 
-const TRUST_POINTS = ['Présente sur plusieurs continents', 'Accès 100 % gratuit', 'Prière 24/7']
+/** Preuves qualitatives uniquement (pas de chiffres inventés). */
+const TRUST_POINTS = [
+  { icon: BookOpen, label: 'Enseignements & parcours' },
+  { icon: Heart, label: 'Prière & accompagnement' },
+  { icon: Users, label: 'Communauté mondiale' },
+  { icon: Smartphone, label: 'Accès mobile & PWA' },
+]
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
@@ -40,14 +45,35 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
     return () => clearInterval(t)
   }, [reduce])
 
+  const primaryHref = block?.cta_href || '/parcours'
+  const primaryLabel = block?.cta_label || 'Commencer mon parcours'
+
+  const scrollToDiscover = () => {
+    const el = document.getElementById('decouvrir-citadelle')
+    if (el) {
+      el.scrollIntoView({
+        behavior:
+          typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto'
+            : 'smooth',
+        block: 'start',
+      })
+      return
+    }
+    window.scrollTo({
+      top: window.innerHeight - 64,
+      behavior:
+        typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'auto'
+          : 'smooth',
+    })
+  }
+
   return (
     <section
       className="relative min-h-[100svh] flex flex-col items-center justify-center overflow-hidden"
       style={{ background: 'linear-gradient(180deg, #131316 0%, #0C0C0F 55%, #08080A 100%)' }}
     >
-      {/* ============ FOND : PHOTO INCARNÉE + VITRAIL ============ */}
-
-      {/* Photo de communauté (incarnation) — fondue dans le charbon, sous le vitrail */}
       <motion.div className="absolute inset-0 pointer-events-none" style={{ y: bgY }} aria-hidden>
         <div className="absolute inset-0 opacity-[0.32] md:opacity-[0.38]">
           <PremiumImage
@@ -60,14 +86,12 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
             imageClassName="object-cover scale-105"
           />
         </div>
-        {/* Re-fonte charbon par-dessus la photo pour garder la lisibilité du texte */}
         <div
           className="absolute inset-0"
           style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 38%, transparent 0%, rgba(8,8,10,0.55) 70%, #08080A 100%)' }}
         />
       </motion.div>
 
-      {/* Halo lumineux gris cassé descendant du haut (lumière de cathédrale) */}
       <motion.div className="absolute inset-0 pointer-events-none" style={{ y: bgY }} aria-hidden>
         <div
           className="absolute -top-[10%] left-1/2 -translate-x-1/2 w-[150vw] md:w-[1400px] h-[1000px]"
@@ -85,7 +109,6 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         />
       </motion.div>
 
-      {/* Rayons vectoriels (god rays) en éventail depuis le haut */}
       <motion.svg
         className="absolute top-0 left-1/2 -translate-x-1/2 w-[160vw] md:w-[1500px] h-[85vh] pointer-events-none"
         viewBox="0 0 1000 800"
@@ -117,7 +140,6 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         </g>
       </motion.svg>
 
-      {/* Poussière d'or en suspension */}
       {!reduce && (
         <motion.div
           className="absolute inset-0 pointer-events-none opacity-60"
@@ -138,7 +160,6 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         />
       )}
 
-      {/* Grain cinématique fin */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.05] mix-blend-overlay"
         aria-hidden
@@ -148,19 +169,16 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         }}
       />
 
-      {/* Vignette charbon */}
       <div
         className="absolute inset-0 pointer-events-none"
         aria-hidden
         style={{ background: 'radial-gradient(ellipse at center, transparent 0%, transparent 52%, rgba(0,0,0,0.8) 100%)' }}
       />
 
-      {/* ============ CONTENU ============ */}
       <motion.div
         style={{ opacity: textOpacity, y: contentY }}
         className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 md:pt-24 pb-24 flex flex-col items-center text-center"
       >
-        {/* Eyebrow */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -168,7 +186,7 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           className="mb-6"
         >
           <span
-            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-[10px] md:text-[11px] font-bold tracking-[0.28em] uppercase font-inter border backdrop-blur-xl"
+            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-[10px] md:text-[11px] font-bold tracking-[0.22em] uppercase font-inter border backdrop-blur-xl"
             style={{
               background: 'rgba(244,241,233,0.05)',
               borderColor: 'rgba(212,175,55,0.28)',
@@ -177,91 +195,97 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
             }}
           >
             <Sparkles className="w-3 h-3" style={{ color: '#D4AF37' }} />
-            Une Église Ouverte au Monde
+            L&apos;église digitale qui t&apos;accompagne chaque jour
           </span>
         </motion.div>
 
-        {/* HEADLINE */}
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.1, delay: 0.08, ease: EASE }}
-          className="mb-6 relative"
+          className="mb-6 relative max-w-4xl"
         >
           <span
             className="block font-cinzel font-black drop-shadow-[0_2px_40px_rgba(0,0,0,0.5)]"
-            style={{ fontSize: 'clamp(2.7rem, 8.6vw, 6.8rem)', lineHeight: 0.94, letterSpacing: '-0.03em', color: '#F4F2ED' }}
+            style={{ fontSize: 'clamp(2.1rem, 6.2vw, 4.4rem)', lineHeight: 1.05, letterSpacing: '-0.02em', color: '#F4F2ED' }}
           >
-            La Chapelle
+            Grandis dans ta foi.
           </span>
           <span
             className="block font-cinzel font-black text-gradient-light-gold"
-            style={{ fontSize: 'clamp(2.7rem, 8.6vw, 6.8rem)', lineHeight: 0.94, letterSpacing: '-0.03em' }}
+            style={{ fontSize: 'clamp(2.1rem, 6.2vw, 4.4rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
           >
-            Internationale
+            Reste connecté.
           </span>
           <span
-            className="block mt-3 font-cormorant font-light italic"
-            style={{ fontSize: 'clamp(1.5rem, 4vw, 3.1rem)', lineHeight: 1.15, color: 'rgba(235,231,221,0.62)', letterSpacing: '0.01em' }}
+            className="block mt-2 font-cinzel font-bold"
+            style={{ fontSize: 'clamp(1.35rem, 3.6vw, 2.4rem)', lineHeight: 1.15, color: 'rgba(235,231,221,0.88)' }}
           >
-            des Élus du Royaume
+            Vis pleinement ta destinée.
           </span>
         </motion.h1>
 
-        {/* Storytelling émotionnel */}
-        <motion.p
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.22, ease: EASE }}
-          className="font-cormorant italic mb-5"
-          style={{ fontSize: 'clamp(1.05rem, 2.4vw, 1.45rem)', color: 'rgba(235,231,221,0.55)' }}
-        >
-          « Où que tu sois sur la terre, tu as une maison dans le Royaume. »
-        </motion.p>
-
-        {/* SUBTITLE */}
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3, ease: EASE }}
+          transition={{ duration: 0.8, delay: 0.28, ease: EASE }}
           className="font-inter leading-relaxed mb-8 mx-auto"
-          style={{ fontSize: 'clamp(0.98rem, 1.9vw, 1.18rem)', color: 'rgba(235,231,221,0.52)', maxWidth: '600px' }}
+          style={{ fontSize: 'clamp(0.98rem, 1.9vw, 1.18rem)', color: 'rgba(235,231,221,0.58)', maxWidth: '640px' }}
         >
           {block?.subtitle ||
-            'Rejoignez des milliers de croyants dans une expérience spirituelle digitale unique — cultes en direct, formations, prière et communion, à toute heure.'}
+            'Découvre des enseignements, des parcours de formation, des temps de prière, des événements et un accompagnement pastoral pensé pour ta croissance — dans une seule plateforme.'}
         </motion.p>
 
-        {/* CTAs — un seul CTA dominant */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.46, ease: EASE }}
+          transition={{ duration: 0.7, delay: 0.42, ease: EASE }}
           className="flex flex-col sm:flex-row items-center gap-3 mb-5 w-full sm:w-auto"
         >
           <Link
-            href={block?.cta_href || '/rejoindre'}
-            onClick={() => events.ctaClick('rejoindre_hero')}
+            href={primaryHref}
+            onClick={() => events.ctaClick('commencer_parcours_hero')}
             className="btn-gold-cinematic group w-full sm:w-auto"
             style={{ padding: '16px 38px', fontSize: '1rem' }}
           >
-            {block?.cta_label || 'Rejoindre la Chapelle'}
+            {primaryLabel}
             <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
 
+          <button
+            type="button"
+            onClick={() => {
+              events.ctaClick('decouvrir_citadelle_hero')
+              scrollToDiscover()
+            }}
+            className="btn-glass-cinematic group w-full sm:w-auto"
+          >
+            Découvrir Citadelle
+          </button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.52 }}
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-6 text-[12px] font-inter"
+          style={{ color: 'rgba(235,231,221,0.45)' }}
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" aria-hidden />
+            Accès gratuit
+          </span>
+          <span className="hidden sm:inline w-1 h-1 rounded-full bg-gold/40" aria-hidden />
           <Link
             href="/live"
             onClick={() => events.ctaClick('live_hero')}
-            className="btn-glass-cinematic group w-full sm:w-auto"
+            className="inline-flex items-center gap-1.5 hover:text-gold transition-colors"
           >
-            <span className="relative flex w-6 h-6 items-center justify-center rounded-full bg-red-500/90 flex-shrink-0">
-              {!reduce && <span className="absolute inline-flex w-full h-full rounded-full bg-red-500 opacity-60 animate-ping" />}
-              <Play className="relative w-2.5 h-2.5 text-white fill-white ml-0.5" />
-            </span>
-            Voir le culte en direct
+            <Play className="w-3 h-3" />
+            Voir le live
           </Link>
         </motion.div>
 
-        {/* ROTATING TAGLINE */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -269,7 +293,7 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           className="h-7 flex items-center justify-center gap-2 mb-8 text-sm md:text-base font-inter"
           style={{ color: 'rgba(235,231,221,0.45)' }}
         >
-          <span>Venez être</span>
+          <span>Citadelle t&apos;aide à</span>
           <AnimatePresence mode="wait">
             <motion.span
               key={wordIndex}
@@ -284,37 +308,32 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           </AnimatePresence>
         </motion.div>
 
-        {/* TRUST BAR — preuve qualitative honnête */}
-        <motion.div
+        <motion.ul
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[11px] md:text-xs font-inter"
-          style={{ color: 'rgba(235,231,221,0.4)', letterSpacing: '0.06em' }}
+          className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 list-none p-0 m-0"
         >
-          {TRUST_POINTS.map((point, i) => (
-            <span key={point} className="inline-flex items-center gap-3">
-              {i > 0 && <span className="w-1 h-1 rounded-full" style={{ background: 'rgba(212,175,55,0.5)' }} />}
-              {point}
-            </span>
+          {TRUST_POINTS.map((point) => (
+            <li
+              key={point.label}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] md:text-xs font-inter border border-white/10 bg-white/[0.03]"
+              style={{ color: 'rgba(235,231,221,0.55)' }}
+            >
+              <point.icon className="w-3.5 h-3.5 text-gold/80 flex-shrink-0" aria-hidden />
+              {point.label}
+            </li>
           ))}
-        </motion.div>
+        </motion.ul>
       </motion.div>
 
-      {/* SCROLL INDICATOR — bouton accessible */}
       <motion.button
         type="button"
-        onClick={() =>
-          window.scrollTo({
-            top: window.innerHeight - 64,
-            behavior:
-              'matchMedia' in window && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-          })
-        }
-        aria-label="Découvrir la suite"
+        onClick={scrollToDiscover}
+        aria-label="Découvrir Citadelle"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.4, duration: 0.8 }}
+        transition={{ delay: 1.2, duration: 0.8 }}
         className="group absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 z-10 cursor-pointer transition-colors hover:text-gold-light"
         style={{ color: 'rgba(235,231,221,0.4)' }}
       >
@@ -328,7 +347,6 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         </motion.div>
       </motion.button>
 
-      {/* Fondu vers la section suivante */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-[#08080A] pointer-events-none" />
     </section>
   )

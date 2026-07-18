@@ -104,9 +104,11 @@ export function FeaturedEventsSection() {
               <CalendarDays className="w-3.5 h-3.5" /> Agenda
             </div>
             <h2 className="font-cinzel font-bold text-2xl sm:text-3xl leading-tight mb-3">
-              Prochains rendez-vous <span className="text-cinematic-gold">à ne pas manquer</span>
+              Prochains rendez-vous <span className="text-cinematic-gold">à vivre avec nous</span>
             </h2>
-            <p className="font-inter text-pearl/60 leading-relaxed">Vivez des temps forts de prière, d&apos;enseignement et de communion.</p>
+            <p className="font-inter text-pearl/60 leading-relaxed">
+              Des temps forts de prière, d&apos;enseignement et de communion — pour t&apos;enraciner et avancer.
+            </p>
           </div>
           {hasEvents && events.length > 1 && (
             <div className="flex items-center gap-2">

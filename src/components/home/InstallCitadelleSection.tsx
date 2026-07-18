@@ -51,9 +51,9 @@ export function InstallCitadelleSection() {
           </span>
 
           <div className="flex-1 text-center sm:text-left">
-            <h2 className="font-cinzel font-bold text-lg text-pearl leading-tight">Installer Citadelle</h2>
+            <h2 className="font-cinzel font-bold text-lg text-pearl leading-tight">Emporte Citadelle partout avec toi</h2>
             <p className="font-inter text-sm text-pearl/60 mt-0.5">
-              Accédez directement à Citadelle depuis votre écran d&apos;accueil.
+              Accède à tes parcours, tes enseignements et ta communauté depuis ton téléphone.
             </p>
           </div>
 
@@ -66,7 +66,7 @@ export function InstallCitadelleSection() {
               onClick={onInstall}
               className="btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2 font-semibold flex-shrink-0"
             >
-              <Download className="w-4 h-4" /> Installer Citadelle
+              <Download className="w-4 h-4" /> Installer l&apos;app
             </button>
           )}
         </div>

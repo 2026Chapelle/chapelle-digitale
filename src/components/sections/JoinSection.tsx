@@ -20,10 +20,10 @@ import { events } from '@/lib/analytics'
 
 type Step = { numero: string; titre: string; description: string; icon: LucideIcon }
 const STEPS: Step[] = [
-  { numero: '01', titre: 'Créez votre compte',          description: 'Inscription gratuite en 30 secondes. Votre voyage commence ici.',       icon: UserPlus },
-  { numero: '02', titre: 'Profil spirituel',            description: 'Renseignez votre profil pour personnaliser votre expérience.',          icon: UserCircle2 },
-  { numero: '03', titre: 'Choisissez votre plateforme', description: 'Rejoignez la communauté qui correspond à votre appel et votre saison.', icon: Compass },
-  { numero: '04', titre: 'Commencez à grandir',         description: 'Formations, live, prière, communauté — tout vous attend.',              icon: Rocket },
+  { numero: '01', titre: 'Crée ton compte',           description: 'Inscription gratuite en quelques instants. Ton parcours commence ici.', icon: UserPlus },
+  { numero: '02', titre: 'Profil spirituel',          description: 'Renseigne ton profil pour personnaliser ton expérience.',               icon: UserCircle2 },
+  { numero: '03', titre: 'Choisis ta plateforme',     description: 'Rejoins la communauté qui correspond à ton appel et ta saison.',        icon: Compass },
+  { numero: '04', titre: 'Commence à grandir',        description: 'Formations, live, prière, communauté — tout t’attend.',                 icon: Rocket },
 ]
 
 export function JoinSection() {
@@ -41,7 +41,7 @@ export function JoinSection() {
     if (submitting) return
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (prenom.trim().length < 2 || !EMAIL_RE.test(email.trim())) {
-      toast.error('Indiquez votre prénom et un email valide.')
+      toast.error('Indique ton prénom et un email valide.')
       return
     }
     setSubmitting(true)
@@ -77,10 +77,10 @@ export function JoinSection() {
             transition={{ duration: 0.7 }}
             className="text-center mb-16"
           >
-            <div className="section-label-dark justify-center">Comment ça marche</div>
+            <div className="section-label-dark justify-center">Comment démarrer</div>
             <h2 className="heading-cinematic-lg">
-              Rejoignez la Chapelle
-              <span className="block text-cinematic-gold">en 4 Étapes</span>
+              Rejoins Citadelle
+              <span className="block text-cinematic-gold">en 4 étapes</span>
             </h2>
           </motion.div>
 
@@ -145,13 +145,13 @@ export function JoinSection() {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 text-xs font-bold tracking-[0.25em] uppercase font-inter backdrop-blur-md"
             style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.3)', color: '#F5E6A7', boxShadow: '0 0 30px rgba(212,175,55,0.15)' }}>
             <Sparkles className="w-3 h-3" />
-            Votre Destinée Vous Attend
+            Ta destinée t&apos;attend
             <Sparkles className="w-3 h-3" />
           </div>
 
           <h2 className="font-cinzel font-black mb-6 text-cinematic-gold drop-shadow-[0_4px_30px_rgba(212,175,55,0.3)]"
             style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', lineHeight: 1.0 }}>
-            Rejoignez la Chapelle
+            Rejoins Citadelle
           </h2>
 
           <p className="font-cormorant italic mb-10 mx-auto leading-relaxed"
@@ -164,12 +164,12 @@ export function JoinSection() {
           </p>
 
           <Link
-            href="/register"
-            onClick={() => events.ctaClick('rejoindre_finale')}
+            href="/parcours"
+            onClick={() => events.ctaClick('parcours_finale')}
             className="btn-gold-cinematic group inline-flex"
             style={{ padding: '18px 44px', fontSize: '1rem' }}
           >
-            Rejoindre la Chapelle Maintenant
+            Commencer mon parcours
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
 
@@ -179,33 +179,33 @@ export function JoinSection() {
               <div className="card-cinematic p-6 flex items-center justify-center gap-3">
                 <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: '#86EFAC' }} />
                 <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.75)' }}>
-                  Merci ! Vous recevrez bientôt de nos nouvelles.
+                  Merci ! Tu recevras bientôt de nos nouvelles.
                 </p>
               </div>
             ) : (
               <div className="card-cinematic p-6">
                 <p className="font-inter text-sm mb-4 flex items-center justify-center gap-2" style={{ color: 'rgba(245,230,216,0.6)' }}>
                   <Mail className="w-4 h-4" style={{ color: '#D4AF37' }} />
-                  Pas encore prêt à vous inscrire ? Restons en lien.
+                  Pas encore prêt à t&apos;inscrire ? Restons en lien.
                 </p>
                 <form onSubmit={subscribe} className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="text"
                     value={prenom}
                     onChange={(e) => setPrenom(e.target.value)}
-                    placeholder="Votre prénom"
+                    placeholder="Ton prénom"
                     className="input-cinematic sm:max-w-[180px]"
                     maxLength={60}
-                    aria-label="Votre prénom"
+                    aria-label="Ton prénom"
                   />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Votre email"
+                    placeholder="Ton email"
                     className="input-cinematic flex-1"
                     maxLength={120}
-                    aria-label="Votre email"
+                    aria-label="Ton email"
                   />
                   <button type="submit" disabled={submitting} className="btn-gold-cinematic disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap">
                     {submitting ? 'Envoi…' : 'Rester informé'}

@@ -70,8 +70,8 @@ export function MovementSection() {
             Nos Ministères
           </div>
           <h2 className="heading-cinematic-lg mb-5">
-            8 Plateformes,
-            <span className="block text-cinematic-gold">Une Seule Vision</span>
+            8 plateformes,
+            <span className="block text-cinematic-gold">une seule vision</span>
           </h2>
           <p className="font-cormorant italic text-xl md:text-2xl leading-relaxed mb-3"
             style={{ color: 'rgba(245,230,216,0.82)' }}>
@@ -81,9 +81,9 @@ export function MovementSection() {
             — Matthieu 28 : 19
           </p>
           <p className="font-inter text-base md:text-lg leading-relaxed mx-auto" style={{ color: 'rgba(245,230,216,0.55)' }}>
-            La Chapelle est une famille de ministères <span className="text-pearl/80">autonomes et complémentaires</span> —
-            aucun supérieur à l&apos;autre. Huit plateformes, présentes sur plusieurs continents,
-            portées par une même vision : faire des disciples, pour toutes les nations.
+            Citadelle regroupe une famille de ministères <span className="text-pearl/80">autonomes et complémentaires</span>.
+            Huit plateformes pour t&apos;aider à prier, apprendre, servir et grandir — une même vision :
+            faire des disciples, pour toutes les nations.
           </p>
 
           {/* Une seule rangée de nations — vrais drapeaux PNG locaux (rendu identique sur

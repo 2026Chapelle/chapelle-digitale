@@ -71,18 +71,17 @@ export function GlobalPresenceSection() {
             <Globe2 className="w-3.5 h-3.5" /> International
           </div>
           <h2 className="font-cinzel font-bold text-2xl sm:text-3xl leading-tight mb-4">
-            Une vision locale, <span className="text-cinematic-gold">une portée internationale</span>
+            Une maison partout, <span className="text-cinematic-gold">sans frontières</span>
           </h2>
           <p className="font-inter text-pearl/70 leading-relaxed max-w-lg">
-            Depuis Abidjan, La Citadelle accompagne une famille spirituelle appelée à rayonner dans les nations —
-            une même foi, portée au-delà des frontières.
+            Où que tu sois, Citadelle te relie à une famille spirituelle qui prie, apprend et grandit ensemble —
+            une même foi, accessible au-delà des frontières.
           </p>
         </div>
 
-        {/* Globe image — carré, circulaire ; diamètre borné (≈300px mobile, ≈460px desktop).
-            `max-w` en vw pour garantir zéro débordement horizontal sur petits écrans. */}
+        {/* Globe image — plus visible, borné pour zéro débordement mobile. */}
         <div className="flex justify-center">
-          <div className="relative aspect-square w-[300px] max-w-[82vw] md:w-[460px] md:max-w-none">
+          <div className="relative aspect-square w-[min(340px,86vw)] md:w-[520px] md:max-w-none">
             {/* Image en rotation (seule transformation appliquée). */}
             <div className="citadelle-globe-rotate absolute inset-0 rounded-full overflow-hidden">
               {/* <img> simple : aucune dépendance, aucun domaine à déclarer, pas de conversion. */}

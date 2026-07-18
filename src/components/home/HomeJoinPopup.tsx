@@ -64,12 +64,13 @@ export function HomeJoinPopup() {
 
         <div className="p-4 sm:p-6 -mt-1 text-center">
           <h2 id="home-popup-title" className="font-cinzel font-bold text-pearl text-xl leading-tight mb-2">Bienvenue sur Citadelle</h2>
-          <p id="home-popup-description" className="font-inter text-sm text-pearl/65 leading-relaxed mb-5">Rejoignez. Grandissez. Suivez votre parcours.</p>
+          <p id="home-popup-description" className="font-inter text-sm text-pearl/65 leading-relaxed mb-5">
+            Emporte ta maison spirituelle partout avec toi.
+          </p>
 
-          {/* V2.7-A.4 : CTA interne unique vers /rejoindre — plus AUCUNE mention d'installation
-              ici (le bandeau « Installer Citadelle » de l'accueil est le seul CTA d'install). */}
-          <Link href="/rejoindre" onClick={dismiss} className="btn-gold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 font-semibold w-full">
-            Rejoindre la Chapelle <ArrowRight className="w-4 h-4" />
+          {/* V2.7-A.4 : CTA interne unique — pas d'installation ici (bandeau Install unique). */}
+          <Link href="/parcours" onClick={dismiss} className="btn-gold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 font-semibold w-full">
+            Commencer mon parcours <ArrowRight className="w-4 h-4" />
           </Link>
           <button onClick={dismiss} className="block w-full mt-3 text-xs font-inter text-pearl/40 hover:text-pearl/65 transition-colors">Plus tard</button>
         </div>

@@ -5,8 +5,9 @@ import { HomeSections } from '@/components/sections/HomeSections'
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: 'La Chapelle Internationale des Élus du Royaume — Une Église Ouverte au Monde',
-  description: 'Rejoignez des milliers de croyants dans la plus grande église digitale francophone. Cultes en direct, formations bibliques, communauté mondiale, prière 24/7.',
+  title: 'Citadelle — L’église digitale qui t’accompagne',
+  description:
+    'Grandis dans ta foi avec Citadelle : enseignements, parcours, prière, événements et communauté — une plateforme de croissance spirituelle accessible partout.',
 }
 
 // L'ordre, la visibilité et le contenu des sections sont pilotés par le CMS

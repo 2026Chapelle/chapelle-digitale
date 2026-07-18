@@ -21,10 +21,10 @@ type Door = {
 }
 
 const DOORS: Door[] = [
-  { key: 'decouvrir', titre: 'Je découvre',   sous: 'Nouveau ici ? Découvrez notre histoire, notre vision et ce que nous croyons.', href: '/notre-histoire', icon: Compass,        cta: 'Découvrir la CIER' },
-  { key: 'former',    titre: 'Je me forme',   sous: 'Grandissez par des formations bibliques et des parcours de disciple.',        href: '/formations',     icon: GraduationCap,   cta: 'Voir les formations' },
-  { key: 'servir',    titre: 'Je veux servir',sous: 'Mettez vos dons au service du Royaume et rejoignez une équipe.',               href: '/servir',         icon: HeartHandshake,  cta: 'Servir avec nous' },
-  { key: 'donner',    titre: 'Je soutiens',   sous: 'Participez à l’avancement de l’œuvre par un don ou un partenariat.',          href: '/dons',           icon: Gift,            cta: 'Faire un don' },
+  { key: 'decouvrir', titre: 'Je découvre',    sous: 'Nouveau ici ? Découvre notre histoire, notre vision et ce que nous croyons.', href: '/notre-histoire', icon: Compass,        cta: 'Découvrir la maison' },
+  { key: 'former',    titre: 'Je grandis',     sous: 'Avance par des formations bibliques et des parcours de disciple concrets.',  href: '/formations',     icon: GraduationCap,   cta: 'Voir les formations' },
+  { key: 'servir',    titre: 'Je sers',        sous: 'Mets tes dons au service du Royaume et rejoins une équipe.',                 href: '/servir',         icon: HeartHandshake,  cta: 'Servir avec nous' },
+  { key: 'donner',    titre: 'Je soutiens',    sous: 'Participe à l’avancement de l’œuvre par un don ou un partenariat.',        href: '/dons',           icon: Gift,            cta: 'Faire un don' },
 ]
 
 export function StartHereSection() {
@@ -32,7 +32,7 @@ export function StartHereSection() {
   const inView = useInView(ref, { once: true, margin: '-80px' })
 
   return (
-    <section ref={ref} className="section-cinematic">
+    <section id="decouvrir-citadelle" ref={ref} className="section-cinematic scroll-mt-24">
       <div className="halo-gold w-[800px] h-[420px] -top-10 left-1/2 -translate-x-1/2" />
 
       <div className="container-cinematic">
@@ -42,15 +42,15 @@ export function StartHereSection() {
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-14 md:mb-16"
         >
-          <div className="section-label-dark justify-center">Par où commencer</div>
+          <div className="section-label-dark justify-center">Parcours de croissance</div>
           <h2 className="heading-cinematic-lg mb-5">
-            Vous êtes nouveau ?
-            <span className="block text-cinematic-gold">Commencez ici</span>
+            Tu es nouveau ?
+            <span className="block text-cinematic-gold">Commence ici</span>
           </h2>
           <p className="font-inter text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
             style={{ color: 'rgba(245,230,216,0.55)' }}>
-            Quatre chemins, une seule famille. Choisissez celui qui correspond à votre saison —
-            chaque porte vous conduit plus près du cœur de Dieu.
+            Quatre portes claires pour t&apos;orienter : découvre, grandis, sers, soutiens.
+            Choisis celle qui correspond à ta saison — sans pression, à ton rythme.
           </p>
         </motion.div>
 

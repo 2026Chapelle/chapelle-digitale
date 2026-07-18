@@ -104,12 +104,12 @@ export function CommunitySection() {
             Vies &amp; Prières
           </div>
           <h2 className="heading-cinematic-lg mb-5">
-            La Communauté
-            <span className="block text-cinematic-gold">Prie &amp; Témoigne</span>
+            La communauté
+            <span className="block text-cinematic-gold">prie &amp; témoigne</span>
           </h2>
           <p className="font-inter text-base md:text-lg leading-relaxed" style={{ color: 'rgba(245,230,216,0.55)' }}>
-            Déposez votre demande, soyez porté par la chaîne d&apos;intercession 24/7,
-            et découvrez ce que Dieu fait dans des vies comme la vôtre.
+            Dépose ta demande, sois porté par la chaîne d&apos;intercession,
+            et découvre ce que Dieu fait dans des vies comme la tienne.
           </p>
         </motion.div>
 
