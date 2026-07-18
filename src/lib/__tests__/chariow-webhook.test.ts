@@ -54,9 +54,13 @@ function validSalePayload(overrides: Record<string, unknown> = {}) {
   }
 }
 
-function makeReq(body: unknown, headers: Record<string, string> = {}) {
+function makeReq(
+  body: unknown,
+  headers: Record<string, string> = {},
+  url = 'http://localhost/api/webhook/chariow',
+) {
   const raw = typeof body === 'string' ? body : JSON.stringify(body)
-  return new NextRequest('http://localhost/api/webhook/chariow', {
+  return new NextRequest(url, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -139,10 +143,64 @@ describe('POST /api/webhook/chariow', () => {
     expect(body.message).toMatch(/configuration/i)
   })
 
-  it('secret simple invalide => 401', async () => {
+  it('header x-chariow-secret valide => accepté', async () => {
     vi.stubEnv('NODE_ENV', 'test')
     vi.stubEnv('CHARIOW_WEBHOOK_SECRET', 'expected-secret')
-    const res = await POST(makeReq(validSalePayload(), { 'x-chariow-secret': 'wrong' }))
+    const res = await POST(makeReq(validSalePayload(), { 'x-chariow-secret': 'expected-secret' }))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.recorded).toBe(true)
+  })
+
+  it('chariow_token URL valide (fallback Pulse) => accepté', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('CHARIOW_WEBHOOK_SECRET', 'expected-secret')
+    const res = await POST(
+      makeReq(
+        validSalePayload(),
+        {},
+        'http://localhost/api/webhook/chariow?chariow_token=expected-secret',
+      ),
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    expect(body.recorded).toBe(true)
+  })
+
+  it('jeton absent (header et URL) => 401', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('CHARIOW_WEBHOOK_SECRET', 'expected-secret')
+    const res = await POST(makeReq(validSalePayload()))
+    expect(res.status).toBe(401)
+  })
+
+  it('secret simple / jeton incorrect => 401', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('CHARIOW_WEBHOOK_SECRET', 'expected-secret')
+    const resHeader = await POST(makeReq(validSalePayload(), { 'x-chariow-secret': 'wrong' }))
+    expect(resHeader.status).toBe(401)
+    const resUrl = await POST(
+      makeReq(
+        validSalePayload(),
+        {},
+        'http://localhost/api/webhook/chariow?chariow_token=wrong',
+      ),
+    )
+    expect(resUrl.status).toBe(401)
+  })
+
+  it('header incorrect non contournable par chariow_token URL valide => 401', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('CHARIOW_WEBHOOK_SECRET', 'expected-secret')
+    const res = await POST(
+      makeReq(
+        validSalePayload(),
+        { 'x-chariow-secret': 'wrong-header' },
+        'http://localhost/api/webhook/chariow?chariow_token=expected-secret',
+      ),
+    )
     expect(res.status).toBe(401)
   })
 

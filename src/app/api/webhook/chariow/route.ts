@@ -71,8 +71,15 @@ export async function POST(req: NextRequest) {
   }
 
   // Secret partagé simple — comparaison temps constant via digests de longueur fixe.
+  // Priorité : en-tête `x-chariow-secret` ; fallback Pulse : query `chariow_token`
+  // (l'UI Chariow Pulse ne permet pas d'en-tête personnalisé).
+  // Le jeton n'est jamais loggé.
   if (secret) {
-    const providedSecret = req.headers.get('x-chariow-secret') || ''
+    const headerSecret = req.headers.get('x-chariow-secret')
+    const urlToken = req.nextUrl.searchParams.get('chariow_token')
+    // Header prioritaire dès qu'il est présent (même vide) — empêche un token URL de contourner un header faux.
+    const providedSecret =
+      headerSecret !== null ? headerSecret : (urlToken ?? '')
     const a = createHmac('sha256', 'chariow-shared-secret-cmp').update(providedSecret).digest()
     const b = createHmac('sha256', 'chariow-shared-secret-cmp').update(secret).digest()
     if (!timingSafeEqual(a, b)) {
