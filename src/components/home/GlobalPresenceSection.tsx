@@ -14,8 +14,6 @@
  * Accessibilité : `prefers-reduced-motion: reduce` coupe rotation ET pulsations.
  * Composant serveur statique (aucun hook, aucune API client).
  */
-import { Globe2 } from 'lucide-react'
-
 // Constellation SYMBOLIQUE des nations où des drapeaux apparaissent réellement sur les
 // pages publiques (MovementSection + Contact). Positions décoratives — ce n'est PAS une
 // cartographie exacte. Aucun chiffre, aucune statistique. Exactement 14 lumières.
@@ -97,21 +95,15 @@ export function GlobalPresenceSection() {
       <style dangerouslySetInnerHTML={{ __html: GLOBE_CSS }} />
       <div className="container-royal grid lg:grid-cols-2 gap-12 items-center">
         <div>
-          <p className="section-label-dark mb-5">
-            <Globe2 className="w-3 h-3" /> Le Royaume
-          </p>
-          <h2 className="heading-cinematic-lg mb-6">
+          <h2 className="heading-cinematic-lg">
             Le Royaume
             <span className="block text-cinematic-gold">dépasse les frontières.</span>
           </h2>
-          <p className="font-inter leading-relaxed max-w-sm text-base md:text-lg" style={{ color: 'rgba(245,230,216,0.42)' }}>
-            Une lumière dans la nuit. Une maison sans frontières.
-          </p>
         </div>
 
-        {/* Globe image — plus visible, borné pour zéro débordement mobile. */}
+        {/* Globe — très grand, animation lente, borné mobile. Aucune statistique. */}
         <div className="flex justify-center">
-          <div className="relative aspect-square w-[min(420px,90vw)] md:w-[600px] md:max-w-none">
+          <div className="relative aspect-square w-[min(460px,92vw)] md:w-[640px] md:max-w-none">
             <div className="citadelle-halo" aria-hidden />
             <div className="citadelle-orbit" aria-hidden />
             <div className="citadelle-orbit citadelle-orbit-2" aria-hidden />
