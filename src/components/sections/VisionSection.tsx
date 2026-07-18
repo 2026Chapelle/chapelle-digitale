@@ -1,13 +1,11 @@
 'use client'
 /**
- * SCÈNE 3 — VISION · vie au scroll et au hover (élégant, non gadget)
+ * SCÈNE 3 — VISION · motion unifiée (titre puis contenu)
  */
 import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { Sprout, Users, HandHeart, Sun } from 'lucide-react'
-
-const EASE = [0.16, 1, 0.3, 1] as const
-const DUR = 0.85
+import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
 
 const PILLARS = [
   {
@@ -42,9 +40,9 @@ export function VisionSection() {
       <div className="container-cinematic max-w-6xl">
         <motion.h2
           id="vision-title"
-          initial={reduce ? false : { opacity: 0, y: 20 }}
+          initial={reduce ? false : { opacity: 0, y: 18 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: DUR, ease: EASE }}
+          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
           className="heading-cinematic-lg text-center mb-16 md:mb-20"
         >
           Pourquoi Citadelle&nbsp;?
@@ -56,12 +54,12 @@ export function VisionSection() {
             return (
               <motion.div
                 key={p.title}
-                initial={reduce ? false : { opacity: 0, y: 18 }}
+                initial={reduce ? false : { opacity: 0, y: 14 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{
-                  duration: DUR,
-                  delay: reduce ? 0 : 0.06 + i * 0.07,
-                  ease: EASE,
+                  duration: HOME_DUR,
+                  delay: reduce ? 0 : 0.12 + i * 0.07,
+                  ease: HOME_EASE,
                 }}
                 className="citadelle-vision-pillar group text-center px-3"
               >

@@ -11,6 +11,7 @@ import Image from 'next/image'
 import { Quote, ArrowRight } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { events } from '@/lib/analytics'
+import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
 
 type Testimony = { id: string; auteur: string; lieu: string; titre: string; texte: string }
 
@@ -74,9 +75,9 @@ export function CommunitySection() {
     <section ref={ref} className="section-cinematic" aria-labelledby="community-title">
       <div className="container-cinematic max-w-5xl">
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 20 }}
+          initial={reduce ? false : { opacity: 0, y: 18 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
           className="text-center mb-10 md:mb-14"
         >
           <h2 id="community-title" className="heading-cinematic-lg">
@@ -99,9 +100,9 @@ export function CommunitySection() {
 
         {/* Grande photographie réelle */}
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 16 }}
+          initial={reduce ? false : { opacity: 0, y: 14 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.9, delay: reduce ? 0 : 0.1, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.14, ease: HOME_EASE }}
           className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-3xl overflow-hidden mb-12 md:mb-16"
         >
           <Image
@@ -125,7 +126,7 @@ export function CommunitySection() {
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 14 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, delay: reduce ? 0 : 0.18, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.22, ease: HOME_EASE }}
           className="max-w-2xl mx-auto text-center"
         >
           {testimony ? (

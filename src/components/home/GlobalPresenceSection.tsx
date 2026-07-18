@@ -1,19 +1,11 @@
+'use client'
 /**
- * Section « Présence internationale » (V2.7-A.4) — GLOBE IMAGE léger, stable mobile.
- *
- * Réécriture volontairement minimale pour ne PLUS jamais bloquer les appareils Samsung :
- *   - une seule image réelle : public/images/home/globe-nations.webp (PNG 1280×720) ;
- *   - conteneur carré + circulaire, `object-cover object-center` (recadrage naturel) ;
- *   - rotation lente par un simple `transform: rotate()` (linéaire, infinie) ;
- *   - 14 « lumières des nations » (constellation symbolique) pulsant en opacity + scale.
- *
- * Interdits stricts respectés dans ce composant : aucun SVG de globe, aucun canvas,
- * aucun WebGL/Three.js, aucun `filter: blur`, aucun `backdrop-filter`, aucun `blur-3xl`,
- * aucune ombre géante animée, aucune dépendance supplémentaire.
- *
- * Accessibilité : `prefers-reduced-motion: reduce` coupe rotation ET pulsations.
- * Composant serveur statique (aucun hook, aucune API client).
+ * Section « Présence internationale » — globe image léger + motion unifiée.
+ * Accessibilité : prefers-reduced-motion coupe rotation et apparitions.
  */
+import { useRef } from 'react'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
 // Constellation SYMBOLIQUE des nations où des drapeaux apparaissent réellement sur les
 // pages publiques (MovementSection + Contact). Positions décoratives — ce n'est PAS une
 // cartographie exacte. Aucun chiffre, aucune statistique. Exactement 14 lumières.
@@ -90,19 +82,32 @@ const GLOBE_CSS = `
 `
 
 export function GlobalPresenceSection() {
+  const ref = useRef<HTMLElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-80px' })
+  const reduce = useReducedMotion()
+
   return (
-    <section className="py-20 sm:py-24 overflow-hidden">
+    <section ref={ref} className="py-20 sm:py-24 overflow-hidden">
       <style dangerouslySetInnerHTML={{ __html: GLOBE_CSS }} />
       <div className="container-royal grid lg:grid-cols-2 gap-12 items-center">
-        <div>
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 18 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+        >
           <h2 className="heading-cinematic-lg">
             Le Royaume
             <span className="block text-cinematic-gold">dépasse les frontières.</span>
           </h2>
-        </div>
+        </motion.div>
 
         {/* Globe — très grand, animation lente, borné mobile. Aucune statistique. */}
-        <div className="flex justify-center">
+        <motion.div
+          className="flex justify-center"
+          initial={reduce ? false : { opacity: 0, y: 14 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.14, ease: HOME_EASE }}
+        >
           <div className="relative aspect-square w-[min(460px,100%)] max-w-[92vw] md:w-[640px] md:max-w-none mx-auto">
             <div className="citadelle-halo" aria-hidden />
             <div className="citadelle-orbit" aria-hidden />
@@ -140,7 +145,7 @@ export function GlobalPresenceSection() {
               />
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   )

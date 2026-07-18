@@ -4,9 +4,11 @@
  * Emporte Citadelle avec toi. Mécanisme d'installation réel uniquement.
  * Pas de faux stores, pas de fausses captures inventées.
  */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { Download, Smartphone, Check, BookOpen, Bell, Heart } from 'lucide-react'
 import { usePwaInstall } from '@/components/home/pwa-install'
+import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
 
 function installHint(): string {
   if (typeof navigator === 'undefined') {
@@ -29,6 +31,9 @@ const BENEFITS = [
 ] as const
 
 export function InstallCitadelleSection() {
+  const ref = useRef<HTMLElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-80px' })
+  const reduce = useReducedMotion()
   const { canInstall, installed, promptInstall } = usePwaInstall()
   const [hint, setHint] = useState<string | null>(null)
 
@@ -41,53 +46,68 @@ export function InstallCitadelleSection() {
   }
 
   return (
-    <section className="section-cinematic" aria-labelledby="install-citadelle-title">
+    <section ref={ref} className="section-cinematic" aria-labelledby="install-citadelle-title">
       <div className="container-cinematic max-w-4xl">
         <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-12 lg:gap-16 items-center">
           <div>
-            <h2
+            <motion.h2
               id="install-citadelle-title"
+              initial={reduce ? false : { opacity: 0, y: 18 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: HOME_DUR, ease: HOME_EASE }}
               className="font-cinzel font-bold text-2xl sm:text-3xl md:text-4xl text-pearl leading-tight mb-8"
             >
               Emporte Citadelle
               <span className="block text-cinematic-gold">avec toi.</span>
-            </h2>
+            </motion.h2>
 
-            <ul className="space-y-3 mb-10 list-none m-0 p-0">
-              {BENEFITS.map((b) => (
-                <li key={b.label} className="flex items-start gap-3">
-                  <b.icon
-                    className="w-4 h-4 mt-0.5 flex-shrink-0"
-                    style={{ color: 'rgba(212,175,55,0.75)' }}
-                    strokeWidth={1.5}
-                  />
-                  <span className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.55)' }}>
-                    {b.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: 14 }}
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.14, ease: HOME_EASE }}
+            >
+              <ul className="space-y-3 mb-10 list-none m-0 p-0">
+                {BENEFITS.map((b) => (
+                  <li key={b.label} className="flex items-start gap-3">
+                    <b.icon
+                      className="w-4 h-4 mt-0.5 flex-shrink-0"
+                      style={{ color: 'rgba(212,175,55,0.75)' }}
+                      strokeWidth={1.5}
+                    />
+                    <span className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.55)' }}>
+                      {b.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
 
-            {installed ? (
-              <p className="inline-flex items-center gap-2 text-sm font-inter text-[#86EFAC]">
-                <Check className="w-4 h-4" /> Citadelle est déjà installée sur cet appareil
-              </p>
-            ) : (
-              <button
-                type="button"
-                onClick={onInstall}
-                className="btn-gold text-sm px-6 py-3 inline-flex items-center gap-2 font-semibold"
-              >
-                <Download className="w-4 h-4" /> Installer Citadelle
-              </button>
-            )}
-            {hint && !installed && (
-              <p className="mt-4 text-[13px] font-inter text-pearl/55 leading-relaxed max-w-lg">{hint}</p>
-            )}
+              {installed ? (
+                <p className="inline-flex items-center gap-2 text-sm font-inter text-[#86EFAC]">
+                  <Check className="w-4 h-4" /> Citadelle est déjà installée sur cet appareil
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onInstall}
+                  className="btn-gold text-sm px-6 py-3 inline-flex items-center gap-2 font-semibold"
+                >
+                  <Download className="w-4 h-4" /> Installer Citadelle
+                </button>
+              )}
+              {hint && !installed && (
+                <p className="mt-4 text-[13px] font-inter text-pearl/55 leading-relaxed max-w-lg">{hint}</p>
+              )}
+            </motion.div>
           </div>
 
           {/* Cadre téléphone stylisé — pas de fausse capture d'app store */}
-          <div className="flex justify-center" aria-hidden>
+          <motion.div
+            className="flex justify-center"
+            aria-hidden
+            initial={reduce ? false : { opacity: 0, y: 14 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.2, ease: HOME_EASE }}
+          >
             <div
               className="relative w-[200px] h-[400px] rounded-[2rem] p-3 flex flex-col"
               style={{
@@ -120,7 +140,7 @@ export function InstallCitadelleSection() {
                 </p>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

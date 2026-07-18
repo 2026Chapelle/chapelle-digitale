@@ -935,76 +935,172 @@
     color: rgba(245, 230, 216, 0.62) !important;
   }
 
-  /* Signature parcours V3 — chemin organique (voyage) */
-  .bg-charbon .citadelle-v3-path {
-    position: relative;
+  /* Hero — jamais de troncature desktop ; sous-titre 1 ligne desktop */
+  .bg-charbon .hero-title-line {
+    max-width: 100%;
   }
-  .bg-charbon .citadelle-v3-path-spine {
-    position: absolute;
-    left: 0.95rem;
-    top: 1.5rem;
-    bottom: 2rem;
-    width: 1px;
-    background: linear-gradient(
-      180deg,
-      transparent,
-      rgba(212,175,55,0.35) 10%,
-      rgba(37,99,235,0.22) 50%,
-      rgba(212,175,55,0.4) 90%,
-      transparent
-    );
-    pointer-events: none;
-  }
-  .bg-charbon .citadelle-v3-path-node {
-    position: absolute;
-    left: 0.55rem;
-    top: 1.35rem;
-    width: 0.75rem;
-    height: 0.75rem;
-    border-radius: 9999px;
-    background: linear-gradient(135deg, #F5E6A7, #D4AF37);
-    box-shadow: 0 0 14px rgba(212,175,55,0.5);
-    z-index: 1;
-    transition: box-shadow 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  .bg-charbon .citadelle-v3-path-step {
-    position: relative;
-  }
-  /* Rythme organique : décalages alternés (desktop) */
-  @media (min-width: 640px) {
-    .bg-charbon .citadelle-v3-path-step.is-path-a {
-      margin-left: 0;
-      margin-right: 1.25rem;
-      transform: translateX(0);
+  @media (min-width: 768px) {
+    .bg-charbon .hero-subtitle {
+      white-space: nowrap;
+      max-width: none;
     }
-    .bg-charbon .citadelle-v3-path-step.is-path-b {
-      margin-left: 1.75rem;
+  }
+  @media (max-width: 767px) {
+    .bg-charbon .hero-subtitle {
+      max-width: 20rem;
+      white-space: normal;
+    }
+  }
+
+  /* Parcours — voyage organique (plus de timeline technique) */
+  .bg-charbon .citadelle-journey {
+    position: relative;
+    padding: 0.5rem 0 1rem;
+  }
+  .bg-charbon .citadelle-journey-thread {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-thread {
+      display: block;
+      position: absolute;
+      left: 50%;
+      top: 1rem;
+      bottom: 1rem;
+      width: 2px;
+      margin-left: -1px;
+      border-radius: 999px;
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(212,175,55,0.15) 8%,
+        rgba(212,175,55,0.45) 50%,
+        rgba(37,99,235,0.25) 78%,
+        transparent 100%
+      );
+      box-shadow: 0 0 18px rgba(212,175,55,0.2);
+      pointer-events: none;
+      z-index: 0;
+    }
+  }
+  .bg-charbon .citadelle-journey-step {
+    position: relative;
+    z-index: 1;
+  }
+  .bg-charbon .citadelle-journey-dot {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-dot {
+      display: block;
+      position: absolute;
+      left: 50%;
+      top: 2.75rem;
+      width: 0.85rem;
+      height: 0.85rem;
+      margin-left: -0.425rem;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #F5E6A7, #D4AF37);
+      box-shadow: 0 0 16px rgba(212,175,55,0.55);
+      z-index: 2;
+    }
+    .bg-charbon .citadelle-journey-step.journey-left .citadelle-journey-card {
+      margin-right: calc(50% + 1.75rem);
+      margin-left: 0;
+    }
+    .bg-charbon .citadelle-journey-step.journey-right .citadelle-journey-card {
+      margin-left: calc(50% + 1.75rem);
       margin-right: 0;
     }
+    /* Rythme organique : micro-rotations / décalages */
+    .bg-charbon .citadelle-journey-step.journey-left:nth-child(odd) .citadelle-journey-card {
+      transform: translateX(-0.35rem) rotate(-0.4deg);
+    }
+    .bg-charbon .citadelle-journey-step.journey-right:nth-child(even) .citadelle-journey-card {
+      transform: translateX(0.35rem) rotate(0.4deg);
+    }
+    .bg-charbon .citadelle-journey-step:hover .citadelle-journey-card {
+      transform: translateY(-3px) rotate(0deg);
+    }
   }
-  .bg-charbon .citadelle-path-card {
-    border-radius: 1.25rem;
-    padding: 0.35rem 0.35rem 0.35rem 0;
+  .bg-charbon .citadelle-journey-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    border-radius: 1.75rem; /* 28px */
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.015) 50%, rgba(15,23,42,0.2) 100%);
+    box-shadow:
+      0 1px 0 rgba(244,241,233,0.05) inset,
+      0 22px 56px rgba(0,0,0,0.38);
     transition:
-      background 0.55s cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+      transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .bg-charbon .citadelle-path-card:hover {
-    background: linear-gradient(120deg, rgba(255,255,255,0.03), rgba(212,175,55,0.04) 80%);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.22);
+  @media (min-width: 640px) {
+    .bg-charbon .citadelle-journey-card {
+      flex-direction: row;
+      align-items: stretch;
+      border-radius: 2rem; /* 32px */
+    }
   }
-  .bg-charbon .citadelle-path-card:hover ~ .citadelle-v3-path-node,
-  .bg-charbon .citadelle-v3-path-step:hover .citadelle-v3-path-node {
-    box-shadow: 0 0 22px rgba(212,175,55,0.75);
-    transform: scale(1.15);
+  .bg-charbon .citadelle-journey-card:hover {
+    box-shadow:
+      0 1px 0 rgba(244,241,233,0.08) inset,
+      0 28px 64px rgba(0,0,0,0.48),
+      0 0 40px rgba(212,175,55,0.08);
   }
-  .bg-charbon .citadelle-path-img-veil {
-    background: linear-gradient(135deg, rgba(6,6,10,0.12), rgba(6,6,10,0.4));
+  .bg-charbon .citadelle-journey-media {
+    position: relative;
+    width: 100%;
+    height: 11rem; /* +~35 % vs 7rem */
+    flex-shrink: 0;
+  }
+  @media (min-width: 640px) {
+    .bg-charbon .citadelle-journey-media {
+      width: 12.5rem; /* ~200px, +~40% vs 144 */
+      height: auto;
+      min-height: 11.5rem;
+    }
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-media {
+      width: 14rem;
+      min-height: 12.5rem;
+    }
+  }
+  .bg-charbon .citadelle-journey-media-veil {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, transparent 20%, rgba(6,6,10,0.35) 100%),
+      radial-gradient(ellipse at 30% 20%, rgba(212,175,55,0.12), transparent 55%);
+    pointer-events: none;
     transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .bg-charbon .citadelle-path-card:hover .citadelle-path-img-veil {
-    opacity: 0.55;
-    background: linear-gradient(135deg, rgba(6,6,10,0.05), rgba(30,58,138,0.2));
+  .bg-charbon .citadelle-journey-card:hover .citadelle-journey-media-veil {
+    opacity: 0.7;
+    background:
+      linear-gradient(180deg, transparent 30%, rgba(6,6,10,0.25) 100%),
+      radial-gradient(ellipse at 40% 30%, rgba(245,230,167,0.16), transparent 60%);
+  }
+  .bg-charbon .citadelle-journey-body {
+    padding: 1.35rem 1.4rem 1.5rem;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-body {
+      padding: 1.6rem 1.75rem;
+    }
+  }
+  .bg-charbon .citadelle-journey-step:hover .citadelle-journey-dot {
+    box-shadow: 0 0 24px rgba(212,175,55,0.85);
+    transform: scale(1.15);
   }
 
   /* Ancien path (compat) */
@@ -1090,8 +1186,9 @@
     .bg-charbon .citadelle-vision-pillar:hover .citadelle-vision-icon,
     .bg-charbon .citadelle-vision-pillar:hover h3,
     .bg-charbon .citadelle-vision-pillar:hover p,
-    .bg-charbon .citadelle-path-card:hover,
-    .bg-charbon .citadelle-v3-path-step:hover .citadelle-v3-path-node {
+    .bg-charbon .citadelle-journey-card,
+    .bg-charbon .citadelle-journey-step:hover .citadelle-journey-card,
+    .bg-charbon .citadelle-journey-step:hover .citadelle-journey-dot {
       transform: none !important;
       transition: none !important;
     }

@@ -17,6 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { events } from '@/lib/analytics'
+import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
 
 type Experience = {
   title: string
@@ -72,17 +73,16 @@ export function LifeExperiencesSection() {
   return (
     <section ref={ref} className="section-cinematic" aria-labelledby="life-title">
       <div className="container-cinematic max-w-3xl">
-        <motion.div
+        <motion.h2
+          id="life-title"
           initial={reduce ? false : { opacity: 0, y: 18 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-12 md:mb-16"
+          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          className="heading-cinematic-lg text-center mb-12 md:mb-16"
         >
-          <h2 id="life-title" className="heading-cinematic-lg">
-            Ce que tu vas
-            <span className="block text-cinematic-gold">vivre.</span>
-          </h2>
-        </motion.div>
+          Ce que tu vas
+          <span className="block text-cinematic-gold">vivre.</span>
+        </motion.h2>
 
         <ul className="list-none m-0 p-0 divide-y" style={{ borderColor: 'rgba(244,241,233,0.06)' }}>
           {EXPERIENCES.map((exp, i) => {
@@ -90,12 +90,12 @@ export function LifeExperiencesSection() {
             return (
               <motion.li
                 key={exp.title}
-                initial={reduce ? false : { opacity: 0, y: 12 }}
+                initial={reduce ? false : { opacity: 0, y: 14 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{
-                  duration: 0.55,
-                  delay: reduce ? 0 : 0.05 + i * 0.05,
-                  ease: [0.16, 1, 0.3, 1],
+                  duration: HOME_DUR,
+                  delay: reduce ? 0 : 0.12 + i * 0.05,
+                  ease: HOME_EASE,
                 }}
                 style={{ borderColor: 'rgba(244,241,233,0.06)' }}
               >

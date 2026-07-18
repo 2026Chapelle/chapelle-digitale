@@ -1,17 +1,14 @@
 'use client'
 /**
- * SCÈNE 1 — HERO · Art direction premium
- * Affiche cinématographique : titre iconique, lumière vivante, zéro distraction.
+ * SCÈNE 1 — HERO · AD Pass 2
+ * Titres jamais tronqués (desktop) · hiérarchie claire · typo fluide
  */
 import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { events } from '@/lib/analytics'
-
-/** Courbe unique homepage */
-const EASE = [0.16, 1, 0.3, 1] as const
-const DUR = 0.9
+import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
 
 const HERO_PHOTO = {
   src: '/images/prayers/prayer-consecration.jpg',
@@ -37,7 +34,6 @@ export function HeroSection(_props: { block?: unknown } = {}) {
       style={{ background: '#06060A' }}
       aria-labelledby="hero-title"
     >
-      {/* Photographie + color grading ciné */}
       <div className="absolute inset-0" aria-hidden="true">
         <Image
           src={HERO_PHOTO.src}
@@ -47,11 +43,8 @@ export function HeroSection(_props: { block?: unknown } = {}) {
           sizes="100vw"
           className="object-cover object-center scale-[1.03]"
           quality={90}
-          style={{
-            filter: 'contrast(1.08) saturate(0.88) brightness(0.92)',
-          }}
+          style={{ filter: 'contrast(1.08) saturate(0.88) brightness(0.92)' }}
         />
-        {/* Voile + grading (nuit / or) */}
         <div
           className="absolute inset-0"
           style={{
@@ -61,7 +54,6 @@ export function HeroSection(_props: { block?: unknown } = {}) {
               'linear-gradient(120deg, rgba(30,58,138,0.12) 0%, transparent 45%, rgba(212,175,55,0.08) 100%)',
           }}
         />
-        {/* Lumière vivante — uniquement la lumière, pas les composants */}
         {!reduce && (
           <motion.div
             className="absolute inset-0 pointer-events-none"
@@ -84,37 +76,35 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         )}
       </div>
 
-      <div className="relative z-10 w-full max-w-5xl mx-auto px-5 sm:px-8 pt-24 pb-20 flex flex-col items-center text-center">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 pt-24 pb-20 flex flex-col items-center text-center">
         <motion.h1
           id="hero-title"
           initial={reduce ? false : { opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: DUR, ease: EASE }}
-          className="mb-7 w-full max-w-[min(100%,42rem)] mx-auto overflow-hidden px-0"
+          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          className="mb-6 w-full px-1"
         >
-          {/* Une ligne chacune · largeur visuelle alignée · sans overflow 320 */}
+          {/* Ligne 1 — dominante, jamais tronquée desktop */}
           <span
-            className="block font-cinzel font-black uppercase whitespace-nowrap"
+            className="hero-title-line block font-cinzel font-black whitespace-nowrap"
             style={{
-              fontSize: 'clamp(0.98rem, 4.4vw, 3.55rem)',
-              lineHeight: 1.05,
-              letterSpacing: 'clamp(0.005em, 0.28vw, 0.04em)',
+              fontSize: 'clamp(1.65rem, 5.8vw, 4.5rem)',
+              lineHeight: 1.08,
+              letterSpacing: '-0.02em',
               color: '#F7F4EE',
-              textShadow: '0 6px 48px rgba(0,0,0,0.5)',
-              width: '100%',
-              textAlign: 'center',
+              textShadow: '0 8px 56px rgba(0,0,0,0.55)',
             }}
           >
             {COPY.titleLine1}
           </span>
+          {/* Ligne 2 — secondaire, or, légèrement plus petite */}
           <span
-            className="block font-cinzel font-black uppercase whitespace-nowrap mt-2 text-gradient-light-gold"
+            className="hero-title-line block font-cinzel font-bold whitespace-nowrap mt-2 sm:mt-3 text-gradient-light-gold"
             style={{
-              fontSize: 'clamp(0.98rem, 4.4vw, 3.55rem)',
-              lineHeight: 1.05,
-              letterSpacing: 'clamp(0.002em, 0.15vw, 0.018em)',
-              width: '100%',
-              textAlign: 'center',
+              fontSize: 'clamp(1.35rem, 4.6vw, 3.35rem)',
+              lineHeight: 1.1,
+              letterSpacing: '-0.015em',
+              opacity: 0.95,
             }}
           >
             {COPY.titleLine2}
@@ -124,12 +114,11 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         <motion.p
           initial={reduce ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: DUR, delay: reduce ? 0 : 0.12, ease: EASE }}
-          className="font-inter leading-relaxed mb-12 mx-auto"
+          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.12, ease: HOME_EASE }}
+          className="hero-subtitle font-inter leading-relaxed mb-12 mx-auto"
           style={{
-            fontSize: 'clamp(0.95rem, 1.5vw, 1.08rem)',
+            fontSize: 'clamp(0.95rem, 1.45vw, 1.12rem)',
             color: 'rgba(235,231,221,0.52)',
-            maxWidth: '22rem',
           }}
         >
           {COPY.subtitle}
@@ -138,7 +127,7 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: DUR, delay: reduce ? 0 : 0.22, ease: EASE }}
+          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.22, ease: HOME_EASE }}
           className="flex flex-col items-center gap-5 w-full sm:w-auto"
         >
           <Link
@@ -150,7 +139,6 @@ export function HeroSection(_props: { block?: unknown } = {}) {
             {COPY.ctaLabel}
             <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
           </Link>
-
           <Link
             href={COPY.secondaryHref}
             onClick={() => events.ctaClick('decouvrir_citadelle_hero')}
@@ -162,7 +150,6 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         </motion.div>
       </div>
 
-      {/* Respiration vers le bandeau preuve */}
       <div
         className="absolute bottom-0 left-0 right-0 h-32 md:h-40 pointer-events-none"
         style={{ background: 'linear-gradient(180deg, transparent, #06060A)' }}

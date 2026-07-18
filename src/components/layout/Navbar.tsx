@@ -94,18 +94,15 @@ export function Navbar() {
   return (
     <>
       <motion.header
-        initial={{ y: -100, opacity: 0 }}
+        initial={{ y: -28, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
         className={cn(
-          'z-50 transition-all duration-500',
+          'z-50',
           isHome
-            // Verre liquide sur l'accueil. `!fixed` force la position fixe au-dessus
-            // du `position: relative` porté par la classe `.lg`. `border-b` donne le
-            // liseré bas discret d'une barre translucide pleine largeur.
-            ? 'lg lg--refract !fixed top-0 left-0 right-0 border-b border-white/[0.08]'
+            ? 'lg lg--refract !fixed top-0 left-0 right-0 border-b transition-[border-color,box-shadow] duration-500 ease-out'
             : cn(
-                'fixed top-0 left-0 right-0',
+                'fixed top-0 left-0 right-0 transition-all duration-500 ease-out',
                 scrolled
                   ? 'bg-[#050308]/85 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/[0.06] shadow-[0_8px_30px_rgba(0,0,0,0.5)]'
                   : 'bg-gradient-to-b from-black/40 via-black/10 to-transparent backdrop-blur-md'
@@ -114,21 +111,25 @@ export function Navbar() {
         style={
           isHome
             ? ({
-                // Verre profond · frost + rim subtil · densifie au scroll
+                // Liquid glass renforcé · densifie au scroll
                 '--lg-radius': '0px',
-                '--lg-tint': scrolled ? '0.12' : '0.05',
-                '--lg-blur': scrolled ? '20px' : '12px',
-                '--lg-stroke': scrolled ? '0.18' : '0.12',
+                '--lg-tint': scrolled ? '0.14' : '0.06',
+                '--lg-blur': scrolled ? '24px' : '14px',
+                '--lg-stroke': scrolled ? '0.22' : '0.14',
+                borderColor: scrolled ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.06)',
+                boxShadow: scrolled
+                  ? '0 12px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)'
+                  : 'inset 0 1px 0 rgba(255,255,255,0.05)',
               } as CSSProperties)
             : undefined
         }
       >
         <div className="container-royal relative z-10">
-          {/* Hauteur de base −12 % ; encore réduite au scroll */}
+          {/* Encore plus compact ; réduit au scroll */}
           <div
             className={cn(
               'flex items-center justify-between transition-[height] duration-500 ease-out',
-              scrolled ? 'h-14 md:h-14' : 'h-[4.25rem] md:h-[4.5rem]'
+              scrolled ? 'h-12 md:h-[3.25rem]' : 'h-14 md:h-16'
             )}
           >
             {/* LOGO seul — signature marque */}
@@ -137,7 +138,7 @@ export function Navbar() {
               className="flex items-center group flex-shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37] rounded-full"
               aria-label="Citadelle — Accueil"
             >
-              <div className={cn('relative transition-all duration-500', scrolled ? 'w-8 h-8' : 'w-9 h-9')}>
+              <div className={cn('relative transition-all duration-500', scrolled ? 'w-7 h-7' : 'w-8 h-8')}>
                 <div
                   className="absolute inset-0 rounded-full opacity-35 group-hover:opacity-70 blur-xl transition-opacity duration-500"
                   style={{ background: 'radial-gradient(circle, #D4AF37 0%, transparent 70%)' }}

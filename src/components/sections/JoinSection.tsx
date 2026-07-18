@@ -8,6 +8,7 @@ import { motion, useInView, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { events } from '@/lib/analytics'
+import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
 
 export function JoinSection(_props: { block?: unknown } = {}) {
   const ref = useRef<HTMLDivElement>(null)
@@ -32,14 +33,12 @@ export function JoinSection(_props: { block?: unknown } = {}) {
           aria-hidden
         />
 
-        <motion.div
-          initial={reduce ? false : { opacity: 0, y: 16 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
-          className="relative z-10 max-w-2xl mx-auto text-center"
-        >
-          <h2
+        <div className="relative z-10 max-w-2xl mx-auto text-center">
+          <motion.h2
             id="final-cta-title"
+            initial={reduce ? false : { opacity: 0, y: 18 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: HOME_DUR, ease: HOME_EASE }}
             className="font-cinzel font-black mb-12 text-cinematic-gold"
             style={{
               fontSize: 'clamp(1.85rem, 4.5vw, 3.1rem)',
@@ -48,18 +47,24 @@ export function JoinSection(_props: { block?: unknown } = {}) {
             }}
           >
             Ta prochaine étape commence aujourd&apos;hui.
-          </h2>
+          </motion.h2>
 
-          <Link
-            href="/rejoindre"
-            onClick={() => events.ctaClick('rejoindre_finale')}
-            className="btn-gold-cinematic group inline-flex focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
-            style={{ padding: '18px 48px', fontSize: '1rem' }}
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: 14 }}
+            animate={inView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.14, ease: HOME_EASE }}
           >
-            Commencer gratuitement
-            <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
-          </Link>
-        </motion.div>
+            <Link
+              href="/rejoindre"
+              onClick={() => events.ctaClick('rejoindre_finale')}
+              className="btn-gold-cinematic group inline-flex focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
+              style={{ padding: '18px 48px', fontSize: '1rem' }}
+            >
+              Commencer gratuitement
+              <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
+            </Link>
+          </motion.div>
+        </div>
       </div>
     </section>
   )
