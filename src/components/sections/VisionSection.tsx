@@ -5,7 +5,7 @@
 import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { Sprout, Users, HandHeart, Sun } from 'lucide-react'
-import { HOME_DUR, HOME_EASE, HOME_Y } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
 
 const PILLARS = [
   {
@@ -32,7 +32,7 @@ const PILLARS = [
 
 export function VisionSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
+  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
 
   return (

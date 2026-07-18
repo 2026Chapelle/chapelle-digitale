@@ -11,7 +11,7 @@ import Image from 'next/image'
 import { Quote, ArrowRight } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
 
 type Testimony = { id: string; auteur: string; lieu: string; titre: string; texte: string }
 
@@ -23,7 +23,7 @@ const COMMUNITY_PHOTO = {
 
 export function CommunitySection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
+  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
   const [items, setItems] = useState<Testimony[]>([])
 
@@ -75,7 +75,7 @@ export function CommunitySection() {
     <section ref={ref} className="section-cinematic" aria-labelledby="community-title">
       <div className="container-cinematic max-w-5xl">
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 18 }}
+          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: HOME_DUR, ease: HOME_EASE }}
           className="text-center mb-10 md:mb-14"

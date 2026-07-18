@@ -1,6 +1,5 @@
 /**
- * Sous-menu mobile vertical — pile compacte sous « Découvrir Citadelle ».
- * Desktop : non affiché (bandeau preuve séparé).
+ * Sous-menu mobile vertical — boutons Liquid Glass centrés, largeur contenu.
  */
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
@@ -24,7 +23,7 @@ const ITEMS: { label: string; href: string; icon: LucideIcon }[] = [
 export function HeroProofLinks() {
   return (
     <nav
-      className="md:hidden w-full max-w-sm mx-auto mt-5 space-y-2"
+      className="md:hidden w-full flex flex-col items-center gap-2 mt-5 px-2"
       aria-label="Accès rapides Citadelle"
     >
       {ITEMS.map((item) => {
@@ -33,18 +32,18 @@ export function HeroProofLinks() {
           <Link
             key={item.href}
             href={item.href}
-            className="lg lg--refract flex items-center gap-3 w-full min-h-[48px] px-4 rounded-2xl font-inter text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+            className="citadelle-proof-mobile-btn lg lg--refract font-inter text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
             style={
               {
-                '--lg-radius': '16px',
-                '--lg-tint': '0.07',
+                '--lg-radius': '18px',
+                '--lg-tint': '0.08',
                 '--lg-blur': '12px',
-                '--lg-stroke': '0.12',
-                color: 'rgba(235,231,221,0.78)',
+                '--lg-stroke': '0.13',
+                color: 'rgba(235,231,221,0.82)',
               } as CSSProperties
             }
           >
-            <Icon className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(212,175,55,0.75)' }} aria-hidden />
+            <Icon className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(212,175,55,0.8)' }} aria-hidden />
             <span className="tracking-wide">{item.label}</span>
           </Link>
         )

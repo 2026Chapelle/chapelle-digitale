@@ -8,11 +8,11 @@ import { motion, useInView, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
 
 export function JoinSection(_props: { block?: unknown } = {}) {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-100px' })
+  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
 
   return (
@@ -36,7 +36,7 @@ export function JoinSection(_props: { block?: unknown } = {}) {
         <div className="relative z-10 max-w-2xl mx-auto text-center">
           <motion.h2
             id="final-cta-title"
-            initial={reduce ? false : { opacity: 0, y: 18 }}
+            initial={reduce ? false : { opacity: 0, y: HOME_Y }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: HOME_DUR, ease: HOME_EASE }}
             className="font-cinzel font-black mb-12 text-cinematic-gold"

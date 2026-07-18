@@ -8,7 +8,7 @@ import { useRef, useState } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { Download, Smartphone, Check, BookOpen, Bell, Heart } from 'lucide-react'
 import { usePwaInstall } from '@/components/home/pwa-install'
-import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
 
 function installHint(): string {
   if (typeof navigator === 'undefined') {
@@ -32,7 +32,7 @@ const BENEFITS = [
 
 export function InstallCitadelleSection() {
   const ref = useRef<HTMLElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
+  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
   const { canInstall, installed, promptInstall } = usePwaInstall()
   const [hint, setHint] = useState<string | null>(null)
@@ -52,7 +52,7 @@ export function InstallCitadelleSection() {
           <div>
             <motion.h2
               id="install-citadelle-title"
-              initial={reduce ? false : { opacity: 0, y: 18 }}
+              initial={reduce ? false : { opacity: 0, y: HOME_Y }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: HOME_DUR, ease: HOME_EASE }}
               className="font-cinzel font-bold text-2xl sm:text-3xl md:text-4xl text-pearl leading-tight mb-8"

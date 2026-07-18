@@ -18,7 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE, HOME_Y } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
 
 type PathStep = {
   n: string
@@ -85,7 +85,7 @@ const HREF = '/parcours'
 
 export function StartHereSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-50px', amount: 0.12 })
+  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
 
   return (
@@ -112,7 +112,7 @@ export function StartHereSection() {
             aria-hidden
             initial={reduce ? false : { scaleY: 0, opacity: 0 }}
             animate={inView ? { scaleY: 1, opacity: 1 } : {}}
-            transition={{ duration: 1.15, ease: HOME_EASE, delay: reduce ? 0 : 0.1 }}
+            transition={{ duration: 1.2, ease: HOME_EASE, delay: reduce ? 0 : 0.08 }}
             style={{ transformOrigin: 'top center' }}
           />
 
@@ -120,19 +120,30 @@ export function StartHereSection() {
             {PATH_STEPS.map((step, i) => {
               const Icon = step.icon
               const reverse = i % 2 === 1
+              const stepDelay = 0.12 + i * 0.1
               return (
                 <motion.li
                   key={step.n}
-                  initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
+                  initial={reduce ? false : { opacity: 0, y: 24, scale: 0.985 }}
+                  animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
                   transition={{
-                    duration: HOME_DUR,
-                    delay: reduce ? 0 : 0.14 + i * 0.08,
+                    duration: 0.9,
+                    delay: reduce ? 0 : stepDelay,
                     ease: HOME_EASE,
                   }}
                   className="citadelle-journey-row relative"
                 >
-                  <span className="citadelle-journey-dot-ed" aria-hidden />
+                  <motion.span
+                    className="citadelle-journey-dot-ed"
+                    aria-hidden
+                    initial={reduce ? false : { scale: 0, opacity: 0 }}
+                    animate={inView ? { scale: 1, opacity: 1 } : {}}
+                    transition={{
+                      duration: 0.5,
+                      delay: reduce ? 0 : stepDelay - 0.06,
+                      ease: HOME_EASE,
+                    }}
+                  />
 
                   <Link
                     href={HREF}
