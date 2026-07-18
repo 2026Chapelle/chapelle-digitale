@@ -1,8 +1,10 @@
 'use client'
 /**
- * SCÈNE 1 — HERO (Citadelle Experience OS V3)
- * Affiche 100vh : photo réelle, voile, logo, titre, sous-titre, 1 CTA, 1 lien.
- * Sans badges, chips, stats, rotation, distractions.
+ * SCÈNE 1 — HERO (blueprint V3 — référence unique)
+ *
+ * 100vh · photo réelle plein écran · voile sombre léger · logo discret
+ * titre · sous-titre · CTA principal · lien secondaire
+ * Sans badges, chips, stats, éléments rotatifs, distractions.
  */
 import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
@@ -12,42 +14,35 @@ import { events } from '@/lib/analytics'
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
-/** Photographie réelle locale (prière / adoration). */
+/** Photographie réelle locale (public/). */
 const HERO_PHOTO = {
   src: '/images/prayers/prayer-consecration.jpg',
-  alt: 'Moment de consécration et de prière dans la maison',
+  alt: 'Moment de consécration et de prière',
 }
 
-export function HeroSection({
-  block,
-}: {
-  block?: { subtitle?: string; cta_label?: string; cta_href?: string }
-} = {}) {
-  const reduce = useReducedMotion()
-  const primaryHref = block?.cta_href || '/rejoindre'
-  const primaryLabel = block?.cta_label || 'Commencer mon parcours'
+/** Copy blueprint — non négociable. */
+const COPY = {
+  titleLine1: 'Grandis en Christ.',
+  titleLine2: "Un pas après l'autre.",
+  subtitle:
+    'Découvre un chemin clair pour grandir, être accompagné et trouver ta place dans une communauté vivante.',
+  ctaLabel: 'Commencer mon parcours',
+  ctaHref: '/rejoindre',
+  secondaryLabel: 'Découvrir Citadelle',
+  secondaryHref: '#decouvrir-citadelle',
+} as const
 
-  const scrollToDiscover = () => {
-    const el = document.getElementById('decouvrir-citadelle')
-    const behavior: ScrollBehavior =
-      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        ? 'auto'
-        : 'smooth'
-    if (el) {
-      el.scrollIntoView({ behavior, block: 'start' })
-      return
-    }
-    window.scrollTo({ top: window.innerHeight - 64, behavior })
-  }
+export function HeroSection(_props: { block?: unknown } = {}) {
+  const reduce = useReducedMotion()
 
   return (
     <section
-      className="relative h-[100svh] min-h-[100svh] flex flex-col items-center justify-center overflow-hidden"
+      className="relative h-[100svh] min-h-[100vh] flex flex-col items-center justify-center overflow-hidden"
       style={{ background: '#06060A' }}
-      aria-label="Accueil Citadelle"
+      aria-labelledby="hero-title"
     >
-      {/* Photographie plein écran */}
-      <div className="absolute inset-0" aria-hidden>
+      {/* Photographie plein écran + voile sombre léger */}
+      <div className="absolute inset-0" aria-hidden="true">
         <Image
           src={HERO_PHOTO.src}
           alt=""
@@ -57,114 +52,109 @@ export function HeroSection({
           className="object-cover object-center"
           quality={85}
         />
-        {/* Voile sombre lisible */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgba(6,6,10,0.55) 0%, rgba(6,6,10,0.62) 45%, rgba(6,6,10,0.88) 100%), radial-gradient(ellipse 70% 55% at 50% 40%, transparent 0%, rgba(6,6,10,0.55) 100%)',
+              'linear-gradient(180deg, rgba(6,6,10,0.42) 0%, rgba(6,6,10,0.52) 48%, rgba(6,6,10,0.78) 100%), radial-gradient(ellipse 75% 60% at 50% 42%, transparent 0%, rgba(6,6,10,0.4) 100%)',
           }}
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-3xl mx-auto px-6 sm:px-8 pt-24 pb-20 flex flex-col items-center text-center">
+      <div className="relative z-10 w-full max-w-3xl mx-auto px-5 sm:px-8 pt-28 pb-16 flex flex-col items-center text-center">
         {/* Logo discret */}
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 10 }}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: EASE }}
-          className="mb-10"
+          transition={{ duration: 0.85, ease: EASE }}
+          className="mb-9"
         >
           <Image
             src="/images/logo-mark.png"
             alt="Citadelle"
-            width={48}
-            height={48}
+            width={44}
+            height={44}
             priority
-            className="opacity-90 mx-auto drop-shadow-[0_8px_24px_rgba(0,0,0,0.45)]"
+            className="mx-auto opacity-85"
           />
         </motion.div>
 
         <motion.h1
-          initial={reduce ? false : { opacity: 0, y: 22 }}
+          id="hero-title"
+          initial={reduce ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.1, delay: reduce ? 0 : 0.08, ease: EASE }}
+          transition={{ duration: 1, delay: reduce ? 0 : 0.06, ease: EASE }}
           className="mb-6"
         >
           <span
             className="block font-cinzel font-black"
             style={{
-              fontSize: 'clamp(2.35rem, 6.5vw, 4.6rem)',
+              fontSize: 'clamp(2.15rem, 6.2vw, 4.5rem)',
               lineHeight: 1.08,
               letterSpacing: '-0.03em',
               color: '#F7F4EE',
-              textShadow: '0 4px 48px rgba(0,0,0,0.45)',
+              textShadow: '0 4px 40px rgba(0,0,0,0.4)',
             }}
           >
-            Grandis en Christ.
+            {COPY.titleLine1}
           </span>
           <span
             className="block font-cinzel font-black text-gradient-light-gold mt-2"
             style={{
-              fontSize: 'clamp(2.35rem, 6.5vw, 4.6rem)',
+              fontSize: 'clamp(2.15rem, 6.2vw, 4.5rem)',
               lineHeight: 1.08,
               letterSpacing: '-0.03em',
             }}
           >
-            Un pas après l&apos;autre.
+            {COPY.titleLine2}
           </span>
         </motion.h1>
 
         <motion.p
-          initial={reduce ? false : { opacity: 0, y: 12 }}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.95, delay: reduce ? 0 : 0.22, ease: EASE }}
-          className="font-inter leading-relaxed mb-12 mx-auto"
+          transition={{ duration: 0.9, delay: reduce ? 0 : 0.18, ease: EASE }}
+          className="font-inter leading-relaxed mb-11 mx-auto"
           style={{
-            fontSize: 'clamp(0.98rem, 1.6vw, 1.12rem)',
-            color: 'rgba(235,231,221,0.55)',
+            fontSize: 'clamp(0.95rem, 1.55vw, 1.1rem)',
+            color: 'rgba(235,231,221,0.58)',
             maxWidth: '28rem',
           }}
         >
-          {block?.subtitle ||
-            'Découvre un chemin clair pour grandir, être accompagné et trouver ta place dans une communauté vivante.'}
+          {COPY.subtitle}
         </motion.p>
 
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 10 }}
+          initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: reduce ? 0 : 0.36, ease: EASE }}
+          transition={{ duration: 0.75, delay: reduce ? 0 : 0.3, ease: EASE }}
           className="flex flex-col items-center gap-5 w-full sm:w-auto"
         >
           <Link
-            href={primaryHref}
+            href={COPY.ctaHref}
             onClick={() => events.ctaClick('commencer_parcours_hero')}
-            className="btn-gold-cinematic group w-full sm:w-auto"
+            className="btn-gold-cinematic group w-full sm:w-auto justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
             style={{ padding: '17px 40px', fontSize: '0.95rem' }}
           >
-            {primaryLabel}
-            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            {COPY.ctaLabel}
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
           </Link>
 
-          <button
-            type="button"
-            onClick={() => {
-              events.ctaClick('decouvrir_citadelle_hero')
-              scrollToDiscover()
-            }}
-            className="text-sm font-inter tracking-wide py-2 px-2 transition-colors hover:text-gold-light"
-            style={{ color: 'rgba(235,231,221,0.42)' }}
+          <Link
+            href={COPY.secondaryHref}
+            onClick={() => events.ctaClick('decouvrir_citadelle_hero')}
+            className="text-sm font-inter tracking-wide py-2 px-3 transition-colors hover:text-gold-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37] rounded-sm"
+            style={{ color: 'rgba(235,231,221,0.45)' }}
           >
-            Découvrir Citadelle
-          </button>
+            {COPY.secondaryLabel}
+          </Link>
         </motion.div>
       </div>
 
-      {/* Transition bas de scène */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
         style={{ background: 'linear-gradient(180deg, transparent, #06060A)' }}
-        aria-hidden
+        aria-hidden="true"
       />
     </section>
   )
