@@ -30,7 +30,7 @@ export function HeroSection(_props: { block?: unknown } = {}) {
 
   return (
     <section
-      className="relative h-[100svh] min-h-[100vh] flex flex-col items-center justify-center overflow-hidden"
+      className="relative citadelle-hero h-[100svh] min-h-[100vh] flex flex-col items-center justify-center overflow-hidden"
       style={{ background: '#06060A' }}
       aria-labelledby="hero-title"
     >
@@ -76,13 +76,13 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         )}
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 pt-24 pb-20 flex flex-col items-center text-center">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 pt-24 pb-20 flex flex-col items-center text-center citadelle-hero-inner">
         <motion.h1
           id="hero-title"
-          initial={reduce ? false : { opacity: 0, y: 22 }}
+          initial={reduce ? false : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: HOME_DUR, ease: HOME_EASE }}
-          className="mb-6 w-full px-1"
+          className="mb-6 w-full px-1 citadelle-hero-title"
         >
           {/* Ligne 1 — dominante, jamais tronquée desktop */}
           <span
@@ -115,7 +115,7 @@ export function HeroSection(_props: { block?: unknown } = {}) {
           initial={reduce ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.12, ease: HOME_EASE }}
-          className="hero-subtitle font-inter leading-relaxed mb-12 mx-auto"
+          className="hero-subtitle citadelle-hero-sub font-inter leading-relaxed mb-12 mx-auto"
           style={{
             fontSize: 'clamp(0.95rem, 1.45vw, 1.12rem)',
             color: 'rgba(235,231,221,0.52)',
@@ -125,10 +125,10 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         </motion.p>
 
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 12 }}
+          initial={reduce ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.22, ease: HOME_EASE }}
-          className="flex flex-col items-center gap-5 w-full sm:w-auto"
+          className="flex flex-col items-center gap-5 w-full sm:w-auto citadelle-hero-ctas"
         >
           <Link
             href={COPY.ctaHref}
@@ -151,7 +151,7 @@ export function HeroSection(_props: { block?: unknown } = {}) {
       </div>
 
       <div
-        className="absolute bottom-0 left-0 right-0 h-32 md:h-40 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 h-32 md:h-40 pointer-events-none citadelle-hero-fade"
         style={{ background: 'linear-gradient(180deg, transparent, #06060A)' }}
         aria-hidden="true"
       />

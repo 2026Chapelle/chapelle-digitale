@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y } from '@/lib/home-motion'
 
 type Experience = {
   title: string
@@ -75,7 +75,7 @@ export function LifeExperiencesSection() {
       <div className="container-cinematic max-w-3xl">
         <motion.h2
           id="life-title"
-          initial={reduce ? false : { opacity: 0, y: 18 }}
+          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: HOME_DUR, ease: HOME_EASE }}
           className="heading-cinematic-lg text-center mb-12 md:mb-16"
@@ -90,11 +90,11 @@ export function LifeExperiencesSection() {
             return (
               <motion.li
                 key={exp.title}
-                initial={reduce ? false : { opacity: 0, y: 14 }}
+                initial={reduce ? false : { opacity: 0, y: HOME_Y }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{
                   duration: HOME_DUR,
-                  delay: reduce ? 0 : 0.12 + i * 0.05,
+                  delay: reduce ? 0 : 0.14 + i * 0.06,
                   ease: HOME_EASE,
                 }}
                 style={{ borderColor: 'rgba(244,241,233,0.06)' }}

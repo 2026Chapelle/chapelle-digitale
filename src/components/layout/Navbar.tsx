@@ -79,6 +79,10 @@ export function Navbar() {
         e.preventDefault()
         setSearchOpen(prev => !prev)
       }
+      if (e.key === 'Escape') {
+        setMobileOpen(false)
+        setActiveDropdown(null)
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -90,6 +94,13 @@ export function Navbar() {
   }, [])
 
   useEffect(() => { closeAll() }, [pathname, closeAll])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [mobileOpen])
 
   return (
     <>
@@ -129,7 +140,7 @@ export function Navbar() {
           <div
             className={cn(
               'flex items-center justify-between transition-[height] duration-500 ease-out',
-              scrolled ? 'h-12 md:h-[3.25rem]' : 'h-14 md:h-16'
+              scrolled ? 'h-11 md:h-12' : 'h-12 md:h-14'
             )}
           >
             {/* LOGO seul — signature marque */}
@@ -285,7 +296,7 @@ export function Navbar() {
                   </Link>
                   <Link
                     href="/rejoindre"
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-inter text-sm font-semibold transition-all duration-300 hover:-translate-y-px"
+                    className="hidden sm:flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-inter text-sm font-semibold transition-all duration-300 hover:-translate-y-px"
                     style={
                       isDarkPage
                         ? {
@@ -307,10 +318,13 @@ export function Navbar() {
               )}
 
               <button
-                className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
-                style={{ color: isDarkPage ? 'rgba(255,255,255,0.6)' : '#6B7280' }}
-                onClick={() => setMobileOpen(!mobileOpen)}
-                aria-label="Menu"
+                type="button"
+                className="lg:hidden flex items-center justify-center w-10 h-10 min-w-[44px] min-h-[44px] rounded-xl transition-colors"
+                style={{ color: 'rgba(255,255,255,0.7)' }}
+                onClick={() => setMobileOpen((o) => !o)}
+                aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+                aria-expanded={mobileOpen}
+                aria-controls="citadelle-mobile-sheet"
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -321,121 +335,187 @@ export function Navbar() {
 
       <GlobalSearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
-      {/* MOBILE MENU */}
+      {/* MOBILE — bottom sheet liquid glass */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 lg:hidden"
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[60] lg:hidden"
           >
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={closeAll} />
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/45 backdrop-blur-[2px] border-0 cursor-default"
+              aria-label="Fermer le menu"
+              onClick={closeAll}
+            />
             <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="absolute right-0 top-0 bottom-0 w-[88vw] max-w-sm overflow-y-auto pt-24 pb-8 px-5"
-              style={{
-                background:
-                  'radial-gradient(800px 400px at 100% 0%, rgba(212,175,55,0.1), transparent 60%), ' +
-                  'radial-gradient(600px 400px at 0% 100%, rgba(75,0,130,0.18), transparent 60%), ' +
-                  'linear-gradient(180deg, #07050C 0%, #050308 100%)',
-                borderLeft: '1px solid rgba(212,175,55,0.15)',
-                boxShadow: '-30px 0 80px rgba(0,0,0,0.6)',
-              }}
+              id="citadelle-mobile-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute bottom-0 left-0 right-0 max-h-[78vh] overflow-y-auto rounded-t-[1.75rem] lg lg--refract border-t border-white/10"
+              style={
+                {
+                  '--lg-radius': '1.75rem 1.75rem 0 0',
+                  '--lg-tint': '0.12',
+                  '--lg-blur': '22px',
+                  '--lg-stroke': '0.16',
+                  background:
+                    'linear-gradient(180deg, rgba(18,16,28,0.92) 0%, rgba(8,8,14,0.96) 100%)',
+                  boxShadow: '0 -20px 60px rgba(0,0,0,0.45)',
+                  paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))',
+                } as CSSProperties
+              }
             >
-              <nav className="flex flex-col gap-0.5 mb-6">
-                {NAV_ITEMS.map((item) => {
-                  const isActive = pathname === item.href
-                  return (
-                    <div key={item.href}>
-                      {item.children ? (
-                        <>
-                          <button
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium font-inter text-sm transition-all"
-                            style={{ color: isDarkPage ? 'rgba(255,255,255,0.6)' : '#6B7280' }}
-                            onClick={() => setActiveDropdown(activeDropdown === item.label ? null : item.label)}
-                          >
-                            {item.label}
-                            <ChevronDown className={cn('w-4 h-4 transition-transform', activeDropdown === item.label && 'rotate-180')} />
-                          </button>
-                          <AnimatePresence>
-                            {activeDropdown === item.label && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden pl-3"
-                              >
-                                {item.children.map((child) => (
-                                  <Link
-                                    key={child.href}
-                                    href={child.href}
-                                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors"
-                                    style={{ color: isDarkPage ? 'rgba(255,255,255,0.45)' : '#9CA3AF' }}
-                                    onClick={closeAll}
-                                  >
-                                    <span
-                                      className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-                                      style={{ background: `${child.color}18`, border: `1px solid ${child.color}30` }}
-                                    >
-                                      <child.Icon className="w-3 h-3" style={{ color: child.color }} />
-                                    </span>
-                                    <span className="font-inter">{child.label}</span>
-                                  </Link>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </>
-                      ) : (
+              <div className="flex justify-center pt-3 pb-2" aria-hidden>
+                <span className="block w-10 h-1 rounded-full bg-white/20" />
+              </div>
+              <div className="flex items-center justify-between px-5 pb-3">
+                <p className="font-cinzel text-sm tracking-[0.2em] text-gold/80 uppercase">Menu</p>
+                <button
+                  type="button"
+                  onClick={closeAll}
+                  className="w-11 h-11 flex items-center justify-center rounded-full text-pearl/60 hover:text-pearl"
+                  aria-label="Fermer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <nav className="px-3 pb-4 flex flex-col gap-0.5">
+                {/* Liens principaux + Podcast en clair sur mobile */}
+                {[
+                  { label: 'Accueil', href: '/', icon: Home },
+                  { label: 'Cultes', href: '/live', icon: Tv },
+                ].map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeAll}
+                    className="flex items-center gap-3 px-4 min-h-[48px] rounded-xl font-inter text-sm font-medium"
+                    style={{ color: pathname === item.href ? '#D4AF37' : 'rgba(245,230,216,0.75)' }}
+                  >
+                    <item.icon className="w-4 h-4 opacity-70" aria-hidden />
+                    {item.label}
+                  </Link>
+                ))}
+
+                {/* Plateformes accordion */}
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between px-4 min-h-[48px] rounded-xl font-inter text-sm font-medium"
+                  style={{ color: 'rgba(245,230,216,0.75)' }}
+                  onClick={() => setActiveDropdown(activeDropdown === 'Plateformes' ? null : 'Plateformes')}
+                  aria-expanded={activeDropdown === 'Plateformes'}
+                >
+                  <span className="inline-flex items-center gap-3">
+                    <Users className="w-4 h-4 opacity-70" aria-hidden />
+                    Plateformes
+                  </span>
+                  <ChevronDown className={cn('w-4 h-4 transition-transform', activeDropdown === 'Plateformes' && 'rotate-180')} />
+                </button>
+                <AnimatePresence>
+                  {activeDropdown === 'Plateformes' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden pl-4"
+                    >
+                      {NAV_ITEMS.find((n) => n.label === 'Plateformes')?.children?.map((child) => (
                         <Link
-                          href={item.href}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all font-inter"
-                          style={{
-                            color: isActive
-                              ? (isDarkPage ? '#D4AF37' : '#111827')
-                              : (isDarkPage ? 'rgba(255,255,255,0.55)' : '#6B7280'),
-                            background: isActive
-                              ? (isDarkPage ? 'rgba(212,175,55,0.08)' : 'rgba(0,0,0,0.05)')
-                              : 'transparent',
-                          }}
+                          key={child.href}
+                          href={child.href}
                           onClick={closeAll}
+                          className="flex items-center gap-3 px-4 min-h-[44px] rounded-xl text-sm font-inter"
+                          style={{ color: 'rgba(245,230,216,0.5)' }}
                         >
-                          <item.icon className="w-4 h-4" />
-                          {item.label}
-                          {item.badge && <span className="badge-live ml-auto text-[9px]">{item.badge}</span>}
+                          <child.Icon className="w-3.5 h-3.5" style={{ color: child.color }} aria-hidden />
+                          {child.label}
                         </Link>
-                      )}
-                    </div>
-                  )
-                })}
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Formations accordion */}
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between px-4 min-h-[48px] rounded-xl font-inter text-sm font-medium"
+                  style={{ color: 'rgba(245,230,216,0.75)' }}
+                  onClick={() => setActiveDropdown(activeDropdown === 'Formations' ? null : 'Formations')}
+                  aria-expanded={activeDropdown === 'Formations'}
+                >
+                  <span className="inline-flex items-center gap-3">
+                    <BookOpen className="w-4 h-4 opacity-70" aria-hidden />
+                    Formations
+                  </span>
+                  <ChevronDown className={cn('w-4 h-4 transition-transform', activeDropdown === 'Formations' && 'rotate-180')} />
+                </button>
+                <AnimatePresence>
+                  {activeDropdown === 'Formations' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden pl-4"
+                    >
+                      <Link href="/formations" onClick={closeAll} className="flex items-center gap-3 px-4 min-h-[44px] rounded-xl text-sm font-inter" style={{ color: 'rgba(245,230,216,0.5)' }}>
+                        <BookOpen className="w-3.5 h-3.5 text-gold" aria-hidden />
+                        Formations
+                      </Link>
+                      <Link href="/podcast" onClick={closeAll} className="flex items-center gap-3 px-4 min-h-[44px] rounded-xl text-sm font-inter" style={{ color: 'rgba(245,230,216,0.5)' }}>
+                        <Headphones className="w-3.5 h-3.5 text-teal-400" aria-hidden />
+                        Podcast
+                      </Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Podcast clair + reste */}
+                <Link href="/podcast" onClick={closeAll} className="flex items-center gap-3 px-4 min-h-[48px] rounded-xl font-inter text-sm font-medium" style={{ color: pathname?.startsWith('/podcast') ? '#D4AF37' : 'rgba(245,230,216,0.75)' }}>
+                  <Headphones className="w-4 h-4 opacity-70" aria-hidden />
+                  Podcast
+                </Link>
+                <Link href="/priere" onClick={closeAll} className="flex items-center gap-3 px-4 min-h-[48px] rounded-xl font-inter text-sm font-medium" style={{ color: pathname?.startsWith('/priere') ? '#D4AF37' : 'rgba(245,230,216,0.75)' }}>
+                  <Heart className="w-4 h-4 opacity-70" aria-hidden />
+                  Prière
+                </Link>
+                <Link href="/dons" onClick={closeAll} className="flex items-center gap-3 px-4 min-h-[48px] rounded-xl font-inter text-sm font-medium" style={{ color: pathname?.startsWith('/dons') ? '#D4AF37' : 'rgba(245,230,216,0.75)' }}>
+                  <Heart className="w-4 h-4 opacity-70" aria-hidden />
+                  Dons
+                </Link>
+                <Link href="/login" onClick={closeAll} className="flex items-center gap-3 px-4 min-h-[48px] rounded-xl font-inter text-sm font-medium" style={{ color: 'rgba(245,230,216,0.75)' }}>
+                  <LogIn className="w-4 h-4 opacity-70" aria-hidden />
+                  Connexion
+                </Link>
               </nav>
 
-              <div className="pt-5 border-t flex flex-col gap-2.5"
-                style={{ borderColor: isDarkPage ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}>
+              <div className="px-4 pt-2 pb-2">
                 {user ? (
-                  <Link href={isAdminArea ? '/admin/dashboard' : '/member/dashboard'} onClick={closeAll}
-                    className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-inter font-semibold text-sm"
-                    style={{ background: '#111827', color: '#FFFFFF' }}>
-                    {isAdminArea ? 'Back-office' : 'Mon Espace Membre'}
+                  <Link
+                    href={isAdminArea ? '/admin/dashboard' : '/member/dashboard'}
+                    onClick={closeAll}
+                    className="flex items-center justify-center gap-2 min-h-[48px] rounded-xl font-inter font-semibold text-sm bg-gold/15 text-gold border border-gold/25"
+                  >
+                    {isAdminArea ? 'Back-office' : 'Mon Espace'}
                   </Link>
                 ) : (
-                  <>
-                    <Link href="/rejoindre" onClick={closeAll}
-                      className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-inter font-semibold text-sm"
-                      style={{ background: '#111827', color: '#FFFFFF' }}>
-                      Rejoindre la Chapelle
-                    </Link>
-                    <Link href="/login" onClick={closeAll}
-                      className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-inter font-medium text-sm border"
-                      style={{ borderColor: 'rgba(0,0,0,0.12)', color: '#6B7280', background: 'transparent' }}>
-                      Se connecter
-                    </Link>
-                  </>
+                  <Link
+                    href="/rejoindre"
+                    onClick={closeAll}
+                    className="flex items-center justify-center gap-2 min-h-[48px] rounded-xl font-inter font-semibold text-sm"
+                    style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)', color: '#1A0F00' }}
+                  >
+                    Rejoindre
+                  </Link>
                 )}
               </div>
             </motion.div>

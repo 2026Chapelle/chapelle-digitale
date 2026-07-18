@@ -5,7 +5,7 @@
 import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { Sprout, Users, HandHeart, Sun } from 'lucide-react'
-import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y } from '@/lib/home-motion'
 
 const PILLARS = [
   {
@@ -40,7 +40,7 @@ export function VisionSection() {
       <div className="container-cinematic max-w-6xl">
         <motion.h2
           id="vision-title"
-          initial={reduce ? false : { opacity: 0, y: 18 }}
+          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: HOME_DUR, ease: HOME_EASE }}
           className="heading-cinematic-lg text-center mb-16 md:mb-20"
@@ -54,11 +54,11 @@ export function VisionSection() {
             return (
               <motion.div
                 key={p.title}
-                initial={reduce ? false : { opacity: 0, y: 14 }}
+                initial={reduce ? false : { opacity: 0, y: HOME_Y }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{
                   duration: HOME_DUR,
-                  delay: reduce ? 0 : 0.12 + i * 0.07,
+                  delay: reduce ? 0 : 0.14 + i * 0.08,
                   ease: HOME_EASE,
                 }}
                 className="citadelle-vision-pillar group text-center px-3"

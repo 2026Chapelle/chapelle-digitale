@@ -1,11 +1,9 @@
 /**
  * Homepage V3 — Citadelle Experience Operating System
  *
- * Ordre narratif fixe (9 scènes) :
- *   1 Hero → 2 Preuve → 3 Vision → 4 Parcours → 5 La vie
- *   → 6 Communauté → 7 Royaume (globe) → 8 Application (PWA) → 9 CTA final
- *
- * Aucune nouvelle route / API / backend. CMS hero optionnel (cta / subtitle).
+ * Ordre narratif :
+ *   Hero → Preuve → Vision → Parcours → La vie → Podcast
+ *   → Communauté → Royaume → Application → CTA final
  */
 import { cmsList, type CmsHomepageBlock } from '@/lib/cms'
 import { HeroSection } from '@/components/sections/HeroSection'
@@ -13,6 +11,7 @@ import { ProofStripSection } from '@/components/sections/ProofStripSection'
 import { VisionSection } from '@/components/sections/VisionSection'
 import { StartHereSection } from '@/components/sections/StartHereSection'
 import { LifeExperiencesSection } from '@/components/sections/LifeExperiencesSection'
+import { PodcastHomeSection } from '@/components/home/PodcastHomeSection'
 import { CommunitySection } from '@/components/sections/CommunitySection'
 import { JoinSection } from '@/components/sections/JoinSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
@@ -76,6 +75,12 @@ export async function HomeSections() {
       <div className="scene-joy">
         <SectionGlow />
         <LifeExperiencesSection />
+      </div>
+
+      {/* 5b — Podcast */}
+      <div className="scene-joy">
+        <SectionGlow />
+        <PodcastHomeSection />
       </div>
 
       {/* 6 — Communauté */}

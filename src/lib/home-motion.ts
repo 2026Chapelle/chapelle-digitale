@@ -1,14 +1,18 @@
 /**
  * Motion unique — homepage Citadelle
- * Une courbe, une durée, titres avant contenu.
+ * Fade + translate perceptibles, calmes, max ~1s.
+ * Titres avant contenu. Une seule courbe.
  */
 export const HOME_EASE = [0.16, 1, 0.3, 1] as const
-export const HOME_DUR = 0.85
+/** Durée standard sections (0.8–1s) */
+export const HOME_DUR = 0.95
+/** Translation Y des reveals (perceptible) */
+export const HOME_Y = 24
 
 /** Apparition titre (prioritaire) */
 export function titleReveal(reduce: boolean | null, delay = 0) {
   return {
-    initial: reduce ? false : ({ opacity: 0, y: 18 } as const),
+    initial: reduce ? false : ({ opacity: 0, y: HOME_Y } as const),
     animate: { opacity: 1, y: 0 },
     transition: {
       duration: HOME_DUR,
@@ -19,9 +23,9 @@ export function titleReveal(reduce: boolean | null, delay = 0) {
 }
 
 /** Apparition corps / contenu (après le titre) */
-export function bodyReveal(reduce: boolean | null, delay = 0.12) {
+export function bodyReveal(reduce: boolean | null, delay = 0.14) {
   return {
-    initial: reduce ? false : ({ opacity: 0, y: 14 } as const),
+    initial: reduce ? false : ({ opacity: 0, y: HOME_Y - 4 } as const),
     animate: { opacity: 1, y: 0 },
     transition: {
       duration: HOME_DUR,
