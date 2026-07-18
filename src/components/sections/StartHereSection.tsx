@@ -1,7 +1,7 @@
 'use client'
 /**
- * SCÈNE 4 — PARCOURS
- * Cartes actionnables, miniatures lisibles, CTA clairs.
+ * SCÈNE 4 — PARCOURS éditorial
+ * Alternance large desktop · image non rognée (object-contain) · CTA clairs
  */
 import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
@@ -27,12 +27,8 @@ type PathStep = {
   icon: LucideIcon
   image: string
   alt: string
-  href: string
-  cta: string
-  objectPosition?: string
 }
 
-/** Routes réelles uniquement — /parcours (pas d’ancre publique dédiée). */
 const PATH_STEPS: PathStep[] = [
   {
     n: '01',
@@ -41,9 +37,6 @@ const PATH_STEPS: PathStep[] = [
     icon: Eye,
     image: '/images/formations/parcours-1/module-1-vision-et-histoire.png.png',
     alt: 'Vision et histoire de la maison',
-    href: '/parcours',
-    cta: 'Découvrir cette étape',
-    objectPosition: 'center 30%',
   },
   {
     n: '02',
@@ -52,9 +45,6 @@ const PATH_STEPS: PathStep[] = [
     icon: Anchor,
     image: '/images/formations/parcours-1/module-2-valeurs-du-royaume.png.png',
     alt: 'Valeurs du Royaume',
-    href: '/parcours',
-    cta: 'Commencer cette étape',
-    objectPosition: 'center center',
   },
   {
     n: '03',
@@ -63,9 +53,6 @@ const PATH_STEPS: PathStep[] = [
     icon: Sprout,
     image: '/images/formations/parcours-1/module-5-mes-premiers-pas.png.png',
     alt: 'Premiers pas de croissance',
-    href: '/parcours',
-    cta: 'Commencer cette étape',
-    objectPosition: 'center 40%',
   },
   {
     n: '04',
@@ -74,9 +61,6 @@ const PATH_STEPS: PathStep[] = [
     icon: HandHeart,
     image: '/images/formations/parcours-1/module-3-rejoindre-une-cellule.png.png',
     alt: 'Rejoindre une cellule et servir',
-    href: '/parcours',
-    cta: 'Découvrir cette étape',
-    objectPosition: 'center center',
   },
   {
     n: '05',
@@ -85,9 +69,6 @@ const PATH_STEPS: PathStep[] = [
     icon: Compass,
     image: '/images/formations/parcours-1/module-4-nos-plateformes.png.png',
     alt: 'Nos plateformes et le leadership',
-    href: '/parcours',
-    cta: 'Voir le parcours',
-    objectPosition: 'center 35%',
   },
   {
     n: '06',
@@ -96,15 +77,15 @@ const PATH_STEPS: PathStep[] = [
     icon: Share2,
     image: '/images/formations/parcours-1/module-6-mon-engagement.png.png',
     alt: 'Engagement et multiplication',
-    href: '/parcours',
-    cta: 'Voir le parcours',
-    objectPosition: 'center center',
   },
 ]
 
+const CTA = 'Découvrir cette étape'
+const HREF = '/parcours'
+
 export function StartHereSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-60px', amount: 0.15 })
+  const inView = useInView(ref, { once: true, margin: '-50px', amount: 0.12 })
   const reduce = useReducedMotion()
 
   return (
@@ -114,31 +95,31 @@ export function StartHereSection() {
       className="section-cinematic scroll-mt-24"
       aria-labelledby="parcours-title"
     >
-      <div className="container-cinematic max-w-4xl">
+      <div className="container-cinematic max-w-6xl">
         <motion.h2
           id="parcours-title"
           initial={reduce ? false : { opacity: 0, y: HOME_Y }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: HOME_DUR, ease: HOME_EASE }}
-          className="heading-cinematic-lg text-center mb-12 md:mb-16"
+          className="heading-cinematic-lg text-center mb-14 md:mb-20"
         >
           Le parcours
         </motion.h2>
 
-        <div className="citadelle-journey relative">
+        <div className="citadelle-journey-editorial relative">
           <motion.div
-            className="citadelle-journey-thread"
+            className="citadelle-journey-thread-ed"
             aria-hidden
             initial={reduce ? false : { scaleY: 0, opacity: 0 }}
             animate={inView ? { scaleY: 1, opacity: 1 } : {}}
-            transition={{ duration: 1.1, ease: HOME_EASE, delay: reduce ? 0 : 0.12 }}
+            transition={{ duration: 1.15, ease: HOME_EASE, delay: reduce ? 0 : 0.1 }}
             style={{ transformOrigin: 'top center' }}
           />
 
-          <ol className="relative list-none m-0 p-0 space-y-7 md:space-y-11">
+          <ol className="relative list-none m-0 p-0 space-y-12 md:space-y-16 lg:space-y-20">
             {PATH_STEPS.map((step, i) => {
               const Icon = step.icon
-              const side = i % 2 === 0 ? 'journey-left' : 'journey-right'
+              const reverse = i % 2 === 1
               return (
                 <motion.li
                   key={step.n}
@@ -146,70 +127,64 @@ export function StartHereSection() {
                   animate={inView ? { opacity: 1, y: 0 } : {}}
                   transition={{
                     duration: HOME_DUR,
-                    delay: reduce ? 0 : 0.16 + i * 0.09,
+                    delay: reduce ? 0 : 0.14 + i * 0.08,
                     ease: HOME_EASE,
                   }}
-                  className={`citadelle-journey-step ${side}`}
+                  className="citadelle-journey-row relative"
                 >
-                  <motion.span
-                    className="citadelle-journey-dot"
-                    aria-hidden
-                    initial={reduce ? false : { scale: 0, opacity: 0 }}
-                    animate={inView ? { scale: 1, opacity: 1 } : {}}
-                    transition={{
-                      duration: 0.55,
-                      delay: reduce ? 0 : 0.22 + i * 0.09,
-                      ease: HOME_EASE,
-                    }}
-                  />
+                  <span className="citadelle-journey-dot-ed" aria-hidden />
 
                   <Link
-                    href={step.href}
+                    href={HREF}
                     onClick={() => events.ctaClick(`parcours_etape_${step.n}`)}
-                    aria-label={`${step.title} — ${step.cta}`}
-                    className="citadelle-journey-card group block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
+                    aria-label={`${step.title} — ${CTA}`}
+                    className={`citadelle-journey-editorial-card group grid md:grid-cols-2 gap-0 md:gap-10 lg:gap-14 items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37] ${
+                      reverse ? 'md:[direction:rtl]' : ''
+                    }`}
                   >
-                    <div className="citadelle-journey-media relative overflow-hidden">
-                      <Image
-                        src={step.image}
-                        alt={step.alt}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 320px"
-                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
-                        style={{ objectPosition: step.objectPosition || 'center center' }}
-                      />
-                      <div className="citadelle-journey-media-veil" aria-hidden />
+                    {/* Visuel large — object-contain pour texte de couverture lisible */}
+                    <div
+                      className={`citadelle-journey-visual relative ${reverse ? 'md:[direction:ltr]' : ''}`}
+                    >
+                      <div className="citadelle-journey-visual-frame">
+                        <Image
+                          src={step.image}
+                          alt={step.alt}
+                          width={560}
+                          height={420}
+                          sizes="(max-width: 768px) 100vw, 520px"
+                          className="citadelle-journey-visual-img"
+                        />
+                      </div>
                     </div>
 
-                    <div className="citadelle-journey-body">
-                      <div className="flex items-center gap-2.5 mb-2.5">
+                    {/* Texte */}
+                    <div className={`citadelle-journey-copy px-1 md:px-2 py-6 md:py-4 ${reverse ? 'md:[direction:ltr]' : ''}`}>
+                      <div className="flex items-center gap-3 mb-3">
                         <span
-                          className="font-cinzel text-[11px] font-bold tracking-[0.28em]"
-                          style={{ color: 'rgba(212,175,55,0.6)' }}
+                          className="font-cinzel text-xs font-bold tracking-[0.3em]"
+                          style={{ color: 'rgba(212,175,55,0.55)' }}
                         >
                           {step.n}
                         </span>
                         <Icon
-                          className="w-[1.1rem] h-[1.1rem] transition-transform duration-500 group-hover:scale-110"
-                          style={{ color: 'rgba(212,175,55,0.8)' }}
+                          className="w-5 h-5"
+                          style={{ color: 'rgba(212,175,55,0.75)' }}
                           strokeWidth={1.5}
                           aria-hidden
                         />
                       </div>
-                      <h3 className="font-cinzel font-bold text-pearl text-xl md:text-2xl mb-2 group-hover:text-gold transition-colors">
+                      <h3 className="font-cinzel font-bold text-pearl text-2xl md:text-3xl mb-3 group-hover:text-gold transition-colors">
                         {step.title}
                       </h3>
                       <p
-                        className="font-inter text-sm md:text-[0.95rem] leading-relaxed mb-4"
+                        className="font-inter text-base md:text-lg leading-relaxed mb-6 max-w-md"
                         style={{ color: 'rgba(245,230,216,0.52)' }}
                       >
                         {step.phrase}
                       </p>
-                      <span
-                        className="inline-flex items-center gap-1.5 text-sm font-inter font-medium transition-all group-hover:gap-2.5"
-                        style={{ color: '#D4AF37' }}
-                      >
-                        {step.cta}
+                      <span className="citadelle-journey-cta inline-flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3.5 min-h-[48px] rounded-full font-inter text-sm font-semibold transition-all group-hover:gap-3">
+                        {CTA}
                         <ArrowRight className="w-4 h-4" aria-hidden />
                       </span>
                     </div>
@@ -225,10 +200,10 @@ export function StartHereSection() {
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{
             duration: HOME_DUR,
-            delay: reduce ? 0 : 0.18 + PATH_STEPS.length * 0.09,
+            delay: reduce ? 0 : 0.2 + PATH_STEPS.length * 0.06,
             ease: HOME_EASE,
           }}
-          className="text-center mt-14 md:mt-16"
+          className="text-center mt-16 md:mt-20"
         >
           <Link
             href="/parcours"

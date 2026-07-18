@@ -9,6 +9,7 @@ import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { events } from '@/lib/analytics'
 import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
+import { HeroProofLinks } from '@/components/sections/HeroProofLinks'
 
 const HERO_PHOTO = {
   src: '/images/prayers/prayer-consecration.jpg',
@@ -147,6 +148,9 @@ export function HeroSection(_props: { block?: unknown } = {}) {
           >
             {COPY.secondaryLabel}
           </Link>
+
+          {/* Mobile : accès rapides verticaux sous Découvrir Citadelle */}
+          <HeroProofLinks />
         </motion.div>
       </div>
 
