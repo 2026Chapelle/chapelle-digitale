@@ -101,14 +101,14 @@ export function CommunitySection() {
         >
           <div className="section-label-dark justify-center">
             <Heart className="w-3 h-3" />
-            Vies &amp; Prières
+            Maison
           </div>
           <h2 className="heading-cinematic-lg mb-6">
-            Tu n&apos;es
-            <span className="block text-cinematic-gold">pas seul</span>
+            Une famille
+            <span className="block text-cinematic-gold">qui prie avec toi</span>
           </h2>
-          <p className="font-inter text-base md:text-lg leading-relaxed max-w-lg mx-auto" style={{ color: 'rgba(245,230,216,0.48)' }}>
-            Une famille qui prie, accueille et grandit avec toi.
+          <p className="font-inter text-base md:text-lg leading-relaxed max-w-md mx-auto" style={{ color: 'rgba(245,230,216,0.45)' }}>
+            Accueil, intercession, témoignages — la chaleur d&apos;une maison.
           </p>
         </motion.div>
 

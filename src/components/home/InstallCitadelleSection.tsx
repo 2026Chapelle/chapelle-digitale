@@ -52,11 +52,11 @@ export function InstallCitadelleSection() {
                 Continuité
               </p>
               <h2 id="install-citadelle-title" className="font-cinzel font-bold text-2xl sm:text-3xl text-pearl leading-tight mb-4">
-                Emporte toute ton église
+                Emporte Citadelle
                 <span className="block text-cinematic-gold">avec toi.</span>
               </h2>
-              <p className="font-inter text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: 'rgba(245,230,216,0.48)' }}>
-                Ton téléphone devient une extension de ta communauté.
+              <p className="font-inter text-sm sm:text-base leading-relaxed mb-8 max-w-sm" style={{ color: 'rgba(245,230,216,0.45)' }}>
+                Ta maison spirituelle, à portée de main.
               </p>
 
               {installed ? (

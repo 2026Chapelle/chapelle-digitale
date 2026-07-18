@@ -175,20 +175,20 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           <span
             className="block font-cinzel font-black"
             style={{
-              fontSize: 'clamp(2.4rem, 7vw, 5rem)',
-              lineHeight: 1.08,
+              fontSize: 'clamp(2.5rem, 7.2vw, 5.1rem)',
+              lineHeight: 1.06,
               letterSpacing: '-0.03em',
               color: '#F7F4EE',
-              textShadow: '0 4px 48px rgba(0,0,0,0.45)',
+              textShadow: '0 4px 56px rgba(0,0,0,0.4)',
             }}
           >
-            Grandis avec Christ,
+            Grandis avec Christ.
           </span>
           <span
-            className="block font-cinzel font-black text-gradient-light-gold mt-1"
-            style={{ fontSize: 'clamp(2.4rem, 7vw, 5rem)', lineHeight: 1.08, letterSpacing: '-0.03em' }}
+            className="block font-cinzel font-black text-gradient-light-gold mt-2"
+            style={{ fontSize: 'clamp(2.5rem, 7.2vw, 5.1rem)', lineHeight: 1.06, letterSpacing: '-0.03em' }}
           >
-            où que tu sois.
+            Où que tu sois.
           </span>
         </motion.h1>
 
@@ -196,10 +196,10 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.28, ease: EASE }}
-          className="font-inter leading-relaxed mb-12 mx-auto"
-          style={{ fontSize: 'clamp(1rem, 1.8vw, 1.2rem)', color: 'rgba(235,231,221,0.48)', maxWidth: '28rem' }}
+          className="font-inter leading-relaxed mb-14 mx-auto"
+          style={{ fontSize: 'clamp(1rem, 1.7vw, 1.15rem)', color: 'rgba(235,231,221,0.42)', maxWidth: '22rem' }}
         >
-          {block?.subtitle || 'Ta foi. Ta communauté. Ton parcours.'}
+          {block?.subtitle || 'Ta maison spirituelle, partout avec toi.'}
         </motion.p>
 
         <motion.div

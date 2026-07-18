@@ -1,21 +1,14 @@
 /**
- * Respiration entre scènes — lumière, pas de ligne decorative forte.
+ * Transition entre scènes — halo cosmique (or + bleu nuit), pas de séparateur UI.
  */
 export function SectionGlow() {
   return (
-    <div aria-hidden className="relative w-full h-16 md:h-24 pointer-events-none select-none">
+    <div aria-hidden className="relative w-full h-20 md:h-28 pointer-events-none select-none overflow-hidden">
       <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(720px,90vw)] h-20 md:h-28"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(900px,95vw)] h-24 md:h-32"
         style={{
           background:
-            'radial-gradient(ellipse at center, rgba(212,175,55,0.07) 0%, rgba(30,58,138,0.04) 40%, transparent 72%)',
-        }}
-      />
-      <div
-        className="absolute inset-x-[12%] top-1/2 h-px -translate-y-1/2 opacity-40"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent, rgba(212,175,55,0.18), rgba(244,241,233,0.08), transparent)',
+            'radial-gradient(ellipse at center, rgba(212,175,55,0.06) 0%, rgba(30,64,175,0.05) 38%, transparent 70%)',
         }}
       />
     </div>

@@ -58,16 +58,16 @@ export function JoinSection(_props: { block?: unknown } = {}) {
 
           <h2
             className="font-cinzel font-black mb-6 text-cinematic-gold"
-            style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', lineHeight: 1.1, letterSpacing: '-0.02em' }}
+            style={{ fontSize: 'clamp(1.85rem, 4.5vw, 3.1rem)', lineHeight: 1.15, letterSpacing: '-0.02em' }}
           >
-            Ta place t&apos;attend
+            Ta prochaine étape commence aujourd&apos;hui.
           </h2>
 
           <p
             className="font-inter mx-auto mb-14 leading-relaxed"
-            style={{ fontSize: '1.05rem', color: 'rgba(245,230,216,0.45)', maxWidth: '22rem' }}
+            style={{ fontSize: '1rem', color: 'rgba(245,230,216,0.4)', maxWidth: '18rem' }}
           >
-            Commence gratuitement. Avance à ton rythme.
+            Gratuit. Clair. À ton rythme.
           </p>
 
           <Link

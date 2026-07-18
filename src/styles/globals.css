@@ -795,51 +795,130 @@
       linear-gradient(180deg, #06060A 0%, #0A0B12 40%, #07080C 72%, #050508 100%);
   }
 
-  /* Scènes émotionnelles — lavages de lumière, pas de bordures */
+  /* Scènes — palette Citadelle (nuit → royauté → chaleur → cosmos → décision) */
   .bg-charbon .scene-hope {
-    background: radial-gradient(ellipse 90% 70% at 50% 0%, rgba(212,175,55,0.06), transparent 70%);
+    background:
+      radial-gradient(ellipse 95% 75% at 50% 0%, rgba(212,175,55,0.08), transparent 68%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(15,23,42,0.5), transparent 70%);
   }
   .bg-charbon .scene-transform {
-    background: radial-gradient(ellipse 80% 60% at 20% 40%, rgba(99,102,241,0.06), transparent 65%);
+    background:
+      radial-gradient(ellipse 70% 55% at 15% 30%, rgba(37,99,235,0.09), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 85% 70%, rgba(212,175,55,0.04), transparent 55%);
   }
   .bg-charbon .scene-belong {
-    background: radial-gradient(ellipse 70% 55% at 80% 50%, rgba(244,241,233,0.04), transparent 60%);
+    /* Légèrement plus chaleureux que le cosmique pur */
+    background:
+      radial-gradient(ellipse 75% 55% at 75% 40%, rgba(251,243,219,0.05), transparent 58%),
+      radial-gradient(ellipse 55% 45% at 20% 80%, rgba(212,175,55,0.05), transparent 55%);
   }
   .bg-charbon .scene-joy {
-    background: radial-gradient(ellipse 85% 50% at 50% 100%, rgba(212,175,55,0.05), transparent 70%);
+    background:
+      radial-gradient(ellipse 90% 55% at 50% 100%, rgba(212,175,55,0.07), transparent 68%),
+      radial-gradient(ellipse 40% 35% at 10% 20%, rgba(56,189,248,0.04), transparent 50%);
   }
   .bg-charbon .scene-mission {
-    background: radial-gradient(ellipse 100% 80% at 70% 50%, rgba(30,64,175,0.10), transparent 60%);
+    background:
+      radial-gradient(ellipse 110% 90% at 65% 45%, rgba(30,64,175,0.14), transparent 58%),
+      radial-gradient(ellipse 50% 40% at 20% 80%, rgba(15,23,42,0.6), transparent 55%);
   }
   .bg-charbon .scene-continuity {
-    background: radial-gradient(ellipse 70% 50% at 30% 50%, rgba(212,175,55,0.06), transparent 65%);
+    background:
+      radial-gradient(ellipse 65% 50% at 25% 45%, rgba(244,241,233,0.05), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 60%, rgba(212,175,55,0.05), transparent 55%);
   }
   .bg-charbon .scene-decision {
-    background: radial-gradient(ellipse 90% 70% at 50% 30%, rgba(212,175,55,0.08), transparent 68%);
+    background:
+      radial-gradient(ellipse 85% 70% at 50% 35%, rgba(212,175,55,0.10), transparent 65%),
+      radial-gradient(ellipse 100% 50% at 50% 100%, rgba(8,8,12,0.9), transparent 70%);
   }
 
-  /* Cartes : moins de contour, plus de profondeur + respiration au survol */
+  /* Cartes : profondeur, pas de « UI box » */
   .bg-charbon .card-cinematic {
     border-color: transparent;
+    border-radius: 1.35rem;
     background:
-      linear-gradient(155deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.012) 100%);
+      linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 55%, rgba(15,23,42,0.15) 100%);
     box-shadow:
-      0 1px 0 rgba(244,241,233,0.04) inset,
-      0 20px 56px rgba(0,0,0,0.42);
+      0 1px 0 rgba(244,241,233,0.035) inset,
+      0 18px 48px rgba(0,0,0,0.4);
     transition:
-      transform .65s var(--ease-cinematic),
-      box-shadow .65s var(--ease-cinematic),
-      background .65s var(--ease-cinematic);
+      transform .7s var(--ease-cinematic),
+      box-shadow .7s var(--ease-cinematic),
+      background .7s var(--ease-cinematic);
   }
   .bg-charbon .card-cinematic:hover {
-    transform: translateY(-5px);
+    transform: translateY(-4px);
     border-color: transparent;
     background:
-      linear-gradient(155deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.018) 100%);
+      linear-gradient(160deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.015) 55%, rgba(30,58,138,0.12) 100%);
     box-shadow:
-      0 1px 0 rgba(244,241,233,0.07) inset,
-      0 28px 70px rgba(0,0,0,0.5),
-      0 0 48px rgba(212,175,55,0.08);
+      0 1px 0 rgba(244,241,233,0.06) inset,
+      0 26px 64px rgba(0,0,0,0.48),
+      0 0 40px rgba(212,175,55,0.06);
+  }
+
+  /* Signature parcours : montée (pas grille générique) */
+  .bg-charbon .citadelle-path {
+    position: relative;
+  }
+  .bg-charbon .citadelle-path-spine {
+    position: absolute;
+    left: 1.35rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      rgba(212,175,55,0.35) 12%,
+      rgba(37,99,235,0.25) 50%,
+      rgba(212,175,55,0.45) 88%,
+      transparent
+    );
+    pointer-events: none;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-path-spine {
+      left: 50%;
+      transform: translateX(-50%);
+    }
+  }
+  .bg-charbon .citadelle-path-step {
+    position: relative;
+    padding: 1.25rem 1.25rem 1.25rem 3.25rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent 70%);
+    transition: background .5s var(--ease-cinematic), box-shadow .5s var(--ease-cinematic);
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-path-step {
+      padding: 1.5rem 1.75rem;
+      max-width: 22rem;
+    }
+    .bg-charbon .citadelle-path-step.is-left { margin-right: auto; margin-left: 0; text-align: right; }
+    .bg-charbon .citadelle-path-step.is-right { margin-left: auto; margin-right: 0; text-align: left; }
+  }
+  .bg-charbon .citadelle-path-step:hover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(212,175,55,0.03) 80%);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.28);
+  }
+  .bg-charbon .citadelle-path-node {
+    position: absolute;
+    left: 0.85rem;
+    top: 1.45rem;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, #F5E6A7, #D4AF37);
+    box-shadow: 0 0 12px rgba(212,175,55,0.55);
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-path-node {
+      left: 50%;
+      transform: translateX(-50%);
+      top: 1.75rem;
+    }
   }
 
   .bg-charbon .btn-glass-cinematic {

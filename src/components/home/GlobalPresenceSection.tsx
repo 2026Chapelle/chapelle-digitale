@@ -102,10 +102,10 @@ export function GlobalPresenceSection() {
           </p>
           <h2 className="heading-cinematic-lg mb-6">
             L&apos;Église
-            <span className="block text-cinematic-gold">partout</span>
+            <span className="block text-cinematic-gold">partout.</span>
           </h2>
-          <p className="font-inter text-pearl/50 leading-relaxed max-w-md text-base md:text-lg">
-            Une même foi. Une famille sans frontières.
+          <p className="font-inter leading-relaxed max-w-sm text-base md:text-lg" style={{ color: 'rgba(245,230,216,0.42)' }}>
+            Une lumière dans la nuit. Une maison sans frontières.
           </p>
         </div>
 
