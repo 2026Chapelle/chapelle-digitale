@@ -1,16 +1,17 @@
 'use client'
 /**
  * SCÈNE Podcast — covers + parallax dédiés, carte Premium, plateformes réelles.
+ * Assets normalisés (PNG, extensions uniques) · motion safe (jamais bloqué invisible).
  */
 import { useEffect, useRef, useState } from 'react'
-import { motion, useInView, useReducedMotion, useScroll, useTransform } from 'framer-motion'
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight, Headphones, Play, Pause } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { events } from '@/lib/analytics'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
-import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y } from '@/lib/home-motion'
 
 type PodEp = {
   id: string
@@ -21,9 +22,12 @@ type PodEp = {
   audioUrl: string | null
 }
 
-/** Chemins exacts des assets (double extension réelle sur disque). */
-const INSTANT_COVER = '/images/podcast/covers/instant-citadelle-cover.jpg.png'
-const PARALLAX_IMG = '/images/podcast/parallax/podcast-parallax.jpg.png'
+/** Chemins exacts post-normalisation — formats vérifiés PNG sur disque */
+const INSTANT_COVER = '/images/podcast/covers/instant-citadelle-cover.png'
+const PREMIUM_COVER = '/images/podcast/covers/transformer-pour-rayonner.png'
+const PARALLAX_IMG = '/images/podcast/parallax/podcast-parallax.png'
+
+const VIEWPORT = { once: true, amount: 0.15, margin: '0px 0px -6% 0px' } as const
 
 /** Plateformes — uniquement si URL publique configurée (pas de #). */
 const PLATFORMS = [
@@ -46,24 +50,24 @@ function toTrack(ep: PodEp, serie?: string): AudioTrack {
 }
 
 export function PodcastHomeSection() {
-  const ref = useRef<HTMLElement>(null)
   const parallaxRef = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
   const { toggle, isPlaying } = useAudioPlayer()
   const [episodes, setEpisodes] = useState<PodEp[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [parallaxSrc, setParallaxSrc] = useState(PARALLAX_IMG)
 
   const featured = episodes[0] || null
   const instantEp = episodes.find((e) => e.audioUrl) || featured
   const featuredPlaying = featured ? isPlaying(featured.id) : false
   const instantIsPlaying = instantEp ? isPlaying(instantEp.id) : false
+  const featuredCover = featured?.cover || PREMIUM_COVER
 
   const { scrollYProgress } = useScroll({
     target: parallaxRef,
     offset: ['start end', 'end start'],
   })
-  // Parallax léger desktop uniquement
+  // Parallax léger desktop uniquement (CSS désactive le transform mobile)
   const yImg = useTransform(scrollYProgress, [0, 1], reduce ? [0, 0] : [-40, 40])
 
   useEffect(() => {
@@ -113,11 +117,12 @@ export function PodcastHomeSection() {
   }
 
   return (
-    <section ref={ref} className="section-cinematic !px-0" aria-labelledby="podcast-home-title">
+    <section className="section-cinematic !px-0" aria-labelledby="podcast-home-title">
       <div className="container-cinematic max-w-6xl px-4 md:px-8 lg:px-16">
         <motion.p
           initial={reduce ? false : { opacity: 0, y: HOME_Y - 8 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={VIEWPORT}
           transition={{ duration: HOME_DUR, ease: HOME_EASE }}
           className="section-label-dark justify-center mb-4"
         >
@@ -126,7 +131,8 @@ export function PodcastHomeSection() {
         <motion.h2
           id="podcast-home-title"
           initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={VIEWPORT}
           transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.06, ease: HOME_EASE }}
           className="heading-cinematic-lg text-center mb-4"
         >
@@ -135,7 +141,8 @@ export function PodcastHomeSection() {
         </motion.h2>
         <motion.p
           initial={reduce ? false : { opacity: 0, y: HOME_Y - 6 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={VIEWPORT}
           transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.12, ease: HOME_EASE }}
           className="font-inter text-center text-base md:text-lg max-w-md mx-auto mb-12 md:mb-14"
           style={{ color: 'rgba(245,230,216,0.48)' }}
@@ -147,7 +154,8 @@ export function PodcastHomeSection() {
           {/* L’Instant Citadelle */}
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 24, scale: 0.985 }}
-            animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={VIEWPORT}
             transition={{ duration: 0.9, delay: reduce ? 0 : 0.18, ease: HOME_EASE }}
           >
             <button
@@ -202,17 +210,18 @@ export function PodcastHomeSection() {
           {/* Podcast Premium */}
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 24, scale: 0.985 }}
-            animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={VIEWPORT}
             transition={{ duration: 0.9, delay: reduce ? 0 : 0.26, ease: HOME_EASE }}
           >
             <div className="citadelle-pod-card citadelle-pod-featured h-full flex flex-col">
               <div className="relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden rounded-t-[1.75rem] bg-[#0a0a12]">
                 <Image
-                  src={featured?.cover || INSTANT_COVER}
-                  alt=""
+                  src={featuredCover}
+                  alt={featured?.title ? `Podcast Premium — ${featured.title}` : 'Podcast Premium — Transformer pour rayonner'}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover object-center transition-transform duration-700"
+                  className="object-contain object-center transition-transform duration-700"
                 />
                 <div
                   className="absolute inset-0"
@@ -285,28 +294,32 @@ export function PodcastHomeSection() {
         </div>
       </div>
 
-      {/* Parallax full-bleed */}
+      {/* Parallax full-bleed — image z-0 · overlay z-10 · contenu z-20 */}
       <div
         ref={parallaxRef}
         className="citadelle-pod-parallax relative w-full left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] w-screen overflow-hidden"
       >
         <motion.div
-          className="absolute inset-0 will-change-transform"
+          className="absolute inset-0 z-0 will-change-transform"
           style={reduce ? undefined : { y: yImg }}
           aria-hidden
         >
           <Image
-            src={PARALLAX_IMG}
+            src={parallaxSrc}
             alt="Personne écoutant un podcast avec casque et smartphone"
             fill
             sizes="100vw"
-            className="object-cover object-[center_30%] md:object-center scale-105"
+            className="object-cover object-[center_28%] md:object-[center_32%]"
             quality={90}
+            priority={false}
+            onError={() => {
+              if (parallaxSrc !== INSTANT_COVER) setParallaxSrc(INSTANT_COVER)
+            }}
           />
         </motion.div>
         {/* Overlay lisibilité */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 z-10 pointer-events-none"
           style={{
             background:
               'linear-gradient(105deg, rgba(6,8,16,0.82) 0%, rgba(8,12,28,0.55) 42%, rgba(6,6,10,0.45) 70%, rgba(6,6,10,0.7) 100%), ' +
@@ -315,10 +328,11 @@ export function PodcastHomeSection() {
           aria-hidden
         />
         <motion.div
-          className="relative z-10 max-w-2xl mx-auto text-center py-20 md:py-28 px-6"
+          className="relative z-20 max-w-2xl mx-auto text-center py-20 md:py-28 px-6"
           initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.2, ease: HOME_EASE }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={VIEWPORT}
+          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.12, ease: HOME_EASE }}
         >
           <h3 className="font-cinzel font-bold text-pearl text-3xl md:text-4xl mb-4">Va plus loin.</h3>
           <p

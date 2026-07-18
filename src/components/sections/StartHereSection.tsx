@@ -1,10 +1,10 @@
 'use client'
 /**
  * SCÈNE 4 — PARCOURS éditorial
- * Alternance large desktop · image non rognée (object-contain) · CTA clairs
+ * Assets explicites (noms réels) · motion safe (jamais bloqué invisible)
  */
 import { useRef } from 'react'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import {
@@ -18,7 +18,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
+import { HOME_DUR, HOME_EASE, HOME_Y } from '@/lib/home-motion'
 
 type PathStep = {
   n: string
@@ -29,13 +29,14 @@ type PathStep = {
   alt: string
 }
 
+/** Table explicite — chemins réels post-normalisation (.png unique) */
 const PATH_STEPS: PathStep[] = [
   {
     n: '01',
     title: 'Découvrir',
     phrase: 'Entrer dans la maison et voir le chemin s’ouvrir.',
     icon: Eye,
-    image: '/images/formations/parcours-1/module-1-vision-et-histoire.png.png',
+    image: '/images/formations/parcours-1/module-1-vision-et-histoire.png',
     alt: 'Vision et histoire de la maison',
   },
   {
@@ -43,7 +44,7 @@ const PATH_STEPS: PathStep[] = [
     title: "S'enraciner",
     phrase: 'Poser des fondations solides dans la foi.',
     icon: Anchor,
-    image: '/images/formations/parcours-1/module-2-valeurs-du-royaume.png.png',
+    image: '/images/formations/parcours-1/module-2-valeurs-du-royaume.png',
     alt: 'Valeurs du Royaume',
   },
   {
@@ -51,7 +52,7 @@ const PATH_STEPS: PathStep[] = [
     title: 'Grandir',
     phrase: 'Avancer pas à pas, nourri et accompagné.',
     icon: Sprout,
-    image: '/images/formations/parcours-1/module-5-mes-premiers-pas.png.png',
+    image: '/images/formations/parcours-1/module-5-mes-premiers-pas.png',
     alt: 'Premiers pas de croissance',
   },
   {
@@ -59,7 +60,7 @@ const PATH_STEPS: PathStep[] = [
     title: 'Servir',
     phrase: 'Mettre ses dons au service des autres.',
     icon: HandHeart,
-    image: '/images/formations/parcours-1/module-3-rejoindre-une-cellule.png.png',
+    image: '/images/formations/parcours-1/module-3-rejoindre-une-cellule.png',
     alt: 'Rejoindre une cellule et servir',
   },
   {
@@ -67,7 +68,7 @@ const PATH_STEPS: PathStep[] = [
     title: 'Conduire',
     phrase: 'Guider avec sagesse et responsabilité.',
     icon: Compass,
-    image: '/images/formations/parcours-1/module-4-nos-plateformes.png.png',
+    image: '/images/formations/parcours-1/module-4-nos-plateformes.png',
     alt: 'Nos plateformes et le leadership',
   },
   {
@@ -75,17 +76,19 @@ const PATH_STEPS: PathStep[] = [
     title: 'Multiplier',
     phrase: 'Former d’autres et étendre le Royaume.',
     icon: Share2,
-    image: '/images/formations/parcours-1/module-6-mon-engagement.png.png',
+    image: '/images/formations/parcours-1/module-6-mon-engagement.png',
     alt: 'Engagement et multiplication',
   },
 ]
 
 const CTA = 'Découvrir cette étape'
 const HREF = '/parcours'
+const FALLBACK_IMG = '/images/formations/parcours-1/parcours-1-je-decouvre-la-maison.png'
+
+const VIEWPORT = { once: true, amount: 0.12, margin: '0px 0px -8% 0px' } as const
 
 export function StartHereSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
 
   return (
@@ -99,7 +102,8 @@ export function StartHereSection() {
         <motion.h2
           id="parcours-title"
           initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={VIEWPORT}
           transition={{ duration: HOME_DUR, ease: HOME_EASE }}
           className="heading-cinematic-lg text-center mb-14 md:mb-20"
         >
@@ -111,8 +115,9 @@ export function StartHereSection() {
             className="citadelle-journey-thread-ed"
             aria-hidden
             initial={reduce ? false : { scaleY: 0, opacity: 0 }}
-            animate={inView ? { scaleY: 1, opacity: 1 } : {}}
-            transition={{ duration: 1.2, ease: HOME_EASE, delay: reduce ? 0 : 0.08 }}
+            whileInView={{ scaleY: 1, opacity: 1 }}
+            viewport={VIEWPORT}
+            transition={{ duration: 1.15, ease: HOME_EASE, delay: reduce ? 0 : 0.06 }}
             style={{ transformOrigin: 'top center' }}
           />
 
@@ -120,15 +125,16 @@ export function StartHereSection() {
             {PATH_STEPS.map((step, i) => {
               const Icon = step.icon
               const reverse = i % 2 === 1
-              const stepDelay = 0.12 + i * 0.1
+              const stepDelay = reduce ? 0 : 0.08 + i * 0.09
               return (
                 <motion.li
                   key={step.n}
                   initial={reduce ? false : { opacity: 0, y: 24, scale: 0.985 }}
-                  animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={VIEWPORT}
                   transition={{
                     duration: 0.9,
-                    delay: reduce ? 0 : stepDelay,
+                    delay: stepDelay,
                     ease: HOME_EASE,
                   }}
                   className="citadelle-journey-row relative"
@@ -137,10 +143,11 @@ export function StartHereSection() {
                     className="citadelle-journey-dot-ed"
                     aria-hidden
                     initial={reduce ? false : { scale: 0, opacity: 0 }}
-                    animate={inView ? { scale: 1, opacity: 1 } : {}}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={VIEWPORT}
                     transition={{
-                      duration: 0.5,
-                      delay: reduce ? 0 : stepDelay - 0.06,
+                      duration: 0.45,
+                      delay: Math.max(0, stepDelay - 0.05),
                       ease: HOME_EASE,
                     }}
                   />
@@ -153,23 +160,29 @@ export function StartHereSection() {
                       reverse ? 'md:[direction:rtl]' : ''
                     }`}
                   >
-                    {/* Visuel large — object-contain pour texte de couverture lisible */}
                     <div
                       className={`citadelle-journey-visual relative ${reverse ? 'md:[direction:ltr]' : ''}`}
                     >
                       <div className="citadelle-journey-visual-frame">
-                        <Image
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
                           src={step.image}
                           alt={step.alt}
                           width={560}
                           height={420}
-                          sizes="(max-width: 768px) 100vw, 520px"
                           className="citadelle-journey-visual-img"
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            const el = e.currentTarget
+                            if (el.src.indexOf(FALLBACK_IMG) === -1) {
+                              el.src = FALLBACK_IMG
+                            }
+                          }}
                         />
                       </div>
                     </div>
 
-                    {/* Texte */}
                     <div className={`citadelle-journey-copy px-1 md:px-2 py-6 md:py-4 ${reverse ? 'md:[direction:ltr]' : ''}`}>
                       <div className="flex items-center gap-3 mb-3">
                         <span
@@ -208,10 +221,11 @@ export function StartHereSection() {
 
         <motion.div
           initial={reduce ? false : { opacity: 0, y: HOME_Y - 4 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={VIEWPORT}
           transition={{
             duration: HOME_DUR,
-            delay: reduce ? 0 : 0.2 + PATH_STEPS.length * 0.06,
+            delay: reduce ? 0 : 0.15,
             ease: HOME_EASE,
           }}
           className="text-center mt-16 md:mt-20"
