@@ -69,21 +69,19 @@ export function MovementSection() {
             <Globe className="w-3 h-3" />
             Nos Ministères
           </div>
-          <h2 className="heading-cinematic-lg mb-5">
-            8 plateformes,
-            <span className="block text-cinematic-gold">une seule vision</span>
+          <h2 className="heading-cinematic-lg mb-6">
+            Une famille
+            <span className="block text-cinematic-gold">de ministères</span>
           </h2>
-          <p className="font-cormorant italic text-xl md:text-2xl leading-relaxed mb-3"
-            style={{ color: 'rgba(245,230,216,0.82)' }}>
+          <p className="font-cormorant italic text-xl md:text-2xl leading-relaxed mb-2"
+            style={{ color: 'rgba(245,230,216,0.72)' }}>
             « Allez, faites de toutes les nations des disciples. »
           </p>
-          <p className="font-inter text-xs tracking-[0.3em] uppercase mb-7" style={{ color: '#D4AF37' }}>
-            — Matthieu 28 : 19
+          <p className="font-inter text-xs tracking-[0.28em] uppercase mb-8" style={{ color: 'rgba(212,175,55,0.7)' }}>
+            Matthieu 28 : 19
           </p>
-          <p className="font-inter text-base md:text-lg leading-relaxed mx-auto" style={{ color: 'rgba(245,230,216,0.55)' }}>
-            Citadelle regroupe une famille de ministères <span className="text-pearl/80">autonomes et complémentaires</span>.
-            Huit plateformes pour t&apos;aider à prier, apprendre, servir et grandir — une même vision :
-            faire des disciples, pour toutes les nations.
+          <p className="font-inter text-base md:text-lg leading-relaxed mx-auto max-w-2xl" style={{ color: 'rgba(245,230,216,0.48)' }}>
+            Huit plateformes. Une vision. Pour prier, apprendre, servir et grandir.
           </p>
 
           {/* Une seule rangée de nations — vrais drapeaux PNG locaux (rendu identique sur

@@ -1,51 +1,27 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { motion, useScroll, useTransform, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, ChevronDown, Sparkles, BookOpen, Users, Heart, Smartphone } from 'lucide-react'
+import { ArrowRight, ChevronDown } from 'lucide-react'
 import { PremiumImage } from '@/components/ui/PremiumImage'
 import { HERO_IMAGES } from '@/lib/images'
 import { events } from '@/lib/analytics'
 
 /* ============================================================
-   HERO — plateforme de croissance (premium, tutoiement)
-   CMS peut override subtitle / cta_label / cta_href.
-   Aucune statistique inventée.
+   HERO — Phase 3 · affiche iconique
+   Peu de mots. Beaucoup de lumière. Espérance.
+   CMS : subtitle / cta_label / cta_href.
    ============================================================ */
-
-const ROTATING_WORDS = [
-  'grandir dans ta foi',
-  'rester connecté à ta maison',
-  'avancer avec ta communauté',
-  'vivre ta destinée',
-]
-
-/** Preuves qualitatives uniquement (pas de chiffres inventés). */
-const TRUST_POINTS = [
-  { icon: BookOpen, label: 'Enseignements & parcours' },
-  { icon: Heart, label: 'Prière & accompagnement' },
-  { icon: Users, label: 'Communauté mondiale' },
-  { icon: Smartphone, label: 'Accès mobile & PWA' },
-]
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
 export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?: string; cta_href?: string } } = {}) {
-  const [wordIndex, setWordIndex] = useState(0)
   const reduce = useReducedMotion()
   const { scrollY } = useScroll()
-  const bgY = useTransform(scrollY, [0, 600], [0, 140])
-  const raysY = useTransform(scrollY, [0, 600], [0, 60])
-  const contentY = useTransform(scrollY, [0, 400], [0, -36])
-  const textOpacity = useTransform(scrollY, [0, 360], [1, 0])
+  const bgY = useTransform(scrollY, [0, 600], [0, reduce ? 0 : 100])
+  const raysY = useTransform(scrollY, [0, 600], [0, reduce ? 0 : 48])
+  const contentY = useTransform(scrollY, [0, 400], [0, reduce ? 0 : -28])
+  const textOpacity = useTransform(scrollY, [0, 380], [1, 0])
 
-  useEffect(() => {
-    if (reduce) return
-    const t = setInterval(() => setWordIndex((i) => (i + 1) % ROTATING_WORDS.length), 3400)
-    return () => clearInterval(t)
-  }, [reduce])
-
-  // /rejoindre = entrée gratuite réelle ; CMS peut override.
   const primaryHref = block?.cta_href || '/rejoindre'
   const primaryLabel = block?.cta_label || 'Commencer gratuitement'
 
@@ -178,73 +154,68 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
 
       <motion.div
         style={{ opacity: textOpacity, y: contentY }}
-        className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 md:pt-24 pb-24 flex flex-col items-center text-center"
+        className="relative z-10 w-full max-w-4xl mx-auto px-6 sm:px-8 pt-32 md:pt-28 pb-28 flex flex-col items-center text-center"
       >
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: EASE }}
-          className="mb-6"
+          transition={{ duration: 0.9, ease: EASE }}
+          className="mb-8 font-inter text-[11px] md:text-xs tracking-[0.35em] uppercase"
+          style={{ color: 'rgba(235,217,160,0.55)' }}
         >
-          <span
-            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-[10px] md:text-[11px] font-bold tracking-[0.22em] uppercase font-inter border backdrop-blur-xl"
-            style={{
-              background: 'rgba(244,241,233,0.05)',
-              borderColor: 'rgba(212,175,55,0.28)',
-              color: '#EBE7DD',
-              boxShadow: '0 0 30px rgba(212,175,55,0.10)',
-            }}
-          >
-            <Sparkles className="w-3 h-3" style={{ color: '#D4AF37' }} />
-            Ton église digitale, partout avec toi
-          </span>
-        </motion.div>
+          Citadelle
+        </motion.p>
 
         <motion.h1
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.1, delay: 0.08, ease: EASE }}
-          className="mb-6 relative max-w-4xl"
+          transition={{ duration: 1.2, delay: 0.1, ease: EASE }}
+          className="mb-8 relative"
         >
           <span
-            className="block font-cinzel font-black drop-shadow-[0_2px_40px_rgba(0,0,0,0.5)]"
-            style={{ fontSize: 'clamp(2.2rem, 6.5vw, 4.6rem)', lineHeight: 1.05, letterSpacing: '-0.02em', color: '#F4F2ED' }}
+            className="block font-cinzel font-black"
+            style={{
+              fontSize: 'clamp(2.4rem, 7vw, 5rem)',
+              lineHeight: 1.08,
+              letterSpacing: '-0.03em',
+              color: '#F7F4EE',
+              textShadow: '0 4px 48px rgba(0,0,0,0.45)',
+            }}
           >
             Grandis avec Christ,
           </span>
           <span
-            className="block font-cinzel font-black text-gradient-light-gold"
-            style={{ fontSize: 'clamp(2.2rem, 6.5vw, 4.6rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
+            className="block font-cinzel font-black text-gradient-light-gold mt-1"
+            style={{ fontSize: 'clamp(2.4rem, 7vw, 5rem)', lineHeight: 1.08, letterSpacing: '-0.03em' }}
           >
             où que tu sois.
           </span>
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.28, ease: EASE }}
-          className="font-inter leading-relaxed mb-8 mx-auto"
-          style={{ fontSize: 'clamp(0.98rem, 1.9vw, 1.18rem)', color: 'rgba(235,231,221,0.58)', maxWidth: '640px' }}
+          transition={{ duration: 1, delay: 0.28, ease: EASE }}
+          className="font-inter leading-relaxed mb-12 mx-auto"
+          style={{ fontSize: 'clamp(1rem, 1.8vw, 1.2rem)', color: 'rgba(235,231,221,0.48)', maxWidth: '28rem' }}
         >
-          {block?.subtitle ||
-            'Retrouve tes enseignements, tes parcours, tes temps de prière, tes événements et ta communauté dans un même espace.'}
+          {block?.subtitle || 'Ta foi. Ta communauté. Ton parcours.'}
         </motion.p>
 
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.42, ease: EASE }}
-          className="flex flex-col sm:flex-row items-center gap-3 mb-5 w-full sm:w-auto"
+          transition={{ duration: 0.8, delay: 0.42, ease: EASE }}
+          className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
         >
           <Link
             href={primaryHref}
             onClick={() => events.ctaClick('commencer_parcours_hero')}
             className="btn-gold-cinematic group w-full sm:w-auto"
-            style={{ padding: '16px 38px', fontSize: '1rem' }}
+            style={{ padding: '17px 40px', fontSize: '0.95rem' }}
           >
             {primaryLabel}
-            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />
           </Link>
 
           <button
@@ -253,64 +224,12 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
               events.ctaClick('decouvrir_citadelle_hero')
               scrollToDiscover()
             }}
-            className="btn-glass-cinematic group w-full sm:w-auto"
+            className="text-sm font-inter tracking-wide w-full sm:w-auto py-3 px-2 transition-colors"
+            style={{ color: 'rgba(235,231,221,0.45)' }}
           >
             Découvrir Citadelle
           </button>
         </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.52 }}
-          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-6 text-[12px] font-inter"
-          style={{ color: 'rgba(235,231,221,0.45)' }}
-        >
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" aria-hidden />
-            Accès gratuit · sans engagement
-          </span>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.58 }}
-          className="h-7 flex items-center justify-center gap-2 mb-8 text-sm md:text-base font-inter"
-          style={{ color: 'rgba(235,231,221,0.45)' }}
-        >
-          <span>Citadelle t&apos;aide à</span>
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={wordIndex}
-              initial={{ opacity: 0, y: 8, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -8, filter: 'blur(8px)' }}
-              transition={{ duration: 0.5 }}
-              className="font-semibold text-gradient-light-gold"
-            >
-              {ROTATING_WORDS[wordIndex]}
-            </motion.span>
-          </AnimatePresence>
-        </motion.div>
-
-        <motion.ul
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 list-none p-0 m-0"
-        >
-          {TRUST_POINTS.map((point) => (
-            <li
-              key={point.label}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] md:text-xs font-inter border border-white/10 bg-white/[0.03]"
-              style={{ color: 'rgba(235,231,221,0.55)' }}
-            >
-              <point.icon className="w-3.5 h-3.5 text-gold/80 flex-shrink-0" aria-hidden />
-              {point.label}
-            </li>
-          ))}
-        </motion.ul>
       </motion.div>
 
       <motion.button

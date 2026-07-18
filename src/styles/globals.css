@@ -780,50 +780,121 @@
   }
 
   /* ============================================================
-     Home « Charbon & Lumière » — raffinements premium SCOPÉS
-     (descendants de .bg-charbon → n'affectent QUE la page d'accueil)
+     Home « Charbon & Lumière » — Phase 3 direction artistique
+     (scopé .bg-charbon — page d'accueil uniquement)
+     Émotion · lumière · respiration · profondeur
      ============================================================ */
 
-  /* Cartes : contraste de bord + survol plus marqué + transition fluide */
+  .bg-charbon {
+    /* Cosmique : nuit + or discret + lumière */
+    background:
+      radial-gradient(1100px 700px at 50% -5%, rgba(212,175,55,0.07), transparent 55%),
+      radial-gradient(900px 600px at 90% 18%, rgba(30,58,138,0.12), transparent 55%),
+      radial-gradient(820px 620px at 5% 45%, rgba(244,241,233,0.04), transparent 58%),
+      radial-gradient(1000px 820px at 50% 100%, rgba(212,175,55,0.05), transparent 66%),
+      linear-gradient(180deg, #06060A 0%, #0A0B12 40%, #07080C 72%, #050508 100%);
+  }
+
+  /* Scènes émotionnelles — lavages de lumière, pas de bordures */
+  .bg-charbon .scene-hope {
+    background: radial-gradient(ellipse 90% 70% at 50% 0%, rgba(212,175,55,0.06), transparent 70%);
+  }
+  .bg-charbon .scene-transform {
+    background: radial-gradient(ellipse 80% 60% at 20% 40%, rgba(99,102,241,0.06), transparent 65%);
+  }
+  .bg-charbon .scene-belong {
+    background: radial-gradient(ellipse 70% 55% at 80% 50%, rgba(244,241,233,0.04), transparent 60%);
+  }
+  .bg-charbon .scene-joy {
+    background: radial-gradient(ellipse 85% 50% at 50% 100%, rgba(212,175,55,0.05), transparent 70%);
+  }
+  .bg-charbon .scene-mission {
+    background: radial-gradient(ellipse 100% 80% at 70% 50%, rgba(30,64,175,0.10), transparent 60%);
+  }
+  .bg-charbon .scene-continuity {
+    background: radial-gradient(ellipse 70% 50% at 30% 50%, rgba(212,175,55,0.06), transparent 65%);
+  }
+  .bg-charbon .scene-decision {
+    background: radial-gradient(ellipse 90% 70% at 50% 30%, rgba(212,175,55,0.08), transparent 68%);
+  }
+
+  /* Cartes : moins de contour, plus de profondeur + respiration au survol */
   .bg-charbon .card-cinematic {
-    border-color: rgba(244,241,233,0.11);
+    border-color: transparent;
+    background:
+      linear-gradient(155deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.012) 100%);
     box-shadow:
-      0 1px 0 rgba(244,241,233,0.05) inset,
-      0 18px 50px rgba(0,0,0,0.45);
+      0 1px 0 rgba(244,241,233,0.04) inset,
+      0 20px 56px rgba(0,0,0,0.42);
     transition:
-      transform .5s var(--ease-cinematic),
-      border-color .5s var(--ease-cinematic),
-      box-shadow .5s var(--ease-cinematic);
+      transform .65s var(--ease-cinematic),
+      box-shadow .65s var(--ease-cinematic),
+      background .65s var(--ease-cinematic);
   }
   .bg-charbon .card-cinematic:hover {
-    transform: translateY(-6px);
-    border-color: rgba(212,175,55,0.36);
+    transform: translateY(-5px);
+    border-color: transparent;
+    background:
+      linear-gradient(155deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.018) 100%);
     box-shadow:
-      0 1px 0 rgba(244,241,233,0.08) inset,
-      0 30px 72px rgba(0,0,0,0.55),
-      0 0 38px rgba(212,175,55,0.15);
+      0 1px 0 rgba(244,241,233,0.07) inset,
+      0 28px 70px rgba(0,0,0,0.5),
+      0 0 48px rgba(212,175,55,0.08);
   }
 
-  /* Boutons verre : survol or bien lisible sur charbon */
   .bg-charbon .btn-glass-cinematic {
-    border-color: rgba(244,241,233,0.14);
+    border-color: rgba(244,241,233,0.10);
+    background: rgba(255,255,255,0.04);
   }
   .bg-charbon .btn-glass-cinematic:hover {
-    border-color: rgba(212,175,55,0.5);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 24px rgba(212,175,55,0.12);
+    border-color: rgba(212,175,55,0.35);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 20px rgba(212,175,55,0.08);
   }
 
-  /* Intitulés de section : doré lumineux + lettrage premium */
-  .bg-charbon .section-label {
-    color: #EBD9A0;
-    letter-spacing: 0.28em;
+  .bg-charbon .section-label,
+  .bg-charbon .section-label-dark {
+    color: rgba(235,217,160,0.85);
+    letter-spacing: 0.32em;
+    font-weight: 600;
   }
 
-  /* Rythme vertical plus ample sur grand écran (respiration premium) */
+  /* Respiration : scènes plus hautes, moins denses */
+  .bg-charbon .section-cinematic {
+    padding-top: 5.5rem;
+    padding-bottom: 5.5rem;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .section-cinematic {
+      padding-top: 7.5rem;
+      padding-bottom: 7.5rem;
+    }
+  }
   @media (min-width: 1024px) {
     .bg-charbon .section-cinematic {
-      padding-top: 8.5rem;
-      padding-bottom: 8.5rem;
+      padding-top: 9.5rem;
+      padding-bottom: 9.5rem;
+    }
+  }
+
+  /* Titres : plus d'espace autour, plus de calme */
+  .bg-charbon .heading-cinematic-lg {
+    letter-spacing: -0.025em;
+    font-weight: 800;
+  }
+
+  /* Reduced motion : pas de lift carte */
+  @media (prefers-reduced-motion: reduce) {
+    .bg-charbon .card-cinematic,
+    .bg-charbon .card-cinematic:hover {
+      transform: none;
+      transition: none;
+    }
+    .bg-charbon .btn-gold-cinematic:hover,
+    .bg-charbon .btn-glass-cinematic:hover {
+      transform: none;
+    }
+    .text-gradient-light-gold {
+      animation: none;
     }
   }
 

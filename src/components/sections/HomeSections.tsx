@@ -61,37 +61,51 @@ export async function HomeSections() {
   const mainKeys = ordered.filter((k) => k !== 'join')
   const showJoin = ordered.includes('join')
 
+  /** Émotion de scène (direction artistique Phase 3) */
+  const sceneMood: Record<string, string> = {
+    hero: 'scene-hope',
+    start: 'scene-transform',
+    grow: 'scene-transform',
+    live: 'scene-joy',
+    community: 'scene-belong',
+    movement: 'scene-belong',
+  }
+
   return (
     <div className="bg-charbon relative">
       <HomeJoinPopupLazy />
 
       {mainKeys.map((key, i) => {
         const Section = COMPONENTS[key]
+        const mood = sceneMood[key] || ''
         return (
-          <div key={key}>
+          <div key={key} className={mood}>
             {i > 0 && <SectionGlow />}
             <Section block={byKey[key]} />
             {key === 'hero' && (
-              <>
+              <div className="scene-joy">
                 <SectionGlow />
                 <FeaturedEventsSection />
-              </>
+              </div>
             )}
           </div>
         )
       })}
 
-      {/* Moment « wow » mondial puis campagne PWA unique, avant le CTA final */}
-      <SectionGlow />
-      <GlobalPresenceSection />
-      <SectionGlow />
-      <InstallCitadelleSection />
+      <div className="scene-mission">
+        <SectionGlow />
+        <GlobalPresenceSection />
+      </div>
+      <div className="scene-continuity">
+        <SectionGlow />
+        <InstallCitadelleSection />
+      </div>
 
       {showJoin && (
-        <>
+        <div className="scene-decision">
           <SectionGlow />
           <JoinSection block={byKey.join} />
-        </>
+        </div>
       )}
     </div>
   )

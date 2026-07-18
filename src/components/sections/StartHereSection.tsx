@@ -29,16 +29,15 @@ export function StartHereSection() {
           className="text-center mb-12 md:mb-16"
         >
           <div className="section-label-dark justify-center">Parcours de croissance</div>
-          <h2 className="heading-cinematic-lg mb-5">
-            Du premier regard
-            <span className="block text-cinematic-gold">au leadership</span>
+          <h2 className="heading-cinematic-lg mb-6">
+            Une transformation
+            <span className="block text-cinematic-gold">pas à pas</span>
           </h2>
           <p
-            className="font-inter text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
-            style={{ color: 'rgba(245,230,216,0.55)' }}
+            className="font-inter text-base md:text-lg max-w-xl mx-auto leading-relaxed"
+            style={{ color: 'rgba(245,230,216,0.48)' }}
           >
-            Citadelle t&apos;accompagne étape par étape. Tu n&apos;es pas seul :
-            à chaque saison, une direction claire pour grandir avec Christ.
+            Du premier regard au leadership — tu n&apos;avances jamais seul.
           </p>
         </motion.div>
 
@@ -64,33 +63,25 @@ export function StartHereSection() {
                 <Link
                   href={stage.href === '/' ? '/parcours' : stage.href}
                   onClick={() => events.ctaClick(`tunnel_${stage.key}`)}
-                  className="group relative flex h-full flex-col card-cinematic p-5 hover:border-gold/30 transition-colors"
+                  className="group relative flex h-full flex-col card-cinematic p-6"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <span
-                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative"
-                      style={{
-                        background: `${stage.color}18`,
-                        border: `1px solid ${stage.color}40`,
-                      }}
-                    >
-                      <stage.icon className="w-5 h-5" style={{ color: stage.color }} aria-hidden />
-                      <span
-                        className="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full flex items-center justify-center font-cinzel text-[10px] font-black"
-                        style={{ background: 'linear-gradient(135deg,#F5E6A7,#D4AF37)', color: '#1A0F00' }}
-                      >
-                        {stage.index + 1}
-                      </span>
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="font-cinzel font-bold text-pearl text-sm truncate">{stage.nom}</h3>
-                      <p className="font-inter text-[11px] text-pearl/40 truncate">{stage.role}</p>
-                    </div>
+                  <span
+                    className="font-cinzel text-[11px] font-bold tracking-[0.2em] mb-4"
+                    style={{ color: 'rgba(212,175,55,0.55)' }}
+                  >
+                    {String(stage.index + 1).padStart(2, '0')}
+                  </span>
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4"
+                    style={{ background: `${stage.color}14` }}
+                  >
+                    <stage.icon className="w-5 h-5" style={{ color: stage.color }} aria-hidden />
                   </div>
-                  <p className="font-inter text-sm leading-relaxed flex-1 mb-3" style={{ color: 'rgba(245,230,216,0.55)' }}>
+                  <h3 className="font-cinzel font-bold text-pearl text-base mb-1">{stage.nom}</h3>
+                  <p className="font-inter text-sm leading-relaxed flex-1 mb-4" style={{ color: 'rgba(245,230,216,0.45)' }}>
                     {stage.promesse}
                   </p>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold font-inter text-gold group-hover:gap-2.5 transition-all">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium font-inter text-gold/80 group-hover:text-gold group-hover:gap-2 transition-all">
                     {stage.cta}
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>

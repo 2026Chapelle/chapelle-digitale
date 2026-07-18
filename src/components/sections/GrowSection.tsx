@@ -110,12 +110,12 @@ export function GrowSection() {
             <GraduationCap className="w-3 h-3" />
             Grandir
           </div>
-          <h2 className="heading-cinematic-lg mb-5">
-            Contenu pour avancer
-            <span className="block text-cinematic-gold">à ton rythme</span>
+          <h2 className="heading-cinematic-lg mb-6">
+            Nourris ta foi
+            <span className="block text-cinematic-gold">en profondeur</span>
           </h2>
-          <p className="font-inter text-base md:text-lg leading-relaxed" style={{ color: 'rgba(245,230,216,0.55)' }}>
-            Formations et enseignements réels — pour nourrir ta foi entre les temps forts de l&apos;église.
+          <p className="font-inter text-base md:text-lg leading-relaxed max-w-lg mx-auto" style={{ color: 'rgba(245,230,216,0.48)' }}>
+            Formations et enseignements — à ton rythme, partout.
           </p>
         </motion.div>
 

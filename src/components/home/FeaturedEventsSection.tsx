@@ -96,18 +96,19 @@ export function FeaturedEventsSection() {
   const hasEvents = events.length > 0
 
   return (
-    <section className="py-20 sm:py-24">
+    <section className="py-24 sm:py-32">
       <div className="container-royal">
-        <div className="flex items-end justify-between gap-4 mb-10 flex-wrap">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-inter mb-4" style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37' }}>
-              <CalendarDays className="w-3.5 h-3.5" /> Agenda
-            </div>
-            <h2 className="font-cinzel font-bold text-2xl sm:text-3xl leading-tight mb-3">
-              Prochains rendez-vous <span className="text-cinematic-gold">à vivre avec nous</span>
+        <div className="flex items-end justify-between gap-4 mb-14 flex-wrap">
+          <div className="max-w-xl">
+            <p className="section-label-dark mb-5">
+              <CalendarDays className="w-3 h-3" /> Agenda
+            </p>
+            <h2 className="heading-cinematic-lg mb-4">
+              Des moments
+              <span className="block text-cinematic-gold">à vivre ensemble</span>
             </h2>
-            <p className="font-inter text-pearl/60 leading-relaxed">
-              Des temps forts de prière, d&apos;enseignement et de communion — pour t&apos;enraciner et avancer.
+            <p className="font-inter text-pearl/50 leading-relaxed max-w-md">
+              Prière, enseignement, communion.
             </p>
           </div>
           {hasEvents && events.length > 1 && (

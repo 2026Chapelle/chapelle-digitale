@@ -97,15 +97,15 @@ export function GlobalPresenceSection() {
       <style dangerouslySetInnerHTML={{ __html: GLOBE_CSS }} />
       <div className="container-royal grid lg:grid-cols-2 gap-12 items-center">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-inter mb-4" style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37' }}>
-            <Globe2 className="w-3.5 h-3.5" /> International
-          </div>
-          <h2 className="font-cinzel font-bold text-2xl sm:text-3xl leading-tight mb-4">
-            Une maison partout, <span className="text-cinematic-gold">sans frontières</span>
+          <p className="section-label-dark mb-5">
+            <Globe2 className="w-3 h-3" /> Mission
+          </p>
+          <h2 className="heading-cinematic-lg mb-6">
+            L&apos;Église
+            <span className="block text-cinematic-gold">partout</span>
           </h2>
-          <p className="font-inter text-pearl/70 leading-relaxed max-w-lg">
-            Où que tu sois, Citadelle te relie à une famille spirituelle qui prie, apprend et grandit ensemble —
-            une même foi, accessible au-delà des frontières.
+          <p className="font-inter text-pearl/50 leading-relaxed max-w-md text-base md:text-lg">
+            Une même foi. Une famille sans frontières.
           </p>
         </div>
 

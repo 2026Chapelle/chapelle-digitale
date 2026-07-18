@@ -48,26 +48,16 @@ export function InstallCitadelleSection() {
         >
           <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
             <div className="flex-1 max-w-xl">
-              <p className="text-[11px] font-inter font-bold tracking-[0.22em] uppercase text-gold/90 mb-3">
-                Application
+              <p className="text-[11px] font-inter tracking-[0.32em] uppercase mb-4" style={{ color: 'rgba(235,217,160,0.5)' }}>
+                Continuité
               </p>
-              <h2 id="install-citadelle-title" className="font-cinzel font-bold text-2xl sm:text-3xl text-pearl leading-tight mb-3">
-                Emporte toute ton église dans ta poche.
+              <h2 id="install-citadelle-title" className="font-cinzel font-bold text-2xl sm:text-3xl text-pearl leading-tight mb-4">
+                Emporte toute ton église
+                <span className="block text-cinematic-gold">avec toi.</span>
               </h2>
-              <p className="font-inter text-sm sm:text-base text-pearl/65 leading-relaxed mb-6">
-                Retrouve tes parcours, tes enseignements, tes événements et ta communauté depuis ton téléphone —
-                en un tap, comme une app.
+              <p className="font-inter text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: 'rgba(245,230,216,0.48)' }}>
+                Ton téléphone devient une extension de ta communauté.
               </p>
-              <ul className="flex flex-wrap justify-center sm:justify-start gap-2 mb-6 list-none p-0 m-0">
-                {['Parcours', 'Enseignements', 'Événements', 'Communauté'].map((b) => (
-                  <li
-                    key={b}
-                    className="text-[11px] font-inter px-2.5 py-1 rounded-full border border-white/10 text-pearl/55 bg-white/[0.03]"
-                  >
-                    {b}
-                  </li>
-                ))}
-              </ul>
 
               {installed ? (
                 <p className="inline-flex items-center gap-2 text-sm font-inter text-[#86EFAC]">
