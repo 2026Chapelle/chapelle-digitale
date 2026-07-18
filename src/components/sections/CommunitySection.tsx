@@ -79,7 +79,6 @@ export function CommunitySection() {
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="text-center mb-12 md:mb-16"
         >
-          <p className="section-label-dark justify-center">Communauté</p>
           <h2 id="community-title" className="heading-cinematic-lg">
             Tu n&apos;es
             <span className="block text-cinematic-gold">pas seul.</span>
