@@ -1,10 +1,7 @@
 'use client'
 /**
- * SCÈNE 1 — HERO (blueprint V3 — référence unique)
- *
- * 100vh · photo réelle plein écran · voile sombre léger · logo discret
- * titre · sous-titre · CTA principal · lien secondaire
- * Sans badges, chips, stats, éléments rotatifs, distractions.
+ * SCÈNE 1 — HERO · Art direction premium
+ * Affiche cinématographique : titre iconique, lumière vivante, zéro distraction.
  */
 import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
@@ -12,20 +9,19 @@ import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { events } from '@/lib/analytics'
 
+/** Courbe unique homepage */
 const EASE = [0.16, 1, 0.3, 1] as const
+const DUR = 0.9
 
-/** Photographie réelle locale (public/). */
 const HERO_PHOTO = {
   src: '/images/prayers/prayer-consecration.jpg',
   alt: 'Moment de consécration et de prière',
 }
 
-/** Copy blueprint — non négociable. */
 const COPY = {
   titleLine1: 'Grandis en Christ.',
   titleLine2: "Un pas après l'autre.",
-  subtitle:
-    'Découvre un chemin clair pour grandir, être accompagné et trouver ta place dans une communauté vivante.',
+  subtitle: 'Un chemin clair pour grandir et trouver ta place.',
   ctaLabel: 'Commencer mon parcours',
   ctaHref: '/rejoindre',
   secondaryLabel: 'Découvrir Citadelle',
@@ -41,7 +37,7 @@ export function HeroSection(_props: { block?: unknown } = {}) {
       style={{ background: '#06060A' }}
       aria-labelledby="hero-title"
     >
-      {/* Photographie plein écran + voile sombre léger */}
+      {/* Photographie + color grading ciné */}
       <div className="absolute inset-0" aria-hidden="true">
         <Image
           src={HERO_PHOTO.src}
@@ -49,61 +45,76 @@ export function HeroSection(_props: { block?: unknown } = {}) {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
-          quality={85}
+          className="object-cover object-center scale-[1.03]"
+          quality={90}
+          style={{
+            filter: 'contrast(1.08) saturate(0.88) brightness(0.92)',
+          }}
         />
+        {/* Voile + grading (nuit / or) */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgba(6,6,10,0.42) 0%, rgba(6,6,10,0.52) 48%, rgba(6,6,10,0.78) 100%), radial-gradient(ellipse 75% 60% at 50% 42%, transparent 0%, rgba(6,6,10,0.4) 100%)',
+              'linear-gradient(180deg, rgba(6,8,16,0.55) 0%, rgba(8,10,18,0.45) 40%, rgba(6,6,10,0.82) 100%), ' +
+              'radial-gradient(ellipse 80% 55% at 50% 38%, transparent 0%, rgba(6,6,10,0.55) 100%), ' +
+              'linear-gradient(120deg, rgba(30,58,138,0.12) 0%, transparent 45%, rgba(212,175,55,0.08) 100%)',
           }}
         />
+        {/* Lumière vivante — uniquement la lumière, pas les composants */}
+        {!reduce && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(ellipse 55% 45% at 50% 28%, rgba(245,230,167,0.16) 0%, rgba(212,175,55,0.05) 42%, transparent 70%)',
+            }}
+            animate={{ opacity: [0.55, 0.85, 0.55], scale: [1, 1.04, 1] }}
+            transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        )}
+        {reduce && (
+          <div
+            className="absolute inset-0 pointer-events-none opacity-70"
+            style={{
+              background:
+                'radial-gradient(ellipse 55% 45% at 50% 28%, rgba(245,230,167,0.14) 0%, transparent 70%)',
+            }}
+          />
+        )}
       </div>
 
-      <div className="relative z-10 w-full max-w-3xl mx-auto px-5 sm:px-8 pt-28 pb-16 flex flex-col items-center text-center">
-        {/* Logo discret */}
-        <motion.div
-          initial={reduce ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.85, ease: EASE }}
-          className="mb-9"
-        >
-          <Image
-            src="/images/logo-mark.png"
-            alt="Citadelle"
-            width={44}
-            height={44}
-            priority
-            className="mx-auto opacity-85"
-          />
-        </motion.div>
-
+      <div className="relative z-10 w-full max-w-5xl mx-auto px-5 sm:px-8 pt-24 pb-20 flex flex-col items-center text-center">
         <motion.h1
           id="hero-title"
-          initial={reduce ? false : { opacity: 0, y: 18 }}
+          initial={reduce ? false : { opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: reduce ? 0 : 0.06, ease: EASE }}
-          className="mb-6"
+          transition={{ duration: DUR, ease: EASE }}
+          className="mb-7 w-full max-w-[min(100%,42rem)] mx-auto overflow-hidden px-0"
         >
+          {/* Une ligne chacune · largeur visuelle alignée · sans overflow 320 */}
           <span
-            className="block font-cinzel font-black"
+            className="block font-cinzel font-black uppercase whitespace-nowrap"
             style={{
-              fontSize: 'clamp(2.15rem, 6.2vw, 4.5rem)',
-              lineHeight: 1.08,
-              letterSpacing: '-0.03em',
+              fontSize: 'clamp(0.98rem, 4.4vw, 3.55rem)',
+              lineHeight: 1.05,
+              letterSpacing: 'clamp(0.005em, 0.28vw, 0.04em)',
               color: '#F7F4EE',
-              textShadow: '0 4px 40px rgba(0,0,0,0.4)',
+              textShadow: '0 6px 48px rgba(0,0,0,0.5)',
+              width: '100%',
+              textAlign: 'center',
             }}
           >
             {COPY.titleLine1}
           </span>
           <span
-            className="block font-cinzel font-black text-gradient-light-gold mt-2"
+            className="block font-cinzel font-black uppercase whitespace-nowrap mt-2 text-gradient-light-gold"
             style={{
-              fontSize: 'clamp(2.15rem, 6.2vw, 4.5rem)',
-              lineHeight: 1.08,
-              letterSpacing: '-0.03em',
+              fontSize: 'clamp(0.98rem, 4.4vw, 3.55rem)',
+              lineHeight: 1.05,
+              letterSpacing: 'clamp(0.002em, 0.15vw, 0.018em)',
+              width: '100%',
+              textAlign: 'center',
             }}
           >
             {COPY.titleLine2}
@@ -111,23 +122,23 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         </motion.h1>
 
         <motion.p
-          initial={reduce ? false : { opacity: 0, y: 10 }}
+          initial={reduce ? false : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: reduce ? 0 : 0.18, ease: EASE }}
-          className="font-inter leading-relaxed mb-11 mx-auto"
+          transition={{ duration: DUR, delay: reduce ? 0 : 0.12, ease: EASE }}
+          className="font-inter leading-relaxed mb-12 mx-auto"
           style={{
-            fontSize: 'clamp(0.95rem, 1.55vw, 1.1rem)',
-            color: 'rgba(235,231,221,0.58)',
-            maxWidth: '28rem',
+            fontSize: 'clamp(0.95rem, 1.5vw, 1.08rem)',
+            color: 'rgba(235,231,221,0.52)',
+            maxWidth: '22rem',
           }}
         >
           {COPY.subtitle}
         </motion.p>
 
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 8 }}
+          initial={reduce ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.75, delay: reduce ? 0 : 0.3, ease: EASE }}
+          transition={{ duration: DUR, delay: reduce ? 0 : 0.22, ease: EASE }}
           className="flex flex-col items-center gap-5 w-full sm:w-auto"
         >
           <Link
@@ -144,15 +155,16 @@ export function HeroSection(_props: { block?: unknown } = {}) {
             href={COPY.secondaryHref}
             onClick={() => events.ctaClick('decouvrir_citadelle_hero')}
             className="text-sm font-inter tracking-wide py-2 px-3 transition-colors hover:text-gold-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37] rounded-sm"
-            style={{ color: 'rgba(235,231,221,0.45)' }}
+            style={{ color: 'rgba(235,231,221,0.42)' }}
           >
             {COPY.secondaryLabel}
           </Link>
         </motion.div>
       </div>
 
+      {/* Respiration vers le bandeau preuve */}
       <div
-        className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0 h-32 md:h-40 pointer-events-none"
         style={{ background: 'linear-gradient(180deg, transparent, #06060A)' }}
         aria-hidden="true"
       />

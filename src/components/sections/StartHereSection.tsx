@@ -1,11 +1,6 @@
 'use client'
 /**
- * SCÈNE 4 — PARCOURS (blueprint V3)
- *
- * Progression verticale (pas de grille).
- * Étapes : Découvrir → S'enraciner → Grandir → Servir → Conduire → Multiplier
- * Chaque étape : numéro · icône · phrase · image réelle
- * Une seule CTA : Voir le parcours complet
+ * SCÈNE 4 — PARCOURS · chemin organique (voyage, pas timeline)
  */
 import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
@@ -23,6 +18,9 @@ import {
 } from 'lucide-react'
 import { events } from '@/lib/analytics'
 
+const EASE = [0.16, 1, 0.3, 1] as const
+const DUR = 0.85
+
 type PathStep = {
   n: string
   title: string
@@ -32,7 +30,6 @@ type PathStep = {
   alt: string
 }
 
-/** Images réelles — modules parcours-1 (public/). */
 const PATH_STEPS: PathStep[] = [
   {
     n: '01',
@@ -96,13 +93,13 @@ export function StartHereSection() {
       className="section-cinematic scroll-mt-24"
       aria-labelledby="parcours-title"
     >
-      <div className="container-cinematic max-w-2xl">
+      <div className="container-cinematic max-w-2xl overflow-hidden">
         <motion.h2
           id="parcours-title"
-          initial={reduce ? false : { opacity: 0, y: 14 }}
+          initial={reduce ? false : { opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-          className="heading-cinematic-lg text-center mb-14 md:mb-20"
+          transition={{ duration: DUR, ease: EASE }}
+          className="heading-cinematic-lg text-center mb-12 md:mb-16"
         >
           Le parcours
         </motion.h2>
@@ -113,29 +110,31 @@ export function StartHereSection() {
           {PATH_STEPS.map((step, i) => {
             const Icon = step.icon
             const isLast = i === PATH_STEPS.length - 1
+            const offset = i % 2 === 0 ? 'is-path-a' : 'is-path-b'
             return (
               <motion.li
                 key={step.n}
-                initial={reduce ? false : { opacity: 0, y: 14 }}
+                initial={reduce ? false : { opacity: 0, y: 16 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{
-                  duration: 0.55,
+                  duration: DUR,
                   delay: reduce ? 0 : i * 0.05,
-                  ease: [0.16, 1, 0.3, 1],
+                  ease: EASE,
                 }}
-                className="citadelle-v3-path-step relative"
+                className={`citadelle-v3-path-step relative ${offset}`}
               >
                 <div className="citadelle-v3-path-node" aria-hidden="true" />
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-7 pl-10 sm:pl-12">
-                  <div className="relative w-full sm:w-36 h-24 sm:h-28 rounded-2xl overflow-hidden flex-shrink-0">
+                <div className="citadelle-path-card group flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 pl-10 sm:pl-12">
+                  <div className="relative w-full sm:w-36 h-24 sm:h-28 rounded-2xl overflow-hidden flex-shrink-0 citadelle-path-img">
                     <Image
                       src={step.image}
                       alt={step.alt}
                       fill
                       sizes="(max-width: 640px) 100vw, 144px"
-                      className="object-cover"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
+                    <div className="citadelle-path-img-veil absolute inset-0 pointer-events-none" aria-hidden />
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -147,7 +146,7 @@ export function StartHereSection() {
                         {step.n}
                       </span>
                       <Icon
-                        className="w-4 h-4"
+                        className="w-4 h-4 transition-transform duration-500 group-hover:scale-110"
                         style={{ color: 'rgba(212,175,55,0.7)' }}
                         strokeWidth={1.5}
                         aria-hidden="true"
@@ -165,9 +164,9 @@ export function StartHereSection() {
 
                 {!isLast && (
                   <div
-                    className="pl-10 sm:pl-12 py-3"
+                    className="pl-10 sm:pl-12 py-2.5"
                     aria-hidden="true"
-                    style={{ color: 'rgba(212,175,55,0.35)' }}
+                    style={{ color: 'rgba(212,175,55,0.3)' }}
                   >
                     <span className="font-inter text-base leading-none">↓</span>
                   </div>
@@ -178,10 +177,10 @@ export function StartHereSection() {
         </ol>
 
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 10 }}
+          initial={reduce ? false : { opacity: 0, y: 12 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.65, delay: reduce ? 0 : 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mt-14 md:mt-16"
+          transition={{ duration: DUR, delay: reduce ? 0 : 0.28, ease: EASE }}
+          className="text-center mt-12 md:mt-14"
         >
           <Link
             href="/parcours"

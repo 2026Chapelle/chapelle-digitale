@@ -24,7 +24,7 @@ export function JoinSection(_props: { block?: unknown } = {}) {
         }}
       >
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(720px,100vw)] h-[min(360px,55vw)] pointer-events-none"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(720px,100%)] h-[min(360px,55%)] pointer-events-none"
           style={{
             background:
               'radial-gradient(ellipse, rgba(212,175,55,0.10) 0%, rgba(30,58,138,0.05) 45%, transparent 72%)',

@@ -76,7 +76,7 @@ export function LifeExperiencesSection() {
           initial={reduce ? false : { opacity: 0, y: 18 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-14 md:mb-20"
+          className="text-center mb-12 md:mb-16"
         >
           <h2 id="life-title" className="heading-cinematic-lg">
             Ce que tu vas

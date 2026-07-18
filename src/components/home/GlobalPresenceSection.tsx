@@ -103,7 +103,7 @@ export function GlobalPresenceSection() {
 
         {/* Globe — très grand, animation lente, borné mobile. Aucune statistique. */}
         <div className="flex justify-center">
-          <div className="relative aspect-square w-[min(460px,92vw)] md:w-[640px] md:max-w-none">
+          <div className="relative aspect-square w-[min(460px,100%)] max-w-[92vw] md:w-[640px] md:max-w-none mx-auto">
             <div className="citadelle-halo" aria-hidden />
             <div className="citadelle-orbit" aria-hidden />
             <div className="citadelle-orbit citadelle-orbit-2" aria-hidden />

@@ -74,15 +74,27 @@ export function CommunitySection() {
     <section ref={ref} className="section-cinematic" aria-labelledby="community-title">
       <div className="container-cinematic max-w-5xl">
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 18 }}
+          initial={reduce ? false : { opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-12 md:mb-16"
+          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center mb-10 md:mb-14"
         >
           <h2 id="community-title" className="heading-cinematic-lg">
             Tu n&apos;es
             <span className="block text-cinematic-gold">pas seul.</span>
           </h2>
+          <p
+            className="font-cormorant italic mt-5 md:mt-6 mx-auto max-w-md leading-relaxed"
+            style={{
+              fontSize: 'clamp(0.95rem, 1.4vw, 1.15rem)',
+              color: 'rgba(235,217,160,0.42)',
+            }}
+          >
+            « Portez les fardeaux les uns des autres, et vous accomplirez ainsi la loi de Christ. »
+            <span className="block font-inter not-italic text-[10px] tracking-[0.18em] uppercase mt-2" style={{ color: 'rgba(235,217,160,0.28)' }}>
+              Galates 6.2
+            </span>
+          </p>
         </motion.div>
 
         {/* Grande photographie réelle */}

@@ -1,14 +1,13 @@
 'use client'
 /**
- * SCÈNE 3 — VISION (blueprint V3)
- *
- * Titre : Pourquoi Citadelle ?
- * Quatre colonnes : Grandir · Appartenir · Servir · Rayonner
- * Aucune carte · beaucoup d'espace · icône simple · une phrase max
+ * SCÈNE 3 — VISION · vie au scroll et au hover (élégant, non gadget)
  */
 import { useRef } from 'react'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { Sprout, Users, HandHeart, Sun } from 'lucide-react'
+
+const EASE = [0.16, 1, 0.3, 1] as const
+const DUR = 0.85
 
 const PILLARS = [
   {
@@ -41,38 +40,42 @@ export function VisionSection() {
   return (
     <section ref={ref} className="section-cinematic" aria-labelledby="vision-title">
       <div className="container-cinematic max-w-6xl">
-        <motion.div
-          initial={reduce ? false : { opacity: 0, y: 16 }}
+        <motion.h2
+          id="vision-title"
+          initial={reduce ? false : { opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-20 md:mb-28"
+          transition={{ duration: DUR, ease: EASE }}
+          className="heading-cinematic-lg text-center mb-16 md:mb-20"
         >
-          <h2 id="vision-title" className="heading-cinematic-lg">
-            Pourquoi Citadelle&nbsp;?
-          </h2>
-        </motion.div>
+          Pourquoi Citadelle&nbsp;?
+        </motion.h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-16 gap-x-10 lg:gap-x-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-14 gap-x-10 lg:gap-x-12">
           {PILLARS.map((p, i) => {
             const Icon = p.icon
             return (
               <motion.div
                 key={p.title}
-                initial={reduce ? false : { opacity: 0, y: 14 }}
+                initial={reduce ? false : { opacity: 0, y: 18 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{
-                  duration: 0.7,
+                  duration: DUR,
                   delay: reduce ? 0 : 0.06 + i * 0.07,
-                  ease: [0.16, 1, 0.3, 1],
+                  ease: EASE,
                 }}
-                className="text-center px-3"
+                className="citadelle-vision-pillar group text-center px-3"
               >
-                <div className="mx-auto mb-7 flex items-center justify-center" aria-hidden="true">
-                  <Icon className="w-6 h-6" style={{ color: '#D4AF37' }} strokeWidth={1.4} />
+                <div
+                  className="citadelle-vision-icon mx-auto mb-6 flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <Icon className="w-6 h-6" strokeWidth={1.4} />
                 </div>
-                <h3 className="font-cinzel font-bold text-pearl text-xl mb-4">{p.title}</h3>
+                <h3 className="font-cinzel font-bold text-pearl text-xl mb-3 transition-[color,transform] duration-500 group-hover:-translate-y-0.5">
+                  {p.title}
+                </h3>
                 <p
-                  className="font-inter text-sm leading-relaxed max-w-[13rem] mx-auto"
+                  className="font-inter text-sm leading-relaxed max-w-[13rem] mx-auto transition-[color,transform] duration-500 group-hover:-translate-y-0.5"
                   style={{ color: 'rgba(245,230,216,0.45)' }}
                 >
                   {p.phrase}

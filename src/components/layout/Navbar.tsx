@@ -33,8 +33,15 @@ const NAV_ITEMS = [
       { label: 'Familles de la Chapelle', href: '/plateformes/familles-chapelle', Icon: HeartHandshake, color: '#F5E6A7' },
     ] as { label: string; href: string; Icon: LucideIcon; color: string }[],
   },
-  { label: 'Formations', href: '/formations', icon: BookOpen },
-  { label: 'Podcast', href: '/podcast', icon: Headphones },
+  {
+    label: 'Formations',
+    href: '/formations',
+    icon: BookOpen,
+    children: [
+      { label: 'Formations', href: '/formations', Icon: BookOpen, color: '#D4AF37' },
+      { label: 'Podcast', href: '/podcast', Icon: Headphones, color: '#14B8A6' },
+    ] as { label: string; href: string; Icon: LucideIcon; color: string }[],
+  },
   { label: 'Prière', href: '/priere', icon: Heart },
   { label: 'Dons', href: '/dons', icon: Heart },
 ]
@@ -60,7 +67,8 @@ export function Navbar() {
   const isDarkPage = true
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 16)
+    const handleScroll = () => setScrolled(window.scrollY > 24)
+    handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
@@ -106,48 +114,42 @@ export function Navbar() {
         style={
           isHome
             ? ({
-                // Barre pleine largeur → pas d'arrondi ; frost/tint discrets pour
-                // laisser le hero doré transparaître et garder le texte lisible.
+                // Verre profond · frost + rim subtil · densifie au scroll
                 '--lg-radius': '0px',
-                '--lg-tint': scrolled ? '0.10' : '0.06',
-                '--lg-blur': scrolled ? '16px' : '10px',
-                '--lg-stroke': '0.16',
+                '--lg-tint': scrolled ? '0.12' : '0.05',
+                '--lg-blur': scrolled ? '20px' : '12px',
+                '--lg-stroke': scrolled ? '0.18' : '0.12',
               } as CSSProperties)
             : undefined
         }
       >
         <div className="container-royal relative z-10">
-          <div className="flex items-center justify-between h-20">
-
-            {/* LOGO */}
-            <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
-              <div className="relative w-10 h-10">
+          {/* Hauteur de base −12 % ; encore réduite au scroll */}
+          <div
+            className={cn(
+              'flex items-center justify-between transition-[height] duration-500 ease-out',
+              scrolled ? 'h-14 md:h-14' : 'h-[4.25rem] md:h-[4.5rem]'
+            )}
+          >
+            {/* LOGO seul — signature marque */}
+            <Link
+              href="/"
+              className="flex items-center group flex-shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37] rounded-full"
+              aria-label="Citadelle — Accueil"
+            >
+              <div className={cn('relative transition-all duration-500', scrolled ? 'w-8 h-8' : 'w-9 h-9')}>
                 <div
-                  className="absolute inset-0 rounded-full opacity-40 group-hover:opacity-75 blur-xl transition-opacity duration-500"
+                  className="absolute inset-0 rounded-full opacity-35 group-hover:opacity-70 blur-xl transition-opacity duration-500"
                   style={{ background: 'radial-gradient(circle, #D4AF37 0%, transparent 70%)' }}
                 />
                 <Image
                   src="/images/logo-mark.png"
-                  alt="CIER — La Chapelle Internationale des Élus du Royaume"
-                  width={40}
-                  height={40}
+                  alt="Citadelle"
+                  width={36}
+                  height={36}
                   priority
-                  className="relative w-10 h-10 object-contain drop-shadow-[0_2px_10px_rgba(212,175,55,0.45)] transition-transform duration-500 group-hover:scale-105"
+                  className="relative w-full h-full object-contain drop-shadow-[0_2px_10px_rgba(212,175,55,0.4)] transition-transform duration-500 group-hover:scale-105"
                 />
-              </div>
-              <div className="hidden sm:block">
-                <div
-                  className="font-cinzel font-bold text-sm leading-tight tracking-[0.15em]"
-                  style={{ color: '#F5E6A7' }}
-                >
-                  CIER
-                </div>
-                <div
-                  className="font-inter text-[9px] tracking-[0.25em] uppercase"
-                  style={{ color: 'rgba(245,230,216,0.4)' }}
-                >
-                  Une Église Ouverte au Monde
-                </div>
               </div>
             </Link>
 
