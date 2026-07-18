@@ -1,43 +1,33 @@
+/**
+ * Homepage V3 — Citadelle Experience Operating System
+ *
+ * Ordre narratif fixe (9 scènes) :
+ *   1 Hero → 2 Preuve → 3 Vision → 4 Parcours → 5 La vie
+ *   → 6 Communauté → 7 Royaume (globe) → 8 Application (PWA) → 9 CTA final
+ *
+ * Aucune nouvelle route / API / backend. CMS hero optionnel (cta / subtitle).
+ */
 import { cmsList, type CmsHomepageBlock } from '@/lib/cms'
 import { HeroSection } from '@/components/sections/HeroSection'
-import { LiveSection } from '@/components/sections/LiveSection'
+import { ProofStripSection } from '@/components/sections/ProofStripSection'
+import { VisionSection } from '@/components/sections/VisionSection'
 import { StartHereSection } from '@/components/sections/StartHereSection'
-import { MovementSection } from '@/components/sections/MovementSection'
-import { GrowSection } from '@/components/sections/GrowSection'
+import { LifeExperiencesSection } from '@/components/sections/LifeExperiencesSection'
 import { CommunitySection } from '@/components/sections/CommunitySection'
 import { JoinSection } from '@/components/sections/JoinSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
 import { HomeJoinPopupLazy } from '@/components/home/HomeJoinPopupLazy'
-import { FeaturedEventsSection } from '@/components/home/FeaturedEventsSection'
 import { InstallCitadelleSection } from '@/components/home/InstallCitadelleSection'
 import { GlobalPresenceSection } from '@/components/home/GlobalPresenceSection'
 
-/**
- * Accueil piloté par le CMS + narration produit resserrée (2e passe).
- *
- * Ordre narratif (fallback si sort_order CMS absent) :
- *   hero → events → start (parcours) → grow → live → community
- *   → movement → globe → install (PWA unique) → join (CTA final)
- *
- * Join n'est plus une étape « comment ça marche » redondante : finale d'engagement.
- */
-
 type Block = CmsHomepageBlock & {
-  body?: string; image_url?: string; cta_label?: string; cta_href?: string; status?: string; sort_order?: number
+  body?: string
+  image_url?: string
+  cta_label?: string
+  cta_href?: string
+  status?: string
+  sort_order?: number
 }
-
-const COMPONENTS: Record<string, (props: { block?: Block }) => JSX.Element> = {
-  hero: HeroSection,
-  live: LiveSection,
-  start: StartHereSection,
-  movement: MovementSection,
-  grow: GrowSection,
-  community: CommunitySection,
-  join: JoinSection,
-}
-
-/** Narration produit — sort_order CMS peut réordonner, join reste en fin si présent. */
-const DEFAULT_ORDER = ['hero', 'start', 'grow', 'live', 'community', 'movement', 'join']
 
 export async function HomeSections() {
   const rows = (await cmsList<Block>('cms_homepage_blocks')) ?? []
@@ -51,56 +41,62 @@ export async function HomeSections() {
     return b.status ? b.status === 'published' : true
   }
 
-  const ordered = DEFAULT_ORDER
-    .map((key, i) => ({ key, order: byKey[key]?.sort_order ?? i }))
-    .sort((a, b) => a.order - b.order)
-    .map((x) => x.key)
-    .filter((key) => COMPONENTS[key] && isVisible(key))
-
-  // Join en dernier pour conclure l'histoire (sauf s'il est désactivé).
-  const mainKeys = ordered.filter((k) => k !== 'join')
-  const showJoin = ordered.includes('join')
-
-  /** Émotion de scène (direction artistique Phase 3) */
-  const sceneMood: Record<string, string> = {
-    hero: 'scene-hope',
-    start: 'scene-transform',
-    grow: 'scene-transform',
-    live: 'scene-joy',
-    community: 'scene-belong',
-    movement: 'scene-belong',
-  }
+  const showHero = isVisible('hero')
+  const showJoin = isVisible('join')
 
   return (
     <div className="bg-charbon relative">
       <HomeJoinPopupLazy />
 
-      {mainKeys.map((key, i) => {
-        const Section = COMPONENTS[key]
-        const mood = sceneMood[key] || ''
-        return (
-          <div key={key} className={mood}>
-            {i > 0 && <SectionGlow />}
-            <Section block={byKey[key]} />
-            {key === 'hero' && (
-              <div className="scene-joy">
-                <SectionGlow />
-                <FeaturedEventsSection />
-              </div>
-            )}
-          </div>
-        )
-      })}
+      {/* 1 — Hero */}
+      {showHero && (
+        <div className="scene-hope">
+          <HeroSection block={byKey.hero} />
+        </div>
+      )}
 
+      {/* 2 — Preuve */}
+      <div className="scene-hope">
+        <ProofStripSection />
+      </div>
+
+      {/* 3 — Vision */}
+      <div className="scene-transform">
+        <SectionGlow />
+        <VisionSection />
+      </div>
+
+      {/* 4 — Parcours */}
+      <div className="scene-transform">
+        <SectionGlow />
+        <StartHereSection />
+      </div>
+
+      {/* 5 — La vie */}
+      <div className="scene-joy">
+        <SectionGlow />
+        <LifeExperiencesSection />
+      </div>
+
+      {/* 6 — Communauté */}
+      <div className="scene-belong">
+        <SectionGlow />
+        <CommunitySection />
+      </div>
+
+      {/* 7 — Le Royaume (globe) */}
       <div className="scene-mission">
         <SectionGlow />
         <GlobalPresenceSection />
       </div>
+
+      {/* 8 — Application (PWA réelle) */}
       <div className="scene-continuity">
         <SectionGlow />
         <InstallCitadelleSection />
       </div>
 
+      {/* 9 — CTA final */}
       {showJoin && (
         <div className="scene-decision">
           <SectionGlow />

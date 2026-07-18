@@ -98,11 +98,11 @@ export function GlobalPresenceSection() {
       <div className="container-royal grid lg:grid-cols-2 gap-12 items-center">
         <div>
           <p className="section-label-dark mb-5">
-            <Globe2 className="w-3 h-3" /> Mission
+            <Globe2 className="w-3 h-3" /> Le Royaume
           </p>
           <h2 className="heading-cinematic-lg mb-6">
-            L&apos;Église
-            <span className="block text-cinematic-gold">partout.</span>
+            Le Royaume
+            <span className="block text-cinematic-gold">dépasse les frontières.</span>
           </h2>
           <p className="font-inter leading-relaxed max-w-sm text-base md:text-lg" style={{ color: 'rgba(245,230,216,0.42)' }}>
             Une lumière dans la nuit. Une maison sans frontières.
@@ -111,7 +111,7 @@ export function GlobalPresenceSection() {
 
         {/* Globe image — plus visible, borné pour zéro débordement mobile. */}
         <div className="flex justify-center">
-          <div className="relative aspect-square w-[min(360px,88vw)] md:w-[540px] md:max-w-none">
+          <div className="relative aspect-square w-[min(420px,90vw)] md:w-[600px] md:max-w-none">
             <div className="citadelle-halo" aria-hidden />
             <div className="citadelle-orbit" aria-hidden />
             <div className="citadelle-orbit citadelle-orbit-2" aria-hidden />
