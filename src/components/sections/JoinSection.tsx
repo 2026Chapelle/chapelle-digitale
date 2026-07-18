@@ -53,11 +53,11 @@ export function JoinSection(_props: { block?: unknown } = {}) {
           <Link
             href="/rejoindre"
             onClick={() => events.ctaClick('rejoindre_finale')}
-            className="btn-gold-cinematic group inline-flex"
+            className="btn-gold-cinematic group inline-flex focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
             style={{ padding: '18px 48px', fontSize: '1rem' }}
           >
             Commencer gratuitement
-            <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+            <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
           </Link>
         </motion.div>
       </div>
