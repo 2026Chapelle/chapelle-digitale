@@ -44,6 +44,13 @@ const GLOBE_CSS = `
     0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.82); }
     50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.18); }
   }
+  @keyframes citadelleOrbit {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes citadelleHaloBreath {
+    0%, 100% { opacity: 0.45; transform: scale(1); }
+    50% { opacity: 0.75; transform: scale(1.04); }
+  }
   .citadelle-globe-rotate {
     animation: citadelleGlobeSpin 120s linear infinite;
     will-change: transform;
@@ -55,9 +62,32 @@ const GLOBE_CSS = `
     transform: translate(-50%, -50%);
     animation: citadelleNationPulse 3.4s ease-in-out infinite;
   }
+  .citadelle-orbit {
+    position: absolute;
+    inset: -6%;
+    border-radius: 9999px;
+    border: 1px solid rgba(212,175,55,0.18);
+    animation: citadelleOrbit 48s linear infinite;
+    pointer-events: none;
+  }
+  .citadelle-orbit-2 {
+    inset: -12%;
+    border-color: rgba(245,230,167,0.10);
+    animation-duration: 72s;
+    animation-direction: reverse;
+  }
+  .citadelle-halo {
+    position: absolute;
+    inset: -18%;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(212,175,55,0.16) 0%, transparent 68%);
+    animation: citadelleHaloBreath 8s ease-in-out infinite;
+    pointer-events: none;
+  }
   @media (prefers-reduced-motion: reduce) {
     .citadelle-globe-rotate { animation: none; }
     .citadelle-nation { animation: none; opacity: 0.85; }
+    .citadelle-orbit, .citadelle-orbit-2, .citadelle-halo { animation: none; }
   }
 `
 
@@ -81,16 +111,17 @@ export function GlobalPresenceSection() {
 
         {/* Globe image — plus visible, borné pour zéro débordement mobile. */}
         <div className="flex justify-center">
-          <div className="relative aspect-square w-[min(340px,86vw)] md:w-[520px] md:max-w-none">
-            {/* Image en rotation (seule transformation appliquée). */}
-            <div className="citadelle-globe-rotate absolute inset-0 rounded-full overflow-hidden">
-              {/* <img> simple : aucune dépendance, aucun domaine à déclarer, pas de conversion. */}
+          <div className="relative aspect-square w-[min(360px,88vw)] md:w-[540px] md:max-w-none">
+            <div className="citadelle-halo" aria-hidden />
+            <div className="citadelle-orbit" aria-hidden />
+            <div className="citadelle-orbit citadelle-orbit-2" aria-hidden />
+            <div className="citadelle-globe-rotate absolute inset-0 rounded-full overflow-hidden shadow-[0_0_80px_rgba(212,175,55,0.12)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/home/globe-nations.webp"
                 alt="Globe terrestre — la portée internationale de La Citadelle"
-                width={460}
-                height={460}
+                width={540}
+                height={540}
                 loading="lazy"
                 decoding="async"
                 className="w-full h-full object-cover object-center select-none"

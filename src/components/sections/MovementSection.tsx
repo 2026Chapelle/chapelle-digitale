@@ -163,7 +163,7 @@ export function MovementSection() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="text-center"
         >
-          <Link href="/plateformes" className="btn-glass-cinematic group">
+          <Link href="/plateformes" className="text-sm font-inter text-pearl/60 hover:text-gold inline-flex items-center gap-1.5 transition-colors group">
             Découvrir toutes les plateformes
             <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>

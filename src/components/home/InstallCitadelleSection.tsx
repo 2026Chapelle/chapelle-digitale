@@ -37,45 +37,70 @@ export function InstallCitadelleSection() {
   }
 
   return (
-    <section className="py-8 sm:py-10">
+    <section className="py-14 sm:py-16" aria-labelledby="install-citadelle-title">
       <div className="container-royal">
         <div
-          className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 rounded-2xl border border-gold/20 px-5 py-5 sm:px-7"
-          style={{ background: 'radial-gradient(600px 200px at 0% 0%, rgba(212,175,55,0.10), transparent 60%), linear-gradient(180deg, rgba(13,9,24,0.92), rgba(6,4,9,0.92))' }}
+          className="relative overflow-hidden rounded-3xl border border-gold/20 px-6 py-10 sm:px-10 sm:py-12 text-center sm:text-left"
+          style={{
+            background:
+              'radial-gradient(700px 280px at 10% 0%, rgba(212,175,55,0.14), transparent 55%), radial-gradient(500px 240px at 90% 100%, rgba(75,0,130,0.12), transparent 50%), linear-gradient(165deg, rgba(13,9,24,0.98), rgba(6,4,9,0.96))',
+          }}
         >
-          <span
-            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.25)' }}
-          >
-            <Smartphone className="w-5 h-5 text-gold" />
-          </span>
+          <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+            <div className="flex-1 max-w-xl">
+              <p className="text-[11px] font-inter font-bold tracking-[0.22em] uppercase text-gold/90 mb-3">
+                Application
+              </p>
+              <h2 id="install-citadelle-title" className="font-cinzel font-bold text-2xl sm:text-3xl text-pearl leading-tight mb-3">
+                Emporte toute ton église dans ta poche.
+              </h2>
+              <p className="font-inter text-sm sm:text-base text-pearl/65 leading-relaxed mb-6">
+                Retrouve tes parcours, tes enseignements, tes événements et ta communauté depuis ton téléphone —
+                en un tap, comme une app.
+              </p>
+              <ul className="flex flex-wrap justify-center sm:justify-start gap-2 mb-6 list-none p-0 m-0">
+                {['Parcours', 'Enseignements', 'Événements', 'Communauté'].map((b) => (
+                  <li
+                    key={b}
+                    className="text-[11px] font-inter px-2.5 py-1 rounded-full border border-white/10 text-pearl/55 bg-white/[0.03]"
+                  >
+                    {b}
+                  </li>
+                ))}
+              </ul>
 
-          <div className="flex-1 text-center sm:text-left">
-            <h2 className="font-cinzel font-bold text-lg text-pearl leading-tight">Emporte Citadelle partout avec toi</h2>
-            <p className="font-inter text-sm text-pearl/60 mt-0.5">
-              Accède à tes parcours, tes enseignements et ta communauté depuis ton téléphone.
-            </p>
-          </div>
+              {installed ? (
+                <p className="inline-flex items-center gap-2 text-sm font-inter text-[#86EFAC]">
+                  <Check className="w-4 h-4" /> Citadelle est déjà installée sur cet appareil
+                </p>
+              ) : (
+                <button
+                  onClick={onInstall}
+                  className="btn-gold text-sm px-6 py-3 inline-flex items-center gap-2 font-semibold"
+                >
+                  <Download className="w-4 h-4" /> Installer Citadelle
+                </button>
+              )}
+              {hint && !installed && (
+                <p className="mt-4 text-[13px] font-inter text-pearl/55 leading-relaxed max-w-lg">
+                  {hint}
+                </p>
+              )}
+            </div>
 
-          {installed ? (
-            <p className="inline-flex items-center gap-2 text-sm font-inter text-[#86EFAC] flex-shrink-0">
-              <Check className="w-4 h-4" /> Citadelle est installée
-            </p>
-          ) : (
-            <button
-              onClick={onInstall}
-              className="btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2 font-semibold flex-shrink-0"
+            <div
+              className="w-28 h-28 sm:w-32 sm:h-32 rounded-[1.75rem] flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'rgba(212,175,55,0.10)',
+                border: '1px solid rgba(212,175,55,0.28)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.35), 0 0 40px rgba(212,175,55,0.12)',
+              }}
+              aria-hidden
             >
-              <Download className="w-4 h-4" /> Installer l&apos;app
-            </button>
-          )}
+              <Smartphone className="w-12 h-12 text-gold" />
+            </div>
+          </div>
         </div>
-
-        {hint && !installed && (
-          <p className="mt-3 text-[13px] font-inter text-pearl/55 leading-relaxed text-center sm:text-left max-w-2xl mx-auto sm:mx-0">
-            {hint}
-          </p>
-        )}
       </div>
     </section>
   )

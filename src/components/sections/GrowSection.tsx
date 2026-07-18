@@ -111,12 +111,11 @@ export function GrowSection() {
             Grandir
           </div>
           <h2 className="heading-cinematic-lg mb-5">
-            Nourris ta foi,
-            <span className="block text-cinematic-gold">où que tu sois</span>
+            Contenu pour avancer
+            <span className="block text-cinematic-gold">à ton rythme</span>
           </h2>
           <p className="font-inter text-base md:text-lg leading-relaxed" style={{ color: 'rgba(245,230,216,0.55)' }}>
-            Des formations bibliques et des enseignements à écouter partout —
-            pensés pour ta croissance, à ton rythme.
+            Formations et enseignements réels — pour nourrir ta foi entre les temps forts de l&apos;église.
           </p>
         </motion.div>
 

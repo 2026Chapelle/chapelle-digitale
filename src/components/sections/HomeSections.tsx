@@ -13,22 +13,13 @@ import { InstallCitadelleSection } from '@/components/home/InstallCitadelleSecti
 import { GlobalPresenceSection } from '@/components/home/GlobalPresenceSection'
 
 /**
- * Accueil PILOTÉ PAR LE CMS (table cms_homepage_blocks).
+ * Accueil piloté par le CMS + narration produit resserrée (2e passe).
  *
- * Refonte premium — architecture en 7 blocs (audit homepage) :
- *   hero → live → start → movement → grow → community → join
- *   (fusions : Impact+Platforms→movement, Formations+Podcast→grow,
- *    Prière+Témoignages→community ; pricing retiré de l'accueil).
+ * Ordre narratif (fallback si sort_order CMS absent) :
+ *   hero → events → start (parcours) → grow → live → community
+ *   → movement → globe → install (PWA unique) → join (CTA final)
  *
- * - Ordre  : chaque bloc a un `sort_order` modifiable en back-office.
- * - Visibilité : un bloc `is_active=false` ou non « published » est masqué.
- * - Contenu : titre/sous-titre/image/CTA passés à la section (override optionnel).
- * - Fallback : si aucune ligne CMS pour une section → contenu par défaut affiché.
- *
- * Les anciennes clés (platforms, impact, formations, prayer, testimonials,
- * podcast) ne sont plus rendues : leurs blocs sont désormais fusionnés.
- *
- * Server component : lit le CMS côté serveur, rend des sections clientes animées.
+ * Join n'est plus une étape « comment ça marche » redondante : finale d'engagement.
  */
 
 type Block = CmsHomepageBlock & {
@@ -45,7 +36,8 @@ const COMPONENTS: Record<string, (props: { block?: Block }) => JSX.Element> = {
   join: JoinSection,
 }
 
-const DEFAULT_ORDER = ['hero', 'live', 'start', 'movement', 'grow', 'community', 'join']
+/** Narration produit — sort_order CMS peut réordonner, join reste en fin si présent. */
+const DEFAULT_ORDER = ['hero', 'start', 'grow', 'live', 'community', 'movement', 'join']
 
 export async function HomeSections() {
   const rows = (await cmsList<Block>('cms_homepage_blocks')) ?? []
@@ -54,7 +46,7 @@ export async function HomeSections() {
 
   const isVisible = (key: string) => {
     const b = byKey[key]
-    if (!b) return true // pas de ligne CMS → section affichée par défaut
+    if (!b) return true
     if (b.is_active === false) return false
     return b.status ? b.status === 'published' : true
   }
@@ -65,31 +57,42 @@ export async function HomeSections() {
     .map((x) => x.key)
     .filter((key) => COMPONENTS[key] && isVisible(key))
 
+  // Join en dernier pour conclure l'histoire (sauf s'il est désactivé).
+  const mainKeys = ordered.filter((k) => k !== 'join')
+  const showJoin = ordered.includes('join')
+
   return (
     <div className="bg-charbon relative">
-      {/* Popup première visite (V2.7-A) — s'ouvre après 25 s. V2.10-A : chargé dynamiquement (hors bundle initial). */}
       <HomeJoinPopupLazy />
 
-      {/* Blocs CMS existants (préservés). Injection additive : événements réels après le hero. */}
-      {ordered.map((key, i) => {
+      {mainKeys.map((key, i) => {
         const Section = COMPONENTS[key]
         return (
           <div key={key}>
             {i > 0 && <SectionGlow />}
             <Section block={byKey[key]} />
-            {key === 'hero' && (<><SectionGlow /><FeaturedEventsSection /></>)}
+            {key === 'hero' && (
+              <>
+                <SectionGlow />
+                <FeaturedEventsSection />
+              </>
+            )}
           </div>
         )
       })}
 
-      {/* V2.7-A.4 : bandeau compact « Installer Citadelle » = UNIQUE CTA d'installation de
-          l'accueil (le popup ne propose plus l'installation), placé AVANT la section
-          internationale. Puis la présence internationale (nouveau globe image, léger et stable
-          mobile) RESTAURÉE en fin d'accueil — plus d'ancien SVG, aucun blur/WebGL/canvas. */}
-      <SectionGlow />
-      <InstallCitadelleSection />
+      {/* Moment « wow » mondial puis campagne PWA unique, avant le CTA final */}
       <SectionGlow />
       <GlobalPresenceSection />
+      <SectionGlow />
+      <InstallCitadelleSection />
+
+      {showJoin && (
+        <>
+          <SectionGlow />
+          <JoinSection block={byKey.join} />
+        </>
+      )}
     </div>
   )
 }

@@ -159,7 +159,7 @@ export function FeaturedEventsSection() {
                     {(e?.location || e?.is_online) && (
                       <p className="text-[13px] font-inter text-pearl/55 inline-flex items-center gap-1 mb-3"><MapPin className="w-3.5 h-3.5" /> {e?.location || 'En ligne'}</p>
                     )}
-                    <span className="text-sm font-inter font-semibold text-gold inline-flex items-center gap-1 group-hover:gap-2 transition-all">Participer <ArrowRight className="w-4 h-4" /></span>
+                    <span className="text-sm font-inter font-semibold text-gold inline-flex items-center gap-1 group-hover:gap-2 transition-all">Réserver ma place <ArrowRight className="w-4 h-4" /></span>
                   </div>
                 </Link>
               )

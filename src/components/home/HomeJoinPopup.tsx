@@ -69,8 +69,8 @@ export function HomeJoinPopup() {
           </p>
 
           {/* V2.7-A.4 : CTA interne unique — pas d'installation ici (bandeau Install unique). */}
-          <Link href="/parcours" onClick={dismiss} className="btn-gold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 font-semibold w-full">
-            Commencer mon parcours <ArrowRight className="w-4 h-4" />
+          <Link href="/rejoindre" onClick={dismiss} className="btn-gold text-sm px-5 py-3 inline-flex items-center justify-center gap-2 font-semibold w-full">
+            Commencer gratuitement <ArrowRight className="w-4 h-4" />
           </Link>
           <button onClick={dismiss} className="block w-full mt-3 text-xs font-inter text-pearl/40 hover:text-pearl/65 transition-colors">Plus tard</button>
         </div>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { motion, useScroll, useTransform, AnimatePresence, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, Play, ChevronDown, Sparkles, BookOpen, Users, Heart, Smartphone } from 'lucide-react'
+import { ArrowRight, ChevronDown, Sparkles, BookOpen, Users, Heart, Smartphone } from 'lucide-react'
 import { PremiumImage } from '@/components/ui/PremiumImage'
 import { HERO_IMAGES } from '@/lib/images'
 import { events } from '@/lib/analytics'
@@ -45,8 +45,9 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
     return () => clearInterval(t)
   }, [reduce])
 
-  const primaryHref = block?.cta_href || '/parcours'
-  const primaryLabel = block?.cta_label || 'Commencer mon parcours'
+  // /rejoindre = entrée gratuite réelle ; CMS peut override.
+  const primaryHref = block?.cta_href || '/rejoindre'
+  const primaryLabel = block?.cta_label || 'Commencer gratuitement'
 
   const scrollToDiscover = () => {
     const el = document.getElementById('decouvrir-citadelle')
@@ -195,7 +196,7 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
             }}
           >
             <Sparkles className="w-3 h-3" style={{ color: '#D4AF37' }} />
-            L&apos;église digitale qui t&apos;accompagne chaque jour
+            Ton église digitale, partout avec toi
           </span>
         </motion.div>
 
@@ -207,21 +208,15 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         >
           <span
             className="block font-cinzel font-black drop-shadow-[0_2px_40px_rgba(0,0,0,0.5)]"
-            style={{ fontSize: 'clamp(2.1rem, 6.2vw, 4.4rem)', lineHeight: 1.05, letterSpacing: '-0.02em', color: '#F4F2ED' }}
+            style={{ fontSize: 'clamp(2.2rem, 6.5vw, 4.6rem)', lineHeight: 1.05, letterSpacing: '-0.02em', color: '#F4F2ED' }}
           >
-            Grandis dans ta foi.
+            Grandis avec Christ,
           </span>
           <span
             className="block font-cinzel font-black text-gradient-light-gold"
-            style={{ fontSize: 'clamp(2.1rem, 6.2vw, 4.4rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
+            style={{ fontSize: 'clamp(2.2rem, 6.5vw, 4.6rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
           >
-            Reste connecté.
-          </span>
-          <span
-            className="block mt-2 font-cinzel font-bold"
-            style={{ fontSize: 'clamp(1.35rem, 3.6vw, 2.4rem)', lineHeight: 1.15, color: 'rgba(235,231,221,0.88)' }}
-          >
-            Vis pleinement ta destinée.
+            où que tu sois.
           </span>
         </motion.h1>
 
@@ -233,7 +228,7 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
           style={{ fontSize: 'clamp(0.98rem, 1.9vw, 1.18rem)', color: 'rgba(235,231,221,0.58)', maxWidth: '640px' }}
         >
           {block?.subtitle ||
-            'Découvre des enseignements, des parcours de formation, des temps de prière, des événements et un accompagnement pastoral pensé pour ta croissance — dans une seule plateforme.'}
+            'Retrouve tes enseignements, tes parcours, tes temps de prière, tes événements et ta communauté dans un même espace.'}
         </motion.p>
 
         <motion.div
@@ -273,17 +268,8 @@ export function HeroSection({ block }: { block?: { subtitle?: string; cta_label?
         >
           <span className="inline-flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" aria-hidden />
-            Accès gratuit
+            Accès gratuit · sans engagement
           </span>
-          <span className="hidden sm:inline w-1 h-1 rounded-full bg-gold/40" aria-hidden />
-          <Link
-            href="/live"
-            onClick={() => events.ctaClick('live_hero')}
-            className="inline-flex items-center gap-1.5 hover:text-gold transition-colors"
-          >
-            <Play className="w-3 h-3" />
-            Voir le live
-          </Link>
         </motion.div>
 
         <motion.div
