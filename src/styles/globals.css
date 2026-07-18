@@ -1022,12 +1022,17 @@
     font-weight: 700;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    padding: 0.35rem 0.7rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 999px;
     color: #F5E6A7;
-    background: rgba(8, 8, 14, 0.72);
-    border: 1px solid rgba(212, 175, 55, 0.4);
-    backdrop-filter: blur(8px);
+    background: linear-gradient(135deg, rgba(12, 10, 8, 0.78), rgba(20, 16, 10, 0.68));
+    border: 1px solid rgba(212, 175, 55, 0.38);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 6px 16px rgba(0, 0, 0, 0.28),
+      0 0 14px rgba(212, 175, 55, 0.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
   .citadelle-platform-chip {
     color: rgba(245, 230, 216, 0.75);
@@ -1182,27 +1187,112 @@
     }
   }
 
-  /* Podcast cards */
+  /* Podcast cards — cadre premium (proche parcours, identité propre) */
   .bg-charbon .citadelle-pod-card {
-    border-radius: 1.75rem;
+    position: relative;
+    border-radius: 1.875rem; /* 30px */
     overflow: hidden;
+    isolation: isolate;
     text-decoration: none;
     color: inherit;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    transition:
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* Reflet supérieur discret */
+  .bg-charbon .citadelle-pod-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 2;
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      transparent 38%
+    );
+  }
+  /* Liseré interne */
+  .bg-charbon .citadelle-pod-card::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: calc(1.875rem - 1px);
+    pointer-events: none;
+    z-index: 2;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
   }
   .bg-charbon .citadelle-pod-daily {
-    background: linear-gradient(165deg, rgba(255,255,255,0.04), rgba(15,23,42,0.25));
-    border: 1px solid rgba(255,255,255,0.07);
-    box-shadow: 0 18px 48px rgba(0,0,0,0.35);
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(91, 33, 182, 0.12), transparent 55%),
+      linear-gradient(165deg, rgba(18, 14, 32, 0.98), rgba(8, 8, 16, 0.99));
+    border: 1px solid rgba(167, 139, 250, 0.14);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.06) inset,
+      0 22px 52px rgba(0, 0, 0, 0.42),
+      0 0 40px rgba(91, 33, 182, 0.07);
   }
   .bg-charbon .citadelle-pod-featured {
     background:
-      linear-gradient(160deg, rgba(212,175,55,0.08) 0%, rgba(30,58,138,0.12) 50%, rgba(8,8,14,0.9) 100%);
-    border: 1px solid rgba(212,175,55,0.18);
-    box-shadow: 0 22px 56px rgba(0,0,0,0.42), 0 0 40px rgba(212,175,55,0.06);
+      radial-gradient(ellipse at 80% 0%, rgba(212, 175, 55, 0.1), transparent 50%),
+      linear-gradient(160deg, rgba(22, 18, 10, 0.98) 0%, rgba(12, 14, 28, 0.96) 45%, rgba(8, 8, 14, 0.99) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.22);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.07) inset,
+      0 26px 60px rgba(0, 0, 0, 0.46),
+      0 0 48px rgba(212, 175, 55, 0.09);
   }
-  .bg-charbon .citadelle-pod-card:hover {
-    transform: translateY(-4px);
+  .bg-charbon .citadelle-pod-featured::after {
+    box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.08);
+  }
+  .bg-charbon .citadelle-pod-card .citadelle-pod-media {
+    border-radius: 1.875rem 1.875rem 0 0;
+  }
+  .bg-charbon .citadelle-pod-card img,
+  .bg-charbon .citadelle-pod-card [data-nimg] {
+    transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .bg-charbon .citadelle-pod-card .citadelle-pod-cta-line {
+    transition: color 0.45s ease, gap 0.45s ease, opacity 0.45s ease;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-pod-card:hover {
+      transform: translateY(-5px);
+    }
+    .bg-charbon .citadelle-pod-daily:hover {
+      border-color: rgba(167, 139, 250, 0.28);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.08) inset,
+        0 28px 64px rgba(0, 0, 0, 0.48),
+        0 0 52px rgba(91, 33, 182, 0.12);
+    }
+    .bg-charbon .citadelle-pod-featured:hover {
+      border-color: rgba(212, 175, 55, 0.38);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.09) inset,
+        0 30px 68px rgba(0, 0, 0, 0.5),
+        0 0 56px rgba(212, 175, 55, 0.14);
+    }
+    .bg-charbon .citadelle-pod-card:hover img,
+    .bg-charbon .citadelle-pod-card:hover [data-nimg] {
+      transform: scale(1.03);
+    }
+    .bg-charbon .citadelle-pod-card:hover .citadelle-pod-cta-line {
+      color: #F5E6A7;
+    }
+  }
+  @media (max-width: 767px) {
+    .bg-charbon .citadelle-pod-card {
+      border-radius: 1.5rem; /* 24px mobile */
+    }
+    .bg-charbon .citadelle-pod-card::after {
+      border-radius: calc(1.5rem - 1px);
+    }
+    .bg-charbon .citadelle-pod-card .citadelle-pod-media {
+      border-radius: 1.5rem 1.5rem 0 0;
+    }
   }
   .bg-charbon .citadelle-pod-parallax {
     min-height: 22rem;
@@ -1214,6 +1304,52 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .bg-charbon .citadelle-pod-card:hover {
+      transform: none;
+    }
+    .bg-charbon .citadelle-pod-card:hover img,
+    .bg-charbon .citadelle-pod-card:hover [data-nimg] {
+      transform: none;
+    }
+  }
+
+  /* Bouton retour en haut — liquid glass, au-dessus du lecteur audio */
+  .citadelle-back-top {
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+  body.has-audio-player .citadelle-back-top {
+    bottom: calc(var(--audio-player-h, 76px) + 0.85rem + env(safe-area-inset-bottom, 0px));
+  }
+  .citadelle-back-top-btn {
+    color: rgba(245, 230, 216, 0.92);
+    background: rgba(10, 10, 18, 0.72);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    backdrop-filter: blur(16px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.12) inset,
+      0 10px 28px rgba(0, 0, 0, 0.35),
+      0 0 24px rgba(212, 175, 55, 0.1);
+    transition:
+      border-color 0.35s ease,
+      box-shadow 0.35s ease,
+      background 0.35s ease,
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .citadelle-back-top-btn:hover {
+    border-color: rgba(212, 175, 55, 0.35);
+    background: rgba(14, 12, 22, 0.85);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.14) inset,
+      0 12px 32px rgba(0, 0, 0, 0.4),
+      0 0 28px rgba(212, 175, 55, 0.16);
+    transform: translateY(-2px);
+  }
+  .citadelle-back-top-btn:active {
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .citadelle-back-top-btn:hover {
       transform: none;
     }
   }

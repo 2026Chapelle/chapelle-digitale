@@ -5,7 +5,7 @@
  * Présentés comme expériences — pas comme dashboard de cartes.
  */
 import { useRef } from 'react'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import {
   BookOpen,
@@ -17,7 +17,13 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 
 type Experience = {
   title: string
@@ -67,7 +73,6 @@ const EXPERIENCES: Experience[] = [
 
 export function LifeExperiencesSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
 
   return (
@@ -75,9 +80,10 @@ export function LifeExperiencesSection() {
       <div className="container-cinematic max-w-3xl">
         <motion.h2
           id="life-title"
-          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
           className="heading-cinematic-lg text-center mb-12 md:mb-16"
         >
           Ce que tu vas
@@ -90,13 +96,10 @@ export function LifeExperiencesSection() {
             return (
               <motion.li
                 key={exp.title}
-                initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{
-                  duration: HOME_DUR,
-                  delay: reduce ? 0 : 0.14 + i * 0.06,
-                  ease: HOME_EASE,
-                }}
+                initial={revealInitial(reduce, { y: 36, blur: i < 3 })}
+                whileInView={revealVisible()}
+                viewport={HOME_VIEWPORT}
+                transition={revealTransition(reduce, HOME_DELAY.body + i * HOME_DELAY.cardStep)}
                 style={{ borderColor: 'rgba(244,241,233,0.06)' }}
               >
                 <Link

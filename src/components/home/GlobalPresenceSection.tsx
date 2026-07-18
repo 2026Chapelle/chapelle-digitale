@@ -4,8 +4,14 @@
  * Accessibilité : prefers-reduced-motion coupe rotation et apparitions.
  */
 import { useRef } from 'react'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
-import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
+import { motion, useReducedMotion } from 'framer-motion'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 // Constellation SYMBOLIQUE des nations où des drapeaux apparaissent réellement sur les
 // pages publiques (MovementSection + Contact). Positions décoratives — ce n'est PAS une
 // cartographie exacte. Aucun chiffre, aucune statistique. Exactement 14 lumières.
@@ -83,7 +89,6 @@ const GLOBE_CSS = `
 
 export function GlobalPresenceSection() {
   const ref = useRef<HTMLElement>(null)
-  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
 
   return (
@@ -91,9 +96,10 @@ export function GlobalPresenceSection() {
       <style dangerouslySetInnerHTML={{ __html: GLOBE_CSS }} />
       <div className="container-royal grid lg:grid-cols-2 gap-12 items-center">
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
         >
           <h2 className="heading-cinematic-lg">
             Le Royaume
@@ -104,9 +110,10 @@ export function GlobalPresenceSection() {
         {/* Globe — très grand, animation lente, borné mobile. Aucune statistique. */}
         <motion.div
           className="flex justify-center"
-          initial={reduce ? false : { opacity: 0, y: 14 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.14, ease: HOME_EASE }}
+          initial={revealInitial(reduce, { y: 40, blur: false })}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.body)}
         >
           <div className="relative aspect-square w-[min(460px,100%)] max-w-[92vw] md:w-[640px] md:max-w-none mx-auto">
             <div className="citadelle-halo" aria-hidden />

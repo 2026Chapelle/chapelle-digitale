@@ -4,15 +4,20 @@
  * Fond épuré. Un titre. Un bouton. Rien d'autre.
  */
 import { useRef } from 'react'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 
 export function JoinSection(_props: { block?: unknown } = {}) {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
 
   return (
@@ -36,9 +41,10 @@ export function JoinSection(_props: { block?: unknown } = {}) {
         <div className="relative z-10 max-w-2xl mx-auto text-center">
           <motion.h2
             id="final-cta-title"
-            initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+            initial={revealInitial(reduce)}
+            whileInView={revealVisible()}
+            viewport={HOME_VIEWPORT}
+            transition={revealTransition(reduce, HOME_DELAY.title)}
             className="font-cinzel font-black mb-12 text-cinematic-gold"
             style={{
               fontSize: 'clamp(1.85rem, 4.5vw, 3.1rem)',
@@ -50,9 +56,10 @@ export function JoinSection(_props: { block?: unknown } = {}) {
           </motion.h2>
 
           <motion.div
-            initial={reduce ? false : { opacity: 0, y: 14 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.14, ease: HOME_EASE }}
+            initial={revealInitial(reduce, { y: 36, scale: true })}
+            whileInView={revealVisible({ scale: true })}
+            viewport={HOME_VIEWPORT}
+            transition={revealTransition(reduce, HOME_DELAY.cta)}
           >
             <Link
               href="/rejoindre"

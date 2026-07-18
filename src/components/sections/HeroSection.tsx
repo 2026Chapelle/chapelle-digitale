@@ -8,7 +8,12 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight } from 'lucide-react'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE } from '@/lib/home-motion'
+import {
+  HOME_DELAY,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 import { HeroProofLinks } from '@/components/sections/HeroProofLinks'
 
 const HERO_PHOTO = {
@@ -80,9 +85,9 @@ export function HeroSection(_props: { block?: unknown } = {}) {
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 pt-24 pb-20 flex flex-col items-center text-center citadelle-hero-inner">
         <motion.h1
           id="hero-title"
-          initial={reduce ? false : { opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          initial={revealInitial(reduce, { y: 36 })}
+          animate={revealVisible()}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
           className="mb-6 w-full px-1 citadelle-hero-title"
         >
           {/* Ligne 1 — dominante, jamais tronquée desktop */}
@@ -113,9 +118,9 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         </motion.h1>
 
         <motion.p
-          initial={reduce ? false : { opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.12, ease: HOME_EASE }}
+          initial={revealInitial(reduce, { y: 32 })}
+          animate={revealVisible()}
+          transition={revealTransition(reduce, HOME_DELAY.subtitle)}
           className="hero-subtitle citadelle-hero-sub font-inter leading-relaxed mb-12 mx-auto"
           style={{
             fontSize: 'clamp(0.95rem, 1.45vw, 1.12rem)',
@@ -126,9 +131,9 @@ export function HeroSection(_props: { block?: unknown } = {}) {
         </motion.p>
 
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.22, ease: HOME_EASE }}
+          initial={revealInitial(reduce, { y: 36, scale: true })}
+          animate={revealVisible({ scale: true })}
+          transition={revealTransition(reduce, HOME_DELAY.cta)}
           className="flex flex-col items-center gap-5 w-full sm:w-auto citadelle-hero-ctas"
         >
           <Link

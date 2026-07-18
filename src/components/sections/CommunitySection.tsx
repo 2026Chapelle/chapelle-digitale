@@ -5,13 +5,19 @@
  * Pas de fausse donnée. Pas de formulaire dashboard.
  */
 import { useRef, useState, useEffect } from 'react'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Quote, ArrowRight } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 
 type Testimony = { id: string; auteur: string; lieu: string; titre: string; texte: string }
 
@@ -23,7 +29,6 @@ const COMMUNITY_PHOTO = {
 
 export function CommunitySection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
   const [items, setItems] = useState<Testimony[]>([])
 
@@ -75,9 +80,10 @@ export function CommunitySection() {
     <section ref={ref} className="section-cinematic" aria-labelledby="community-title">
       <div className="container-cinematic max-w-5xl">
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
           className="text-center mb-10 md:mb-14"
         >
           <h2 id="community-title" className="heading-cinematic-lg">
@@ -100,9 +106,10 @@ export function CommunitySection() {
 
         {/* Grande photographie réelle */}
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 14 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.14, ease: HOME_EASE }}
+          initial={revealInitial(reduce, { y: 40, blur: true })}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.body)}
           className="relative w-full aspect-[16/9] md:aspect-[21/9] rounded-3xl overflow-hidden mb-12 md:mb-16"
         >
           <Image
@@ -124,9 +131,10 @@ export function CommunitySection() {
 
         {/* Citation / témoignage réel uniquement */}
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: 14 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.22, ease: HOME_EASE }}
+          initial={revealInitial(reduce, { y: 36 })}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.cta)}
           className="max-w-2xl mx-auto text-center"
         >
           {testimony ? (

@@ -3,9 +3,15 @@
  * SCÈNE 3 — VISION · motion unifiée (titre puis contenu)
  */
 import { useRef } from 'react'
-import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Sprout, Users, HandHeart, Sun } from 'lucide-react'
-import { HOME_DUR, HOME_EASE, HOME_Y, HOME_VIEWPORT } from '@/lib/home-motion'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 
 const PILLARS = [
   {
@@ -32,7 +38,6 @@ const PILLARS = [
 
 export function VisionSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, HOME_VIEWPORT)
   const reduce = useReducedMotion()
 
   return (
@@ -40,9 +45,10 @@ export function VisionSection() {
       <div className="container-cinematic max-w-6xl">
         <motion.h2
           id="vision-title"
-          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
           className="heading-cinematic-lg text-center mb-16 md:mb-20"
         >
           Pourquoi Citadelle&nbsp;?
@@ -54,13 +60,10 @@ export function VisionSection() {
             return (
               <motion.div
                 key={p.title}
-                initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-                animate={inView ? { opacity: 1, y: 0 } : {}}
-                transition={{
-                  duration: HOME_DUR,
-                  delay: reduce ? 0 : 0.14 + i * 0.08,
-                  ease: HOME_EASE,
-                }}
+                initial={revealInitial(reduce, { scale: true, y: 36 })}
+                whileInView={revealVisible({ scale: true })}
+                viewport={HOME_VIEWPORT}
+                transition={revealTransition(reduce, HOME_DELAY.card + i * HOME_DELAY.cardStep)}
                 className="citadelle-vision-pillar group text-center px-3"
               >
                 <div

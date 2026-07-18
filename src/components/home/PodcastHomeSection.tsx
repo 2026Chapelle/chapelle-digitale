@@ -11,7 +11,13 @@ import { ArrowRight, Headphones, Play, Pause } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { events } from '@/lib/analytics'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
-import { HOME_DUR, HOME_EASE, HOME_Y } from '@/lib/home-motion'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 
 type PodEp = {
   id: string
@@ -26,8 +32,6 @@ type PodEp = {
 const INSTANT_COVER = '/images/podcast/covers/instant-citadelle-cover.png'
 const PREMIUM_COVER = '/images/podcast/covers/transformer-pour-rayonner.png'
 const PARALLAX_IMG = '/images/podcast/parallax/podcast-parallax.png'
-
-const VIEWPORT = { once: true, amount: 0.15, margin: '0px 0px -6% 0px' } as const
 
 /** Plateformes — uniquement si URL publique configurée (pas de #). */
 const PLATFORMS = [
@@ -120,30 +124,30 @@ export function PodcastHomeSection() {
     <section className="section-cinematic !px-0" aria-labelledby="podcast-home-title">
       <div className="container-cinematic max-w-6xl px-4 md:px-8 lg:px-16">
         <motion.p
-          initial={reduce ? false : { opacity: 0, y: HOME_Y - 8 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT}
-          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          initial={revealInitial(reduce, { y: 36 })}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.label)}
           className="section-label-dark justify-center mb-4"
         >
           Podcast
         </motion.p>
         <motion.h2
           id="podcast-home-title"
-          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.06, ease: HOME_EASE }}
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
           className="heading-cinematic-lg text-center mb-4"
         >
           Écoute. Grandis.
           <span className="block text-cinematic-gold">Avance.</span>
         </motion.h2>
         <motion.p
-          initial={reduce ? false : { opacity: 0, y: HOME_Y - 6 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.12, ease: HOME_EASE }}
+          initial={revealInitial(reduce, { y: 38 })}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.subtitle)}
           className="font-inter text-center text-base md:text-lg max-w-md mx-auto mb-12 md:mb-14"
           style={{ color: 'rgba(245,230,216,0.48)' }}
         >
@@ -153,10 +157,10 @@ export function PodcastHomeSection() {
         <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-16 md:mb-20">
           {/* L’Instant Citadelle */}
           <motion.div
-            initial={reduce ? false : { opacity: 0, y: 24, scale: 0.985 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            viewport={VIEWPORT}
-            transition={{ duration: 0.9, delay: reduce ? 0 : 0.18, ease: HOME_EASE }}
+            initial={revealInitial(reduce, { y: 40, scale: true })}
+            whileInView={revealVisible({ scale: true })}
+            viewport={HOME_VIEWPORT}
+            transition={revealTransition(reduce, HOME_DELAY.card)}
           >
             <button
               type="button"
@@ -168,21 +172,21 @@ export function PodcastHomeSection() {
                   : "Ouvrir les podcasts — L'Instant Citadelle"
               }
             >
-              <div className="relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden rounded-t-[1.75rem] bg-[#0a0a12]">
+              <div className="citadelle-pod-media relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden bg-[#0a0a12]">
                 <Image
                   src={INSTANT_COVER}
                   alt="L'Instant Citadelle — couverture"
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-contain object-center transition-transform duration-700 group-hover:scale-[1.02]"
+                  className="object-contain object-center"
                   priority={false}
                 />
-                <span className="absolute bottom-4 left-4 inline-flex items-center gap-2 text-xs font-inter tracking-wide text-pearl/85 drop-shadow">
+                <span className="absolute bottom-4 left-4 z-[3] inline-flex items-center gap-2 text-xs font-inter tracking-wide text-pearl/85 drop-shadow">
                   <Headphones className="w-3.5 h-3.5 text-gold" aria-hidden />
                   Quotidien
                 </span>
               </div>
-              <div className="p-6 md:p-7">
+              <div className="relative z-[3] p-6 md:p-7">
                 <h3 className="font-cinzel font-bold text-pearl text-xl md:text-2xl mb-2">
                   L&apos;Instant Citadelle
                 </h3>
@@ -194,7 +198,7 @@ export function PodcastHomeSection() {
                     {instantEp.duration}
                   </p>
                 )}
-                <span className="inline-flex items-center gap-2 text-sm font-medium text-gold group-hover:gap-3 transition-all">
+                <span className="citadelle-pod-cta-line inline-flex items-center gap-2 text-sm font-medium text-gold group-hover:gap-3">
                   {instantIsPlaying ? <Pause className="w-4 h-4" aria-hidden /> : <Play className="w-4 h-4" aria-hidden />}
                   {instantEp?.audioUrl
                     ? instantIsPlaying
@@ -209,31 +213,31 @@ export function PodcastHomeSection() {
 
           {/* Podcast Premium */}
           <motion.div
-            initial={reduce ? false : { opacity: 0, y: 24, scale: 0.985 }}
-            whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            viewport={VIEWPORT}
-            transition={{ duration: 0.9, delay: reduce ? 0 : 0.26, ease: HOME_EASE }}
+            initial={revealInitial(reduce, { y: 40, scale: true })}
+            whileInView={revealVisible({ scale: true })}
+            viewport={HOME_VIEWPORT}
+            transition={revealTransition(reduce, HOME_DELAY.card + HOME_DELAY.cardStep)}
           >
             <div className="citadelle-pod-card citadelle-pod-featured h-full flex flex-col">
-              <div className="relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden rounded-t-[1.75rem] bg-[#0a0a12]">
+              <div className="citadelle-pod-media relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden bg-[#0a0a12]">
                 <Image
                   src={featuredCover}
                   alt={featured?.title ? `Podcast Premium — ${featured.title}` : 'Podcast Premium — Transformer pour rayonner'}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-contain object-center transition-transform duration-700"
+                  className="object-contain object-center"
                 />
                 <div
-                  className="absolute inset-0"
+                  className="absolute inset-0 z-[1]"
                   style={{
                     background:
                       'linear-gradient(135deg, rgba(30,58,138,0.3) 0%, transparent 50%), linear-gradient(180deg, transparent 35%, rgba(6,6,10,0.75) 100%)',
                   }}
                   aria-hidden
                 />
-                <span className="citadelle-premium-tag absolute top-4 left-4">PREMIUM</span>
+                <span className="citadelle-premium-tag absolute top-4 left-4 z-[3]">PREMIUM</span>
               </div>
-              <div className="p-6 md:p-7 flex flex-col flex-1">
+              <div className="relative z-[3] p-6 md:p-7 flex flex-col flex-1">
                 <h3 className="font-cinzel font-bold text-pearl text-xl md:text-2xl mb-2">
                   Podcast Premium
                 </h3>
@@ -267,7 +271,7 @@ export function PodcastHomeSection() {
                     <button
                       type="button"
                       onClick={() => handleListen(featured, 'podcast_featured')}
-                      className="inline-flex items-center justify-center gap-2 text-sm font-medium text-gold min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] rounded-sm"
+                      className="citadelle-pod-cta-line inline-flex items-center justify-center gap-2 text-sm font-medium text-gold min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] rounded-sm"
                       aria-label={featuredPlaying ? 'Pause' : 'Écouter maintenant'}
                     >
                       {featuredPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -329,10 +333,10 @@ export function PodcastHomeSection() {
         />
         <motion.div
           className="relative z-20 max-w-2xl mx-auto text-center py-20 md:py-28 px-6"
-          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT}
-          transition={{ duration: HOME_DUR, delay: reduce ? 0 : 0.12, ease: HOME_EASE }}
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.cta)}
         >
           <h3 className="font-cinzel font-bold text-pearl text-3xl md:text-4xl mb-4">Va plus loin.</h3>
           <p

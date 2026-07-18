@@ -18,7 +18,14 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { events } from '@/lib/analytics'
-import { HOME_DUR, HOME_EASE, HOME_Y } from '@/lib/home-motion'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  HOME_EASE,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 
 type PathStep = {
   n: string
@@ -85,8 +92,6 @@ const CTA = 'Découvrir cette étape'
 const HREF = '/parcours'
 const FALLBACK_IMG = '/images/formations/parcours-1/parcours-1-je-decouvre-la-maison.png'
 
-const VIEWPORT = { once: true, amount: 0.12, margin: '0px 0px -8% 0px' } as const
-
 export function StartHereSection() {
   const ref = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
@@ -101,10 +106,10 @@ export function StartHereSection() {
       <div className="container-cinematic max-w-6xl">
         <motion.h2
           id="parcours-title"
-          initial={reduce ? false : { opacity: 0, y: HOME_Y }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT}
-          transition={{ duration: HOME_DUR, ease: HOME_EASE }}
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
           className="heading-cinematic-lg text-center mb-14 md:mb-20"
         >
           Le parcours
@@ -116,7 +121,7 @@ export function StartHereSection() {
             aria-hidden
             initial={reduce ? false : { scaleY: 0, opacity: 0 }}
             whileInView={{ scaleY: 1, opacity: 1 }}
-            viewport={VIEWPORT}
+            viewport={HOME_VIEWPORT}
             transition={{ duration: 1.15, ease: HOME_EASE, delay: reduce ? 0 : 0.06 }}
             style={{ transformOrigin: 'top center' }}
           />
@@ -125,18 +130,14 @@ export function StartHereSection() {
             {PATH_STEPS.map((step, i) => {
               const Icon = step.icon
               const reverse = i % 2 === 1
-              const stepDelay = reduce ? 0 : 0.08 + i * 0.09
+              const stepDelay = reduce ? 0 : HOME_DELAY.card + i * HOME_DELAY.cardStep
               return (
                 <motion.li
                   key={step.n}
-                  initial={reduce ? false : { opacity: 0, y: 24, scale: 0.985 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={VIEWPORT}
-                  transition={{
-                    duration: 0.9,
-                    delay: stepDelay,
-                    ease: HOME_EASE,
-                  }}
+                  initial={revealInitial(reduce, { y: 40, scale: true })}
+                  whileInView={revealVisible({ scale: true })}
+                  viewport={HOME_VIEWPORT}
+                  transition={revealTransition(reduce, stepDelay)}
                   className="citadelle-journey-row relative"
                 >
                   <motion.span
@@ -144,10 +145,10 @@ export function StartHereSection() {
                     aria-hidden
                     initial={reduce ? false : { scale: 0, opacity: 0 }}
                     whileInView={{ scale: 1, opacity: 1 }}
-                    viewport={VIEWPORT}
+                    viewport={HOME_VIEWPORT}
                     transition={{
-                      duration: 0.45,
-                      delay: Math.max(0, stepDelay - 0.05),
+                      duration: reduce ? 0.01 : 0.45,
+                      delay: Math.max(0, stepDelay - 0.04),
                       ease: HOME_EASE,
                     }}
                   />
@@ -220,14 +221,10 @@ export function StartHereSection() {
         </div>
 
         <motion.div
-          initial={reduce ? false : { opacity: 0, y: HOME_Y - 4 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT}
-          transition={{
-            duration: HOME_DUR,
-            delay: reduce ? 0 : 0.15,
-            ease: HOME_EASE,
-          }}
+          initial={revealInitial(reduce, { y: 36 })}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.cta)}
           className="text-center mt-16 md:mt-20"
         >
           <Link
