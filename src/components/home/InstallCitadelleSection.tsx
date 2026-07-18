@@ -45,25 +45,13 @@ export function InstallCitadelleSection() {
       <div className="container-cinematic max-w-4xl">
         <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-12 lg:gap-16 items-center">
           <div>
-            <p
-              className="text-[11px] font-inter tracking-[0.32em] uppercase mb-4"
-              style={{ color: 'rgba(235,217,160,0.5)' }}
-            >
-              Application
-            </p>
             <h2
               id="install-citadelle-title"
-              className="font-cinzel font-bold text-2xl sm:text-3xl md:text-4xl text-pearl leading-tight mb-5"
+              className="font-cinzel font-bold text-2xl sm:text-3xl md:text-4xl text-pearl leading-tight mb-8"
             >
               Emporte Citadelle
               <span className="block text-cinematic-gold">avec toi.</span>
             </h2>
-            <p
-              className="font-inter text-sm sm:text-base leading-relaxed mb-8 max-w-md"
-              style={{ color: 'rgba(245,230,216,0.45)' }}
-            >
-              Installe Citadelle sur ton écran d&apos;accueil — la même maison, en un geste.
-            </p>
 
             <ul className="space-y-3 mb-10 list-none m-0 p-0">
               {BENEFITS.map((b) => (
