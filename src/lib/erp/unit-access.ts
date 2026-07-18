@@ -114,6 +114,7 @@ export async function resolveActorUnitContext(
   organizationId: unknown,
   userId: string,
   client: DbClient = supabaseAdmin as any,
+  opts?: { requireAdminRole?: boolean },
 ): Promise<ActorUnitContext> {
   const orgId = requireOrganizationId(organizationId)
   const memberships = await loadActorUnitMemberships(orgId, userId, client)
@@ -125,7 +126,14 @@ export async function resolveActorUnitContext(
   const adminish = memberships.filter((m) =>
     (ADMIN_UNIT_ROLES as readonly string[]).includes(m.unit_role),
   )
-  const usable = adminish.length > 0 ? adminish : memberships
+
+  if (opts?.requireAdminRole && adminish.length === 0) {
+    throw new UnitAccessError('Autorisation administrative requise.', 403, 'no_admin_membership')
+  }
+
+  const usable = opts?.requireAdminRole
+    ? adminish
+    : (adminish.length > 0 ? adminish : memberships)
 
   const isWorldScope = usable.some((m) => isWorldUnitRole(m.unit_role))
   const primary = usable.find((m) => m.is_primary) || usable[0]

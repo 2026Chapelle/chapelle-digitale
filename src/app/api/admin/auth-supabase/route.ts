@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 import { ADMIN_SESSION_TOKEN } from '@/lib/admin-auth'
-import { getSessionProfile } from '@/lib/member-auth'
+import { getVerifiedRouteProfile } from '@/lib/member-auth'
 import { createRouteClient } from '@/lib/supabase-server'
 import { isAdminCapable } from '@/lib/admin/admin-access'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
@@ -12,7 +12,7 @@ import { rateLimit, clientIp } from '@/lib/rate-limit'
  *
  * Prérequis : le client a DÉJÀ établi une session Supabase (signInWithPassword côté navigateur,
  * même mécanisme que le login membre). Ici, côté serveur, on :
- *   1. lit le profil réel via la session Supabase (getSessionProfile → supabaseAdmin) ;
+ *   1. lit le profil réel via la session Supabase (getVerifiedRouteProfile → supabaseAdmin) ;
  *   2. vérifie que son rôle a `can_access_admin` (isAdminCapable) — le rôle vient du SERVEUR ;
  *   3. si oui → pose le cookie legacy `cier_admin` (compat middleware) ;
  *   4. si non → refuse ET révoque la session Supabase tout juste créée.
@@ -22,6 +22,16 @@ import { rateLimit, clientIp } from '@/lib/rate-limit'
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+
+function clearAdminCookie(res: NextResponse) {
+  res.cookies.set('cier_admin', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  })
+}
 
 export async function POST(req: NextRequest) {
   // Anti-brute-force (mêmes bornes que /api/admin/auth).
@@ -33,13 +43,21 @@ export async function POST(req: NextRequest) {
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Connexion nominative indisponible en mode démonstration.' }, { status: 503 })
   if (!ADMIN_SESSION_TOKEN) return NextResponse.json({ ok: false, message: 'Back-office non configuré (ADMIN_SESSION_TOKEN manquant).' }, { status: 503 })
 
-  const sp = await getSessionProfile()
-  if (!sp) return NextResponse.json({ ok: false, message: 'Session non établie. Reconnectez-vous.' }, { status: 401 })
+  const sp = await getVerifiedRouteProfile()
+  if (!sp) {
+    // Si la session existait mais qu'aucun profil SQL n'est présent, révoquer la session auth Supabase par sécurité.
+    try { await createRouteClient().auth.signOut() } catch { /* best-effort */ }
+    const res = NextResponse.json({ ok: false, message: 'Session non établie ou profil SQL inexistant. Reconnectez-vous.' }, { status: 401 })
+    clearAdminCookie(res)
+    return res
+  }
 
   if (!isAdminCapable(sp.role)) {
     // Ne jamais laisser une session admin non autorisée : révoquer la session Supabase créée.
     try { await createRouteClient().auth.signOut() } catch { /* best-effort */ }
-    return NextResponse.json({ ok: false, code: 'not_admin', message: "Ce compte n'a pas accès à l'administration." }, { status: 403 })
+    const res = NextResponse.json({ ok: false, code: 'not_admin', message: "Ce compte n'a pas accès à l'administration." }, { status: 403 })
+    clearAdminCookie(res)
+    return res
   }
 
   const res = NextResponse.json({ ok: true })

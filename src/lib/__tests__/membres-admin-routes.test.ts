@@ -382,3 +382,225 @@ describe('Lot 3 — admin membres list and create (organization permissions)', (
     expect((supabaseAdmin.auth as any).admin.deleteUser).toHaveBeenCalled()
   })
 })
+
+describe('Lot 6 — Actions membre security hardening', () => {
+  const TARGET = 'target-id'
+  const worldActor = {
+    userId: 'actor-1',
+    organizationId: ORG_ID,
+    memberships: [],
+    homeUnitIds: ['unit-1'],
+    isWorldScope: true,
+    highestRole: 'world_admin',
+  }
+
+  function mockProfile(data: Record<string, unknown> | null) {
+    const mockFrom = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+      maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    })
+    ;(supabaseAdmin as any).from = mockFrom
+    return mockFrom
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(isAdminRequest as any).mockReturnValue(true)
+    ;(resolveAdminOrganizationForRequest as any).mockResolvedValue(ORG_ID)
+    ;(assertProfileBelongsToActiveMembership as any).mockResolvedValue(undefined)
+    // Toujours inclure la cible dans l'allowlist tenant pour atteindre les gardes métier.
+    ;(getActiveMemberUserIdsForOrganization as any).mockResolvedValue([TARGET, 'berger-in-id'])
+    ;(getActiveUserIdsForUnits as any).mockResolvedValue([TARGET, 'berger-in-id'])
+    ;(listAccessibleUnitIds as any).mockResolvedValue(['unit-1'])
+    ;(resolveActorUnitContext as any).mockResolvedValue(worldActor)
+  })
+
+  it.each(['membre', 'viewer', 'staff'] as const)(
+    'acteur SQL %s + set_role => refus 403',
+    async (role) => {
+      ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role })
+      const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+        action: 'set_role',
+        role: 'admin',
+      })
+      const res = await actionRoute.POST(req, { params: { id: TARGET } })
+      expect(res.status).toBe(403)
+      expect(resolveActorUnitContext).not.toHaveBeenCalled()
+    },
+  )
+
+  it('membership unit non admin (no_admin_membership) => 403', async () => {
+    const { UnitAccessError } = await import('@/lib/erp/unit-access')
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'admin' })
+    ;(resolveActorUnitContext as any).mockRejectedValue(
+      new UnitAccessError('Autorisation administrative requise.', 403, 'no_admin_membership'),
+    )
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'set_role',
+      role: 'membre',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.code).toBe('no_admin_membership')
+  })
+
+  it('cookie admin sans identité Supabase (actor_required) => 403', async () => {
+    const { UnitAccessError } = await import('@/lib/erp/unit-access')
+    ;(resolveAdminActorProfile as any).mockRejectedValue(
+      new UnitAccessError('Identité administrateur requise.', 403, 'actor_required'),
+    )
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'suspend',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.code).toBe('actor_required')
+  })
+
+  it('admin ordinaire + promotion super_admin => refus', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'admin' })
+    mockProfile({ role: 'membre', email: 't@x.com', statut: 'actif', archived_at: null })
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'set_role',
+      role: 'super_admin',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(403)
+  })
+
+  it('admin ordinaire + promotion admin => refus', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'admin' })
+    mockProfile({ role: 'membre', email: 't@x.com', statut: 'actif', archived_at: null })
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'set_role',
+      role: 'admin',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(403)
+  })
+
+  it('vrai super_admin => autorisation contrôlée', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'super_admin' })
+    ;(resolveActorUnitContext as any).mockResolvedValue({
+      ...worldActor,
+      highestRole: 'world_super_admin',
+    })
+    mockProfile({ role: 'membre', email: 't@x.com', statut: 'actif', archived_at: null })
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'set_role',
+      role: 'admin',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(200)
+  })
+
+  it('dernier super_admin => protection de deactivation/suppression maintenue', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'super_admin' })
+    ;(resolveActorUnitContext as any).mockResolvedValue({
+      ...worldActor,
+      highestRole: 'world_super_admin',
+    })
+    const mockFrom = vi.fn().mockImplementation((table: string) => {
+      if (table === 'profiles') {
+        return {
+          select: vi.fn().mockImplementation((_sel: unknown, opts?: { count?: string }) => {
+            if (opts?.count === 'exact') {
+              return {
+                eq: vi.fn().mockReturnValue({
+                  is: vi.fn().mockReturnValue({
+                    neq: vi.fn().mockResolvedValue({ count: 1, error: null }),
+                  }),
+                }),
+              }
+            }
+            return {
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { role: 'super_admin', statut: 'actif', email: 't@x.com', archived_at: null },
+                  error: null,
+                }),
+              }),
+            }
+          }),
+        }
+      }
+      return { insert: vi.fn().mockResolvedValue({ error: null }) }
+    })
+    ;(supabaseAdmin as any).from = mockFrom
+
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'suspend',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(409)
+  })
+
+  it('responsable hors organisation => refus', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'admin' })
+    mockProfile({ role: 'membre', email: 't@x.com', statut: 'actif', archived_at: null })
+    ;(assertProfileBelongsToActiveMembership as any).mockImplementation((_org: string, profileId: string) => {
+      if (profileId === 'berger-out-id') throw new Error('Membre introuvable.')
+      return Promise.resolve()
+    })
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'set_responsable',
+      berger_id: 'berger-out-id',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(404)
+  })
+
+  it('responsable hors unité accessible => refus', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'admin' })
+    ;(resolveActorUnitContext as any).mockResolvedValue({
+      ...worldActor,
+      isWorldScope: false,
+      highestRole: 'local_admin',
+    })
+    mockProfile({ role: 'membre', email: 't@x.com', statut: 'actif', archived_at: null })
+    // Cible dans le périmètre ; berger hors unités accessibles.
+    ;(getActiveUserIdsForUnits as any).mockResolvedValue([TARGET])
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'set_responsable',
+      berger_id: 'berger-other-unit',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(404)
+  })
+
+  it('reset_password insuffisant => refus', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'admin' })
+    mockProfile({ role: 'admin', email: 't@x.com', statut: 'actif', archived_at: null })
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'reset_password',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(403)
+  })
+
+  it('hard_delete insuffisant => refus', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'admin' })
+    // Cible admin (privilégiée) — pas super_admin pour éviter la garde « dernier SA » avant le check acteur.
+    mockProfile({ role: 'admin', email: 't@x.com', statut: 'actif', archived_at: null })
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'hard_delete',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(403)
+  })
+
+  it('hard_delete sans profil SQL => 404', async () => {
+    ;(resolveAdminActorProfile as any).mockResolvedValue({ userId: 'actor-1', email: 'a@x.com', role: 'super_admin' })
+    mockProfile(null)
+    const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
+      action: 'hard_delete',
+    })
+    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    expect(res.status).toBe(404)
+  })
+})

@@ -25,7 +25,7 @@ const ASSIGNABLE = new Set(['visiteur', 'membre', 'disciple', 'leader', 'berger'
  *   POST /api/admin/membres/<id>/action  { action, ... }
  * Actions : set_statut | set_responsable | add_note | suspend | reactivate |
  *           archive (suppression douce) | reset_password | hard_delete (définitif).
- * Garde : cookie admin. Service role.
+ * Garde : cookie admin (entrée) + identité Supabase vérifiée + rôle SQL + membership unit admin.
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -42,8 +42,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   try {
     // Garde tenant + acteur + périmètre unité (Lot 2-B / Lot 5)
     const actorProfile = await resolveAdminActorProfile()
+
+    // Dérive les permissions depuis le profil SQL de l'acteur et refuse les rôles insuffisants
+    const actorRole = actorProfile.role || 'membre'
+    if (actorRole !== 'admin' && actorRole !== 'super_admin') {
+      return NextResponse.json({ ok: false, message: 'Autorisation insuffisante.' }, { status: 403 })
+    }
+
     const organizationId = await resolveAdminOrganizationForRequest(true)
-    const actor = await resolveActorUnitContext(organizationId, actorProfile.userId)
+
+    // Exige une membership administrative active pour les mutations
+    const actor = await resolveActorUnitContext(organizationId, actorProfile.userId, supabaseAdmin, { requireAdminRole: true })
+
     await assertProfileBelongsToActiveMembership(organizationId, id)
     if (!actor.isWorldScope) {
       const unitIds = await listAccessibleUnitIds(actor)
@@ -62,8 +72,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const action = (body.action || '').toString()
 
     const { data: prof } = await supabaseAdmin.from('profiles')
-      .select('email, prenom, nom, membre_statut, statut, role').eq('id', id).maybeSingle()
-    if (!prof && action !== 'hard_delete') return NextResponse.json({ ok: false, message: 'Membre introuvable.' }, { status: 404 })
+      .select('email, prenom, nom, membre_statut, statut, role, archived_at').eq('id', id).maybeSingle()
+    // Profil SQL obligatoire pour toute action (y compris hard_delete : garde de rôle fiable).
+    if (!prof) return NextResponse.json({ ok: false, message: 'Membre introuvable.' }, { status: 404 })
+
+    const PRIVILEGED = new Set(['admin', 'super_admin'])
+    const isTargetSuperAdmin = prof.role === 'super_admin' && !prof.archived_at && prof.statut !== 'suspendu'
+
+    // Préserve l'invariant du dernier super-admin actif
+    if (isTargetSuperAdmin && (action === 'suspend' || action === 'archive' || action === 'hard_delete')) {
+      const { count } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true })
+        .eq('role', 'super_admin').is('archived_at', null).neq('statut', 'suspendu')
+      if ((count ?? 0) <= 1) {
+        return NextResponse.json({ ok: false, message: 'Impossible de retirer le dernier super admin actif.' }, { status: 409 })
+      }
+    }
 
     switch (action) {
       case 'set_statut': {
@@ -86,13 +109,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       case 'set_role': {
         const newRole = (body.role || '').toString()
         if (!ASSIGNABLE.has(newRole)) return NextResponse.json({ ok: false, message: 'Rôle invalide.' }, { status: 400 })
-        const current = prof?.role || 'membre'
-        // Le back-office (cookie admin) agit en super_admin.
-        if (!canModifyRole(true, current, newRole)) return NextResponse.json({ ok: false, message: 'Action réservée au super admin.' }, { status: 403 })
-        // Invariant : conserver au moins un super_admin actif.
+        const current = prof.role || 'membre'
+
+        // Dérive les permissions depuis le profil SQL de l'acteur (pas de super-admin forcé à true)
+        const actorIsSuperAdmin = actorProfile.role === 'super_admin'
+        if (!canModifyRole(actorIsSuperAdmin, current, newRole)) return NextResponse.json({ ok: false, message: 'Action réservée au super admin.' }, { status: 403 })
+
+        // Invariant : conserver au moins un super_admin actif (hors suspendus / archivés).
         if (current === 'super_admin' && newRole !== 'super_admin') {
           const { count } = await supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true })
-            .eq('role', 'super_admin').is('archived_at', null)
+            .eq('role', 'super_admin').is('archived_at', null).neq('statut', 'suspendu')
           if (wouldRemoveLastSuperAdmin(current, newRole, count ?? 0)) {
             return NextResponse.json({ ok: false, message: 'Impossible de retirer le dernier super admin actif.' }, { status: 409 })
           }
@@ -107,9 +133,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         let berger_id = body.berger_id || null
         if (!berger_id && body.berger_email) {
           const { data: b } = await supabaseAdmin.from('profiles').select('id').eq('email', String(body.berger_email).toLowerCase().trim()).maybeSingle()
-          if (!b?.id) return NextResponse.json({ ok: false, message: 'Responsable introuvable (email).' }, { status: 404 })
+          if (!b?.id) return NextResponse.json({ ok: false, message: 'Responsable introuvable.' }, { status: 404 })
           berger_id = b.id
         }
+
+        // Vérifie que le responsable appartient à la même organisation et au périmètre accessible
+        if (berger_id) {
+          try {
+            await assertProfileBelongsToActiveMembership(organizationId, berger_id)
+          } catch {
+            return NextResponse.json({ ok: false, message: 'Responsable introuvable.' }, { status: 404 })
+          }
+          if (!actor.isWorldScope) {
+            const unitIds = await listAccessibleUnitIds(actor)
+            const allowed = await getActiveUserIdsForUnits(organizationId, unitIds)
+            if (!allowed.includes(berger_id)) {
+              return NextResponse.json({ ok: false, message: 'Responsable introuvable.' }, { status: 404 })
+            }
+          } else {
+            const allowed = await getActiveMemberUserIdsForOrganization(organizationId)
+            if (!allowed.includes(berger_id)) {
+              return NextResponse.json({ ok: false, message: 'Responsable introuvable.' }, { status: 404 })
+            }
+          }
+        }
+
         const { error } = await supabaseAdmin.from('profiles').update({ berger_id }).eq('id', id)
         if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
         await logAction(id, 'set_responsable', { berger_id })
@@ -156,7 +204,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
 
       case 'reset_password': {
-        if (!prof?.email) return NextResponse.json({ ok: false, message: 'Email manquant.' }, { status: 400 })
+        // Protection des comptes privilèges
+        const currentTargetRole = prof.role || 'membre'
+        if (PRIVILEGED.has(currentTargetRole) && actorProfile.role !== 'super_admin') {
+          return NextResponse.json({ ok: false, message: 'Action réservée au super admin.' }, { status: 403 })
+        }
+        if (!prof.email) return NextResponse.json({ ok: false, message: 'Email manquant.' }, { status: 400 })
         const { data, error } = await supabaseAdmin.auth.admin.generateLink({ type: 'recovery', email: prof.email })
         if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
         const link = (data as any)?.properties?.action_link || siteUrl('/login')
@@ -174,8 +227,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
 
       case 'hard_delete': {
+        // Protection des comptes privilèges
+        const currentTargetRole = prof.role || 'membre'
+        if (PRIVILEGED.has(currentTargetRole) && actorProfile.role !== 'super_admin') {
+          return NextResponse.json({ ok: false, message: 'Action réservée au super admin.' }, { status: 403 })
+        }
         // Suppression DÉFINITIVE (irréversible) — protégée par double confirmation côté UI.
-        await logAction(id, 'hard_delete', { email: prof?.email })
+        await logAction(id, 'hard_delete', { email: prof.email })
         const { error } = await supabaseAdmin.auth.admin.deleteUser(id)
         if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
         return NextResponse.json({ ok: true })
@@ -185,6 +243,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         return NextResponse.json({ ok: false, message: 'Action inconnue.' }, { status: 400 })
     }
   } catch (e: any) {
+    if (e?.code === 'unit_access_error') {
+      return NextResponse.json(
+        { ok: false, message: e.message, code: e.errorCode },
+        { status: e.status || 403 },
+      )
+    }
     if (e?.message === 'Membre introuvable.' || e?.code === 'admin_profile_scope_error') {
       return NextResponse.json({ ok: false, message: 'Membre introuvable.' }, { status: 404 })
     }

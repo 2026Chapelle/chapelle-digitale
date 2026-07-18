@@ -86,6 +86,31 @@ describe('getVerifiedRouteProfile + resolveAdminActorProfile', () => {
     await expect(resolveAdminActorProfile()).rejects.toBeInstanceOf(UnitAccessError)
   })
 
+  it('user_metadata.role=admin sans ligne profiles → null (pas d’élévation metadata)', async () => {
+    ;(createRouteClient as any).mockReturnValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'u-meta',
+              email: 'meta@b.c',
+              user_metadata: { role: 'admin' },
+            },
+          },
+          error: null,
+        }),
+      },
+    })
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    }
+    ;(supabaseAdmin as any).from = vi.fn().mockReturnValue(chain)
+    await expect(getVerifiedRouteProfile()).resolves.toBeNull()
+  })
+
   it('user + profil → acteur résolu (même UUID, email profil)', async () => {
     ;(createRouteClient as any).mockReturnValue({
       auth: {
