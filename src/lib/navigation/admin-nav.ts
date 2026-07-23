@@ -91,6 +91,7 @@ export const NAV_SECTIONS: AdminNavSection[] = [
     id: 'contenu', label: 'Contenu & CMS', icon: FileText,
     items: [
       { label: 'Accueil (sections)', href: '/admin/homepage-blocks', icon: LayoutDashboard, color: '#D4AF37' },
+      { label: 'Chapelle (one-page)', href: '/admin/chapelle-home', icon: Sparkles, color: '#F5E6A7' },
       { label: 'Contenus en vedette', href: '/admin/contenus-en-vedette', icon: Star, color: '#FBBF24' },
       { label: 'Pages', href: '/admin/pages', icon: FileText, color: '#14B8A6' },
       { label: 'Articles', href: '/admin/articles', icon: Newspaper, color: '#34D399' },

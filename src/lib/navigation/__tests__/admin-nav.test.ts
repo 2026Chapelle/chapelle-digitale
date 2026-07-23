@@ -10,7 +10,7 @@ const LEGACY_HREFS = [
   '/admin/nouveaux-venus', '/admin/intelligence-pastorale', '/admin/gouvernement', '/admin/gouvernance',
   '/admin/international', '/admin/nation-dashboard', '/admin/sante-spirituelle', '/admin/activites',
   '/admin/cartographie', '/admin/membres', '/admin/roles', '/admin/communication', '/admin/tunnel-integration',
-  '/admin/homepage-blocks', '/admin/contenus-en-vedette', '/admin/pages', '/admin/articles', '/admin/medias', '/admin/lives', '/admin/podcasts',
+  '/admin/homepage-blocks', '/admin/chapelle-home', '/admin/contenus-en-vedette', '/admin/pages', '/admin/articles', '/admin/medias', '/admin/lives', '/admin/podcasts',
   '/admin/enseignements', '/admin/formations', '/admin/modules', '/admin/parcours', '/admin/questions-formations',
   '/admin/evenements', '/admin/inscriptions', '/admin/temoignages', '/admin/dons', '/admin/transactions',
   '/admin/marketplace', '/admin/notifications', '/admin/prieres', '/admin/prieres-guides', '/admin/temoignages-prieres',
