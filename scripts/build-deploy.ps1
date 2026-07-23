@@ -2,8 +2,9 @@
 # puis régénère deploy-citadelle.zip (slashs Linux) via make-zip.ps1.
 #
 # Prérequis : `npm run build` a été lancé (génère .next/standalone + .next/static).
-# Les dépendances (node_modules) ne sont recopiées que si absentes : le set tracé
-# par Next est identique tant qu'aucun package n'est ajouté.
+# node_modules est TOUJOURS regénéré depuis .next/standalone/node_modules (jamais
+# réutilisé tel quel) : un arbre partiellement copié ou périmé casse le runtime
+# Passenger (ex. MODULE_NOT_FOUND sur next/dist/server/node-polyfill-crypto.js).
 $ErrorActionPreference = 'Stop'
 $root = (Get-Location).Path
 $standalone = Join-Path $root '.next\standalone'
@@ -33,10 +34,10 @@ $deployPublic = Join-Path $deploy 'public'
 if (Test-Path $deployPublic) { Remove-Item $deployPublic -Recurse -Force }
 Copy-Item (Join-Path $root 'public') $deployPublic -Recurse -Force
 
-Write-Host '5/5  node_modules (si absent)...'
-if (-not (Test-Path (Join-Path $deploy 'node_modules'))) {
-  Copy-Item (Join-Path $standalone 'node_modules') (Join-Path $deploy 'node_modules') -Recurse -Force
-}
+Write-Host '5/5  node_modules (regeneration complete)...'
+$deployNodeModules = Join-Path $deploy 'node_modules'
+if (Test-Path $deployNodeModules) { Remove-Item $deployNodeModules -Recurse -Force }
+Copy-Item (Join-Path $standalone 'node_modules') $deployNodeModules -Recurse -Force
 
 $buildId = (Get-Content (Join-Path $deployNext 'BUILD_ID') -Raw).Trim()
 Write-Host ("deploy-citadelle rafraichi - BUILD_ID = " + $buildId)
