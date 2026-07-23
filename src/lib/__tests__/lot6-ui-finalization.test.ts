@@ -58,8 +58,12 @@ describe('Lot 6 UI — migration 17130000 byte-identique', () => {
   it('git hash-object + SHA256 figés (migration inchangée)', () => {
     expect(existsSync(MIG_17130000)).toBe(true)
     const buf = readFileSync(MIG_17130000)
-    expect(gitHashObject(buf)).toBe('a7f8784f47fad899c2365a5081c2da25e656e885')
-    const sha256 = createHash('sha256').update(buf).digest('hex').toUpperCase()
+    // Empreintes figées sur le contenu canonique stocké par Git (LF) — on
+    // normalise donc les fins de ligne avant hachage pour rester indépendant
+    // du mode de checkout local (CRLF sous Windows selon core.autocrlf).
+    const normalizedBuf = Buffer.from(buf.toString('utf8').replace(/\r\n/g, '\n'), 'utf8')
+    expect(gitHashObject(normalizedBuf)).toBe('a7f8784f47fad899c2365a5081c2da25e656e885')
+    const sha256 = createHash('sha256').update(normalizedBuf).digest('hex').toUpperCase()
     expect(sha256).toBe('9546B1358F321547FAE5DA248D0FC778612ACB5778385951F3F364ACECD08836')
   })
 })
@@ -121,6 +125,7 @@ describe('Lot 6 UI — composants présence + wiring', () => {
 describe('Lot 6 UI — API contracts (source)', () => {
   it('invitations route mappe les 4 outcomes + pas de token dans JSON réponse', () => {
     const src = readFileSync(INV_ROUTE, 'utf8')
+    const normalizedSrc = src.replace(/\r\n/g, '\n')
     expect(src).toContain('INVITATION_CREATED_EMAIL_SENT')
     expect(src).toContain('INVITATION_CREATED_EMAIL_PROVIDER_UNAVAILABLE')
     expect(src).toContain('INVITATION_CREATED_EMAIL_DELIVERY_FAILED')
@@ -128,7 +133,9 @@ describe('Lot 6 UI — API contracts (source)', () => {
     expect(src).toContain('email_outcome')
     expect(src).toContain('message_fr')
     // Corps de réponse succès : invitation_id, expires_at, email_* — pas token
-    const returnBlock = src.slice(src.lastIndexOf('return NextResponse.json({\n      ok: true'))
+    const returnBlock = normalizedSrc.slice(
+      normalizedSrc.lastIndexOf('return NextResponse.json({\n      ok: true'),
+    )
     expect(returnBlock).toContain('invitation_id')
     expect(returnBlock).toContain('email_outcome')
     expect(returnBlock).not.toMatch(/token:\s*inv/)
