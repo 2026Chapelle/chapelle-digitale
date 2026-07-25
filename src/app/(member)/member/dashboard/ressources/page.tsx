@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { type RessourceMock } from '@/lib/mock/ressources'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { OfflineDownloadButton } from '@/components/features/offline/OfflineDownloadButton'
 
 const TYPES = ['Tout', 'Audio', 'Vidéo', 'PDF', 'Livre', 'Podcast', 'Dévotionnel'] as const
 type FilterType = typeof TYPES[number]
@@ -240,6 +241,17 @@ export default function RessourcesPage() {
             <span className="text-[10px] text-pearl/30 font-inter px-3 py-1.5">Bientôt</span>
           )}
         </div>
+
+        {/* Téléchargement hors ligne — PDF & audio uniquement (droits re-vérifiés serveur). */}
+        {r.url && (r.type === 'PDF' || r.type === 'Audio') && (
+          <div className="mt-2 flex justify-end">
+            <OfflineDownloadButton
+              contentId={r.id}
+              type={r.type === 'PDF' ? 'pdf' : 'audio'}
+              title={r.titre}
+            />
+          </div>
+        )}
       </motion.div>
     )
   }

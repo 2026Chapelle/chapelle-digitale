@@ -15,6 +15,7 @@ import { AudioPlayerBar } from '@/components/ui/AudioPlayerBar'
 import { WebVitalsReporter } from '@/components/providers/WebVitalsReporter'
 import { AnalyticsTracker } from '@/components/providers/AnalyticsTracker'
 import { SkipLink } from '@/components/ui/SkipLink'
+import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -186,6 +187,7 @@ export default function RootLayout({
       </head>
       <body className="font-inter">
         <SkipLink />
+        <ServiceWorkerRegistration />
         <WebVitalsReporter />
         <Suspense fallback={null}>
           <AnalyticsTracker />

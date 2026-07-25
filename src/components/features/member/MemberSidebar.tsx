@@ -6,7 +6,7 @@ import {
   LayoutDashboard, User, BookOpen, Play, FileText,
   Calendar, Heart, Flame, Bell, ChevronRight, LogOut, DollarSign, Users,
   MessageCircle, Settings, Compass, GraduationCap, UserPlus, BookMarked, Newspaper, HeartHandshake, ShoppingBag,
-  CalendarCheck, Building2, Library,
+  CalendarCheck, Building2, Library, CloudDownload,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/components/providers/AuthProvider'
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { icon: Newspaper, label: 'Articles', href: '/articles', color: '#0EA5E9' },
   { icon: Play, label: 'Mes Lives', href: '/member/dashboard/lives', color: '#EF4444' },
   { icon: FileText, label: 'Mes Ressources', href: '/member/dashboard/ressources', color: '#22C55E' },
+  { icon: CloudDownload, label: 'Hors ligne', href: '/member/dashboard/hors-ligne', color: '#38BDF8' },
   { icon: Calendar, label: 'Mes Événements', href: '/member/dashboard/evenements', color: '#F59E0B' },
   { icon: Heart, label: 'Mes Prières', href: '/member/dashboard/prieres', color: '#EC4899' },
   { icon: Library, label: 'Prières & Guides', href: '/member/dashboard/prieres/bibliotheque', color: '#D4AF37' },

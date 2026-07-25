@@ -49,6 +49,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
+              worker-src 'self';
               script-src 'self' 'unsafe-eval' 'unsafe-inline' *.youtube.com *.youtube-nocookie.com *.google.com js.chariowcdn.com;
               style-src 'self' 'unsafe-inline' fonts.googleapis.com js.chariowcdn.com;
               font-src 'self' fonts.gstatic.com;
@@ -58,6 +59,15 @@ const nextConfig = {
               frame-src 'self' *.youtube.com *.youtube-nocookie.com *.vimeo.com *.mychariow.shop chapelleduroyaume.org;
             `.replace(/\s+/g, ' ').trim(),
           },
+        ],
+      },
+      {
+        // Le service worker doit pouvoir contrôler la racine et être revalidé à
+        // chaque chargement (sinon une nouvelle version ne serait jamais prise).
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
         ],
       },
     ]
