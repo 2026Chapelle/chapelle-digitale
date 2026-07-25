@@ -65,3 +65,11 @@ chapelle-digitale/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+# Harnais OFFLINE E2E (Lot 1.2) — env & sorties Playwright NON versionnés
+# .env.offline-e2e : env FACTICE local (aucun secret) — recréé depuis la doc
+.env.offline-e2e
+# Sorties Playwright lourdes/temporaires (seul le rapport .md est versionné)
+/artifacts/offline-playwright/html-report/
+/artifacts/offline-playwright/results.json
+/artifacts/offline-playwright/test-results/

@@ -1,0 +1,4 @@
+# Fixtures binaires du harnais OFFLINE E2E (Lot 1.2) : octets EXACTS, jamais de
+# conversion de fins de ligne (sinon taille/sha256 changent → tests cassés).
+tests/fixtures/offline/sample.pdf binary
+tests/fixtures/offline/sample.wav binary

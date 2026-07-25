@@ -1,0 +1,29 @@
+{
+  "generatedBy": "scripts/offline-e2e/gen-fixtures.mjs",
+  "note": "Fixtures déterministes, 100 % factices. Aucune donnée réelle.",
+  "fixedDate": "2026-01-01T00:00:00.000Z",
+  "items": [
+    {
+      "contentId": "e2e-pdf-001",
+      "file": "sample.pdf",
+      "title": "Fixture PDF E2E",
+      "type": "pdf",
+      "mime": "application/pdf",
+      "sizeBytes": 594,
+      "sha256": "70eea535b6cb18833ba56bbfb9f1e460125acb9cf971c7922639c65af4f5c0a9",
+      "authorized": true,
+      "accessVersion": "published:2026-01-01T00:00:00.000Z"
+    },
+    {
+      "contentId": "e2e-audio-001",
+      "file": "sample.wav",
+      "title": "Fixture Audio E2E",
+      "type": "audio",
+      "mime": "audio/wav",
+      "sizeBytes": 8044,
+      "sha256": "cd616cc81e02c461cffe7fdd19c0d322908aff7f763641d1f7060d3a790f1046",
+      "authorized": true,
+      "accessVersion": "published:2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

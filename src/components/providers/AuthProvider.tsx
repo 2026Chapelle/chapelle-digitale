@@ -38,7 +38,11 @@ interface AuthContextType {
   signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({
+// NB : exporté (additif, aucun changement de comportement) pour permettre
+// l'injection d'un contexte d'auth FACTICE dans le harnais E2E offline gardé
+// (`src/app/offline-e2e/`, rendu uniquement si OFFLINE_E2E_MODE). Aucun code de
+// production n'en dépend ; l'app continue d'utiliser `AuthProvider`/`useAuth`.
+export const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   role: null,
