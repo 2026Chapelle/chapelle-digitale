@@ -1,0 +1,39 @@
+url_path,object_type,object_id,status,provisional_wm8_action,notes
+/,page,31,publish,MAP_OR_REPLACE_WITH_NEXT,accueil
+/vision/,page,812,publish,MAP_OR_REPLACE_WITH_NEXT,Notre Vision
+/live/,page,209,publish,MAP,Live
+/priere/,page,301,publish,MAP,Prière
+/plateformes/,page,295,publish,MAP_OR_REPLACE_WITH_NEXT,Plateformes
+/ressources/,page,231,publish,MAP,Ressources
+/rejoindre/,page,187,publish,MAP,Rejoindre
+/integration/,page,216,publish,MAP,Intégration
+/mahanaim/,page,1183,publish,MAP,Mahanaïm
+/forum/,page,1196,publish,MAP_OR_ARCHIVE,Forum communautaire
+/mon-compte/,page,29,publish,REPLACE_CITADELLE_AUTH,Mon Compte
+/sinscrire/,page,626,publish,REPLACE_CITADELLE_AUTH,S'inscrire
+/se-connecter/,page,633,publish,REPLACE_CITADELLE_AUTH,se connecter
+/mot-de-passe-oublie/,page,30,publish,REPLACE_CITADELLE_AUTH,reset
+/membres/,page,27,publish,REPLACE_OR_DROP,UM directory
+/user/,page,24,publish,REPLACE_CITADELLE_PROFILE,Mon Profil
+/tableau-de-bord/,page,15,publish,REPLACE_CITADELLE,Tableau de bord
+/mes-badges/,page,1225,publish,MAP_OR_REBUILD,Mes badges
+/boutique/,page,313,publish,EXTERNAL_OR_REBUILD,no Woo tables
+/donner/,page,243,publish,EXTERNAL_OR_REBUILD,donations
+/contact/,page,249,publish,MAP,Contact
+/a-propos/,page,261,publish,MAP,À propos
+/evenements/,page,273,publish,MAP,Événements
+/temoignages/,page,814,publish,MAP,Témoignages
+/restriction/,page,1029,publish,MAP,Restriction
+/politique-de-confidentialite/,page,3,publish,MAP_LEGAL,legal
+/mentions-legales/,page,324,publish,MAP_LEGAL,legal
+/merci-pour-votre-don/,page,181,publish,MAP,thanks
+/page404-2/,page,169,publish,DROP_OR_SYSTEM_404,custom 404
+/logout/,page,28,publish,REPLACE_AUTH,logout
+/parcours-1-je-decouvre-la-maison/,course,732,publish,MAP_LMS,Tutor course
+/parcours-2-je-stabilise-ma-foi/,course,734,publish,REVIEW_EMPTY,empty shell
+/parcours-3-je-deviens-un-disciple-actif/,course,736,publish,MAP_LMS,largest course
+/ecole-des-appeles/,course,738,publish,REVIEW_EMPTY,empty shell
+/le-chemin-des-elus-7-etapes-pour-entrer-senraciner-et-regner/,course,867,publish,MAP_LMS,imported content
+/ne-pour-regner/,course,876,private,A_DECIDER,private
+/la-formation-du-leader-royal/,course,879,private,A_DECIDER,private
+/%postname%/,system,0,n/a,KEEP_STYLE,permalink structure

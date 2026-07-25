@@ -1,0 +1,48 @@
+{
+  "lot": "WM-2",
+  "audit_id": "audit-20260720-231559",
+  "verdict": "WM2_OK",
+  "marker": "CITADELLE_WP_MIGRATION_WM2_AUDIT_COMPLETE_OK",
+  "mode": "read_only_sandbox",
+  "sql_user": "wm2_ro",
+  "sql_privilege": "SELECT",
+  "source": {
+    "wm1_batch": "backup-20260720-111659",
+    "wm1r_restore": "restore-20260720-214535",
+    "database": "wm1r_restore_isolated",
+    "host": "127.0.0.1",
+    "port": 3307,
+    "tables_start": 126,
+    "tables_end": 126
+  },
+  "deliverables": [
+    "reports/WM2-AUDIT-FULL.md",
+    "reports/WM2-DATA-DICTIONARY.csv",
+    "reports/WM2-COUNTS.json",
+    "reports/WM2-ANOMALIES.csv",
+    "reports/WM2-DECISION-MATRIX.csv",
+    "reports/WM2-TUTOR-INVENTORY.json",
+    "reports/WM2-MEDIA-SUMMARY.json",
+    "reports/WM2-URL-INVENTORY.csv"
+  ],
+  "private_marked": "PII_PRIVATE_DO_NOT_COMMIT",
+  "locked_decisions": {
+    "passwords": "ABANDONNER",
+    "historical_progress": "ARCHIVER",
+    "youtube": "REFERENCEER",
+    "wp_roles": "DO_NOT_AUTO_IMPORT",
+    "design_wp": "DO_NOT_MIGRATE",
+    "design_chapelle_next": "DO_NOT_MODIFY"
+  },
+  "git_gates_unchanged": true,
+  "production_http": 200,
+  "next": "WAIT_QA_THEN_GO_WM3_ONLY",
+  "forbidden_now": [
+    "WM-3 without GO",
+    "import scripts",
+    "normalized export WM-4",
+    "push",
+    "delete sandbox",
+    "modify production"
+  ]
+}

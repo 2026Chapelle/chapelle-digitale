@@ -1,0 +1,12 @@
+Field	Type	Null	Key	Default	Extra
+id	int(10) unsigned	NO	PRI	NULL	auto_increment
+title	varchar(255)	NO		NULL	
+status	varchar(45)	YES		Draft	
+appearance_settings	text	YES		NULL	
+form_fields	longtext	YES		NULL	
+has_payment	tinyint(1)	NO		0	
+type	varchar(45)	YES		NULL	
+conditions	text	YES		NULL	
+created_by	int(11)	YES		NULL	
+created_at	timestamp	YES		NULL	
+updated_at	timestamp	YES		NULL	

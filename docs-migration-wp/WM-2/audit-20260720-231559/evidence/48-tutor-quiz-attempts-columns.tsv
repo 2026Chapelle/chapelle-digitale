@@ -1,0 +1,17 @@
+Field	Type	Null	Key	Default	Extra
+attempt_id	bigint(20)	NO	PRI	NULL	auto_increment
+course_id	bigint(20)	YES	MUL	NULL	
+quiz_id	bigint(20)	YES	MUL	NULL	
+user_id	bigint(20)	YES	MUL	NULL	
+total_questions	int(11)	YES		NULL	
+total_answered_questions	int(11)	YES		NULL	
+total_marks	decimal(9,2)	YES		NULL	
+earned_marks	decimal(9,2)	YES		NULL	
+attempt_info	text	YES		NULL	
+attempt_status	varchar(50)	YES		NULL	
+attempt_ip	varchar(250)	YES		NULL	
+attempt_started_at	datetime	YES		NULL	
+attempt_ended_at	datetime	YES		NULL	
+is_manually_reviewed	int(1)	YES		NULL	
+manually_reviewed_at	datetime	YES		NULL	
+result	varchar(10)	YES	MUL	NULL	

@@ -1,0 +1,8 @@
+metric	COUNT(DISTINCT post_author)
+distinct_course_authors	1
+courses_total	7
+courses_publish	5
+lessons_total	38
+topics_total	10
+tutor_quiz_total	0
+tutor_assignments_total	0

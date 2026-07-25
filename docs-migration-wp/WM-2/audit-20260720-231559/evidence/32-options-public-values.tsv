@@ -1,0 +1,11 @@
+blogdescription	
+blogname	Chapelle Royale
+date_format	j F Y
+default_role	subscriber
+permalink_structure	/%postname%/
+start_of_week	1
+stylesheet	twentytwentyfive
+template	twentytwentyfive
+timezone_string	
+users_can_register	1
+WPLANG	fr_FR

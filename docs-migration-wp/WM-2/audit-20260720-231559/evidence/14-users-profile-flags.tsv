@@ -1,0 +1,8 @@
+metric	COUNT(DISTINCT user_id)
+users_with_capabilities	35
+users_without_capabilities	0
+users_with_user_level	35
+users_with_first_name	34
+users_with_last_name	31
+users_with_nickname	35
+users_with_description	0

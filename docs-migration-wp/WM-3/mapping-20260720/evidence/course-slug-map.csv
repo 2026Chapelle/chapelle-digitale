@@ -1,0 +1,8 @@
+wp_post_id,wp_status,wp_slug,wp_title_public,topics,lessons,enrolled,citadelle_action,citadelle_target,notes
+732,publish,parcours-1-je-decouvre-la-maison,PARCOURS 1 — Formation d'Intégration,1,3,33,RAPPROCHER_SLUG,formations+formation_modules+inscriptions_niveau_0,seed Citadelle existant; seuls enrollments site
+734,publish,parcours-2-je-stabilise-ma-foi,PARCOURS 2 — Je stabilise ma foi,0,0,0,RAPPROCHER_SLUG_SEED,formations seed,shell vide WP — contenu seed Citadelle prioritaire
+736,publish,parcours-3-je-deviens-un-disciple-actif,PARCOURS 3 — Je deviens un disciple actif,6,26,0,RAPPROCHER_SLUG_FILL_MODULES,formations+formation_modules,remplir modules depuis lessons WP si seed incomplet
+738,publish,ecole-des-appeles,École des Appelés,0,0,0,IMPORTER_SHELL_OU_RECREER,formations,shell vide
+867,publish,le-chemin-des-elus-7-etapes-pour-entrer-senraciner-et-regner,Le Chemin des Élus — 7 étapes…,1,7,0,IMPORTER,formations+formation_modules,youtube on lessons
+876,private,ne-pour-regner,Né pour Régner,1,1,0,HORS_CATALOGUE_PUBLIC,archive only,GO métier requis
+879,private,la-formation-du-leader-royal,La Formation du Leader Royal,1,1,0,HORS_CATALOGUE_PUBLIC,archive only,GO métier requis

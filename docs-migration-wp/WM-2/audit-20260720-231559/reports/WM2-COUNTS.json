@@ -1,0 +1,105 @@
+{
+  "audit_id": "audit-20260720-231559",
+  "database": "wm1r_restore_isolated",
+  "tables": 126,
+  "users": {
+    "total": 35,
+    "with_email": 35,
+    "without_email": 0,
+    "invalid_email_no_at": 0,
+    "duplicate_email_groups": 0,
+    "duplicate_login_groups": 0,
+    "password_hash_wp_bcrypt": 35,
+    "with_capabilities": 35,
+    "first_name_filled": 34,
+    "last_name_filled": 31,
+    "whatsapp_meta": 33,
+    "registration_year_2026": 35,
+    "roles": {
+      "administrator_plus_tutor_instructor": 1,
+      "um_n1_semence_royale": 34,
+      "subscriber": 0,
+      "editor": 0
+    }
+  },
+  "posts": {
+    "total": 1087,
+    "revisions": 853,
+    "pages_publish": 56,
+    "posts_publish": 0,
+    "attachments": 73,
+    "nav_menu_items": 0
+  },
+  "tutor": {
+    "model": "cpt_courses_topics_lesson_enrolled",
+    "tables_wp_tutor_star": 17,
+    "tables_all_zero_rows": true,
+    "courses_total": 7,
+    "courses_publish": 5,
+    "courses_private": 2,
+    "topics": 10,
+    "lessons_publish": 38,
+    "tutor_quiz_cpt": 0,
+    "tutor_assignments_cpt": 0,
+    "enrollments": 33,
+    "enrollments_course_732_only": 33,
+    "enroll_status": "completed",
+    "enroll_distinct_users": 33,
+    "courses_without_enroll": 6,
+    "quiz_attempts": 0,
+    "orders": 0,
+    "instructors_meta": 1,
+    "students_meta": 33
+  },
+  "videos": {
+    "lessons_with_video_meta": 11,
+    "lessons_without_video": 27,
+    "youtube_unique_ids": 8,
+    "html5_local": 3,
+    "vimeo": 0
+  },
+  "media": {
+    "attachments_db": 73,
+    "physical_upload_files": 383,
+    "physical_bytes": 101219207,
+    "attached_files_missing": 0,
+    "likely_thumbnails": 300,
+    "likely_originals": 83,
+    "dup_size_groups_originals": 4
+  },
+  "taxonomy": {
+    "terms": 3,
+    "term_taxonomy": 3,
+    "term_relationships": 2,
+    "nav_menus": 0
+  },
+  "fluentcrm": {
+    "subscribers": 33,
+    "status_subscribed": 33,
+    "lists": 2,
+    "tags": 10,
+    "campaigns": 3,
+    "campaign_emails": 66,
+    "funnels": 1
+  },
+  "fluentforms": {
+    "forms": 7,
+    "submissions": 0,
+    "transactions": 0
+  },
+  "commerce": {
+    "woocommerce_tables": 0,
+    "tutor_orders": 0,
+    "fluent_transactions": 0
+  },
+  "files": {
+    "public_html_files": 22753,
+    "plugin_dirs": 31,
+    "theme_dirs": 2
+  },
+  "seo": {
+    "rank_math_tables": 10,
+    "posts_with_rank_math_title": 0,
+    "redirections": 3
+  }
+}

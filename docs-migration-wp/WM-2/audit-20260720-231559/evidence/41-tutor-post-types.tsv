@@ -1,0 +1,6 @@
+post_type	post_status	cnt
+courses	publish	5
+courses	private	2
+lesson	publish	38
+topics	publish	10
+tutor_enrolled	completed	33

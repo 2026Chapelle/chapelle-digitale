@@ -1,0 +1,8 @@
+course_id	post_status	slug	menu_order	author_id	title_len	content_len	excerpt_len	topics_n	lessons_n	quiz_via_topic_n	quiz_direct_n	enrolled_n	thumb_id
+732	publish	parcours-1-je-decouvre-la-maison	0	1	38	1619	0	1	3	0	0	33	733
+734	publish	parcours-2-je-stabilise-ma-foi	0	1	35	0	0	0	0	0	0	0	735
+736	publish	parcours-3-je-deviens-un-disciple-actif	0	1	43	0	0	6	26	0	0	0	737
+738	publish	ecole-des-appeles	0	1	17	0	0	0	0	0	0	0	739
+867	publish	le-chemin-des-elus-7-etapes-pour-entrer-senraciner-et-regner	0	1	64	0	0	1	7	0	0	0	NULL
+876	private	ne-pour-regner	0	1	14	0	0	1	1	0	0	0	NULL
+879	private	la-formation-du-leader-royal	0	1	28	0	0	1	1	0	0	0	NULL

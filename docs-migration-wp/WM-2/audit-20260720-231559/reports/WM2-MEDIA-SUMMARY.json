@@ -1,0 +1,31 @@
+{
+  "attachments_db": 73,
+  "attachments_missing_file": 0,
+  "physical_upload_files": 383,
+  "physical_upload_bytes": 101219207,
+  "mime": {
+    "image": 71,
+    "application": 2,
+    "video_attachment": 0,
+    "audio_attachment": 0
+  },
+  "derived_thumbnails_estimate": 300,
+  "originals_estimate": 83,
+  "duplicate_size_groups_originals": 4,
+  "duplicate_size_files": 8,
+  "sha256_confirmed_extra_copies_sample": 4,
+  "lesson_html5_videos": 3,
+  "lesson_youtube_refs": 8,
+  "featured_images_meta_thumbnail_id_rows": 39,
+  "classification": {
+    "IMPORTER": ["original uploads referenced by attachments", "html5 lesson mp4 if still needed"],
+    "REFERENCEER": ["YouTube lesson videos"],
+    "ARCHIVER": ["optional historical live analytics media if any"],
+    "ABANDONNER_APRES_VALIDATION": ["regenerable thumbnails -WxH", "wordfence file inventories"],
+    "A_DECIDER": ["tutor_attachments binary links"]
+  },
+  "notes": [
+    "No full-tree SHA256 of all uploads (cost); prioritized originals size-dup candidates.",
+    "YouTube full URLs only in private/."
+  ]
+}

@@ -1,0 +1,31 @@
+Field	Type	Null	Key	Default	Extra
+id	bigint(20) unsigned	NO	PRI	NULL	auto_increment
+user_id	bigint(20) unsigned	YES	MUL	NULL	
+hash	varchar(90)	YES		NULL	
+contact_owner	bigint(20) unsigned	YES		NULL	
+company_id	bigint(20) unsigned	YES		NULL	
+prefix	varchar(192)	YES		NULL	
+first_name	varchar(192)	YES		NULL	
+last_name	varchar(192)	YES		NULL	
+email	varchar(190)	NO	UNI	NULL	
+timezone	varchar(192)	YES		NULL	
+address_line_1	varchar(192)	YES		NULL	
+address_line_2	varchar(192)	YES		NULL	
+postal_code	varchar(192)	YES		NULL	
+city	varchar(192)	YES		NULL	
+state	varchar(192)	YES		NULL	
+country	varchar(192)	YES		NULL	
+ip	varchar(40)	YES		NULL	
+latitude	decimal(10,8)	YES		NULL	
+longitude	decimal(10,8)	YES		NULL	
+total_points	int(10) unsigned	NO		0	
+life_time_value	int(10) unsigned	NO		0	
+phone	varchar(50)	YES		NULL	
+status	varchar(50)	NO	MUL	subscribed	
+contact_type	varchar(50)	YES		lead	
+source	varchar(50)	YES		NULL	
+avatar	varchar(192)	YES		NULL	
+date_of_birth	date	YES		NULL	
+created_at	timestamp	YES		NULL	
+last_activity	timestamp	YES		NULL	
+updated_at	timestamp	YES		NULL	

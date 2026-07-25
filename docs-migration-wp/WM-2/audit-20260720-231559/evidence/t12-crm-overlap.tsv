@@ -1,0 +1,6 @@
+m	COUNT(*)
+fc_subscribers	33
+fc_with_user_id	33
+fc_without_user_id	0
+wp_users_not_in_fc	2
+fc_email_match_users	33

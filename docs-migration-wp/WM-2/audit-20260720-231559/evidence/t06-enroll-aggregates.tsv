@@ -1,0 +1,8 @@
+m	COUNT(*)
+enroll_total	33
+enroll_distinct_users	33
+enroll_orphan_user	0
+enroll_orphan_course	0
+courses_with_enroll	1
+courses_without_enroll	6
+duplicate_enroll_user_course	0

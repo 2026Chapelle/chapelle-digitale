@@ -1,0 +1,30 @@
+Field	Type	Null	Key	Default	Extra
+id	bigint(20) unsigned	NO	PRI	NULL	auto_increment
+parent_id	bigint(20) unsigned	YES		0	
+transaction_id	varchar(255)	YES	MUL	NULL	
+user_id	bigint(20) unsigned	NO	MUL	NULL	
+order_type	varchar(50)	NO	MUL	NULL	
+order_status	varchar(50)	NO	MUL	NULL	
+payment_status	varchar(50)	NO	MUL	NULL	
+subtotal_price	decimal(13,2)	NO		NULL	
+pre_tax_price	decimal(13,2)	NO		NULL	
+tax_type	varchar(50)	YES		NULL	
+tax_rate	decimal(13,2)	YES		NULL	
+tax_amount	decimal(13,2)	YES		NULL	
+total_price	decimal(13,2)	NO		NULL	
+net_payment	decimal(13,2)	NO		NULL	
+coupon_code	varchar(255)	YES		NULL	
+coupon_amount	decimal(13,2)	YES		NULL	
+discount_type	enum('percentage','flat')	YES		NULL	
+discount_amount	decimal(13,2)	YES		NULL	
+discount_reason	text	YES		NULL	
+fees	decimal(13,2)	YES		NULL	
+earnings	decimal(13,2)	YES		NULL	
+refund_amount	decimal(13,2)	YES		NULL	
+payment_method	varchar(255)	YES		NULL	
+payment_payloads	longtext	YES		NULL	
+note	text	YES		NULL	
+created_at_gmt	datetime	NO		NULL	
+created_by	bigint(20) unsigned	NO		NULL	
+updated_at_gmt	datetime	YES		NULL	
+updated_by	bigint(20) unsigned	NO		NULL	

@@ -1,0 +1,11 @@
+metric	value
+total_users	35
+users_with_email	35
+users_without_email	0
+users_email_has_at	35
+users_email_no_at	0
+users_with_registered	35
+users_with_pass_hash	35
+usermeta_rows	773
+orphan_usermeta	0
+users_without_any_meta	0

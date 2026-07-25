@@ -1,0 +1,129 @@
+{
+  "model": {
+    "plugin": ["tutor", "tutor-pro"],
+    "version_observed": "3.9.11",
+    "content_storage": "wordpress_cpt",
+    "cpt": ["courses", "topics", "lesson", "tutor_enrolled"],
+    "ordering_proof": ["post_parent", "menu_order"],
+    "transactional_tables": "wp_tutor_* all empty (17 tables)"
+  },
+  "totals": {
+    "courses": 7,
+    "courses_publish": 5,
+    "courses_private": 2,
+    "topics": 10,
+    "lessons": 38,
+    "quizzes_cpt": 0,
+    "assignments_cpt": 0,
+    "enrollments": 33,
+    "distinct_learners_enrolled": 33,
+    "instructors": 1
+  },
+  "courses": [
+    {
+      "id": 732,
+      "status": "publish",
+      "slug": "parcours-1-je-decouvre-la-maison",
+      "title_public": "PARCOURS 1 — Formation d'Intégration",
+      "topics": 1,
+      "lessons": 3,
+      "quizzes": 0,
+      "enrolled": 33,
+      "completions_active_citadelle": "DO_NOT_IMPORT_AS_ACTIVE",
+      "thumbnail": true,
+      "anomalies": ["all_site_enrollments_here", "enrollment_status_completed"]
+    },
+    {
+      "id": 734,
+      "status": "publish",
+      "slug": "parcours-2-je-stabilise-ma-foi",
+      "title_public": "PARCOURS 2 — Je stabilise ma foi",
+      "topics": 0,
+      "lessons": 0,
+      "quizzes": 0,
+      "enrolled": 0,
+      "thumbnail": true,
+      "anomalies": ["empty_publish_shell"]
+    },
+    {
+      "id": 736,
+      "status": "publish",
+      "slug": "parcours-3-je-deviens-un-disciple-actif",
+      "title_public": "PARCOURS 3 — Je deviens un disciple actif",
+      "topics": 6,
+      "lessons": 26,
+      "quizzes": 0,
+      "enrolled": 0,
+      "thumbnail": true,
+      "anomalies": ["no_enrollments", "most_lessons_no_video_meta"]
+    },
+    {
+      "id": 738,
+      "status": "publish",
+      "slug": "ecole-des-appeles",
+      "title_public": "École des Appelés",
+      "topics": 0,
+      "lessons": 0,
+      "quizzes": 0,
+      "enrolled": 0,
+      "thumbnail": true,
+      "anomalies": ["empty_publish_shell"]
+    },
+    {
+      "id": 867,
+      "status": "publish",
+      "slug": "le-chemin-des-elus-7-etapes-pour-entrer-senraciner-et-regner",
+      "title_public": "Le Chemin des Élus — 7 étapes pour Entrer, S'enraciner et Régner",
+      "topics": 1,
+      "lessons": 7,
+      "quizzes": 0,
+      "enrolled": 0,
+      "thumbnail": false,
+      "anomalies": ["imported_old_site_meta", "youtube_videos_on_lessons"]
+    },
+    {
+      "id": 876,
+      "status": "private",
+      "slug": "ne-pour-regner",
+      "title_public": "Né pour Régner",
+      "topics": 1,
+      "lessons": 1,
+      "quizzes": 0,
+      "enrolled": 0,
+      "thumbnail": false,
+      "anomalies": ["private"]
+    },
+    {
+      "id": 879,
+      "status": "private",
+      "slug": "la-formation-du-leader-royal",
+      "title_public": "La Formation du Leader Royal",
+      "topics": 1,
+      "lessons": 1,
+      "quizzes": 0,
+      "enrolled": 0,
+      "thumbnail": false,
+      "anomalies": ["private"]
+    }
+  ],
+  "pedagogy_order_example_course_736_topics_menu_order": [
+    {"menu_order": 1, "topic_id": 1094, "lessons": 5},
+    {"menu_order": 2, "topic_id": 1100, "lessons": 4},
+    {"menu_order": 3, "topic_id": 1105, "lessons": 4},
+    {"menu_order": 4, "topic_id": 1110, "lessons": 4},
+    {"menu_order": 5, "topic_id": 1115, "lessons": 4},
+    {"menu_order": 6, "topic_id": 1120, "lessons": 5}
+  ],
+  "videos": {
+    "youtube_unique": 8,
+    "html5_local": 3,
+    "lessons_with_video": 11,
+    "lessons_without_video": 27,
+    "detail_location": "private/youtube-ids.tsv and private/html5-local-videos.tsv"
+  },
+  "progression_policy": {
+    "historical": "ARCHIVE",
+    "citadelle_start_level": "initial_for_all_former_subscribers",
+    "do_not_mutate_source": true
+  }
+}

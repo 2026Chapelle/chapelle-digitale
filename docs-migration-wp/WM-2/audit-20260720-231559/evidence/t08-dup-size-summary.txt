@@ -1,0 +1,4 @@
+originals=83
+dup_size_groups=4
+dup_size_files=8
+sha256_confirmed_extra_copies_sampled=4

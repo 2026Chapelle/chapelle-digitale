@@ -1,0 +1,36 @@
+domain,decision_finale,justification,blocked_by,wm_next
+utilisateurs_valides,IMPORTER_OU_RAPPROCHER,35 emails uniques; reset mdp,none,WM-4/7
+mots_de_passe,ABANDONNER,décision WM-0 validée,none,WM-7
+roles_wp_um,NE_PAS_IMPORTER,RBAC Citadelle distinct; niveau initial,none,WM-5
+admin_wp,EXCLURE_BATCH_REVUE_MANUELLE,1 compte; anti-élévation,GO sécu,WM-7
+profil_essentiel,IMPORTER,prenom nom telephone,PII coffre,WM-4
+profil_spirituel_consent,NE_PAS_IMPORTER_AUTO,sensible sparse,décision pastorale,WM-4 gated
+cours_publish_non_vides,IMPORTER_OU_RAPPROCHER,structure prouvée,none,WM-4
+cours_shells_vides,RAPPROCHER_SEED_OU_RECREER,734/738 vides,none,WM-4
+cours_private,HORS_CATALOGUE_PUBLIC,scope,GO métier,WM-4 optional
+topics_lessons,IMPORTER_VERS_FORMATION_MODULES,ADR LMS locked,none,WM-4
+enrollments,ARCHIVER_PUIS_INSCRIRE_PROGRESSION_0,pas de progression active,none,WM-4/5
+quiz_orders_tutor,ABANDONNER,volume 0,none,—
+youtube,REFERENCEER_ID,sans download,none,WM-4
+html5_videos,IMPORTER_OU_REFERENCEER,3 fichiers uploads,storage,WM-4
+pages_elementor,ARCHIVER_SOURCE_TRANSFORMER,design Next hors scope,none,WM-5/8
+revisions,ABANDONNER,853 bruit,none,WM-4
+blog_posts,N/A,0 publish,none,—
+medias_originaux,IMPORTER,attachments OK disk,none,WM-4
+thumbnails,ABANDONNER_APRES_VALIDATION,régénérables,none,WM-4
+fluentcrm_subscribers,IMPORTER_OU_RAPPROCHER,33 subscribed; unsub rule,none,WM-4
+fluentcrm_campaigns,ARCHIVER,historique,PII,WM-4 private
+fluentforms_defs,RECREER,0 submissions,none,WM-5
+fluentforms_entries,ABANDONNER,0,none,—
+prayer_requests,ARCHIVER_SENSIBLE_PRIVATE,1 row PII,none,WM-4 private
+rankmath_redirects,DEFER,3 rules,none,WM-8
+taxonomies_wp,NE_PAS_CLONER,3 terms only,none,—
+menus_wp,RECREER,0 menus,none,WM-5
+woocommerce_h5p,N/A,absent,none,—
+wordfence_as_cache,ABANDONNER,non métier,none,WM-4
+sitekit_tokens,ABANDONNER,secrets,none,WM-4
+code_snippets,REVUE_PUIS_RECODER,41 snippets,sécu,WM-5
+paiements_hist,N/A_ARCHIVER,0 rows,none,—
+lms_model_citadelle,FORMATION_MODULES_ONLY,ADR-WM3-LMS-001,none,WM-4+
+academy_star,HORS_IMPORT_WP,modèle distinct,none,—
+legacy_modules_lecons,NON_CHEMIN_IMPORT_WP,legacy,none,—

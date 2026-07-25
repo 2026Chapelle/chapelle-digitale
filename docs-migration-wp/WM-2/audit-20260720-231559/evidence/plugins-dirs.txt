@@ -1,0 +1,31 @@
+all-in-one-wp-migration
+Chapelle Royale ÔÇö Demande de pri├¿re structur├®e
+Chapelle Royale ÔÇö Forum communautaire
+chapelle-header
+code-snippets
+cr_annnonces
+cr_live_plateform
+cr_my_account_v2.php v2.7
+cr-achievements
+cr-fix-user-cache
+cr-header-live-redirect
+cr-verset-jour.php
+elementor
+elementor-pro
+elementskit-lite
+fluent-crm
+fluent-smtp
+fluentcampaign-pro
+fluentform
+fluentformpro
+google-site-kit
+litespeed-cache
+Live Analytics
+plugintheme
+seo-by-rank-math
+seo-by-rank-math-pro
+tutor
+tutor-pro
+ultimate-member
+wordfence
+wordpress-mcp

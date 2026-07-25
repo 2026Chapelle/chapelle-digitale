@@ -1,0 +1,13 @@
+﻿# Données privées et sauvegardes brutes
+**/private/
+**/*PII*
+**/*.sql
+**/*.sql.gz
+**/*.tar
+**/*.tar.gz
+**/*.tgz
+**/*.zip
+**/*.7z
+**/backup-*/
+**/restore-test/
+**/files-extract/

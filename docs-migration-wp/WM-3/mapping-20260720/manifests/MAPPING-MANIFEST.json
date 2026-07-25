@@ -1,0 +1,63 @@
+{
+  "mapping_id": "mapping-20260720",
+  "lot": "WM-3",
+  "created_utc_date": "2026-07-20",
+  "source_audit_id": "audit-20260720-231559",
+  "source_database": "wm1r_restore_isolated",
+  "citadelle_schema_source": "local_migrations_cier-platform",
+  "mode": "read_only_mapping_no_import",
+  "verdict": "WM3_OK",
+  "markers": [
+    "WM3_OK",
+    "WM3_ADR_LMS_LOCKED",
+    "WM3_ROLE_POLICY_LOCKED",
+    "WM3_MAPPING_LOCKED_OK",
+    "CITADELLE_WP_MIGRATION_WM3_MAPPING_LOCKED_OK"
+  ],
+  "lms_target": {
+    "formations": true,
+    "formation_modules": true,
+    "inscriptions_formation_level_0": true,
+    "video_progress_from_wp": false,
+    "modules_formation_lecons_legacy": false,
+    "academy_star": false
+  },
+  "identity": {
+    "match_key": "email_normalized",
+    "import_passwords": false,
+    "force_initial_level": true,
+    "exclude_wp_admin_from_batch": true
+  },
+  "volumes_from_wm2": {
+    "users": 35,
+    "courses": 7,
+    "topics": 10,
+    "lessons": 38,
+    "enrollments": 33,
+    "fc_subscribers": 33,
+    "pages": 56,
+    "attachments": 73
+  },
+  "files": {
+    "reports": [
+      "WM3-REPORT.md",
+      "WM3-ADR-LMS.md",
+      "WM3-ROLE-POLICY.md",
+      "WM3-DECISION-LOCK.md"
+    ],
+    "evidence": [
+      "field-mapping.csv",
+      "course-slug-map.csv",
+      "domain-decisions.csv"
+    ],
+    "private": ["PII_PRIVATE_DO_NOT_COMMIT"]
+  },
+  "next_lot": "WM-4",
+  "forbidden_now": [
+    "supabase_import",
+    "password_migration",
+    "cutover",
+    "sandbox_delete",
+    "prod_write"
+  ]
+}

@@ -1,0 +1,32 @@
+Chapelle Royale — Demande de prière structurée
+Chapelle Royale — Forum communautaire
+Live Analytics
+all-in-one-wp-migration
+chapelle-header
+code-snippets
+cr-achievements
+cr-fix-user-cache
+cr-header-live-redirect
+cr-verset-jour.php
+cr_annnonces
+cr_live_plateform
+cr_my_account_v2.php v2.7
+elementor
+elementor-pro
+elementskit-lite
+fluent-crm
+fluent-smtp
+fluentcampaign-pro
+fluentform
+fluentformpro
+google-site-kit
+index.php
+litespeed-cache
+plugintheme
+seo-by-rank-math
+seo-by-rank-math-pro
+tutor
+tutor-pro
+ultimate-member
+wordfence
+wordpress-mcp

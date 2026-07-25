@@ -1,0 +1,21 @@
+id,domain,anomaly,quantity,severity,migration_impact,future_treatment
+A01,content,Post revisions dominate wp_posts,853,HAUT,Bloat import,Exclude revisions from import
+A02,tutor,Publish courses without lessons (734 738),2,HAUT,Empty shells,Recreate or unpublish before map
+A03,tutor,Courses without any enrollment,6,HAUT,Partial LMS adoption,Expected; archive enrollments only for 732
+A04,tutor,Lessons without _video meta,27,HAUT,Incomplete media map,Text-only or missing assets review
+A05,tutor,All enrollments concentrated on course 732,33,MOYEN,Skewed cohort,Archive as historical Parcours1 only
+A06,tutor,Enrollment post_status is completed not publish,33,MOYEN,Progress semantics ambiguous,Treat as HISTORICAL ARCHIVE not active progress
+A07,tutor,wp_tutor_* transactional tables all empty,17,INFORMATION,No quiz/order history,Schema only; no payment replay
+A08,navigation,No WP nav_menu terms,0,MOYEN,Menu migration N/A,Rebuild nav in Citadelle/Next
+A09,seo,Rank Math title/description/focus empty in postmeta,0 filled,MOYEN,SEO to rebuild,WM-8 URLs + new SEO
+A10,forms,Fluent Forms submissions empty,0,MOYEN,No form history,Recreate forms; no entry migration
+A11,crm,No unsubscribed status rows,0,MOYEN,Consent edge case,Preserve any future unsub; all currently subscribed
+A12,security,Google Site Kit OAuth tokens in usermeta,1 user,CRITIQUE,Secret leak if exported,Strip from any export
+A13,pii,Prayer request table has rows + prayer form exists,1+form,HAUT,Sensitive pastoral data,Private archive; no public report content
+A14,users,Custom UM role only (no native subscriber),34,MOYEN,Role mapping required,WM-3 membership model
+A15,media,Many physical files are thumbnails,300 est.,FAIBLE,Storage noise,Import originals; skip derived
+A16,media,Size-duplicate original candidates,4 groups,FAIBLE,Dedup opportunity,SHA sample confirmed extras
+A17,content,Zero published blog posts,0,INFORMATION,Editorial empty,Pages+LMS only
+A18,integrations,No WooCommerce/H5P/Chariow tables,0,INFORMATION,No cart history,Payments archive empty
+A19,data,All users registered in 2026,35,INFORMATION,Fresh dataset,Consistent with relaunch
+A20,tutor,Certificate template meta without issued certs,4 courses,FAIBLE,No certificate records,Do not invent completions

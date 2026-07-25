@@ -1,0 +1,11 @@
+lessons_total_publish=38
+lessons_with_nonempty_video_meta=11
+lessons_without_video=27
+unique_youtube_ids=8
+youtube_lesson_links=8
+html5_local_hosted_videos=3
+empty_course_level_video_arrays=4
+vimeo=0
+source_youtube=8
+source_html5=3
+note=YouTube IDs and full URLs only in private/youtube-ids.tsv and private/video-meta-raw.tsv

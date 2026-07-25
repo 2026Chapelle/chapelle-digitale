@@ -1,0 +1,27 @@
+blog_public	1
+page_for_posts	0
+page_on_front	31
+permalink_structure	/%postname%/
+rank_math_connect_data	a:5:{s:8:"username";s:7:"user420";s:5:"email";s:17:"user420@gmail.com";s:7:"api_key";s:9:"*********";s:4:"plan";s:8:"business";s:9:"connected";b:1;}
+rank_math_content_ai_viewed	1
+rank_math_db_version	1
+rank_math_indexnow_log	a:100:{i:0;a:5:{s:3:"url";s:85:"https://www.chapelleduroyaume.org/apprendre-a-marcher-avec-dieu-le-coeur-du-disciple/";s:6:"status";i:200;s:17:"manual_submission";b:0;s:7:"message";s:2:"OK";s:4:"time"
+rank_math_install_date	1778509474
+rank_math_known_post_types	a:13:{s:4:"post";s:4:"post";s:4:"page";s:4:"page";s:10:"attachment";s:10:"attachment";s:18:"e-floating-buttons";s:18:"e-floating-buttons";s:17:"elementor_library";s:17:"elementor_library";s:19:"elemen
+rank_math_link_genius_audit_crawler_state	a:6:{s:5:"total";i:64;s:9:"processed";i:64;s:6:"failed";i:0;s:6:"errors";i:0;s:10:"started_at";s:19:"2026-05-12 07:38:40";s:12:"completed_at";s:19:"2026-05-22 23:30:22";}
+rank_math_modules	a:15:{i:0;s:12:"link-counter";i:1;s:9:"analytics";i:2;s:12:"seo-analysis";i:3;s:7:"sitemap";i:4;s:12:"rich-snippet";i:5;s:11:"woocommerce";i:6;s:10:"buddypress";i:7;s:7:"bbpress";i:8;s:3:"acf";i:9;s:1
+rank_math_notifications	a:0:{}
+rank_math_pro_version	3.0.112
+rank_math_regenerate_state	a:6:{s:5:"total";i:7;s:9:"processed";i:161;s:6:"failed";i:0;s:6:"errors";i:0;s:10:"started_at";s:19:"2026-05-11 14:24:45";s:12:"completed_at";s:19:"2026-05-11 14:24:45";}
+rank_math_registration_skip	1
+rank_math_review_notice_added	1
+rank_math_review_notice_date	1780994361
+rank_math_review_notice_delayed	1
+rank_math_review_posts_converted	1
+rank_math_sitemap_cache_files	a:4:{s:46:"rank_math_ee736d5dff4f59462d00e175d4169417.xml";s:1:"1";s:46:"rank_math_090fad45897f98d23f93cbe784f8a33e.xml";s:4:"page";s:46:"rank_math_625060263d054018e9a25543b476f432.xml";s:7:"courses";
+rank_math_version	1.0.274.1
+rank-math-options-general	a:51:{s:19:"strip_category_base";s:3:"off";s:24:"attachment_redirect_urls";s:2:"on";s:27:"attachment_redirect_default";s:33:"https://www.chapelleduroyaume.org";s:23:"nofollow_external_links";s:3:"off"
+rank-math-options-instant-indexing	a:2:{s:15:"bing_post_types";a:2:{i:0;s:4:"post";i:1;s:4:"page";}s:16:"indexnow_api_key";s:32:"a8fd1c7eae1c4b15885ea7cd73cdcccd";}
+rank-math-options-sitemap	a:24:{s:14:"items_per_page";i:200;s:14:"include_images";s:2:"on";s:22:"include_featured_image";s:3:"off";s:13:"exclude_roles";a:3:{i:0;s:11:"contributor";i:1;s:10:"subscriber";i:2;s:16:"tutor_instruct
+rank-math-options-titles	a:197:{s:24:"noindex_empty_taxonomies";s:2:"on";s:15:"title_separator";s:1:"-";s:17:"capitalize_titles";s:3:"off";s:17:"twitter_card_type";s:19:"summary_large_image";s:19:"knowledgegraph_type";s:6:"pe
+show_on_front	page

@@ -1,0 +1,67 @@
+domain,source_object,source_field,target_schema,target_table,target_field,transform,decision,volume_hint,pii,wm_next,notes
+identity,wp_users,ID,archive,wp_user_map,wp_user_id,cast_int,ARCHIVER,35,no,WM-4,clé technique archive
+identity,wp_users,user_email,public,profiles,email,lower_trim,IMPORTER_OU_RAPPROCHER,35,yes,WM-4,match key
+identity,wp_users,user_email,auth,users,email,lower_trim,IMPORTER_OU_RAPPROCHER,35,yes,WM-5/7,via Auth API
+identity,wp_users,user_pass,—,—,—,drop,ABANDONNER,35,secret,WM-4,reset obligatoire
+identity,wp_users,user_registered,public,profiles,date_inscription,parse_ts,IMPORTER,35,no,WM-4,
+identity,wp_users,user_login,archive,wp_user_map,user_login,as_is,ARCHIVER,35,low,WM-4,
+identity,wp_users,display_name,public,profiles,prenom,if_empty_meta,FACULTATIF,35,low,WM-4,fallback only
+identity,wp_usermeta,first_name,public,profiles,prenom,trim,IMPORTER,34,yes,WM-4,
+identity,wp_usermeta,last_name,public,profiles,nom,trim,IMPORTER,31,yes,WM-4,
+identity,wp_usermeta,phone_or_whatsapp,public,profiles,telephone,normalize_e164_optional,IMPORTER,33,yes,WM-4,PII coffre
+identity,wp_usermeta,city,public,profiles,ville,trim,FACULTATIF,3,yes,WM-4,sparse
+identity,wp_usermeta,country,public,profiles,pays,trim,FACULTATIF,3,yes,WM-4,sparse
+identity,wp_usermeta,wp_capabilities,—,—,—,drop,ABANDONNER,35,no,WM-3,roles policy
+identity,wp_usermeta,session_tokens,—,—,—,drop,ABANDONNER,varies,secret,WM-4,
+identity,wp_usermeta,sitekit_oauth,—,—,—,drop,ABANDONNER,1,secret,WM-4,ne pas exporter
+identity,constant,—,public,profiles,role,force_visiteur,FORCER,35,no,WM-5,sauf admin exclu
+identity,constant,—,public,profiles,membre_statut,force_visiteur,FORCER,35,no,WM-5,niveau initial
+identity,constant,—,public,profiles,parcours_disciple_etape,force_0,FORCER,35,no,WM-5,
+identity,constant,—,public,profiles,source_inscription,const_wordpress_wm_import,FORCER,35,no,WM-5,
+lms,courses,ID,archive,wp_course_map,wp_post_id,cast_int,ARCHIVER,7,no,WM-4,
+lms,courses,post_title,public,formations,titre,trim,IMPORTER_OU_RAPPROCHER,7,no,WM-4,
+lms,courses,post_name,public,formations,slug,slugify_keep,IMPORTER_OU_RAPPROCHER,7,no,WM-4,rapprocher seeds
+lms,courses,post_content,public,formations,description,html_to_text_or_md,IMPORTER,7,no,WM-4,strip shortcodes later
+lms,courses,post_excerpt,public,formations,contenu_court,trim,IMPORTER,7,no,WM-4,
+lms,courses,post_status,public,formations,statut,map_publish_publie_private_archive,IMPORTER,7,no,WM-4,
+lms,courses,post_date,public,formations,date_publication,parse_ts,IMPORTER,7,no,WM-4,
+lms,courses,_thumbnail_id,public,formations,image_couverture,resolve_media_url,REFERENCEER,varies,no,WM-4/5,
+lms,courses,_tutor_course_price_type,public,formations,gratuit,map_free_true,IMPORTER,7,no,WM-4,souvent gratuit
+lms,topics,ID,archive,wp_topic_map,wp_post_id,cast_int,ARCHIVER,10,no,WM-4,pas de table cible
+lms,topics,post_title,derived,formation_modules,titre_prefix,prefix_lesson_title,TRANSFORMER,10,no,WM-4,Topic — Leçon
+lms,topics,menu_order,derived,formation_modules,ordre_block,block_order,TRANSFORMER,10,no,WM-4,
+lms,lesson,ID,archive,wp_lesson_map,wp_post_id,cast_int,ARCHIVER,38,no,WM-4,
+lms,lesson,post_title,public,formation_modules,titre,trim_with_topic_prefix,IMPORTER,38,no,WM-4,
+lms,lesson,post_content,public,formation_modules,contenu_texte,html_clean,IMPORTER,38,no,WM-4,
+lms,lesson,menu_order+parent,public,formation_modules,ordre,recompute_global,IMPORTER,38,no,WM-4,
+lms,lesson,_video.youtube,public,formation_modules,youtube_id,extract_id,REFERENCEER,8 unique,no,WM-4,type=youtube
+lms,lesson,_video.html5,public,formation_modules,video_url,map_upload_path,IMPORTER_OU_REFERENCEER,3,no,WM-4,type=video
+lms,lesson,_tutor_attachments,archive_or_storage,formation_modules,pdf_url,if_pdf_else_archive,A_DECIDER_WM4,28,no,WM-4,croiser fichiers
+lms,tutor_enrolled,post_author,public,inscriptions_formation,user_id,map_via_email,ARCHIVER_PUIS_INSCRIRE_NIVEAU_0,33,yes,WM-4/5,progression=0
+lms,tutor_enrolled,post_parent,public,inscriptions_formation,formation_id,map_course,ARCHIVER_PUIS_INSCRIRE_NIVEAU_0,33,no,WM-4/5,course 732 only
+lms,tutor_enrolled,post_status,—,—,progression,drop_as_active,NE_PAS_IMPORTER_PROGRESSION,33,no,WM-4,completed ambigu
+lms,wp_tutor_quiz_attempts,*,—,—,—,drop,ABANDONNER,0,no,WM-4,
+lms,wp_tutor_orders,*,—,—,—,drop,ABANDONNER,0,no,WM-4,
+content,page,ID+slug,archive / cms optional,cms_pages_or_next_routes,slug,inventory_only,TRANSFORMER_PAS_DESIGN,56,no,WM-5/8,design Next hors scope
+content,page,post_content_elementor,archive,elementor_raw,json,extract,ARCHIVER_SOURCE,56,no,WM-5,pas de clone Elementor
+content,revision,*,—,—,—,drop,ABANDONNER,853,no,WM-4,
+content,post publish,*,public,cms_articles,—,—,N/A_RECREER_SI_BESOIN,0,no,WM-3,aucun publish
+media,attachment,ID,archive,wp_media_map,wp_post_id,cast_int,ARCHIVER,73,no,WM-4,
+media,attachment,guid/file,storage,cms_media_or_bucket,path,copy_originals,IMPORTER,83 est.,no,WM-4,
+media,uploads,thumbnails,—,—,—,regenerate,ABANDONNER_APRES_VALIDATION,300 est.,no,WM-4,
+media,attachment,post_mime_type,storage,object,content_type,as_is,IMPORTER,73,no,WM-4,
+crm,fc_subscribers,email,public,newsletter_subscribers,email,lower_trim,IMPORTER_OU_RAPPROCHER,33,yes,WM-4,
+crm,fc_subscribers,status,public,newsletter_subscribers,statut,map_subscribed_actif,IMPORTER,33,no,WM-4,unsub→desabonne
+crm,fc_subscribers,first_name+last_name,public,crm_contacts,prenom+nom,trim,IMPORTER_SI_BESOIN,33,yes,WM-4,
+crm,fc_tags/lists,name,public,crm_contacts,tags,array_agg,IMPORTER_NON_SENSIBLE,10+2,no,WM-4,
+crm,fc_campaigns,*,archive,fc_campaign_archive,—,json,ARCHIVER,3+66,yes,WM-4,PII emails hist
+forms,fluentform,form definition,citadelle,forms_native,schema,recreate,RECREER,7,no,WM-5,0 entries
+forms,fluentform,submissions,—,—,—,drop,ABANDONNER,0,yes,WM-3,
+forms,wp_cr_prayer_requests,*,private_archive,prayer_archive,—,encrypt_or_lock,ARCHIVER_SENSIBLE,1,yes,WM-4,pas demandes_priere publiques
+seo,rank_math,redirections,future,redirect_rules,from_to,export,A_DECIDER_WM8,3,no,WM-8,
+seo,rank_math,title/desc postmeta,public,formations.meta_*,copy_if_present,FACULTATIF,0 filled,no,WM-4,vides en audit
+tax,terms,*,—,—,—,drop_or_tags,NE_PAS_CLONER_1_1,3,no,WM-3,pas de clone WP terms
+nav,nav_menu_items,*,citadelle/next,nav,structure,recreate,RECREER,0,no,WM-5,
+plugins,wordfence/as/cache,*,—,—,—,drop,ABANDONNER,large,maybe_ip,WM-4,
+plugins,code_snippets,php,code review,—,features,recode,REVUE_PUIS_RECODER,41,no,WM-5,pas d'exec PHP
+commerce,woo/tutor_orders,*,—,—,—,drop,N/A,0,no,WM-3,

@@ -1,0 +1,41 @@
+domain,source,volume,quality,provisional_decision,justification,risk,next_wm
+wp_users_accounts,wp_users,35,good,IMPORTER_OU_RAPPROCHER,Comptes valides emails uniques,mismatch identity,WM-3/4
+wp_passwords,wp_users.user_pass,35,n/a,ABANDONNER,Décision validée reset obligatoire,auth break if forced,WM-4
+wp_roles_capabilities,wp_usermeta,35,custom_um,NE_PAS_IMPORTER_AUTO,Rôles WP/UM non reproductibles tels quels,wrong RBAC,WM-3
+profile_name_phone,usermeta,31-34,good,IMPORTER,Profil essentiel,PII handling,WM-3/4
+profile_optional_geo,usermeta city/country,3,sparse,FACULTATIF_A_DECIDER,Faible remplissage,noise,WM-3
+profile_spiritual_consent,usermeta,3,sparse,A_DECIDER_WM3,Sensible + consentement,pastoral/legal,WM-3
+sessions_tokens_logins,usermeta,5,technical,ABANDONNER,Sessions non migrables,security,WM-4
+sitekit_oauth_tokens,usermeta,1,secret,ABANDONNER,Secrets OAuth,leak,WM-4
+tutor_courses_publish,courses CPT,5,mixed,IMPORTER,Contenu pédagogique public,empty shells 734/738,WM-3/5
+tutor_courses_private,courses CPT,2,ok,A_DECIDER_WM3,Hors catalogue public?,scope,WM-3
+tutor_topics_lessons,topics+lesson,10+38,good,IMPORTER,Ordre parent_id+menu_order prouvé,27 leçons sans vidéo,WM-3/5
+tutor_enrollments,tutor_enrolled,33,historical,ARCHIVER,Décision: pas de progression active Citadelle,false completions,WM-3
+tutor_progress_fine,tutor tables+meta,0,empty,ABANDONNER_COMME_ACTIF,Pas de quiz_attempts; archive only,data loss accepted,WM-3
+tutor_quiz_orders,wp_tutor_*,0,empty,ABANDONNER,Aucune donnée,none,WM-3
+youtube_videos,_video meta,8 ids,good,REFERENCEER,Décision validée sans download,unlisted privacy,WM-3/5
+html5_lesson_videos,_video html5,3,good,IMPORTER_OU_REFERENCEER,MP4 sur uploads,storage cost,WM-3/5
+lesson_attachments,_tutor_attachments,28,unknown,A_DECIDER_WM3,Croiser fichiers,missing files,WM-3
+pages_elementor,page CPT,56,good,TRANSFORMER_PAS_DESIGN,Contenu source; design Next hors scope,shortcodes,WM-5
+post_revisions,revision,853,noise,ABANDONNER,Bruit éditorial,bloat,WM-4
+blog_posts,post CPT,0 publish,empty,RECREER_SI_BESOIN,Pas de blog à migrer,none,WM-3
+media_originals,uploads,83 est.,good,IMPORTER,Attachments OK on disk,dupes,WM-4
+media_thumbnails,uploads,300 est.,derived,ABANDONNER_APRES_VALIDATION,Régénérables,storage,WM-4
+fluentcrm_subscribers,wp_fc_subscribers,33,good,IMPORTER_OU_RAPPROCHER,Aligné étudiants Tutor,consent,WM-3/4
+fluentcrm_campaigns,fc_campaign*,3+66,historical,ARCHIVER,Historique envoi,PII in emails,WM-3
+fluentcrm_unsubscribes,status,0,n/a,PRESERVER_REGLE,Aucun unsub actuel mais règle absolue,legal,WM-3
+fluentforms_definitions,forms,7,good,RECREER_OU_IMPORTER_SCHEMA,0 submissions,field mapping,WM-3
+fluentforms_entries,submissions,0,empty,ABANDONNER,Rien à migrer,none,WM-3
+prayer_requests,wp_cr_prayer_requests+form7,1,sensitive,ARCHIVER_SENSIBLE_PRIVATE,PII pastoral,exposure,WM-3
+rankmath_redirects,redirections,3,small,A_DECIDER_WM8,URLs futures,SEO,WM-8
+rankmath_logs,404/audit,large,noise,ABANDONNER,Logs,none,WM-3
+wordfence_logs,wf*,large,noise,ABANDONNER,Sécurité non métier,PII IP,WM-3
+actionscheduler,as_*,large,noise,ABANDONNER,Jobs,none,WM-3
+woocommerce,tables,0,absent,N/A,Pas de Woo,none,WM-3
+h5p,tables,0,absent,N/A,Pas de H5P,none,WM-3
+wp_nav_menus,terms,0,absent,RECREER,Nav Elementor,IA,WM-3
+code_snippets,snippets,41,unknown,REVUE_PUIS_RECODER,Sécurité,RCE risk,WM-3
+elementor_templates,library CPT,few,support,A_DECIDER,Support pages,lock-in,WM-5
+live_cr_analytics,wp_cr_live_*,~50,low,ARCHIVER_OU_ABANDONNER,Faible volume,PII,WM-3
+forum_cr,wp_cr_forum_posts,2,low,A_DECIDER_WM3,Très faible,PII,WM-3
+payments_history,tutor/fluent/woo,0,empty,ARCHIVER_N/A,Rien à rejouer,finance,WM-3
