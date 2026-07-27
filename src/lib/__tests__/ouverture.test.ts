@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
+  OPENING_DATE_LABEL,
+  OPENING_DATE_SENTENCE,
+  OPENING_DAY_SHORT,
   OPENING_ISO,
   OPENING_MS,
   OUVERTURE_ROUTES,
@@ -18,14 +21,32 @@ const HOUR = 60 * MINUTE
 const DAY = 24 * HOUR
 
 describe('instant d’ouverture', () => {
-  it('cible le 02 août 2026 à 00H00 heure d’Abidjan (= UTC, aucun DST)', () => {
+  it('cible le 09 août 2026 à 00H00 heure d’Abidjan (= UTC, aucun DST)', () => {
     const d = new Date(OPENING_MS)
     expect(d.toISOString()).toBe(OPENING_ISO)
     expect(d.getUTCFullYear()).toBe(2026)
     expect(d.getUTCMonth()).toBe(7) // août
-    expect(d.getUTCDate()).toBe(2)
+    expect(d.getUTCDate()).toBe(9)
     expect(d.getUTCHours()).toBe(0)
-    expect(d.getUTCDay()).toBe(0) // dimanche
+    expect(d.getUTCMinutes()).toBe(0)
+    expect(d.getUTCSeconds()).toBe(0)
+    expect(d.getUTCDay()).toBe(0) // dimanche — cohérent avec le libellé affiché
+  })
+
+  it('n’est plus le 02 août : la date reportée est bien prise en compte', () => {
+    expect(OPENING_ISO).toBe('2026-08-09T00:00:00.000Z')
+    expect(OPENING_ISO).not.toContain('2026-08-02')
+    expect(new Date(OPENING_MS).getUTCDate()).not.toBe(2)
+  })
+
+  it('expose des libellés cohérents avec l’instant d’ouverture', () => {
+    expect(OPENING_DATE_LABEL).toBe('DIMANCHE 09 AOÛT 2026 — 00H00')
+    expect(OPENING_DATE_SENTENCE).toBe('dimanche 09 août 2026 à 00H00')
+    expect(OPENING_DAY_SHORT).toBe('09 août')
+    // Aucun libellé ne doit conserver l'ancienne date de campagne.
+    for (const label of [OPENING_DATE_LABEL, OPENING_DATE_SENTENCE, OPENING_DAY_SHORT]) {
+      expect(label).not.toMatch(/\b0?2\s+ao[uû]t/i)
+    }
   })
 })
 
@@ -84,6 +105,11 @@ describe('libellés de CTA', () => {
     expect(OUVERTURE_ROUTES.inscription).toBe('/register')
     expect(OUVERTURE_ROUTES.connexion).toBe('/login')
     expect(primaryCtaHref()).toBe('/register?next=%2Fmember%2Fdashboard')
+  })
+
+  it('expose les deux routes de la campagne', () => {
+    expect(OUVERTURE_ROUTES.entree).toBe('/ouverture')
+    expect(OUVERTURE_ROUTES.vision).toBe('/ouverture/vision')
   })
 })
 

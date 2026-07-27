@@ -8,20 +8,42 @@
  */
 
 /**
- * Instant d'ouverture : dimanche 02 août 2026 à 00H00, heure d'Abidjan.
+ * Instant d'ouverture : dimanche 09 août 2026 à 00H00, heure d'Abidjan.
+ *
+ * (Date reportée : l'ouverture publique était initialement annoncée au
+ * 02 août 2026. Cette constante est la seule source de vérité — libellés,
+ * métadonnées, JSON-LD et compte à rebours en découlent tous.)
  *
  * La Côte d'Ivoire est sur UTC+00:00 toute l'année (aucun changement d'heure) :
  * l'heure d'Abidjan est donc strictement égale à UTC, et l'instant s'exprime
  * exactement en `Z`. Aucune bibliothèque de fuseaux n'est nécessaire.
  */
-export const OPENING_ISO = '2026-08-02T00:00:00.000Z'
+export const OPENING_ISO = '2026-08-09T00:00:00.000Z'
 
 /** Timestamp (ms epoch) de l'ouverture. */
 export const OPENING_MS = Date.parse(OPENING_ISO)
 
 /** Libellés d'affichage — une seule source de vérité pour la page et les métadonnées. */
-export const OPENING_DATE_LABEL = 'DIMANCHE 02 AOÛT 2026 — 00H00'
+export const OPENING_DATE_LABEL = 'DIMANCHE 09 AOÛT 2026 — 00H00'
+export const OPENING_DATE_SENTENCE = 'dimanche 09 août 2026 à 00H00'
+export const OPENING_DATE_TITLE = '09 août 2026 à 00H00'
+export const OPENING_DAY_SHORT = '09 août'
 export const OPENING_TZ_LABEL = 'Heure d’Abidjan (GMT)'
+
+/**
+ * Chaînes de référencement et de partage social, dérivées des libellés
+ * ci-dessus : changer la date d'ouverture met à jour titres, descriptions et
+ * cartes sociales sans qu'aucune date ne soit écrite en dur dans les pages.
+ */
+export const OPENING_SEO = {
+  title: `Ouverture de La Citadelle — ${OPENING_DATE_TITLE}`,
+  description: `La Citadelle ouvre ses portes le ${OPENING_DATE_SENTENCE}. Découvre une maison digitale pour apprendre, grandir et avancer dans ta destinée avec Dieu.`,
+  ogEyebrow: 'Ouverture publique',
+  ogTitle: 'La Citadelle ouvre ses portes',
+  ogSubtitle: `Dimanche ${OPENING_DAY_SHORT} 2026 — 00H00 (heure d’Abidjan)`,
+  ogAlt: `La Citadelle ouvre ses portes — ${OPENING_DATE_SENTENCE}`,
+  keyword: `${OPENING_DAY_SHORT} 2026`,
+} as const
 
 /**
  * Routes réelles du projet (vérifiées dans src/app) — jamais inventées.
@@ -33,6 +55,10 @@ export const OUVERTURE_ROUTES = {
   motDePasseOublie: '/forgot-password',
   espaceMembre: '/member/dashboard',
   adhesion: '/rejoindre',
+  /** Page d'entrée festive de la campagne. */
+  entree: '/ouverture',
+  /** Landing détaillée : vision, promesses, étapes, verset. */
+  vision: '/ouverture/vision',
 } as const
 
 /** Vrai si l'ouverture publique a eu lieu à l'instant donné. */

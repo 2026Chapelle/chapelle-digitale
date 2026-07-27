@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight, ChevronDown } from 'lucide-react'
 import {
   OPENING_DATE_LABEL,
+  OPENING_DAY_SHORT,
   OPENING_TZ_LABEL,
   OUVERTURE_ROUTES,
   finalCtaLabel,
@@ -16,11 +17,16 @@ import {
   type OpeningVideo as OpeningVideoSource,
 } from '@/lib/ouverture'
 import { events } from '@/lib/analytics'
-import { OpeningCountdown } from './OpeningCountdown'
-import { OpeningVideo } from './OpeningVideo'
+import { OpeningCountdown } from '../OpeningCountdown'
+import { OpeningVideo } from '../OpeningVideo'
 
 /* ============================================================
-   OUVERTURE PUBLIQUE DE LA CITADELLE — landing événementielle
+   LA VISION — landing détaillée de l'ouverture (/ouverture/vision)
+   ------------------------------------------------------------
+   Page longue et narrative, atteinte depuis la page d'entrée festive
+   `/ouverture` via le CTA « Découvrir la vision ». Elle conserve
+   l'intégralité du parcours éditorial : hero, compte à rebours, vidéo,
+   vision, promesses, étapes, premiers membres, verset, appel final.
    ------------------------------------------------------------
    Direction artistique : nuit royale (#050816 → #111936), or (#D4AF6E),
    braise (#FF8C00), texte clair (#C7CEDB). Les composants d'interface
@@ -82,7 +88,7 @@ const ETAPES = [
   { titre: 'Commence à grandir', texte: 'Suis tes premiers enseignements et avance à ton rythme.' },
 ]
 
-export default function OuvertureContent({
+export default function VisionContent({
   initialOpen,
   initialCountdown,
   video,
@@ -233,12 +239,14 @@ export default function OuvertureContent({
               <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             </Link>
 
+            {/* Ancre interne : sur cette page, « la vision » est plus bas —
+                le libellé le dit, plutôt que de promettre une autre page. */}
             <a
               href="#la-vision"
-              onClick={() => events.ctaClick('ouverture_hero_vision')}
+              onClick={() => events.ctaClick('ouverture_vision_scroll')}
               className="btn-glass-cinematic w-full sm:w-auto"
             >
-              Découvrir la vision
+              Lire la vision
             </a>
           </motion.div>
         </div>
@@ -491,7 +499,7 @@ export default function OuvertureContent({
               className="mx-auto mt-6 max-w-2xl font-inter"
               style={{ fontSize: 'clamp(0.95rem, 2.2vw, 1.06rem)', lineHeight: 1.8, color: '#C7CEDB' }}
             >
-              Du 02 août jusqu’au lancement officiel d’octobre, les premiers membres découvriront La
+              Du {OPENING_DAY_SHORT} jusqu’au lancement officiel d’octobre, les premiers membres découvriront La
               Citadelle, commenceront leur parcours et contribueront par leurs retours à améliorer
               cette nouvelle maison digitale.
             </p>
