@@ -119,14 +119,14 @@ export default function EntreeContent({
 
       {/* ══════════ CONTENU — ÉCRAN UNIQUE ══════════ */}
       <section
-        className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-[clamp(0.5rem,1.6svh,1.25rem)]"
+        className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center gap-[clamp(0.5rem,1.6svh,1.25rem)] lg:max-w-[86rem]"
         aria-labelledby="entree-titre"
       >
-        <div className="grid w-full grid-cols-1 items-center gap-x-10 gap-y-[clamp(0.5rem,1.6svh,1.25rem)] text-center lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:text-left">
+        <div className="grid w-full grid-cols-1 items-center gap-x-10 gap-y-[clamp(0.5rem,1.6svh,1.25rem)] text-center lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] lg:gap-x-8 lg:text-left">
           {/* ─── Bloc texte ─── */}
           <motion.div
             {...appear(0)}
-            className="order-1 flex flex-col items-center lg:items-start"
+            className="order-1 flex flex-col items-center lg:items-start lg:self-end"
           >
             <p
               className="inline-flex items-center gap-2 rounded-full font-inter font-bold uppercase"
@@ -153,7 +153,7 @@ export default function EntreeContent({
               style={{
                 // Bornée par la largeur ET la hauteur : sur écran bas, c'est
                 // `svh` qui commande, sans passer sous 1,35 rem (lisibilité).
-                fontSize: 'clamp(1.35rem, min(6.6vw, 5.2svh), 3.5rem)',
+                fontSize: 'clamp(1.35rem, min(6.6vw, 5.2svh), 3.1rem)',
                 lineHeight: 1.02,
                 letterSpacing: '-0.02em',
               }}
@@ -197,14 +197,14 @@ export default function EntreeContent({
           </motion.div>
 
           {/* ─── Vidéo ─── */}
+          {/* La largeur maximale est pilotée par `[data-ouverture-video]` dans
+              IMMERSIVE_CSS (page.tsx) et non par un style inline : c'est le
+              seul moyen d'avoir un plafond différent en mobile et en desktop,
+              un style inline ne pouvant pas être surchargé par une media query. */}
           <motion.div
             {...appear(0.16)}
+            data-ouverture-video
             className="order-2 mx-auto w-full lg:row-span-2"
-            style={{
-              // Hauteur plafonnée (ratio 16/9) : c'est la garantie que les CTA
-              // restent visibles, quelle que soit la hauteur d'écran.
-              maxWidth: 'min(100%, 40rem, calc(34svh * 16 / 9))',
-            }}
           >
             <OpeningVideo source={video} />
           </motion.div>
@@ -212,7 +212,7 @@ export default function EntreeContent({
           {/* ─── CTA + connexion ─── */}
           <motion.div
             {...appear(0.26)}
-            className="order-3 flex flex-col items-center gap-[clamp(0.4rem,1.2svh,0.75rem)] lg:items-start"
+            className="order-3 flex flex-col items-center gap-[clamp(0.4rem,1.2svh,0.75rem)] lg:items-start lg:self-start lg:pt-[clamp(0.75rem,2.2svh,1.5rem)]"
           >
             <div className="flex w-full flex-col items-center gap-[clamp(0.4rem,1.2svh,0.75rem)] sm:flex-row sm:justify-center lg:justify-start">
               <Link

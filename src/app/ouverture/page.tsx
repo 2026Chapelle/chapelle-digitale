@@ -57,6 +57,17 @@ export const viewport: Viewport = {
 const IMMERSIVE_CSS = `
 html, body { min-height: 100svh; }
 @media (max-height: 620px) { [data-ouverture-compte-a-rebours] { display: none; } }
+
+/* Plafond de la vidéo — piloté ici plutôt qu'en style inline, qu'aucune media
+   query ne pourrait surcharger.
+   · Mobile : 34svh, le texte et les CTA priment.
+   · Desktop et tablette paysage (>= 1024px) : 56svh et jusqu'à 55rem, la vidéo
+     devient le point focal. Le ratio 16/9 est porté par le cadre lui-même
+     (OpeningVideo), la hauteur suit donc automatiquement la largeur. */
+[data-ouverture-video] { max-width: min(100%, 40rem, calc(34svh * 16 / 9)); }
+@media (min-width: 1024px) {
+  [data-ouverture-video] { max-width: min(100%, 55rem, calc(56svh * 16 / 9)); }
+}
 `
 
 const OG_IMAGE = ogImage({
