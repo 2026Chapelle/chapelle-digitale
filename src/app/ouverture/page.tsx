@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { ogImage } from '@/lib/og'
 import { siteUrl } from '@/lib/site-url'
 import {
@@ -24,6 +24,40 @@ import EntreeContent from './EntreeContent'
  * cohérents avant même l'hydratation. Le client recalcule ensuite à la seconde.
  */
 export const revalidate = 300
+
+/**
+ * `viewportFit: 'cover'` est indispensable pour que `env(safe-area-inset-*)`
+ * renvoie autre chose que 0 : sans lui, les encoches et la barre gestuelle
+ * iOS rogneraient le contenu de cette page plein écran. Déclaré ici seulement,
+ * donc sans effet sur le reste du site.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+  themeColor: '#050816',
+}
+
+/**
+ * Styles de page, volontairement non « layerisés ».
+ *
+ * 1. `globals.css` impose `body { min-height: 100vh }` dans `@layer base`.
+ *    Sur mobile, `100vh` inclut la barre d'URL rétractable et dépasse donc
+ *    `100svh` : le corps serait plus haut que le viewport et la page
+ *    défilerait de quelques dizaines de pixels. On ramène ce plancher à
+ *    `100svh`. Une règle hors couche l'emporte toujours sur `@layer base`,
+ *    aucun `!important` n'est nécessaire.
+ * 2. Sur les écrans très bas, le compte à rebours — seul élément déclaré
+ *    optionnel — s'efface pour garantir que rien d'essentiel ne soit coupé.
+ *
+ * Ces règles ne vivent que le temps où la page est montée : React retire le
+ * <style> à la navigation, les autres pages ne sont jamais affectées.
+ */
+const IMMERSIVE_CSS = `
+html, body { min-height: 100svh; }
+@media (max-height: 620px) { [data-ouverture-compte-a-rebours] { display: none; } }
+`
 
 const OG_IMAGE = ogImage({
   eyebrow: OPENING_SEO.ogEyebrow,
@@ -101,11 +135,17 @@ export default function OuverturePage() {
 
   return (
     <>
+      <style dangerouslySetInnerHTML={{ __html: IMMERSIVE_CSS }} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventLd) }}
       />
-      <EntreeContent initialOpen={open} initialCountdown={countdown} video={video} />
+      {/* Cette page vit hors du groupe `(public)` : elle n'a ni Navbar ni
+          Footer, et doit donc porter elle-même le `<main id="main-content">`
+          visé par le lien d'évitement du layout racine. */}
+      <main id="main-content" tabIndex={-1}>
+        <EntreeContent initialOpen={open} initialCountdown={countdown} video={video} />
+      </main>
     </>
   )
 }

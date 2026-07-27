@@ -46,15 +46,24 @@ export function OpeningVideo({ source }: { source: OpeningVideoSource | null }) 
     return (
       <VideoFrame>
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-          <Film className="mb-4 h-8 w-8" style={{ color: 'rgba(212,175,110,0.7)' }} aria-hidden />
+          {/* `shrink-0` : dans un cadre court (16/9 sur petit écran), le flex
+              écrasait l'icône à une hauteur de 0 — elle disparaissait sans
+              qu'aucun débordement ne soit détectable. */}
+          <Film
+            className="mb-4 h-8 w-8 shrink-0"
+            style={{ color: 'rgba(212,175,110,0.7)' }}
+            aria-hidden
+          />
           <p
-            className="font-inter font-semibold uppercase"
+            className="shrink-0 font-inter font-semibold uppercase"
             style={{ fontSize: 'clamp(0.68rem, 1.8vw, 0.78rem)', letterSpacing: '0.24em', color: '#D4AF6E' }}
           >
             Vidéo à configurer
           </p>
+          {/* Le détail de configuration ne tient pas dans un cadre 16/9 sous
+              640 px : on ne garde alors que le signal essentiel ci-dessus. */}
           <p
-            className="mt-3 max-w-md font-inter"
+            className="mt-3 hidden max-w-md font-inter sm:block"
             style={{ fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', color: '#C7CEDB', lineHeight: 1.7 }}
           >
             Renseigne la variable{' '}

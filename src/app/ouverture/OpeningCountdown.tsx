@@ -24,7 +24,18 @@ const UNITS: { key: keyof Omit<Countdown, 'done'>; label: string }[] = [
   { key: 'seconds', label: 'Secondes' },
 ]
 
-export function OpeningCountdown({ initial }: { initial: Countdown }) {
+export function OpeningCountdown({
+  initial,
+  compact = false,
+}: {
+  initial: Countdown
+  /**
+   * Variante compacte : une seule ligne « 12 J · 15 H · 46 M · 36 S », sans
+   * tuiles ni fond. Utilisée par la page d'entrée immersive, où chaque pixel
+   * de hauteur compte pour tenir sur un écran unique.
+   */
+  compact?: boolean
+}) {
   const reduce = useReducedMotion()
   const [cd, setCd] = useState<Countdown>(initial)
 
@@ -35,6 +46,75 @@ export function OpeningCountdown({ initial }: { initial: Countdown }) {
     return () => clearInterval(id)
   }, [])
 
+  const ariaLabel = `Ouverture dans ${cd.days} jours, ${cd.hours} heures, ${cd.minutes} minutes et ${cd.seconds} secondes`
+
+  /* ── Variante compacte ─────────────────────────────────────── */
+  if (compact) {
+    if (cd.done) {
+      return (
+        <p
+          className="text-center font-cinzel font-bold uppercase"
+          style={{
+            fontSize: 'clamp(0.72rem, 2.4vw, 0.95rem)',
+            letterSpacing: '0.16em',
+            color: '#F0DCAE',
+          }}
+        >
+          Les portes sont ouvertes
+        </p>
+      )
+    }
+
+    const parts: [number, string][] = [
+      [cd.days, 'J'],
+      [cd.hours, 'H'],
+      [cd.minutes, 'M'],
+      [cd.seconds, 'S'],
+    ]
+
+    return (
+      <div
+        role="timer"
+        aria-live="off"
+        aria-label={ariaLabel}
+        className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 sm:gap-x-5"
+      >
+        {parts.map(([value, unit], i) => (
+          <span key={unit} className="inline-flex items-baseline gap-2" aria-hidden>
+            {i > 0 && (
+              <span
+                className="mr-1 inline-block h-1 w-1 rounded-full align-middle"
+                style={{ background: 'rgba(212,175,110,0.5)' }}
+              />
+            )}
+            <span
+              className="font-cinzel font-black tabular-nums"
+              style={{
+                fontSize: 'clamp(1rem, 3.4vw, 1.45rem)',
+                lineHeight: 1,
+                color: '#FFFFFF',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {i === 0 ? value : String(value).padStart(2, '0')}
+            </span>
+            <span
+              className="font-inter font-semibold uppercase"
+              style={{
+                fontSize: 'clamp(0.55rem, 1.6vw, 0.68rem)',
+                letterSpacing: '0.18em',
+                color: 'rgba(199,206,219,0.62)',
+              }}
+            >
+              {unit}
+            </span>
+          </span>
+        ))}
+      </div>
+    )
+  }
+
+  /* ── Variante complète (page /ouverture/vision) ────────────── */
   if (cd.done) {
     return (
       <div className="flex flex-col items-center text-center">
@@ -78,7 +158,7 @@ export function OpeningCountdown({ initial }: { initial: Countdown }) {
     <div
       role="timer"
       aria-live="off"
-      aria-label={`Ouverture dans ${cd.days} jours, ${cd.hours} heures, ${cd.minutes} minutes et ${cd.seconds} secondes`}
+      aria-label={ariaLabel}
       /* Grille à 4 colonnes : les tuiles tiennent toujours sur une seule ligne,
          même à 320 px, et gardent des largeurs égales. */
       className="mx-auto grid w-full max-w-md grid-cols-4 gap-2 sm:max-w-xl sm:gap-4"
