@@ -8,7 +8,7 @@ import { countdownTo, primaryCtaHref, type Countdown } from '@/lib/ouverture'
 import { events } from '@/lib/analytics'
 
 /* ============================================================
-   COMPTE À REBOURS — Ouverture du 02 août 2026, 00H00 Abidjan
+   COMPTE À REBOURS — Ouverture du 09 août 2026, 00H00 Abidjan
    ------------------------------------------------------------
    Hydratation : la valeur initiale est calculée sur le serveur puis passée en
    prop. Le premier rendu client est donc STRICTEMENT identique au HTML serveur

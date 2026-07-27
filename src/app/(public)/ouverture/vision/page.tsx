@@ -9,15 +9,15 @@ import {
   isOpen,
   resolveOpeningVideo,
 } from '@/lib/ouverture'
-import EntreeContent from './EntreeContent'
+import VisionContent from './VisionContent'
 
 /**
- * Page d'entrée festive de l'ouverture publique de La Citadelle.
+ * Landing détaillée de l'ouverture publique de La Citadelle.
  *
- * Premier écran : titre, date, vidéo de campagne et CTA. Le récit détaillé
- * (vision, promesses, étapes, verset) vit sur /ouverture/vision.
- * Aucune date n'est écrite en dur — tout dérive de `OPENING_ISO` et des
- * libellés de `@/lib/ouverture`.
+ * Atteinte depuis la page d'entrée festive `/ouverture`. Elle porte le récit
+ * complet : vision, quatre promesses, trois étapes, premiers membres, verset
+ * et appel final. Aucune date n'est écrite en dur — tout dérive de
+ * `OPENING_ISO` et des libellés de `@/lib/ouverture`.
  *
  * Rendu régénéré au plus toutes les 5 minutes : le HTML servi n'est jamais figé
  * au moment du build, ce qui garde le compte à rebours et la bascule des CTA
@@ -25,51 +25,42 @@ import EntreeContent from './EntreeContent'
  */
 export const revalidate = 300
 
+const TITLE = `La vision de La Citadelle — ouverture du ${OPENING_SEO.keyword}`
+
 const OG_IMAGE = ogImage({
-  eyebrow: OPENING_SEO.ogEyebrow,
+  eyebrow: 'La vision',
   title: OPENING_SEO.ogTitle,
   subtitle: OPENING_SEO.ogSubtitle,
 })
 
 export const metadata: Metadata = {
-  // `absolute` court-circuite le gabarit « %s | CIER » du layout racine : le
-  // titre de campagne doit être exactement celui validé pour le partage social.
-  title: { absolute: OPENING_SEO.title },
+  title: { absolute: TITLE },
   description: OPENING_SEO.description,
   keywords: [
-    'ouverture La Citadelle',
+    'vision La Citadelle',
     'église digitale',
     'plateforme croissance spirituelle',
     OPENING_SEO.keyword,
     'maison digitale chrétienne',
     'parcours spirituel en ligne',
   ],
-  alternates: { canonical: OUVERTURE_ROUTES.entree },
+  alternates: { canonical: OUVERTURE_ROUTES.vision },
   openGraph: {
     type: 'website',
-    url: OUVERTURE_ROUTES.entree,
-    title: OPENING_SEO.title,
+    url: OUVERTURE_ROUTES.vision,
+    title: TITLE,
     description: OPENING_SEO.description,
-    images: [
-      {
-        // Image sociale générée par /api/og (1200×630, palette de la marque).
-        // À remplacer par un visuel dédié dès qu'il est fourni.
-        url: OG_IMAGE,
-        width: 1200,
-        height: 630,
-        alt: OPENING_SEO.ogAlt,
-      },
-    ],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: OPENING_SEO.ogAlt }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: OPENING_SEO.title,
+    title: TITLE,
     description: OPENING_SEO.description,
     images: [OG_IMAGE],
   },
 }
 
-export default function OuverturePage() {
+export default function OuvertureVisionPage() {
   const now = Date.now()
   const open = isOpen(now)
   const countdown = countdownTo(now)
@@ -77,7 +68,8 @@ export default function OuverturePage() {
 
   /* Schema.org Event — décrit un fait réel et vérifiable : l'ouverture publique
      en ligne, à une date et une heure précises. Aucune donnée inventée
-     (ni prix, ni jauge, ni lieu physique). */
+     (ni prix, ni jauge, ni lieu physique). L'URL canonique de l'événement reste
+     la page d'entrée `/ouverture`. */
   const eventLd = {
     '@context': 'https://schema.org',
     '@type': 'Event',
@@ -105,7 +97,7 @@ export default function OuverturePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(eventLd) }}
       />
-      <EntreeContent initialOpen={open} initialCountdown={countdown} video={video} />
+      <VisionContent initialOpen={open} initialCountdown={countdown} video={video} />
     </>
   )
 }
