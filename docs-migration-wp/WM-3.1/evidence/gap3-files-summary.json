@@ -1,0 +1,173 @@
+{
+  "files_total": 383,
+  "bytes_total": 101219207,
+  "classes": {
+    "THUMBNAIL": 281,
+    "ORIGINAL_USED": 60,
+    "ORIGINAL_UNUSED": 9,
+    "EXACT_DUPLICATE": 23,
+    "GENERATED_VARIANT": 8,
+    "ORPHAN": 1,
+    "CORRUPT": 1
+  },
+  "wm4_actions": {
+    "REJECTED_REGENERABLE": 289,
+    "EXPORTABLE": 69,
+    "REJECTED_DEDUP": 23,
+    "QUARANTINED": 1,
+    "REJECTED_CORRUPT": 1
+  },
+  "by_extension": {
+    ".png": 336,
+    ".pdf": 2,
+    ".jpg": 35,
+    ".css": 4,
+    ".xml": 4,
+    ".txt": 2
+  },
+  "by_mime": {
+    "image/png": 336,
+    "application/pdf": 2,
+    "image/jpeg": 35,
+    "text/css": 4,
+    "application/xml": 4,
+    "text/plain": 2
+  },
+  "distinct_checksums": 360,
+  "exact_duplicate_groups": 23,
+  "exact_duplicate_files": 46,
+  "exact_duplicate_redundant": 23,
+  "duplicate_groups_detail": {
+    "269cf18a847ad542": [
+      "2026/05/f09f9191-le-retour-des-herit-1-768x432.jpg",
+      "2026/05/f09f9191-le-retour-des-herit-768x432.jpg"
+    ],
+    "30604d0ebbf1a455": [
+      "2026/05/Parcours-dintegration-1-768x393.png",
+      "2026/05/Parcours-dintegration-768x393.png"
+    ],
+    "36add75108ae0875": [
+      "2026/05/cropped-Logo-facion-chapelle-1-150x150.png",
+      "2026/05/cropped-Logo-facion-chapelle-150x150.png"
+    ],
+    "385335c135f5fb6e": [
+      "2026/05/Parcours-dintegration-1-150x150.png",
+      "2026/05/Parcours-dintegration-150x150.png"
+    ],
+    "46638fc3d76e22ed": [
+      "2026/05/ouragan-1-768x576.png",
+      "2026/05/ouragan-768x576.png"
+    ],
+    "48c1164f5dc4abc1": [
+      "2026/05/f09f9191-le-retour-des-herit-1-300x169.jpg",
+      "2026/05/f09f9191-le-retour-des-herit-300x169.jpg"
+    ],
+    "5ebfe9ace2358ceb": [
+      "2026/05/f09f9191-le-retour-des-herit-1-150x150.jpg",
+      "2026/05/f09f9191-le-retour-des-herit-150x150.jpg"
+    ],
+    "7790d351e013bdd8": [
+      "2026/05/cropped-Logo-facion-chapelle-1-180x180.png",
+      "2026/05/cropped-Logo-facion-chapelle-180x180.png"
+    ],
+    "77aa098ce89e9fdf": [
+      "2026/05/cropped-Logo-facion-chapelle-1-300x300.png",
+      "2026/05/cropped-Logo-facion-chapelle-300x300.png"
+    ],
+    "7d7705a67f64a79b": [
+      "2026/05/cropped-Logo-facion-chapelle-1-32x32.png",
+      "2026/05/cropped-Logo-facion-chapelle-32x32.png"
+    ],
+    "8e4bafe00510f5a7": [
+      "2026/05/cropped-Logo-facion-chapelle-1-270x270.png",
+      "2026/05/cropped-Logo-facion-chapelle-270x270.png"
+    ],
+    "a2f4903ea3041944": [
+      "2026/05/ouragan-1-300x225.png",
+      "2026/05/ouragan-300x225.png"
+    ],
+    "abb54b8d34637c9e": [
+      "2026/05/ouragan-1-150x150.png",
+      "2026/05/ouragan-150x150.png"
+    ],
+    "ad48631f712baed4": [
+      "2026/05/Parcours-dintegration-1-300x154.png",
+      "2026/05/Parcours-dintegration-300x154.png"
+    ],
+    "b59e52e8a9696df4": [
+      "2026/05/Parcours-dintegration-1.png",
+      "2026/05/Parcours-dintegration.png"
+    ],
+    "bd517969ad14a1cf": [
+      "2026/05/ouragan-1-1024x768.png",
+      "2026/05/ouragan-1024x768.png"
+    ],
+    "ce6f8d90cecdcf2f": [
+      "2026/05/cropped-Logo-facion-chapelle-1.png",
+      "2026/05/cropped-Logo-facion-chapelle.png"
+    ],
+    "d444617f10c96e7d": [
+      "2026/05/f09f9191-le-retour-des-herit-1-1024x576.jpg",
+      "2026/05/f09f9191-le-retour-des-herit-1024x576.jpg"
+    ],
+    "d7f894c3cc4224ef": [
+      "2026/05/ouragan-1.png",
+      "2026/05/ouragan.png"
+    ],
+    "f93299452a8e1163": [
+      "2026/05/Parcours-dintegration-1-1024x524.png",
+      "2026/05/Parcours-dintegration-1024x524.png"
+    ],
+    "fa13433a7412bc64": [
+      "2026/05/f09f9191-le-retour-des-herit-1.jpg",
+      "2026/05/f09f9191-le-retour-des-herit.jpg"
+    ],
+    "fcbf01ff3639fe29": [
+      "2026/05/cropped-Logo-facion-chapelle-1-192x192.png",
+      "2026/05/cropped-Logo-facion-chapelle-192x192.png"
+    ],
+    "fdcd5dca8bb1a99a": [
+      "2026/05/Parcours-dintegration-1-1536x786.png",
+      "2026/05/Parcours-dintegration-1536x786.png"
+    ]
+  },
+  "wp_attachments_in_db": 73,
+  "wp_originals_matched_on_disk": 73,
+  "wp_variants_matched_on_disk": 300,
+  "wp_originals_declared_missing_on_disk": [],
+  "corrupt": [
+    "temp_abj404_solution/sync_mode_options.txt"
+  ],
+  "top_dirs": {
+    "2026": 373,
+    "elementor": 4,
+    "rank-math": 4,
+    "temp_abj404_solution": 2
+  },
+  "bytes_by_class": {
+    "CORRUPT": 0,
+    "EXACT_DUPLICATE": 4786854,
+    "GENERATED_VARIANT": 37125,
+    "ORIGINAL_UNUSED": 5156878,
+    "ORIGINAL_USED": 33397037,
+    "ORPHAN": 1111273,
+    "THUMBNAIL": 56730040
+  },
+  "reference_signal_mix": {
+    "none": 204,
+    "path_in_content": 33,
+    "featured_image": 73,
+    "filename_in_content|featured_image": 4,
+    "path_in_content|featured_image": 10,
+    "attached_to_post:11": 7,
+    "path_in_content|attached_to_post:11": 2,
+    "attached_to_post:35": 14,
+    "attached_to_post:209": 21,
+    "path_in_content|attached_to_post:209": 4,
+    "attached_to_post:31": 9,
+    "path_in_content|attached_to_post:31": 1,
+    "filename_in_content": 1
+  },
+  "originals_used": 60,
+  "originals_unused": 9
+}

@@ -1,0 +1,299 @@
+{
+  "lot": "WM-3.1",
+  "title": "Fermeture des quatre gaps de WM-3",
+  "created_utc": "2026-07-25T12:43:08Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "8906b4c542bd7f01378cc8062428db391317733c",
+  "upstream": {
+    "wm1_pointer": "docs-migration-wp/WM-1-EXTERNAL-SOURCE.md",
+    "wm1_backup": "backup-20260720-111659 (externe, lecture seule)",
+    "wm1_sha256": {
+      "database/chapelle-premium-db.sql": "acc657fe827a7f5109f6008b68ea92d2d869199aba873392f2a2e2b2a3860dfc",
+      "database/chapelle-premium-db.sql.gz": "42c87d03416914d6b9266c2ef2925b2d6d8a1376fb3e9420560f48c3269081bc",
+      "files/public_html-files.tar.gz": "d64c5642d43a3b191e2bd52095ba023755ac07957b0e91558c6097a3f01f4507"
+    },
+    "wm2_audit": "audit-20260720-231559",
+    "wm3_mapping": "mapping-20260720"
+  },
+  "gaps": {
+    "G1": {
+      "objet": "35 identites par empreinte normalisee",
+      "etat": "FERME",
+      "classes": {
+        "ALREADY_PRESENT": 4,
+        "ABSENT": 30,
+        "AMBIGUOUS": 0,
+        "INVALID_EMAIL": 0,
+        "DUPLICATE_SOURCE": 0,
+        "PRIVILEGED_ACCOUNT": 1
+      },
+      "total": 35
+    },
+    "G2": {
+      "objet": "27 lecons sans video qualifiees individuellement",
+      "etat": "FERME",
+      "classes": {
+        "TEXT_VALID": 8,
+        "DOCUMENT_VALID": 0,
+        "TEXT_AND_DOCUMENT_VALID": 0,
+        "EMPTY": 0,
+        "INCOMPLETE": 19,
+        "VIDEO_REFERENCE_FOUND_ELSEWHERE": 0,
+        "TO_REVIEW": 0
+      },
+      "decisions": {
+        "MIGRABLE": 8,
+        "MIGRABLE_AVEC_RESERVE": 19,
+        "QUARANTAINE": 0,
+        "DECISION_HUMAINE": 19
+      },
+      "total": 27
+    },
+    "G3": {
+      "objet": "383 fichiers physiques classes",
+      "etat": "FERME",
+      "classes": {
+        "ORIGINAL_USED": 60,
+        "ORIGINAL_UNUSED": 9,
+        "THUMBNAIL": 281,
+        "GENERATED_VARIANT": 8,
+        "EXACT_DUPLICATE": 23,
+        "PROBABLE_DUPLICATE": 0,
+        "ORPHAN": 1,
+        "REFERENCED_MISSING_CONTEXT": 0,
+        "CORRUPT": 1,
+        "UNCLASSIFIED_REVIEW_REQUIRED": 0
+      },
+      "total": 383,
+      "bytes": 101219207,
+      "distinct_checksums": 360
+    },
+    "G4": {
+      "objet": "contrat technique WM-4",
+      "etat": "FERME",
+      "elements_couverts": 18,
+      "elements_exiges": 18
+    }
+  },
+  "reconciliation": {
+    "formule": "SOURCE_TOTAL = EXPORTABLE + REJECTED + QUARANTINED",
+    "domaines": {
+      "identity": {
+        "source_total": 35,
+        "exportable": 34,
+        "rejected": 1,
+        "quarantined": 0,
+        "delta": 0
+      },
+      "lms_courses": {
+        "source_total": 7,
+        "exportable": 5,
+        "rejected": 2,
+        "quarantined": 0,
+        "delta": 0
+      },
+      "lms_lessons": {
+        "source_total": 38,
+        "exportable": 38,
+        "rejected": 0,
+        "quarantined": 0,
+        "delta": 0
+      },
+      "lms_enrollments": {
+        "source_total": 33,
+        "exportable": 33,
+        "rejected": 0,
+        "quarantined": 0,
+        "delta": 0
+      },
+      "media": {
+        "source_total": 383,
+        "exportable": 69,
+        "rejected": 313,
+        "quarantined": 1,
+        "delta": 0
+      },
+      "content_pages": {
+        "source_total": 56,
+        "exportable": 56,
+        "rejected": 0,
+        "quarantined": 0,
+        "delta": 0
+      },
+      "forms": {
+        "source_total": 7,
+        "exportable": 7,
+        "rejected": 0,
+        "quarantined": 0,
+        "delta": 0
+      },
+      "crm": {
+        "source_total": 33,
+        "exportable": 33,
+        "rejected": 0,
+        "quarantined": 0,
+        "delta": 0
+      }
+    }
+  },
+  "controls": {
+    "gates": 42,
+    "pass": 42,
+    "fail": 0,
+    "info": 1
+  },
+  "reserves": [
+    {
+      "id": "R1",
+      "controle": "PRE-ID-03",
+      "bloquant": true,
+      "objet": "doublons canoniques cote Citadelle : 13 profiles pour 5 empreintes"
+    },
+    {
+      "id": "R2",
+      "controle": "PRE-MED-04",
+      "bloquant": true,
+      "objet": "5 references media (34548 34549 34553 34555 34577) sans objet en base ni sur disque"
+    },
+    {
+      "id": "R3",
+      "controle": "PRE-LMS-05",
+      "bloquant": false,
+      "objet": "19 lecons porteuses d un marqueur de redaction inachevee"
+    }
+  ],
+  "non_impact": {
+    "wordpress_writes": 0,
+    "supabase_writes": 0,
+    "citadelle_writes": 0,
+    "supabase_reads": 2,
+    "wm4_exports_produced": 0,
+    "wm1_backup_modified": false,
+    "git_commit": false,
+    "git_push": false,
+    "app_code_modified_by_this_lot": false,
+    "homepage_modified": false
+  },
+  "verdict": "WM31_OK_WITH_RESERVATIONS",
+  "approval_marker_emitted": false,
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "files": [
+    {
+      "path": "WM31-FINAL-VERDICT.md",
+      "bytes": 8991,
+      "sha256": "cc55bea80f870845f80a2943175224d6c7c26184517b81fd0288dea6caaa723b",
+      "lines": 225
+    },
+    {
+      "path": "WM31-GAP-CLOSURE-EVIDENCE.md",
+      "bytes": 11857,
+      "sha256": "46ed0631bba4cb981592d80dbec3b65dfd4e577c15b50767b24473946e94221b",
+      "lines": 233
+    },
+    {
+      "path": "WM31-IDENTITIES-MATRIX.csv",
+      "bytes": 7939,
+      "sha256": "56bd83820892b316951a5d9e3375188c9a0985e673d43e1c10fb62582494b096",
+      "lines": 36
+    },
+    {
+      "path": "WM31-IDENTITIES-REPORT.md",
+      "bytes": 7953,
+      "sha256": "1b31ba5429316a4c0be6173c0fd4d867f9598ba36c417a1573f0dd718bf6029d",
+      "lines": 152
+    },
+    {
+      "path": "WM31-LESSONS-WITHOUT-VIDEO-MATRIX.csv",
+      "bytes": 7754,
+      "sha256": "64d1f383741404f94287e806f85c630c1e56ec090d808eb42841032cc829a0ba",
+      "lines": 28
+    },
+    {
+      "path": "WM31-LESSONS-WITHOUT-VIDEO-REPORT.md",
+      "bytes": 9218,
+      "sha256": "3e9c200986ad8da566ffa8ef157a117052d2883cc6ddc19b3a75da9d0fb395e5",
+      "lines": 174
+    },
+    {
+      "path": "WM31-PHYSICAL-FILES-INVENTORY.csv",
+      "bytes": 106934,
+      "sha256": "677636c7c0a3064212f0f4305b82b0f05f553ea8f85057b28920669acc98015e",
+      "lines": 384
+    },
+    {
+      "path": "WM31-PHYSICAL-FILES-REPORT.md",
+      "bytes": 10856,
+      "sha256": "7422140bb05cf62cfde748b1a9b6d909d52d34dbc0015bc81e43c04161be6f95",
+      "lines": 228
+    },
+    {
+      "path": "WM31-WM4-EXPORT-CONTRACT.md",
+      "bytes": 17899,
+      "sha256": "1f1a0a54bf392c67c93521b6886e276049e9a552968af774636e115959112253",
+      "lines": 344
+    },
+    {
+      "path": "evidence/controls.py",
+      "bytes": 11183,
+      "sha256": "0bb7b5b2e19aec8b397cb1737c3c1c0ebaecac01edd28ac4abdc1cc7ffe71da7",
+      "lines": 188
+    },
+    {
+      "path": "evidence/gap1-identities-summary.json",
+      "bytes": 1002,
+      "sha256": "64bb1c43ba3724ae288522225f7fd7343ed31af6d5449d4868fc35e26da08c5a",
+      "lines": 42
+    },
+    {
+      "path": "evidence/gap1_identities.py",
+      "bytes": 9716,
+      "sha256": "d5365718fec9661636bbc9879723d61bf5684be59e37ffceb84e1a5d0a377fc5",
+      "lines": 224
+    },
+    {
+      "path": "evidence/gap2-lessons-summary.json",
+      "bytes": 1143,
+      "sha256": "8f42dc4bc6612c4a8f6330fb6a2d6c8c87e0abd964e06c2e576177259f4c0eb6",
+      "lines": 70
+    },
+    {
+      "path": "evidence/gap2_lessons.py",
+      "bytes": 9572,
+      "sha256": "f6aecd7e019c95ed8144781c439430dc59c81cc526f0976b839b07c3d5fe88cb",
+      "lines": 221
+    },
+    {
+      "path": "evidence/gap3-files-summary.json",
+      "bytes": 5170,
+      "sha256": "cb4d2c6a0732078fd7b0cc5494af1194ff69b6486371926a1e7aa02700239661",
+      "lines": 173
+    },
+    {
+      "path": "evidence/gap3_files.py",
+      "bytes": 14494,
+      "sha256": "9f33d64fbe1b78d9081136bba1b3f3cc0b40db47212ce44396e1136f92366d2c",
+      "lines": 327
+    },
+    {
+      "path": "evidence/manifest.py",
+      "bytes": 6201,
+      "sha256": "c9aba5ea0e14c09e895a42209ac5b73f7ff40fc6558cf2882edd7f72480ae550",
+      "lines": 118
+    },
+    {
+      "path": "evidence/sqlparse.py",
+      "bytes": 3049,
+      "sha256": "ad6c67a043ea7dce758f35b7511d69240ffd054577cb9c3dbe375f9028c41bd6",
+      "lines": 92
+    },
+    {
+      "path": "evidence/wm31-controls.json",
+      "bytes": 7717,
+      "sha256": "d15880206e8bc251c1926af2a77ab62552144e12c01aca979251b23fb9b5d16d",
+      "lines": 309
+    }
+  ],
+  "files_count": 19,
+  "files_bytes": 258648,
+  "note_manifest": "WM31-MANIFEST.json et SHA256SUMS.txt sont exclus de leur propre somme"
+}

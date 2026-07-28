@@ -1,0 +1,128 @@
+{
+  "lot": "WM-3.9",
+  "title": "Decision humaine 1 : RPC temporaire deployee + dry-run transactionnel APPROUVE",
+  "created_utc": "2026-07-26T00:00:00Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "f369f0fa8304c4dce09da697c1a925230783b3dd",
+  "upstream": {
+    "wm38": "WM-3.8"
+  },
+  "human_decision_1": {
+    "RPC_TEMPORAIRE_AUTORISEE": "OUI",
+    "scope": "INSTALL+SECURE+DRYRUN",
+    "real_merge": "NON_AUTORISE"
+  },
+  "rpc": {
+    "name": "wm3_merge_duplicate_group",
+    "bundle_version": "v2",
+    "deployed": true,
+    "deploy_actor": "human_sql_editor",
+    "dropped": false
+  },
+  "dryrun": {
+    "mode": "p_dry_run=true",
+    "order": [
+      "DG-1",
+      "verify",
+      "DG-2",
+      "verify",
+      "compare"
+    ],
+    "DG-1": {
+      "would_result": {
+        "inscriptions_formation": 1,
+        "video_progress": 2,
+        "pastoral_actions_log": 0,
+        "app_notifications": 2,
+        "active_in_box": 1,
+        "secondaries_active": 0,
+        "dangling_to_secondary": 0
+      },
+      "expected_match": true,
+      "persistence": "none"
+    },
+    "DG-2": {
+      "would_result": {
+        "inscriptions_formation": 1,
+        "video_progress": 3,
+        "pastoral_actions_log": 3,
+        "app_notifications": 10,
+        "active_in_box": 1,
+        "secondaries_active": 0,
+        "dangling_to_secondary": 0
+      },
+      "expected_match": true,
+      "persistence": "none"
+    },
+    "final_identical_to_baseline": true,
+    "v1_attempt": "error_termine_column_rolled_back_no_persistence"
+  },
+  "real_merge_executed": false,
+  "pre_id_03": "FAIL (dry-run only)",
+  "wm4_state": "NO-GO",
+  "writes_performed": 0,
+  "non_impact": {
+    "production_writes": 0,
+    "merges": 0,
+    "disables": 0,
+    "ddl_executed_by_agent": 0,
+    "business_schema_migration": false,
+    "deploy": false,
+    "pii_in_tracked_files": 0,
+    "git_commit": false,
+    "git_push": false,
+    "prior_lots_modified": false,
+    "out_of_scope_files_touched": false,
+    "rpc_dropped": false
+  },
+  "verdict": "WM39_TRANSACTIONAL_DRY_RUN_APPROVED",
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "approval_marker_emitted": false,
+  "files": [
+    {
+      "path": "WM39-HUMAN-DECISION-1-RECORDED.md",
+      "bytes": 2144,
+      "sha256": "ef73bc02b4e0c32f5e12719fde7d23f50a3d7e9f6f7475a64f49343c04cb6cce",
+      "lines": 41
+    },
+    {
+      "path": "WM39-RPC-DEPLOYMENT-BUNDLE.sql",
+      "bytes": 8428,
+      "sha256": "c9ca75e024aace5f051216aa7e16f1eac6e5276c6cde2a656188476bf5826593",
+      "lines": 156
+    },
+    {
+      "path": "WM39-DEPLOYMENT-INSTRUCTIONS.md",
+      "bytes": 2502,
+      "sha256": "eb778889f36d01466f2848572bf91ecc69e6ae56967fa628ff6bdae0d355c6b1",
+      "lines": 55
+    },
+    {
+      "path": "WM39-DRYRUN-PLAN.md",
+      "bytes": 1810,
+      "sha256": "a4cd02aad84d505a5dab65a7015c14ca5dd6be27ff35ef2febc7ddb8c4f83226",
+      "lines": 45
+    },
+    {
+      "path": "WM39-DRYRUN-ATTEMPT-1.md",
+      "bytes": 2194,
+      "sha256": "50fb1ad375fc6790c38d77625a225de386adb712732b39c91879fdfa40783bb1",
+      "lines": 56
+    },
+    {
+      "path": "WM39-DRYRUN-APPROVED.md",
+      "bytes": 2766,
+      "sha256": "93ba8affe2cbffc43a2ae118aaf27c882a1cba4ce1985a8557ea3e7cc2ecec3d",
+      "lines": 70
+    },
+    {
+      "path": "WM39-FINAL-STATUS.md",
+      "bytes": 3138,
+      "sha256": "bc3d0ca7a77e425e934b937b34173ca3683142be87caed53e54d4217804ea915",
+      "lines": 71
+    }
+  ],
+  "files_count": 7,
+  "files_bytes": 22982,
+  "note_manifest": "WM39-MANIFEST.json, SHA256SUMS.txt et private/ exclus ; le .sql est present mais gitignore (**/*.sql)"
+}

@@ -1,0 +1,150 @@
+{
+  "lot": "WM-3.6",
+  "title": "Execution controlee fusion R1 — bloquee en pre-check (0 ecriture)",
+  "created_utc": "2026-07-26T00:00:00Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "f369f0fa8304c4dce09da697c1a925230783b3dd",
+  "upstream": {
+    "wm34": "WM-3.4 (plan)",
+    "wm35": "WM-3.5 (validations)"
+  },
+  "keepers": {
+    "DG-1": "DG-1-P2",
+    "DG-2": "DG-2-P1"
+  },
+  "validations": {
+    "DG-1": {
+      "test_accounts_confirmed": true,
+      "guardian": "DG-1-P2"
+    },
+    "DG-2": {
+      "validation_1": "APPROUVEE",
+      "validation_2": "APPROUVEE"
+    }
+  },
+  "prechecks": {
+    "C1_identities_active": true,
+    "C2_counts_obtained": true,
+    "C3_snapshot_integrity": true,
+    "C4_only_known_conflict": false,
+    "C5_scope_10": true,
+    "ALL_PASS": false
+  },
+  "snapshot": {
+    "dir": "private/backup-premerge-20260726",
+    "files": 7,
+    "integrity_verified": true,
+    "rows": {
+      "profiles": 10,
+      "inscriptions_formation": 4,
+      "video_progress": 5,
+      "group_attendance": 0,
+      "pastoral_actions_log": 3,
+      "app_notifications": 12,
+      "newcomer_intakes": 0
+    }
+  },
+  "block_reasons": [
+    {
+      "id": "A",
+      "type": "environmental",
+      "detail": "no_atomic_transaction_path (no direct pg / psql / psycopg / node-pg; PostgREST autocommit; RPC=schema_migration_forbidden)"
+    },
+    {
+      "id": "B",
+      "type": "plan_drift",
+      "detail": "C4 fail: DG-1 keeper P2 introduces inscriptions_formation conflict absent from validated WM-3.4 dry-run (keeper P3)"
+    }
+  ],
+  "writes_performed": 0,
+  "rollback_triggered": false,
+  "pre_id_03": "FAIL",
+  "wm4_state": "NO-GO",
+  "resume_conditions": [
+    "transactional_path",
+    "revalidate_DG1_keeper_P2_dedupe"
+  ],
+  "non_impact": {
+    "production_writes": 0,
+    "merges": 0,
+    "disables": 0,
+    "deletes": 0,
+    "role_cumul": 0,
+    "out_of_scope_writes": 0,
+    "schema_migration": false,
+    "deploy": false,
+    "pii_in_tracked_files": 0,
+    "git_commit": false,
+    "git_push": false,
+    "chapelle_home_offline_touched": false,
+    "prior_lots_modified": false
+  },
+  "verdict": "WM36_EXECUTION_BLOCKED_PRECHECK",
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "approval_marker_emitted": false,
+  "files": [
+    {
+      "path": "WM36-HUMAN-VALIDATIONS-RECORDED.md",
+      "bytes": 1784,
+      "sha256": "f58b5c00071b3f8b1a7a7413fd68ac355c225691bb6b471946ff0132fc05f073",
+      "lines": 44
+    },
+    {
+      "path": "WM36-PRE-MERGE-SNAPSHOT-REPORT.md",
+      "bytes": 1656,
+      "sha256": "322cd090556bd1fecacdf7c83769704e3311ed59ac47961cb0523193590e4425",
+      "lines": 39
+    },
+    {
+      "path": "WM36-EXECUTION-LOG.md",
+      "bytes": 3673,
+      "sha256": "eb4ee338262e1b2186ad61bdecfdcc34fa62730e8add483a4ddd037623bbdb05",
+      "lines": 70
+    },
+    {
+      "path": "WM36-DG1-MERGE-RESULT.md",
+      "bytes": 2060,
+      "sha256": "a615ecddbf77a91fcb014a6acff5b1e450b91f81dd35e506e7f6bafe9d3fc87e",
+      "lines": 43
+    },
+    {
+      "path": "WM36-DG2-MERGE-RESULT.md",
+      "bytes": 1977,
+      "sha256": "3a7e0399b77a106b6d650b50bd84238b7711de4d8b43b6150b7fb520b339b8ae",
+      "lines": 44
+    },
+    {
+      "path": "WM36-POST-MERGE-CONTROLS.md",
+      "bytes": 1586,
+      "sha256": "3a5e289c5b344b83f1f76a4229ef7ca1a6dcd7085d3104ff7a7e165ae0d9bd89",
+      "lines": 35
+    },
+    {
+      "path": "WM36-PRE-ID-03-REEVALUATION.md",
+      "bytes": 1071,
+      "sha256": "89e13203501bebe3428dfb3304d12a233fb22c538c8334acecfd9bb8078c355a",
+      "lines": 31
+    },
+    {
+      "path": "WM36-ROLLBACK-STATUS.md",
+      "bytes": 1257,
+      "sha256": "cf81e3044b4d9af9533a264713b46c83e96ed43e01d89c0647d732fe5ebbcc47",
+      "lines": 33
+    },
+    {
+      "path": "WM36-IMPACT-ON-WM4.md",
+      "bytes": 1496,
+      "sha256": "c71ec4656ea5ee71ac3416b00f953d9353b9bc8fc0fdd678f074a28febdc2b61",
+      "lines": 41
+    },
+    {
+      "path": "WM36-FINAL-STATUS.md",
+      "bytes": 3206,
+      "sha256": "7ec80e241b66c786195ac8a2daea5a35940de2a052e746e68e4d33401660cbe0",
+      "lines": 74
+    }
+  ],
+  "files_count": 10,
+  "files_bytes": 19766,
+  "note_manifest": "WM36-MANIFEST.json, SHA256SUMS.txt et private/ exclus des sommes publiees"
+}

@@ -1,0 +1,118 @@
+{
+  "lot": "WM-3.2",
+  "title": "Traitement des reserves bloquantes R1 (doublons profils) et R2 (medias manquants)",
+  "created_utc": "2026-07-26T00:00:00Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "f369f0fa8304c4dce09da697c1a925230783b3dd",
+  "upstream": {
+    "wm31": "docs-migration-wp/WM-3.1 (WM31_OK_WITH_RESERVATIONS)",
+    "wm31_manifest_baseline": "8906b4c542bd7f01378cc8062428db391317733c"
+  },
+  "scope": [
+    "R1",
+    "R2"
+  ],
+  "reserves": [
+    {
+      "id": "R1",
+      "controle": "PRE-ID-03",
+      "bloquant": true,
+      "objet": "2 groupes de doublons cote profiles Citadelle (13 profiles pour 5 boites) : DG-1=6 visiteur, DG-2=4 admin/pasteur",
+      "options": [
+        "KEEP_ONE_DISABLE_OTHERS",
+        "MERGE_THEN_DISABLE",
+        "KEEP_ALL_TEMPORARILY",
+        "MANUAL_IDENTITY_REVIEW",
+        "BLOCK_IMPORT"
+      ],
+      "recommandation": "MANUAL_IDENTITY_REVIEW",
+      "decision_humaine": "EN_ATTENTE"
+    },
+    {
+      "id": "R2",
+      "controle": "PRE-MED-04",
+      "bloquant": true,
+      "objet": "5 references media absentes en base et sur disque : 34548 34555 34577 (videos, obligatoires) + 34549 34553 (pieces jointes, facultatives)",
+      "options": [
+        "RESTORE_FROM_EXTERNAL_SOURCE",
+        "REPLACE_WITH_APPROVED_MEDIA",
+        "MIGRATE_WITHOUT_MEDIA",
+        "QUARANTINE_CONTENT",
+        "ABANDON_REFERENCE",
+        "BLOCK_CONTENT_MIGRATION"
+      ],
+      "recommandation": "RESTORE_FROM_EXTERNAL_SOURCE (videos) / MIGRATE_WITHOUT_MEDIA (pieces jointes)",
+      "decision_humaine": "EN_ATTENTE"
+    }
+  ],
+  "wm4_state": "NO-GO",
+  "non_impact": {
+    "wordpress_writes": 0,
+    "supabase_writes": 0,
+    "citadelle_writes": 0,
+    "account_merges": 0,
+    "user_disables": 0,
+    "media_created": 0,
+    "profiles_modified": 0,
+    "wm4_exports_produced": 0,
+    "migration_executed": false,
+    "deploy": false,
+    "git_commit": false,
+    "git_push": false,
+    "wm1_backup_modified": false,
+    "wm31_modified": false,
+    "out_of_scope_files_touched": false
+  },
+  "verdict": "WM32_AWAITING_HUMAN_DECISION",
+  "decisions_documented_marker": "WM32_DECISIONS_DOCUMENTED",
+  "decisions_documented_emitted": false,
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "approval_marker_emitted": false,
+  "files": [
+    {
+      "path": "WM32-R1-DUPLICATE-PROFILES-DECISION.md",
+      "bytes": 5421,
+      "sha256": "bb9dd00e3b49adcaa5f0dbae8c2de14c45bc3af7119de6a588faffcc6ca96d17",
+      "lines": 91
+    },
+    {
+      "path": "WM32-R1-DUPLICATE-PROFILES-MATRIX.csv",
+      "bytes": 1020,
+      "sha256": "c75be8347ce25c003eb055b86ee5f2964f832fe31adabe90be41d54d5034893f",
+      "lines": 3
+    },
+    {
+      "path": "WM32-R2-MISSING-MEDIA-DECISION.md",
+      "bytes": 5227,
+      "sha256": "38fa79a09e3f5585930b80301be588439d09b3f8d1753e70ad37ed1f8317cbd1",
+      "lines": 87
+    },
+    {
+      "path": "WM32-R2-MISSING-MEDIA-MATRIX.csv",
+      "bytes": 2279,
+      "sha256": "6466eb463b92c522686673d33f56b5ed8ed0729583f08b6cafd500dca8e58186",
+      "lines": 6
+    },
+    {
+      "path": "WM32-HUMAN-DECISION-SHEET.md",
+      "bytes": 4789,
+      "sha256": "ddc4e243aee5d1ae8d99d35f001a96809c1a2a339af92ff122ef33b7673c8ce6",
+      "lines": 87
+    },
+    {
+      "path": "WM32-IMPACT-ON-WM4.md",
+      "bytes": 2893,
+      "sha256": "9000a0af393f4101b893e8dc0b883d0fd79d5c3b15107532ceadd2aa2ce2d414",
+      "lines": 62
+    },
+    {
+      "path": "WM32-FINAL-STATUS.md",
+      "bytes": 2881,
+      "sha256": "590f3a8d1938baa34469fa30edcdeeccb8aa4eb314052254226b396de75fcbdf",
+      "lines": 74
+    }
+  ],
+  "files_count": 7,
+  "files_bytes": 24510,
+  "note_manifest": "WM32-MANIFEST.json et SHA256SUMS.txt sont exclus de leur propre somme"
+}

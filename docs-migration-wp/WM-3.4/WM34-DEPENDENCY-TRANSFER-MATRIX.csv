@@ -1,0 +1,13 @@
+group_id,keeper_handle,table,unique_constraint,keeper_rows_before,secondary_rows_total,rows_transferable,unique_conflicts,keeper_rows_after,resolution,non_transferable,potential_loss
+DG-1,DG-1-P3,inscriptions_formation,user_id+formation_id,0,2,2,0,2,clean_repoint,0,aucune
+DG-1,DG-1-P3,video_progress,user_id+module_id,0,2,2,0,2,clean_repoint,0,aucune
+DG-1,DG-1-P3,group_attendance,reunion_id+user_id,0,0,0,0,0,clean_repoint,0,aucune
+DG-1,DG-1-P3,pastoral_actions_log,none,0,0,0,0,0,free_repoint,0,aucune
+DG-1,DG-1-P3,app_notifications,none,0,2,2,0,2,free_repoint,0,aucune
+DG-1,DG-1-P3,newcomer_intakes,none,0,0,0,0,0,free_repoint,0,aucune
+DG-2,DG-2-P1,inscriptions_formation,user_id+formation_id,1,1,0,1,1,dedupe_keep_best,0,aucune (dedupe conserve la meilleure valeur)
+DG-2,DG-2-P1,video_progress,user_id+module_id,3,0,0,0,3,clean_repoint,0,aucune
+DG-2,DG-2-P1,group_attendance,reunion_id+user_id,0,0,0,0,0,clean_repoint,0,aucune
+DG-2,DG-2-P1,pastoral_actions_log,none,0,3,3,0,3,free_repoint,0,aucune
+DG-2,DG-2-P1,app_notifications,none,4,6,6,0,10,free_repoint,0,aucune
+DG-2,DG-2-P1,newcomer_intakes,none,0,0,0,0,0,free_repoint,0,aucune

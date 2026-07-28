@@ -1,0 +1,11 @@
+group_id,profile_handle,profile_fp,current_role,current_membre_statut,is_keeper,target_role_after_merge,action,role_note
+DG-1,DG-1-P1,d8f4dd41e0e1,visiteur,visiteur,non,n/a_role_non_transfere_compte_desactive,DESACTIVER_APRES_TRANSFERT,role secondaire non transfere (pas de cumul de privilege sur gardien)
+DG-1,DG-1-P2,033a174a3d48,visiteur,visiteur,non,n/a_role_non_transfere_compte_desactive,DESACTIVER_APRES_TRANSFERT,role secondaire non transfere (pas de cumul de privilege sur gardien)
+DG-1,DG-1-P3,db599ea80744,super_admin,visiteur,OUI,super_admin,CONSERVER,gardien: role le plus privilegie du groupe
+DG-1,DG-1-P4,b9c8b2e1fce8,admin,visiteur,non,n/a_role_non_transfere_compte_desactive,DESACTIVER_APRES_TRANSFERT,role secondaire non transfere (pas de cumul de privilege sur gardien)
+DG-1,DG-1-P5,2ac5f2eb1353,berger,visiteur,non,n/a_role_non_transfere_compte_desactive,DESACTIVER_APRES_TRANSFERT,role secondaire non transfere (pas de cumul de privilege sur gardien)
+DG-1,DG-1-P6,1c8aa58ee31b,membre,visiteur,non,n/a_role_non_transfere_compte_desactive,DESACTIVER_APRES_TRANSFERT,role secondaire non transfere (pas de cumul de privilege sur gardien)
+DG-2,DG-2-P1,ea98f8125d96,admin,pasteur,OUI,admin,CONSERVER,gardien: role le plus privilegie du groupe
+DG-2,DG-2-P2,aca802ffbbf3,visiteur,visiteur,non,n/a_role_non_transfere_compte_desactive,DESACTIVER_APRES_TRANSFERT,role secondaire non transfere (pas de cumul de privilege sur gardien)
+DG-2,DG-2-P3,9ccef7841ae6,formateur,membre_actif,non,n/a_role_non_transfere_compte_desactive,DESACTIVER_APRES_TRANSFERT,role secondaire non transfere (pas de cumul de privilege sur gardien)
+DG-2,DG-2-P4,ee80c916d109,visiteur,visiteur,non,n/a_role_non_transfere_compte_desactive,DESACTIVER_APRES_TRANSFERT,role secondaire non transfere (pas de cumul de privilege sur gardien)

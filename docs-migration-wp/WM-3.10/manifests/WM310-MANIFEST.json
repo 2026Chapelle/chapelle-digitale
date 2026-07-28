@@ -1,0 +1,131 @@
+{
+  "lot": "WM-3.10",
+  "title": "Execution reelle fusion R1 — TERMINEE, PRE-ID-03 PASS, RPC supprimee",
+  "created_utc": "2026-07-26T00:00:00Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "f369f0fa8304c4dce09da697c1a925230783b3dd",
+  "upstream": {
+    "wm38": "WM-3.8",
+    "wm39": "WM-3.9"
+  },
+  "human_decision_2": "FUSION_R1_PRODUCTION_AUTORISEE=OUI",
+  "prechecks": {
+    "ALL_PASS": true
+  },
+  "execution": {
+    "DG-1": {
+      "keeper": "DG-1-P2",
+      "secondaries_archived": 5,
+      "post_controls": "PASS"
+    },
+    "DG-2": {
+      "keeper": "DG-2-P1",
+      "secondaries_archived": 3,
+      "post_controls": "PASS",
+      "pastoral_actions_preserved": 3
+    },
+    "outcome": "BOTH_OK"
+  },
+  "pre_id_03": {
+    "result": "PASS",
+    "profiles_total": 13,
+    "active": 5,
+    "archived": 8,
+    "dup_groups_active": 0
+  },
+  "rollback": "not_triggered",
+  "data_loss": 0,
+  "pastoral_loss": 0,
+  "role_conflicts": 0,
+  "rpc_removed": true,
+  "rpc_drop_verified": "HTTP_404",
+  "rpc_recreated": false,
+  "wm4_state": "NO-GO",
+  "wm4_auto_started": false,
+  "non_impact": {
+    "profile_deletes": 0,
+    "out_of_scope_changes": 0,
+    "unvalidated_role_changes": 0,
+    "app_deploy": false,
+    "wordpress_migration": false,
+    "pii_in_tracked_files": 0,
+    "git_commit": false,
+    "git_push": false,
+    "prior_lots_modified": false,
+    "data_modified_this_step": false
+  },
+  "verdict": "WM310_R1_MERGE_COMPLETED_PRE_ID_03_PASS_RPC_REMOVED",
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "approval_marker_emitted": false,
+  "files": [
+    {
+      "path": "WM310-HUMAN-DECISION-2.md",
+      "bytes": 1638,
+      "sha256": "b157d737f00edeaecd28cad34f0625609fde38b0da07aebe2ee8cf4d70d9126c",
+      "lines": 45
+    },
+    {
+      "path": "WM310-PRE-EXECUTION-CHECKS.md",
+      "bytes": 1209,
+      "sha256": "f927ecf80e9ee639ac1cc251d17899e24b3c5b2c420e8c3a724caebf064a8ed1",
+      "lines": 28
+    },
+    {
+      "path": "WM310-DG1-REAL-EXECUTION.md",
+      "bytes": 1325,
+      "sha256": "766733d25cd34645edb9b347222642bb06641d96fce9a41b5a4da7cc3a044b33",
+      "lines": 37
+    },
+    {
+      "path": "WM310-DG1-POST-CONTROLS.md",
+      "bytes": 1036,
+      "sha256": "92899202709f6a3a357e30f8b2fc67ab8154bf0a6deb03ec77aa0c019298257c",
+      "lines": 32
+    },
+    {
+      "path": "WM310-DG2-REAL-EXECUTION.md",
+      "bytes": 1335,
+      "sha256": "87566c00928ca69629cd5684715748d127509c6537c3d4ca4790f3480da9aed2",
+      "lines": 37
+    },
+    {
+      "path": "WM310-DG2-POST-CONTROLS.md",
+      "bytes": 1119,
+      "sha256": "b11504ee56645f710ce8f7073df35115c8a5103709ad040927af9376d7aff155",
+      "lines": 34
+    },
+    {
+      "path": "WM310-PRE-ID-03-FINAL-REEVALUATION.md",
+      "bytes": 1211,
+      "sha256": "7398a8b64107ed133ab750993e6bb1fc6c8c2490c0b7ae2407873b2b08740663",
+      "lines": 36
+    },
+    {
+      "path": "WM310-RPC-REVOCATION-AND-DROP.md",
+      "bytes": 1816,
+      "sha256": "ec2ea8f9ee5e1b4d28fb29aaf679f96a0793e6f4253db60e9e4e8cd13fc7d8f9",
+      "lines": 44
+    },
+    {
+      "path": "WM310-ROLLBACK-STATUS.md",
+      "bytes": 1094,
+      "sha256": "143c780108614fed6e80315e11bd413b6e5bd3736b51ad32e35700ec80ffd9e5",
+      "lines": 29
+    },
+    {
+      "path": "WM310-IMPACT-ON-WM4.md",
+      "bytes": 1318,
+      "sha256": "dacb4afacece7f2da15e5274614c88563badab661f3d4445d443f12dc4c7528d",
+      "lines": 35
+    },
+    {
+      "path": "WM310-FINAL-STATUS.md",
+      "bytes": 2969,
+      "sha256": "36a65a480a8003069fcb11a0f8d8c8f4f40e52506536fec091a1695573f18c3b",
+      "lines": 76
+    }
+  ],
+  "files_count": 11,
+  "files_bytes": 16070,
+  "note_manifest": "WM310-MANIFEST.json, SHA256SUMS.txt et private/ exclus des sommes publiees"
+}

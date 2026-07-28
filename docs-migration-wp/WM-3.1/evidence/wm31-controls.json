@@ -1,0 +1,309 @@
+{
+  "total_gates": 42,
+  "pass": 42,
+  "fail": 0,
+  "info": 1,
+  "checks": [
+    {
+      "id": "C1-01",
+      "label": "35 lignes identites",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "35"
+    },
+    {
+      "id": "C1-02",
+      "label": "0 verdict vide",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "0"
+    },
+    {
+      "id": "C1-03",
+      "label": "verdicts dans la taxonomie imposee",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C1-04",
+      "label": "somme des classes = 35",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "{'PRIVILEGED_ACCOUNT': 1, 'ALREADY_PRESENT': 4, 'ABSENT': 30}"
+    },
+    {
+      "id": "C1-05",
+      "label": "wp_user_id uniques",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "35"
+    },
+    {
+      "id": "C1-06",
+      "label": "empreintes N1 distinctes = 35",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "35"
+    },
+    {
+      "id": "C1-07",
+      "label": "chaque ligne a une action WM-4",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C2-01",
+      "label": "27 lignes lecons",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "27"
+    },
+    {
+      "id": "C2-02",
+      "label": "0 classification vide",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C2-03",
+      "label": "classes dans la taxonomie imposee",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C2-04",
+      "label": "somme des classes = 27",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "{'INCOMPLETE': 19, 'TEXT_VALID': 8}"
+    },
+    {
+      "id": "C2-05",
+      "label": "lesson_id uniques",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C2-06",
+      "label": "decisions dans la taxonomie imposee",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "{'MIGRABLE_AVEC_RESERVE': 19, 'MIGRABLE': 8}"
+    },
+    {
+      "id": "C2-07",
+      "label": "11 avec video + 27 sans = 38",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "38"
+    },
+    {
+      "id": "C3-01",
+      "label": "383 lignes fichiers",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "383"
+    },
+    {
+      "id": "C3-02",
+      "label": "0 classification vide",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C3-03",
+      "label": "classes dans la taxonomie imposee",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C3-04",
+      "label": "somme des classes = 383",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "{'THUMBNAIL': 281, 'ORIGINAL_USED': 60, 'ORIGINAL_UNUSED': 9, 'EXACT_DUPLICATE': 23, 'GENERATED_VARIANT': 8, 'ORPHAN': 1, 'CORRUPT': 1}"
+    },
+    {
+      "id": "C3-05",
+      "label": "chemins relatifs uniques",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C3-06",
+      "label": "sha256 present sur 383/383",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C3-07",
+      "label": "doublons exacts prouves par checksum (383-360=23)",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "distinct=360 redundant=23 classes=23"
+    },
+    {
+      "id": "C3-08",
+      "label": "chaque EXACT_DUPLICATE a un groupe et un gardien unique",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C3-09",
+      "label": "octets cumules = uploads_bytes WM-2 (101219207)",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "101219207"
+    },
+    {
+      "id": "C4-identity",
+      "label": "reconciliation identity",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "35 = 34 + 1 + 0"
+    },
+    {
+      "id": "C4-media",
+      "label": "reconciliation media",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "383 = 69 + 313 + 1"
+    },
+    {
+      "id": "C4-lms_lessons",
+      "label": "reconciliation lms_lessons",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "38 = 38 + 0 + 0"
+    },
+    {
+      "id": "C4-lms_courses",
+      "label": "reconciliation lms_courses",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "7 = 5 + 2 + 0"
+    },
+    {
+      "id": "C4-lms_enrollments",
+      "label": "reconciliation lms_enrollments",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "33 = 33 + 0 + 0"
+    },
+    {
+      "id": "C4-content_pages",
+      "label": "reconciliation content_pages",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "56 = 56 + 0 + 0"
+    },
+    {
+      "id": "C4-forms",
+      "label": "reconciliation forms",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "7 = 7 + 0 + 0"
+    },
+    {
+      "id": "C4-crm",
+      "label": "reconciliation crm",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "33 = 33 + 0 + 0"
+    },
+    {
+      "id": "C5-01",
+      "label": "aucun email en clair dans les livrables",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C5-02",
+      "label": "aucun telephone en clair",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C5-03",
+      "label": "aucun hash de mot de passe",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C5-04",
+      "label": "aucune base SQL / archive / sauvegarde dans le lot",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C5-05",
+      "label": "aucun repertoire private/ dans le lot",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C6-01",
+      "label": "aucun export WM-4 produit",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "docs-migration-wp/WM-4 absent"
+    },
+    {
+      "id": "C6-02",
+      "label": "aucun fichier hors WM-3.1 et hors derive tiers",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C6-06",
+      "label": "derive tiers observee hors perimetre WM-3.1 (non produite par ce lot)",
+      "status": "INFO",
+      "kind": "info",
+      "detail": "['src/app/(member)/member/dashboard/ressources/page.tsx', 'src/components/features/member/MemberSidebar.tsx', 'src/app/(member)/member/dashboard/hors-ligne/', 'src/app/api/member/offline/', 'src/components/features/offline/', 'src/lib/offline/']"
+    },
+    {
+      "id": "C6-05",
+      "label": "les fichiers Chapelle Home hors commit sont intacts",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "les 7 entrees preexistantes sont inchangees"
+    },
+    {
+      "id": "C6-03",
+      "label": "WM-2 et WM-3 non modifies",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    },
+    {
+      "id": "C6-04",
+      "label": "sauvegarde externe WM-1 toujours en place",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "C:\\Users\\Révérend Doxa\\Desktop\\EGLISE EN LIGNE\\docs-migration-wp\\WM-1\\backup-20260720-111659"
+    },
+    {
+      "id": "C7-01",
+      "label": "les 9 livrables minimaux existent",
+      "status": "PASS",
+      "kind": "gate",
+      "detail": "ok"
+    }
+  ]
+}

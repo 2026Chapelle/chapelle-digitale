@@ -1,0 +1,146 @@
+{
+  "lot": "WM-3.4",
+  "title": "Plan de fusion R1 reversible + dry-run lecture seule",
+  "created_utc": "2026-07-26T00:00:00Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "f369f0fa8304c4dce09da697c1a925230783b3dd",
+  "upstream": {
+    "wm31": "WM-3.1",
+    "wm32": "WM-3.2",
+    "wm33": "WM-3.3"
+  },
+  "dryrun": {
+    "mode": "read_only_GET",
+    "writes": 0,
+    "DG-1": {
+      "keeper": "DG-1-P3_super_admin_conditionnel",
+      "secondaries": 5,
+      "transferable": 6,
+      "unique_conflicts": 0,
+      "non_transferable": 0,
+      "losses": 0
+    },
+    "DG-2": {
+      "keeper": "DG-2-P1_admin_pasteur_double_validation",
+      "secondaries": 3,
+      "transferable": 9,
+      "unique_conflicts": 1,
+      "conflict_resolution": "dedupe_keep_best",
+      "non_transferable": 0,
+      "losses": 0,
+      "pastoral_actions_transferred": 3
+    },
+    "role_conflicts_executory": 0
+  },
+  "reversibility": {
+    "transaction_per_group": true,
+    "no_delete": true,
+    "disable_via_archived_at": true,
+    "snapshot_required": true,
+    "rollback_levels": [
+      "A_pre_commit",
+      "B_snapshot_restore"
+    ]
+  },
+  "pre_id_03": "FAIL",
+  "pre_id_03_pass_conditions": [
+    "C1 1 profil actif par empreinte canonique",
+    "C2 0 groupe doublon actif",
+    "C4 0 rattachement vers uuid desactive",
+    "C5 conservation totale rattachements"
+  ],
+  "r2": {
+    "videos": "RESTORE_FROM_EXTERNAL_SOURCE(repli REPLACE)",
+    "attachments": "MIGRATE_WITHOUT_MEDIA+ABANDON_REFERENCE",
+    "no_fake_media": true,
+    "status": "confirme_inchange"
+  },
+  "wm4_state": "NO-GO",
+  "non_impact": {
+    "production_writes": 0,
+    "merges": 0,
+    "disables": 0,
+    "migration_executed": false,
+    "deploy": false,
+    "data_modified": false,
+    "pii_outside_private": 0,
+    "git_commit": false,
+    "git_push": false,
+    "prior_lots_modified": false,
+    "out_of_scope_files_touched": false
+  },
+  "verdict": "WM34_EXECUTION_PLAN_READY_FOR_DOUBLE_VALIDATION",
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "approval_marker_emitted": false,
+  "files": [
+    {
+      "path": "WM34-HUMAN-DECISIONS-CONFIRMED.md",
+      "bytes": 2639,
+      "sha256": "7ddceea7f7cd4a6edc2c07b0ac944d2eb6ed04a2585c6ffa51692f286ff9b782",
+      "lines": 51
+    },
+    {
+      "path": "WM34-DG1-MERGE-PLAN.md",
+      "bytes": 3838,
+      "sha256": "a27b472111614cf5411f06527541838e0d6bfeaccefb19fbdfd7452b1b1fca8f",
+      "lines": 76
+    },
+    {
+      "path": "WM34-DG2-MERGE-PLAN.md",
+      "bytes": 3997,
+      "sha256": "871cc790f4e2db7d71d328040e5534b262a11c78eecc6e52e711bb92b2b5bd1c",
+      "lines": 72
+    },
+    {
+      "path": "WM34-DEPENDENCY-TRANSFER-MATRIX.csv",
+      "bytes": 1152,
+      "sha256": "416b2b0a6a947b0a0adc4e091803b364360791f47d2898788cbcd07e54c0baea",
+      "lines": 13
+    },
+    {
+      "path": "WM34-ROLE-CONSOLIDATION-MATRIX.csv",
+      "bytes": 1818,
+      "sha256": "96081dd0f42b10bb6bcbd8ae5a016ef640b71cbbdc9fd5ee2fec1e4de92ef129",
+      "lines": 11
+    },
+    {
+      "path": "WM34-PRE-MERGE-BACKUP-CONTRACT.md",
+      "bytes": 2294,
+      "sha256": "221b7819503ee892b411df7395cd733f999c8fd7ca7025b6afe46193e1297274",
+      "lines": 52
+    },
+    {
+      "path": "WM34-ROLLBACK-PLAN.md",
+      "bytes": 3008,
+      "sha256": "80e82a20341ad26e4d046994bb1d8cf753bc410a964a3fb18a0cc30fb907556f",
+      "lines": 76
+    },
+    {
+      "path": "WM34-DRY-RUN-REPORT.md",
+      "bytes": 5379,
+      "sha256": "67730d63b96408f9e8b190d26b42c9cfcd41c1dfa21cf20a59387df5d27d52e8",
+      "lines": 110
+    },
+    {
+      "path": "WM34-PRE-POST-CONTROLS.md",
+      "bytes": 3221,
+      "sha256": "9ee667b52e04c56521db4e518896d978d2288b2f75cf417a1d5cf480d8d4f870",
+      "lines": 65
+    },
+    {
+      "path": "WM34-EXECUTION-GO-CHECKLIST.md",
+      "bytes": 2003,
+      "sha256": "a0f687e50d4df9f4af6aa6e587e06616e71a0357868986946c89e04995475ff2",
+      "lines": 53
+    },
+    {
+      "path": "WM34-FINAL-STATUS.md",
+      "bytes": 3016,
+      "sha256": "9d38a73489de56ff2347c5cbe83a3c0ffe178f15e95588609d52480b447fa9b0",
+      "lines": 67
+    }
+  ],
+  "files_count": 11,
+  "files_bytes": 32365,
+  "note_manifest": "WM34-MANIFEST.json, SHA256SUMS.txt et private/ exclus des sommes publiees"
+}

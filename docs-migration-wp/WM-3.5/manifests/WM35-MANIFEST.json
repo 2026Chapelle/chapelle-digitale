@@ -1,0 +1,79 @@
+{
+  "lot": "WM-3.5",
+  "title": "Cloture des validations humaines avant execution R1",
+  "created_utc": "2026-07-26T00:00:00Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "f369f0fa8304c4dce09da697c1a925230783b3dd",
+  "upstream": {
+    "wm33": "WM-3.3",
+    "wm34": "WM-3.4"
+  },
+  "new_probe": false,
+  "dry_run_redone": false,
+  "validations": {
+    "DG-1": {
+      "status": "HOLD",
+      "guardian_confirmed": false,
+      "candidate": "DG-1-P3_super_admin",
+      "coherence": "INCOHERENT_candidat_0_rattachement",
+      "test_accounts_confirmation": "EN_ATTENTE"
+    },
+    "DG-2": {
+      "guardian": "DG-2-P1_admin_pasteur",
+      "validation_1": "APPROUVEE",
+      "validation_2": "EN_ATTENTE"
+    }
+  },
+  "execution_gate": "FERMEE",
+  "conditions_total": 6,
+  "conditions_met": 1,
+  "pre_id_03": "FAIL",
+  "wm4_state": "NO-GO",
+  "non_impact": {
+    "new_production_probe": false,
+    "audit_or_dryrun_redone": false,
+    "merges": 0,
+    "disables": 0,
+    "production_writes": 0,
+    "pii_in_tracked_files": 0,
+    "migration": false,
+    "deploy": false,
+    "git_commit": false,
+    "git_push": false,
+    "prior_lots_modified": false,
+    "out_of_scope_files_touched": false
+  },
+  "verdict": "WM35_AWAITING_FINAL_HUMAN_VALIDATIONS",
+  "production_execution_go": "INTERDIT",
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "approval_marker_emitted": false,
+  "files": [
+    {
+      "path": "WM35-DG1-GUARDIAN-CONFIRMATION.md",
+      "bytes": 2881,
+      "sha256": "c36dcb5a8ccbd927abeec5f15228976388eb51967f184bc21007af894849063b",
+      "lines": 52
+    },
+    {
+      "path": "WM35-DG2-SECOND-VALIDATION.md",
+      "bytes": 2539,
+      "sha256": "15fd6f9a6795ccea829d293352cbbbb0625dddb427f085e17f00da7d22e0f324",
+      "lines": 65
+    },
+    {
+      "path": "WM35-PRODUCTION-EXECUTION-GATE.md",
+      "bytes": 1755,
+      "sha256": "a40cfc8bb6d285ed0f87c6e62c35d72b5121fd9469c0f02a94a5269b46194ba7",
+      "lines": 49
+    },
+    {
+      "path": "WM35-FINAL-STATUS.md",
+      "bytes": 2050,
+      "sha256": "ead6b687ae8dc0c02fbbe2e9e71f2652cfacc1502ec34ee4589bc40f506a0472",
+      "lines": 56
+    }
+  ],
+  "files_count": 4,
+  "files_bytes": 9225,
+  "note_manifest": "WM35-MANIFEST.json et SHA256SUMS.txt exclus des sommes publiees"
+}

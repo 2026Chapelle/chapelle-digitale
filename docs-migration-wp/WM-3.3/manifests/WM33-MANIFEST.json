@@ -1,0 +1,152 @@
+{
+  "lot": "WM-3.3",
+  "title": "Collecte lecture seule R1 (dependances profils doublons) et enregistrement decisions R2",
+  "created_utc": "2026-07-26T00:00:00Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "f369f0fa8304c4dce09da697c1a925230783b3dd",
+  "upstream": {
+    "wm31": "docs-migration-wp/WM-3.1",
+    "wm32": "docs-migration-wp/WM-3.2"
+  },
+  "probe": {
+    "mode": "read_only",
+    "methods": [
+      "GET /rest/v1/profiles",
+      "GET /auth/v1/admin/users",
+      "HEAD count sur tables de rattachement"
+    ],
+    "host": "nvyuyffywnuollaxguen",
+    "writes": 0
+  },
+  "r1": {
+    "controle": "PRE-ID-03",
+    "reeval": "FAIL",
+    "profiles_total": 13,
+    "auth_total": 13,
+    "groups": {
+      "DG-1": {
+        "canonical_fp": "8c12c2c748ecc387",
+        "count": 6,
+        "keeper": "DG-1-P3_super_admin_a_confirmer",
+        "role_conflict": true,
+        "privilege_data_split": true,
+        "loss_risk": "faible"
+      },
+      "DG-2": {
+        "canonical_fp": "62a52607eec94560",
+        "count": 4,
+        "keeper": "DG-2-P1_admin_pasteur",
+        "role_conflict": true,
+        "privilege_data_split": false,
+        "loss_risk": "eleve",
+        "double_validation": true
+      }
+    },
+    "attached_probes_ok": [
+      "inscriptions_formation",
+      "video_progress",
+      "pastoral_notes",
+      "pastoral_actions_log",
+      "group_attendance",
+      "newcomer_intakes",
+      "app_notifications"
+    ],
+    "attached_probes_na": [
+      "audio_progress",
+      "user_playlists",
+      "group_members",
+      "prieres",
+      "product_purchases"
+    ],
+    "decision": "MANUAL_IDENTITY_REVIEW",
+    "execution": "non_executee",
+    "pii": "private/ (gitignored)"
+  },
+  "r2": {
+    "controle": "PRE-MED-04",
+    "videos": {
+      "ids": [
+        "34548",
+        "34555",
+        "34577"
+      ],
+      "decision": "RESTORE_FROM_EXTERNAL_SOURCE",
+      "repli": "REPLACE_WITH_APPROVED_MEDIA"
+    },
+    "attachments": {
+      "ids": [
+        "34549",
+        "34553"
+      ],
+      "decision": [
+        "MIGRATE_WITHOUT_MEDIA",
+        "ABANDON_REFERENCE"
+      ]
+    },
+    "no_fake_media": true,
+    "state": "arbitre_tracé"
+  },
+  "wm4_state": "NO-GO",
+  "non_impact": {
+    "wordpress_writes": 0,
+    "supabase_writes": 0,
+    "citadelle_writes": 0,
+    "account_merges": 0,
+    "user_disables": 0,
+    "profile_corrections": 0,
+    "media_created": 0,
+    "pii_published_outside_private": 0,
+    "wm4_exports_produced": 0,
+    "migration_executed": false,
+    "deploy": false,
+    "git_commit": false,
+    "git_push": false,
+    "wm1_backup_modified": false,
+    "wm31_wm32_modified": false,
+    "out_of_scope_files_touched": false
+  },
+  "verdict": "WM33_R1_EVIDENCE_READY_FOR_FINAL_DECISION",
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "approval_marker_emitted": false,
+  "files": [
+    {
+      "path": "WM33-R1-READONLY-IDENTITY-EVIDENCE.md",
+      "bytes": 6757,
+      "sha256": "b6f2de8ef434d36642dee3b9707058ef353e5f03a8d090400b47769d52e87952",
+      "lines": 114
+    },
+    {
+      "path": "WM33-R1-PROFILE-DEPENDENCIES-MATRIX.csv",
+      "bytes": 1800,
+      "sha256": "4913c0b62117ca277fd4c369a3aa1ebe1682136badf1910fc1ac32da2b79c645",
+      "lines": 11
+    },
+    {
+      "path": "WM33-R1-MERGE-RECOMMENDATION.md",
+      "bytes": 4500,
+      "sha256": "ecdaf9f9d0aa568f13cd30554c820f3b99beb610c3877250d26ccec562111c05",
+      "lines": 87
+    },
+    {
+      "path": "WM33-R2-HUMAN-DECISIONS-RECORDED.md",
+      "bytes": 3716,
+      "sha256": "2fb42a99f7aa995dd325b0dedfc1e76fa19b5050cd7f291dd3f27d50a374d451",
+      "lines": 68
+    },
+    {
+      "path": "WM33-IMPACT-ON-WM4.md",
+      "bytes": 2741,
+      "sha256": "d7facf41bbabc69c1944e1ecd291a2ad8d461b884c5ce39be7b85fbb4b4471f8",
+      "lines": 57
+    },
+    {
+      "path": "WM33-FINAL-STATUS.md",
+      "bytes": 3726,
+      "sha256": "731360d3d3831313a7d5a13d1108014cda03aad06c7ce6f49b55198cf40c51a1",
+      "lines": 89
+    }
+  ],
+  "files_count": 6,
+  "files_bytes": 23240,
+  "note_manifest": "WM33-MANIFEST.json, SHA256SUMS.txt et private/ sont exclus des sommes publiees"
+}

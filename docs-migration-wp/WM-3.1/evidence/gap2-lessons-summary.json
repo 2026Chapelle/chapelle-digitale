@@ -1,0 +1,70 @@
+{
+  "lessons_total": 38,
+  "lessons_with_video": 11,
+  "lessons_without_video": 27,
+  "classes": {
+    "INCOMPLETE": 19,
+    "TEXT_VALID": 8
+  },
+  "decisions": {
+    "MIGRABLE_AVEC_RESERVE": 19,
+    "MIGRABLE": 8
+  },
+  "by_course": {
+    "parcours-3-je-deviens-un-disciple-actif": 26,
+    "le-chemin-des-elus-7-etapes-pour-entrer-senraciner-et-regner": 1
+  },
+  "completeness": {
+    "incomplete_placeholder": 19,
+    "complete": 8
+  },
+  "word_count_min": 31,
+  "word_count_max": 218,
+  "word_count_total": 1545,
+  "attachments_total": 0,
+  "attachments_broken_total": 0,
+  "placeholder_lessons": 19,
+  "human_review_required": 19,
+  "lessons_with_video_ids": [
+    864,
+    865,
+    866,
+    869,
+    870,
+    871,
+    872,
+    873,
+    875,
+    878,
+    881
+  ],
+  "lessons_without_video_ids": [
+    874,
+    1095,
+    1096,
+    1097,
+    1098,
+    1099,
+    1101,
+    1102,
+    1103,
+    1104,
+    1106,
+    1107,
+    1108,
+    1109,
+    1111,
+    1112,
+    1113,
+    1114,
+    1116,
+    1117,
+    1118,
+    1119,
+    1121,
+    1122,
+    1123,
+    1124,
+    1125
+  ]
+}

@@ -1,0 +1,11 @@
+group_id,profile_handle,profile_fp,canonical_fingerprint,role,membre_statut,auth_users_id_match,created_at,last_activity_bucket,attached_data_domains,total_attached_rows,keep_candidate,data_to_merge_into_keeper,loss_risk,group_role_conflict,group_privilege_data_split
+DG-1,DG-1-P1,d8f4dd41e0e1,8c12c2c748ecc387,visiteur,visiteur,oui,2026-05-30,2026-06,formations_inscrites=1,1,non,formations_inscrites=1,modere,oui,oui
+DG-1,DG-1-P2,033a174a3d48,8c12c2c748ecc387,visiteur,visiteur,oui,2026-07-04,2026-07,formations_inscrites=1;progression_video=2;notifications=2,5,non,formations_inscrites=1;progression_video=2;notifications=2,eleve,oui,oui
+DG-1,DG-1-P3,db599ea80744,8c12c2c748ecc387,super_admin,visiteur,oui,2026-07-09,2026-07,aucune,0,OUI,n/a,n/a_conserve,oui,oui
+DG-1,DG-1-P4,b9c8b2e1fce8,8c12c2c748ecc387,admin,visiteur,oui,2026-07-09,2026-07,aucune,0,non,aucune,faible,oui,oui
+DG-1,DG-1-P5,2ac5f2eb1353,8c12c2c748ecc387,berger,visiteur,oui,2026-07-09,2026-07,aucune,0,non,aucune,faible,oui,oui
+DG-1,DG-1-P6,1c8aa58ee31b,8c12c2c748ecc387,membre,visiteur,oui,2026-07-09,2026-07,aucune,0,non,aucune,faible,oui,oui
+DG-2,DG-2-P1,ea98f8125d96,62a52607eec94560,admin,pasteur,oui,2026-05-30,2026-07,formations_inscrites=1;progression_video=3;notifications=4,8,OUI,n/a,n/a_conserve,oui,non
+DG-2,DG-2-P2,aca802ffbbf3,62a52607eec94560,visiteur,visiteur,oui,2026-06-05,2026-06,formations_inscrites=1;notifications=1,2,non,formations_inscrites=1;notifications=1,modere,oui,non
+DG-2,DG-2-P3,9ccef7841ae6,62a52607eec94560,formateur,membre_actif,oui,2026-06-05,2026-06,actions_pastorales=3;notifications=3,6,non,actions_pastorales=3;notifications=3,eleve,oui,non
+DG-2,DG-2-P4,ee80c916d109,62a52607eec94560,visiteur,visiteur,oui,2026-06-28,2026-06,notifications=2,2,non,notifications=2,modere,oui,non

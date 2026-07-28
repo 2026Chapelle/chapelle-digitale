@@ -1,0 +1,92 @@
+{
+  "lot": "WM-3.8",
+  "title": "Preparation chemin transactionnel R1/R2 (conception, aucune execution)",
+  "created_utc": "2026-07-26T00:00:00Z",
+  "branch": "stabilisation-p0-recette-citadelle",
+  "baseline_commit": "f369f0fa8304c4dce09da697c1a925230783b3dd",
+  "upstream": {
+    "wm36": "WM-3.6",
+    "wm37": "WM-3.7"
+  },
+  "chosen_option": "A_transactional_rpc_temporary",
+  "rpc": {
+    "name": "wm3_merge_duplicate_group",
+    "security_definer": true,
+    "search_path_fixed": true,
+    "dry_run_default": true,
+    "grant": "service_role_only",
+    "teardown": "DROP_after_use"
+  },
+  "authorization_points": [
+    "deploy_temporary_rpc_waiver",
+    "remove_redundant_inscriptions_or_relax_POST_M_03"
+  ],
+  "included": [
+    "authorization_conditions",
+    "mandatory_snapshot",
+    "pre_post_controls",
+    "rollback_A_B",
+    "teardown_or_lock"
+  ],
+  "pre_id_03": "FAIL",
+  "wm4_state": "NO-GO",
+  "writes_performed": 0,
+  "non_impact": {
+    "production_writes": 0,
+    "function_created": false,
+    "grant_or_drop_executed": false,
+    "merges": 0,
+    "disables": 0,
+    "business_schema_migration": false,
+    "deploy": false,
+    "pii_in_tracked_files": 0,
+    "git_commit": false,
+    "git_push": false,
+    "prior_lots_modified": false,
+    "out_of_scope_files_touched": false
+  },
+  "verdict": "WM38_READY_FOR_CONTROLLED_EXECUTION",
+  "approval_marker": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "approval_marker_emitted": false,
+  "files": [
+    {
+      "path": "WM38-TRANSACTION-ARCHITECTURE.md",
+      "bytes": 3604,
+      "sha256": "aab5bae39a3a7a05d309391d1e3d78019d42e643df4bfdc93064ee943f649e71",
+      "lines": 71
+    },
+    {
+      "path": "WM38-RPC-DESIGN.md",
+      "bytes": 7920,
+      "sha256": "d04a24ac05b23349173a442936b46c41e03753446191b3c031200c058fd7e3d9",
+      "lines": 165
+    },
+    {
+      "path": "WM38-SECURITY-CONTROLS.md",
+      "bytes": 2901,
+      "sha256": "dde39c14d49c47cd44a11b542b1ad0e210f2880048b1907ff22fc631c681918c",
+      "lines": 67
+    },
+    {
+      "path": "WM38-EXECUTION-PROCEDURE.md",
+      "bytes": 2841,
+      "sha256": "b92f943af27656c761ac7a578438507ed60e37b016335ef612cda53d2420a3d9",
+      "lines": 60
+    },
+    {
+      "path": "WM38-ROLLBACK-PROCEDURE.md",
+      "bytes": 2689,
+      "sha256": "1f25f4667954451d96e1cf0a916baeebd2d434bb1ba635741a0f0c3f6fa7c559",
+      "lines": 59
+    },
+    {
+      "path": "WM38-FINAL-STATUS.md",
+      "bytes": 3120,
+      "sha256": "4b2ae44865a60e0c1609f4b3e7cf405c904486aa4cef61227a4d88a24a463a9f",
+      "lines": 72
+    }
+  ],
+  "files_count": 6,
+  "files_bytes": 23075,
+  "note_manifest": "WM38-MANIFEST.json et SHA256SUMS.txt exclus des sommes publiees"
+}

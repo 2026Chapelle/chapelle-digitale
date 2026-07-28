@@ -1,0 +1,42 @@
+{
+  "source_total": 35,
+  "verdicts": {
+    "PRIVILEGED_ACCOUNT": 1,
+    "ALREADY_PRESENT": 4,
+    "ABSENT": 30
+  },
+  "citadelle_profiles_total": 13,
+  "citadelle_auth_users_total": 13,
+  "citadelle_probe_utc": "2026-07-25T11:30:18.114Z",
+  "citadelle_host": "nvyuyffywnuollaxguen.supabase.co",
+  "wm4_actions": {
+    "REJECTED_EXCLUDED_FROM_BATCH": 1,
+    "RAPPROCHER_NO_CREATE": 4,
+    "EXPORTABLE_CREATE_VISITEUR": 30
+  },
+  "domains": {
+    "chapelleduroyaume.org": 1,
+    "gmail.com": 26,
+    "orange.fr": 2,
+    "yahoo.fr": 3,
+    "yahoo.com": 1,
+    "gmx.fr": 1,
+    "hotmail.fr": 1
+  },
+  "cit_domains": {
+    "gmail.com": 13
+  },
+  "overlap_fp": [
+    "46e26f9b1beb2b3a",
+    "55ecc0dd66653e05",
+    "62a52607eec94560",
+    "8c12c2c748ecc387"
+  ],
+  "citadelle_distinct_canonical": 5,
+  "citadelle_target_duplicate_groups": {
+    "8c12c2c748ecc387": 6,
+    "62a52607eec94560": 4
+  },
+  "source_distinct_strict": 35,
+  "source_distinct_canonical": 35
+}
