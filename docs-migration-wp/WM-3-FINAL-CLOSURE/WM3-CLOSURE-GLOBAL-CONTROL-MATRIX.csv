@@ -1,0 +1,12 @@
+controle,source_de_preuve,statut,reserve_initiale,action_de_cloture,impact_wm4,verdict_final
+PRE-00 sauvegarde WM-1,backup externe re-verifie (3 SHA-256 identiques) + WM-2 WM1R_RESTORE_RECONCILIATION_OK,PASS_ATTESTED,R-01 hashes non recalculables,re-verification directe des 3 SHA-256 en lecture seule,prerequis WM-1 intacte confirme,LEVEE
+PRE-ID-03 identites R1,WM-3.10 FINAL-STATUS + PRE-ID-03-FINAL-REEVALUATION,PASS,aucune,aucune,prerequis identites satisfait,OK
+PRE-MED-04 medias R2,WM-3.13 PRE-MED-04-FINAL-REEVALUATION + CSV quarantine/rejects,PASS_WITH_QUARANTINE,aucune (levee par decision tracee),aucune,prerequis media satisfait,OK
+Contrat WM-4 amendement A1,WM31-WM4-EXPORT-CONTRACT.md sec12 + WM313-WM4-QUARANTINE-ROWS.csv,RATIFIE,R-02 QU-MED-MISSING-REFERENCE 5->3,section 12 ajoutee + manifestes WM-3.1 regeneres,POST-10 attend QU=3,LEVEE
+Contrat WM-4 amendement A2,WM31-WM4-EXPORT-CONTRACT.md sec12 + WM313-WM4-REJECT-ROWS.csv,RATIFIE,R-03 ajout RJ-MED-MISSING-REFERENCE N=2,section 12 ajoutee,POST-10 attend RJ=2,LEVEE
+Contrat WM-4 amendement A2-bis,WM31-WM4-EXPORT-CONTRACT.md sec12,RATIFIE,cloisonnement POST-05,section 12 (hors 383 et hors 313),equation sec6 inchangee 383=69+313+1,LEVEE
+PII email en clair,WM-2 t11-seo-options.tsv:5,CORRIGE,R-04 un email en clair expose (valeur non reproduite),redaction [EMAIL_REDACTED] aucun checksum a regenerer,hygiene donnees,LEVEE
+Integrite documentaire WM-3.1..3.13,sha256sum -c des 13 manifests (WM-3.1 regenere),PASS,aucune,manifestes WM-3.1 regeneres apres amendement,base documentaire fiable,OK
+PII/secrets versionne apres correction,git grep emails/UUID/JWT/secret,PASS,aucune,0 email en clair restant,aucun,OK
+private/sql/media suivis git,git ls-files,PASS,aucune,aucun,aucun artefact sensible versionne,OK
+Git readiness,git status/rev-parse/rev-list,PASS,aucune,perimetre cible uniquement,commit+push documentaire,OK

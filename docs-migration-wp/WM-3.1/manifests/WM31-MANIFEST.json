@@ -228,9 +228,9 @@
     },
     {
       "path": "WM31-WM4-EXPORT-CONTRACT.md",
-      "bytes": 17899,
-      "sha256": "1f1a0a54bf392c67c93521b6886e276049e9a552968af774636e115959112253",
-      "lines": 344
+      "bytes": 20315,
+      "sha256": "6372b94b28ca5e08da09779fa2170f3ddd5f80ff670a87cad1852698bd40c39d",
+      "lines": 395
     },
     {
       "path": "evidence/controls.py",
@@ -294,6 +294,6 @@
     }
   ],
   "files_count": 19,
-  "files_bytes": 258648,
+  "files_bytes": 261064,
   "note_manifest": "WM31-MANIFEST.json et SHA256SUMS.txt sont exclus de leur propre somme"
 }

@@ -1,0 +1,44 @@
+{
+  "lot": "WM-3-FINAL-REEVALUATION",
+  "titre": "Reevaluation globale finale WM-3 avant WM-4",
+  "date": "2026-07-28",
+  "branche": "stabilisation-p0-recette-citadelle",
+  "head_at_analysis": "d1151c540c55e1ea3fa798e9cf549ad061f1d376",
+  "mode": "documentaire_lecture_seule",
+  "decision": "WM3_GLOBAL_REEVALUATION_APPROVED_WITH_RESERVATIONS",
+  "marqueur_complet_emis": false,
+  "marqueur_complet": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK (NON EMIS - interdit tant que PRE-00 pas PASS plein)",
+  "wm4_state": "NO-GO",
+  "note_manifest": "manifests/ hors des sommes publiees. Aucun private/, aucun .sql, aucun media binaire dans ce lot.",
+  "verdicts": {
+    "PRE_00_backup_wm1": "INCOMPLETE",
+    "PRE_ID_03_identites_r1": "PASS",
+    "PRE_MED_04_medias_r2": "PASS_WITH_QUARANTINE",
+    "contrat_wm4": "COHERENT_SOUS_RESERVE",
+    "coherence_volumetrique_sec6": "OK_INCHANGEE",
+    "decisions_humaines_r1_r2": "OK",
+    "integrite_documentaire_wm31_wm313": "OK_13_sur_13",
+    "pii_secrets_private_sql_media_wm3": "OK_0",
+    "git_readiness": "OK"
+  },
+  "reserves_non_bloquantes": [
+    "PRE-00 INCOMPLETE : sauvegarde WM-1 hors depot, non re-verifiable localement (crypto/restaurabilite/non-derive)",
+    "Amendement contrat A1 : QU-MED-MISSING-REFERENCE N=5 -> N=3",
+    "Amendement contrat A2 : ajout RJ-MED-MISSING-REFERENCE N=2 au paragraphe 4.1 (+ A2-bis : hors 313/sec6)",
+    "Hygiene WM-2 : email en clair t11-seo-options.tsv:5 a masquer (hors perimetre R2)"
+  ],
+  "blocages_durs": [],
+  "files_count": 9,
+  "files_bytes": 20751,
+  "files": [
+    { "path": "WM3-FINAL-COVERAGE-MATRIX.csv", "sha256": "2e4addb74fb50a93d5462014802af76310e7539ca6b35053c8f4b6e51494ca39" },
+    { "path": "WM3-FINAL-DECISION.md", "sha256": "0ea42459a2848a5de0220da152d6127d2a236fd9dd7739072eaf8d2b30b66cfb" },
+    { "path": "WM3-FINAL-GO-NOGO-CHECKLIST.md", "sha256": "d1ec100ed54ebcace5a15fbe705fe38da0b245afa2dad6e7787d14118ed2e42f" },
+    { "path": "WM3-FINAL-PRE00-BACKUP-REEVALUATION.md", "sha256": "e224fb62d38bf1bd18584cd40fb318730b50aad826f0ac0a034591fa83cf0d81" },
+    { "path": "WM3-FINAL-R1-IDENTITY-REEVALUATION.md", "sha256": "44f386e23e7399f5419e6d8f63b0244064d7ccab5d77ace1cea8529947864e46" },
+    { "path": "WM3-FINAL-R2-MEDIA-REEVALUATION.md", "sha256": "66aa9e34c2e930ceebb72817d6ceefbfeb1991a4b179cdb2697e3d88a4a729d6" },
+    { "path": "WM3-FINAL-RISK-REGISTER.md", "sha256": "8a1529f46d7fd37bdd8f276115c7a5eb1c6d9327839c891211aa815cf7f46198" },
+    { "path": "WM3-FINAL-STATUS.md", "sha256": "9f40a58083544e5f152a00b3735c9c5565e940f6135a4e7a7223f65dfda40484" },
+    { "path": "WM3-FINAL-WM4-CONTRACT-REEVALUATION.md", "sha256": "79a120ba016f857b32761bb40f8d873d0eb9889b0b6aec7d999f4d6aa7965824" }
+  ]
+}

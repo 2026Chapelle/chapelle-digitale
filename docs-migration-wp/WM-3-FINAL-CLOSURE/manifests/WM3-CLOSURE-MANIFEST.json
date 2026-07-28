@@ -1,0 +1,52 @@
+{
+  "lot": "WM-3-FINAL-CLOSURE",
+  "titre": "Cloture definitive WM-3 - levee des 3 reserves et verdict final",
+  "date": "2026-07-28",
+  "branche": "stabilisation-p0-recette-citadelle",
+  "head_before_commit": "d1151c540c55e1ea3fa798e9cf549ad061f1d376",
+  "mode": "documentaire",
+  "decision": "WM3_GLOBAL_REEVALUATION_APPROVED_FOR_WM4",
+  "marqueur_emis": true,
+  "marqueur": "CITADELLE_WP_MIGRATION_WM3_MAPPING_APPROVED_OK",
+  "wm4_state": "OUVERTURE_AUTORISEE_NON_LANCEE",
+  "verdicts": {
+    "PRE_00_backup_wm1": "PASS_ATTESTED",
+    "PRE_ID_03_identites_r1": "PASS",
+    "PRE_MED_04_medias_r2": "PASS_WITH_QUARANTINE",
+    "contrat_wm4": "RATIFIE",
+    "pii": "CORRIGEE",
+    "integrite_documentaire": "OK",
+    "git_readiness": "OK"
+  },
+  "reserves_levees": {
+    "R-01": "PRE-00 -> PASS_ATTESTED (3 SHA-256 externes re-verifies identiques)",
+    "R-02": "amendement A1 QU-MED-MISSING-REFERENCE 5->3 ratifie (contrat sec12)",
+    "R-03": "amendement A2 ajout RJ-MED-MISSING-REFERENCE N=2 + A2-bis ratifies (contrat sec12)",
+    "R-04": "email en clair WM-2 t11-seo-options.tsv:5 masque [EMAIL_REDACTED]"
+  },
+  "blocages_durs": [],
+  "modifications_hors_lot": [
+    "WM-2/audit-20260720-231559/evidence/t11-seo-options.tsv (redaction email)",
+    "WM-3.1/WM31-WM4-EXPORT-CONTRACT.md (ajout sec12 amendements ratifies)",
+    "WM-3.1/manifests/SHA256SUMS.txt (regenere - contrat)",
+    "WM-3.1/manifests/WM31-MANIFEST.json (regenere - contrat + files_bytes 258648->261064)"
+  ],
+  "pre00_reverification": {
+    "source_externe": "backup-20260720-111659 (hors depot, lecture seule)",
+    "sha256_reverifies": 3,
+    "sha256_identiques": 3,
+    "mutation": false
+  },
+  "note_manifest": "manifests/ hors des sommes publiees. Aucun private/, aucun .sql, aucun media binaire dans ce lot.",
+  "files_count": 7,
+  "files_bytes": 16950,
+  "files": [
+    { "path": "WM3-CLOSURE-FINAL-DECISION.md", "sha256": "7f38e92e170772221092b2f627757abb425771b0785843b81462846ec5a268d3" },
+    { "path": "WM3-CLOSURE-FINAL-STATUS.md", "sha256": "45439878cc09b218f6470db7a4c35bb1b14db8b16fe078fb12748e838d4e7674" },
+    { "path": "WM3-CLOSURE-GLOBAL-CONTROL-MATRIX.csv", "sha256": "0063f7c00819e427095e6df6b470ba863dd17e42d697574dc03224509a34d99d" },
+    { "path": "WM3-CLOSURE-GO-NOGO-CHECKLIST.md", "sha256": "516a43880cdf1339c81e8204a38a4de24316093cb9ac91424ed219338b1255e9" },
+    { "path": "WM3-CLOSURE-PII-REMEDIATION.md", "sha256": "6f993e8c010816b1f00923bfdc8e0bde8e9ba0490a703050271bf043189c2a80" },
+    { "path": "WM3-CLOSURE-PRE00-FINAL.md", "sha256": "730f4dad80b92ee5f4478a5d41026e803e18bbeef84c3ac62589ab76bcc2d681" },
+    { "path": "WM3-CLOSURE-WM4-CONTRACT-AMENDMENTS.md", "sha256": "f0cf23ba039344c620f634a1d7bbe5f9aba0fc200099a8fc5b30fb87e2dce5eb" }
+  ]
+}

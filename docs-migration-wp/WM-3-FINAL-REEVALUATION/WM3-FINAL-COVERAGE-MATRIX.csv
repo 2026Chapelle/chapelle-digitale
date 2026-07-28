@@ -1,0 +1,13 @@
+controle,source_de_preuve,statut,reserve,decision_humaine,impact_wm4,action_restante,verdict_final
+PRE-00 sauvegarde WM-1,WM-1-EXTERNAL-SOURCE.md + WM-2/WM2-REPORT.md + WM31-GAP-CLOSURE-EVIDENCE.md,INCOMPLETE,sauvegarde hors depot non re-verifiable localement (crypto/restaurabilite/non-derive),conserver source externe lecture seule,prerequis WM-1 intacte attestee mais non re-verifiable,acceder source externe ou integrer manifeste conservation (SHA256SUMS+SOURCE-CERT+WM-1R),RESERVE_NON_BLOQUANTE
+PRE-ID-03 identites R1,WM-3.10 (FINAL-STATUS + PRE-ID-03-FINAL-REEVALUATION + manifeste),PASS,aucune,fusion R1 validee double gardien,prerequis identites satisfait,aucune,OK
+R1 conservation donnees,WM310-DG1/DG2-POST-CONTROLS + WM310-MANIFEST.json,PASS,aucune,fusion executee data_loss=0 3 actions pastorales preservees,aucun,aucune,OK
+R1 RPC temporaire,WM310-RPC-REVOCATION-AND-DROP.md (HTTP 404),PASS,aucune,revoke+drop confirmes,aucun,aucune,OK
+PRE-MED-04 medias R2,WM-3.13 (PRE-MED-04-FINAL-REEVALUATION + FINAL-STATUS + CSV),PASS_WITH_QUARANTINE,2 amendements de nomenclature a ratifier,QUARANTINE_CONTENT 3 videos + ABANDON_REFERENCE 2 annexes,prerequis media leve par decision tracee,ratifier amendements A1/A2 a ouverture WM-4,APPROVED_WITH_RESERVATIONS
+R2 videos 34548/34555/34577,WM313-WM4-QUARANTINE-ROWS.csv + WM312-VIDEO-URL-LIVENESS-REPORT.md,PASS_WITH_QUARANTINE,source 404 definitive aucun repli,QUARANTINE_CONTENT import draft,import en draft invisible hors progression,reactivation future si video approuvee,APPROVED_WITH_RESERVATIONS
+R2 pieces jointes 34549/34553,WM313-WM4-REJECT-ROWS.csv + WM313-ATTACHMENT-ABANDON-CONTRACT.md,PASS,aucune (facultatif),ABANDON_REFERENCE definitif,rejet trace rejects.csv,tracer rejet WM-4,OK
+Contrat WM-4 coherence,WM31-WM4-EXPORT-CONTRACT.md vs WM-3.13,COHERENT_SOUS_RESERVE,2 amendements A1 (QU 5->3) A2 (ajout RJ N=2),amendements documentes a ratifier,POST-10/POST-05 exigent ratification,ratifier A1/A2/A2-bis a ouverture WM-4,RESERVE_NON_BLOQUANTE
+Integrite documentaire WM-3.1..3.13,sha256sum -c des 13 manifests,PASS,aucune,n/a,base documentaire fiable,aucune,OK
+PII/secrets versionne WM-3.*,git grep emails/UUID/JWT/service_role,PASS,email en clair dans WM-2 t11-seo-options.tsv:5 (hors perimetre WM-3 strict),n/a,hygiene donnees WM-2 a corriger,corriger email WM-2 (hors R2),RESERVE_NON_BLOQUANTE
+private/sql/media suivis git WM-3.*,git ls-files,PASS,aucune,n/a,aucun artefact sensible versionne,aucune,OK
+Git readiness,git status/rev-parse/rev-list,PASS,aucune,n/a,HEAD d1151c5 sync 0 0 rien de stage,aucune,OK

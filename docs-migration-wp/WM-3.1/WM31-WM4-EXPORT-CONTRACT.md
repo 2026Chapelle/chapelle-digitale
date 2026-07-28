@@ -342,3 +342,54 @@ Aucun import en production · aucun cutover · aucune suppression de la sandbox 
 de mot de passe · aucune écriture WordPress, Supabase ou Citadelle · aucun commit de `private/`,
 d'email en clair, de base SQL, d'archive ou de sauvegarde brute · aucune modification de la page
 d'accueil ni du code applicatif.
+
+---
+
+## 12. Amendements ratifiés (clôture WM-3, 2026-07-28)
+
+Ces amendements sont **ratifiés** à la clôture de la phase WM-3 (lot `WM-3-FINAL-CLOSURE`), suite à
+la décision humaine finale R2 (`WM-3.13`). Ils **étendent** et **précisent** les §4.1, §5.1 et §6
+sans en supprimer le texte d'origine (règle des acquis). Ils s'appliquent à l'exécution de WM-4.
+
+### A1 — §5.1 : `QU-MED-MISSING-REFERENCE` N=5 → **N=3**
+
+La ligne §5.1 `QU-MED-MISSING-REFERENCE | media | 5 | oui | technique` est amendée : le volume
+attendu passe de **5 à 3**. Seules les 3 vidéos obligatoires restent en quarantaine :
+
+| media_id | leçon | décision |
+|----------|-------|----------|
+| 34548 | 864 | QUARANTINE_CONTENT |
+| 34555 | 865 | QUARANTINE_CONTENT |
+| 34577 | 866 | QUARANTINE_CONTENT |
+
+`quarantine.csv` attendu = **3 lignes** (cf. `WM-3.13/WM313-WM4-QUARANTINE-ROWS.csv`).
+
+### A2 — §4.1 : ajout du code `RJ-MED-MISSING-REFERENCE` **N=2**
+
+Un nouveau code de rejet média est ajouté au §4.1 :
+
+| Code | Domaine | N attendu | Raison |
+|------|---------|-----------|--------|
+| `RJ-MED-MISSING-REFERENCE` | media | 2 | pièce jointe annexe facultative absente ; leçon complète via sa vidéo |
+
+Références : `34549`, `34553` (pièces jointes facultatives → `ABANDON_REFERENCE`).
+`rejects.csv` attendu = **2 lignes** (cf. `WM-3.13/WM313-WM4-REJECT-ROWS.csv`).
+
+### A2-bis — cloisonnement volumétrique (POST-05 / §6)
+
+Les 2 lignes `RJ-MED-MISSING-REFERENCE` sont **hors des 383 fichiers physiques** et **hors du
+sous-total « Total média rejeté = 313 »**. Elles ne s'additionnent donc **pas** au terme
+`REJECTED = 313` de l'équation média du §6, qui **reste inchangée** : `383 = 69 + 313 + 1`
+(fondé sur le §6 :248-249 — les 5 références manquantes hors équation). Elles sont comptabilisées
+**uniquement** au titre de POST-05 comme rejets `domain=media` hors périmètre des 383.
+
+### Effet sur POST-10
+
+Après ratification : POST-10 attend `QU-MED-MISSING-REFERENCE` = **3** et
+`RJ-MED-MISSING-REFERENCE` = **2**. L'équation §6 (POST-05) demeure `media 383 = 69 + 313 + 1`.
+
+### Traçabilité
+
+Décision humaine : `WM-3.13/WM313-R2-HUMAN-DECISION-RECORDED.md`. Preuve réseau (sources 404) :
+`WM-3.12/WM312-VIDEO-URL-LIVENESS-REPORT.md`. Réévaluation globale : `WM-3-FINAL-REEVALUATION/` →
+clôture : `WM-3-FINAL-CLOSURE/`. Aucune donnée fictive ; aucun média fictif.
