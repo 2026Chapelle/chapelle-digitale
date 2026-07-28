@@ -1,0 +1,4 @@
+domain,source_key,quarantine_code,blocking,decision_owner,evidence_ref,proposed_default
+media,34548,QU-MED-MISSING-REFERENCE,true,technique,WM-3.1 Gap 3 §6; WM-3.11; WM-3.12,QUARANTINE_CONTENT
+media,34555,QU-MED-MISSING-REFERENCE,true,technique,WM-3.1 Gap 3 §6; WM-3.11; WM-3.12,QUARANTINE_CONTENT
+media,34577,QU-MED-MISSING-REFERENCE,true,technique,WM-3.1 Gap 3 §6; WM-3.11; WM-3.12,QUARANTINE_CONTENT

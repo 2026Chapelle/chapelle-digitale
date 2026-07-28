@@ -1,0 +1,40 @@
+{
+  "lot": "WM-3.13",
+  "titre": "Cloture definitive R2 / PRE-MED-04 - quarantaine controlee",
+  "date": "2026-07-28",
+  "branche": "stabilisation-p0-recette-citadelle",
+  "head_at_analysis": "83561529bf4ac05ccafad76b22d94057fdf478fd",
+  "mode": "documentaire_lecture_seule",
+  "verdict": "WM313_R2_CLOSED_WITH_CONTROLLED_QUARANTINE",
+  "pre_med_04": "PASS_WITH_QUARANTINE",
+  "wm4_state": "NO-GO",
+  "r2_closed": true,
+  "media_fictif_cree": false,
+  "url_inventee": false,
+  "fichier_vide_cree": false,
+  "youtube_id_fictif": false,
+  "video_url_non_verifie": false,
+  "note_manifest": "manifests/ (SHA256SUMS.txt + WM313-MANIFEST.json) volontairement hors des sommes publiees. Aucun dossier private/, aucun fichier .sql, aucun media binaire dans ce lot.",
+  "decisions": {
+    "videos_obligatoires": { "ids": [34548, 34555, 34577], "lecons": [864, 865, 866], "decision": "QUARANTINE_CONTENT", "import_status": "draft", "registre": "quarantine.csv", "action_corrective_future": "REPLACE_WITH_APPROVED_MEDIA", "reactivable_sans_recreation": true },
+    "pieces_jointes_facultatives": { "ids": [34549, 34553], "decision": "MIGRATE_WITHOUT_MEDIA + ABANDON_REFERENCE", "registre": "rejects.csv", "reversible": false }
+  },
+  "amendements_contrat_wm4_a_ratifier": [
+    "QU-MED-MISSING-REFERENCE N=5 -> N=3 (34548/34555/34577)",
+    "Ajout RJ-MED-MISSING-REFERENCE N=2 (34549/34553) au paragraphe 4.1"
+  ],
+  "files_count": 10,
+  "files_bytes": 21229,
+  "files": [
+    { "path": "WM313-ATTACHMENT-ABANDON-CONTRACT.md", "sha256": "6eb997bc8bef368967e08f1e81d7be8385f9568598e5f0f7d6038f8fcde8d4e8" },
+    { "path": "WM313-FINAL-STATUS.md", "sha256": "8f82ff582b3e91c95faff3a1910534ca1608eedb6b4b8193e7363c81dff07011" },
+    { "path": "WM313-IMPACT-ON-WM4.md", "sha256": "6840e38fc4c34504c8730281fbe3a5a460e2b2a2e3f371f28851668733218e0b" },
+    { "path": "WM313-LMS-PROGRESSION-IMPACT.md", "sha256": "99b45178067abb588824828e79dc88916ac91a89f6abb53b47fbb4c573c35c73" },
+    { "path": "WM313-PRE-MED-04-FINAL-REEVALUATION.md", "sha256": "bac0e1f3eefbfa9cf330830735e35238ea8a1bb0fcd676078df75e8f96d98037" },
+    { "path": "WM313-R2-CLOSURE-CERTIFICATE.md", "sha256": "a03e36c11f21e78ce4b3a680825e08b738db046f764847fe7eddb54e874e628c" },
+    { "path": "WM313-R2-HUMAN-DECISION-RECORDED.md", "sha256": "32174b0417ca387e1839d3d7f975a85fd09bb55d18c5df01c9e0f99503445f56" },
+    { "path": "WM313-VIDEO-QUARANTINE-CONTRACT.md", "sha256": "91599339196a3a8113f396b39c152c09c4131e8ee3f605f203975d59b5db599d" },
+    { "path": "WM313-WM4-QUARANTINE-ROWS.csv", "sha256": "b284eebf28e08958d6b8114df3555c4a8d5a6b06d8f70dea76c3f772e5dddb71" },
+    { "path": "WM313-WM4-REJECT-ROWS.csv", "sha256": "68d794073ec8c02dc36098b6fe1aa407dc69730a7cba9f00fb6949f861a696b5" }
+  ]
+}

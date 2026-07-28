@@ -1,0 +1,33 @@
+{
+  "lot": "WM-3.12",
+  "titre": "Verification reseau R2 des 3 videos obligatoires",
+  "date": "2026-07-28",
+  "branche": "stabilisation-p0-recette-citadelle",
+  "head_at_analysis": "83561529bf4ac05ccafad76b22d94057fdf478fd",
+  "mode": "lecture_seule_plus_inspection_reseau_non_intrusive_head_et_range_1024o",
+  "verdict": "WM312_R2_REPLACEMENT_DECISION_REQUIRED",
+  "pre_med_04": "FAIL",
+  "wm4_state": "NO-GO",
+  "restauration_executee": false,
+  "remplacement_execute": false,
+  "media_fictif_cree": false,
+  "media_telecharge_complet": false,
+  "note_manifest": "manifests/ (SHA256SUMS.txt + WM312-MANIFEST.json) volontairement hors des sommes publiees. Aucun dossier private/, aucun fichier .sql, aucun fichier media dans ce lot.",
+  "http_probe_tool": "curl 8.18.0 Schannel",
+  "references": [
+    { "media_id": 34548, "lesson_id": 864, "video": "MODULE_1_ADN", "head_status": 301, "range_get_status": 404, "final_url": "https://www.chapelleduroyaume.org/wp-content/uploads/2025/06/MODULE_1_ADN_Optimized.mp4", "content_type": "text/html; charset=UTF-8", "accept_ranges": "absent", "mp4_signature": "ABSENTE", "liveness_verdict": "MEDIA_NOT_FOUND", "restoration_possible": false, "next_action": "REPLACE_WITH_APPROVED_MEDIA", "pre_med_04": "FAIL" },
+    { "media_id": 34555, "lesson_id": 865, "video": "LES_PRINCIPES_DU_ROYAUME", "head_status": 301, "range_get_status": 404, "final_url": "https://www.chapelleduroyaume.org/wp-content/uploads/2025/06/LES_PRINCIPES_DU_ROYAUME_Optimized.mp4", "content_type": "text/html; charset=UTF-8", "accept_ranges": "absent", "mp4_signature": "ABSENTE", "liveness_verdict": "MEDIA_NOT_FOUND", "restoration_possible": false, "next_action": "REPLACE_WITH_APPROVED_MEDIA", "pre_med_04": "FAIL" },
+    { "media_id": 34577, "lesson_id": 866, "video": "VIE_COMMUNAUTAIRE_ET_APPARTENANCE", "head_status": 301, "range_get_status": 404, "final_url": "https://www.chapelleduroyaume.org/wp-content/uploads/2025/06/VIE_COMMUNAUTAIRE_ET_APPARTENANCE_Optimized.mp4", "content_type": "text/html; charset=UTF-8", "accept_ranges": "absent", "mp4_signature": "ABSENTE", "liveness_verdict": "MEDIA_NOT_FOUND", "restoration_possible": false, "next_action": "REPLACE_WITH_APPROVED_MEDIA", "pre_med_04": "FAIL" }
+  ],
+  "fallback_search": "AUCUN_REPLI_pour_les_3 (aucune url alternative, variante de nom, cdn, youtube ou vimeo dans le depot)",
+  "files_count": 6,
+  "files_bytes": 16295,
+  "files": [
+    { "path": "WM312-FINAL-STATUS.md", "sha256": "3b5fc4e653d1bdbb4c7ef9c2d6f71148c7d90c8318ac6462a51a5548d64fc5a8" },
+    { "path": "WM312-HTTP-EVIDENCE-MATRIX.csv", "sha256": "e3ae19b4ef8b3ace53eee32a4e2268e458ee0b47b93c6d92bb427130c4da24d5" },
+    { "path": "WM312-MEDIA-SIGNATURE-CONTROL.md", "sha256": "6ab3fe82ebad4057919c27a72fe7d63dae29a175c016e145b10fc0b8199bb762" },
+    { "path": "WM312-PRE-MED-04-REEVALUATION.md", "sha256": "7a18046dd30a4739d7cdfbc3d8c7aac5ecc4db4b2a0027dff3817d5e014349d7" },
+    { "path": "WM312-RECOVERY-DECISION.md", "sha256": "6854c5d2ba06a846c2f380546a46401b170cfbc1851ea632c86a245d240be9d7" },
+    { "path": "WM312-VIDEO-URL-LIVENESS-REPORT.md", "sha256": "d434b28dca73e32748be7b67d3a5b89760a51582cfc9516c1e3c0ac5b9a4737b" }
+  ]
+}
