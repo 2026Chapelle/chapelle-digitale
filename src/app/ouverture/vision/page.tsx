@@ -64,7 +64,11 @@ export default function OuvertureVisionPage() {
   const now = Date.now()
   const open = isOpen(now)
   const countdown = countdownTo(now)
-  const video = resolveOpeningVideo(process.env.NEXT_PUBLIC_OUVERTURE_VIDEO_URL)
+  /* Vidéo propre à la page « vision » : variable dédiée, distincte de la vidéo
+     teaser de /ouverture. Même résolveur (youtu.be / watch / embed / fichier),
+     aucune logique de parsing dupliquée. Non configurée → emplacement en attente,
+     jamais la mauvaise vidéo. */
+  const video = resolveOpeningVideo(process.env.NEXT_PUBLIC_OUVERTURE_VISION_VIDEO_URL)
 
   /* Schema.org Event — décrit un fait réel et vérifiable : l'ouverture publique
      en ligne, à une date et une heure précises. Aucune donnée inventée
