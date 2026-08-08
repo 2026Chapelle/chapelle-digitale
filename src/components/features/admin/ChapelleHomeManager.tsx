@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Check, Loader2, RefreshCw, AlertTriangle, ChevronDown, ChevronUp, Eye, EyeOff, Database,
+  Plus, Trash2, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import {
@@ -43,6 +44,27 @@ async function api(resource: string, method: string, body?: Row) {
 function asData(row: Row | undefined): Record<string, unknown> {
   if (!row?.data || typeof row.data !== 'object' || Array.isArray(row.data)) return {}
   return row.data as Record<string, unknown>
+}
+
+const SCHED_INPUT =
+  'w-full rounded-lg px-3 py-2 font-inter text-sm text-pearl bg-white/[0.04] border border-white/10 focus:outline-none focus:border-cinematic-gold/50'
+
+/**
+ * Programme (contact.data.schedule) : le CMS conserve le modèle { name, detail }.
+ * L'éditeur scinde `detail` en jour(s) + heure pour l'UI, puis les recompose
+ * en `detail = "jours · heure"` — aucun changement de schéma.
+ */
+function splitDetail(detail: string): { jours: string; heure: string } {
+  const parts = String(detail || '').split('·').map((s) => s.trim()).filter(Boolean)
+  const timeIdx = parts.findIndex((p) => /^\d{1,2}\s*h\s*\d{0,2}$/i.test(p))
+  if (timeIdx === -1) return { jours: parts.join(' · '), heure: '' }
+  const heure = parts[timeIdx]
+  const jours = parts.filter((_, i) => i !== timeIdx).join(' · ')
+  return { jours, heure }
+}
+
+function joinDetail(jours: string, heure: string): string {
+  return [jours.trim(), heure.trim()].filter(Boolean).join(' · ')
 }
 
 function Field({
@@ -318,6 +340,137 @@ export function ChapelleHomeManager() {
     )
   }
 
+  function getSchedule(): Array<{ name?: string; detail?: string }> {
+    const s = drafts.contact?.schedule
+    return Array.isArray(s) ? (s as Array<{ name?: string; detail?: string }>) : []
+  }
+
+  function commitSchedule(next: Array<{ name?: string; detail?: string }>) {
+    setDraftField('contact', 'schedule', next)
+  }
+
+  function addScheduleRow() {
+    commitSchedule([...getSchedule(), { name: '', detail: '' }])
+  }
+
+  function removeScheduleRow(i: number) {
+    const next = getSchedule().slice()
+    next.splice(i, 1)
+    commitSchedule(next)
+  }
+
+  function moveScheduleRow(i: number, dir: -1 | 1) {
+    const next = getSchedule().slice()
+    const j = i + dir
+    if (j < 0 || j >= next.length) return
+    const tmp = next[i]
+    next[i] = next[j]
+    next[j] = tmp
+    commitSchedule(next)
+  }
+
+  function updateScheduleRow(i: number, patch: { name?: string; jours?: string; heure?: string }) {
+    const next = getSchedule().slice()
+    const existing = next[i] || { name: '', detail: '' }
+    const parsed = splitDetail(existing.detail || '')
+    const name = patch.name !== undefined ? patch.name : (existing.name || '')
+    const jours = patch.jours !== undefined ? patch.jours : parsed.jours
+    const heure = patch.heure !== undefined ? patch.heure : parsed.heure
+    next[i] = { name, detail: joinDetail(jours, heure) }
+    commitSchedule(next)
+  }
+
+  function renderScheduleEditor() {
+    const sched = getSchedule()
+    return (
+      <div className="space-y-3 rounded-lg border border-white/[0.06] p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-inter text-[11px] font-semibold uppercase tracking-wider text-pearl/45">
+            Programme (horaires)
+          </span>
+          <button
+            type="button"
+            onClick={addScheduleRow}
+            className="px-2.5 py-1.5 rounded-lg text-[11px] font-inter border border-white/10 text-pearl/70 hover:bg-white/[0.04] inline-flex items-center gap-1"
+          >
+            <Plus className="w-3 h-3" /> Ajouter une ligne
+          </button>
+        </div>
+        {sched.length === 0 && (
+          <p className="font-inter text-[11px] text-pearl/30">
+            Aucune ligne. Ajoutez le programme (nom · jour(s) · heure).
+          </p>
+        )}
+        {sched.map((item, i) => {
+          const parsed = splitDetail(item.detail || '')
+          return (
+            <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1fr_110px_auto] sm:items-end">
+              <label className="block space-y-1">
+                <span className="font-inter text-[10px] uppercase tracking-wider text-pearl/40">Nom</span>
+                <input
+                  className={SCHED_INPUT}
+                  value={item.name || ''}
+                  placeholder="La Matinale"
+                  onChange={(e) => updateScheduleRow(i, { name: e.target.value })}
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="font-inter text-[10px] uppercase tracking-wider text-pearl/40">Jour(s)</span>
+                <input
+                  className={SCHED_INPUT}
+                  value={parsed.jours}
+                  placeholder="Lundi · Mercredi · Vendredi"
+                  onChange={(e) => updateScheduleRow(i, { jours: e.target.value })}
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="font-inter text-[10px] uppercase tracking-wider text-pearl/40">Heure</span>
+                <input
+                  className={SCHED_INPUT}
+                  value={parsed.heure}
+                  placeholder="05h30"
+                  onChange={(e) => updateScheduleRow(i, { heure: e.target.value })}
+                />
+              </label>
+              <div className="flex gap-1 pb-0.5">
+                <button
+                  type="button"
+                  onClick={() => moveScheduleRow(i, -1)}
+                  disabled={i === 0}
+                  title="Monter"
+                  className="p-1.5 rounded-lg border border-white/10 text-pearl/60 hover:bg-white/[0.04] disabled:opacity-30"
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveScheduleRow(i, 1)}
+                  disabled={i === sched.length - 1}
+                  title="Descendre"
+                  className="p-1.5 rounded-lg border border-white/10 text-pearl/60 hover:bg-white/[0.04] disabled:opacity-30"
+                >
+                  <ArrowDown className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeScheduleRow(i)}
+                  title="Supprimer"
+                  className="p-1.5 rounded-lg border border-rose-500/20 text-rose-300/80 hover:bg-rose-500/10"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )
+        })}
+        <p className="font-inter text-[11px] text-pearl/30">
+          Stocké dans <code className="text-cinematic-gold/70">contact.data.schedule</code> ({'{ name, detail }'}) —
+          « detail » recomposé en « jour(s) · heure ». Pense à aligner le hero « Horaire affiché » si le culte dominical change.
+        </p>
+      </div>
+    )
+  }
+
   function panel(key: string, children: ReactNode) {
     const row = byKey.get(key)
     const isOpen = open[key]
@@ -551,18 +704,23 @@ export function ChapelleHomeManager() {
               { name: 'intro', label: 'Intro', type: 'textarea' },
             ]))}
 
-            {panel('contact', renderTextFields('contact', [
-              { name: 'kicker', label: 'Kicker' },
-              { name: 'title', label: 'Titre' },
-              { name: 'body', label: 'Corps', type: 'textarea' },
-              { name: 'address', label: 'Adresse' },
-              { name: 'mapsUrl', label: 'URL Maps', type: 'url' },
-              { name: 'email', label: 'Email' },
-              { name: 'ctaJoinLabel', label: 'CTA rejoindre' },
-              { name: 'ctaJoinHref', label: 'Lien rejoindre', type: 'url' },
-              { name: 'ctaLiveLabel', label: 'CTA live' },
-              { name: 'ctaLiveHref', label: 'Lien live', type: 'url' },
-            ]))}
+            {panel('contact', (
+              <>
+                {renderTextFields('contact', [
+                  { name: 'kicker', label: 'Kicker' },
+                  { name: 'title', label: 'Titre' },
+                  { name: 'body', label: 'Corps', type: 'textarea' },
+                  { name: 'address', label: 'Adresse' },
+                  { name: 'mapsUrl', label: 'URL Maps', type: 'url' },
+                  { name: 'email', label: 'Email' },
+                  { name: 'ctaJoinLabel', label: 'CTA rejoindre' },
+                  { name: 'ctaJoinHref', label: 'Lien rejoindre', type: 'url' },
+                  { name: 'ctaLiveLabel', label: 'CTA live' },
+                  { name: 'ctaLiveHref', label: 'Lien live', type: 'url' },
+                ])}
+                {renderScheduleEditor()}
+              </>
+            ))}
 
             {panel('footer', renderTextFields('footer', [
               { name: 'logoUrl', label: 'Logo' },
