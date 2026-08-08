@@ -71,6 +71,19 @@ const nextConfig = {
       },
     ]
   },
+  // TEMPORAIRE — Ouverture publique du 09 août 2026.
+  // La racine `/` sert la page d'ouverture immersive SANS dupliquer le composant
+  // (rewrite interne : l'URL reste `/` dans la barre d'adresse) et SANS toucher
+  // la Home V3, dont le code (src/app/(public)/page.tsx) reste intact et reste
+  // consultable sur /accueil pendant la campagne.
+  // `beforeFiles` : intercepte `/` AVANT la page Home V3 des routes fichier.
+  // RESTAURATION après le 09 août : supprimer ce bloc `rewrites()` (et la route
+  // temporaire /accueil), puis rebuild + redéploiement. `/` redevient la Home V3.
+  async rewrites() {
+    return {
+      beforeFiles: [{ source: '/', destination: '/ouverture' }],
+    }
+  },
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', '@radix-ui/react-icons'],
   },
