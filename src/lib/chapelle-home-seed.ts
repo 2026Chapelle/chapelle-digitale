@@ -224,7 +224,7 @@ export const chapelleHomeSectionSeeds: ChapelleSectionSeed[] = [
       email: 'info@chapelleduroyaume.org',
       phone: null,
       schedule: [
-        { name: 'La Matinale', detail: 'Lundi · Mercredi · Vendredi · 05h30' },
+        { name: 'Matinale de Prière', detail: 'Lundi · Mercredi · Vendredi · 05h30' },
         { name: 'École du Royaume', detail: 'Mercredi · 19h30' },
         { name: 'Vendredi de Puissance', detail: 'Vendredi · 19h30' },
         { name: 'Culte de Célébration Royale', detail: 'Dimanche · 10h30' },
