@@ -3,11 +3,9 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import {
-  Play, ChevronLeft, ChevronRight, Check, Sparkles, Globe, Heart, Compass,
+  ChevronLeft, ChevronRight, Check, Sparkles, Globe, Heart, Compass,
   Crown, Gift, Users, Target, Flag,
 } from 'lucide-react'
-import { PremiumImage } from '@/components/ui/PremiumImage'
-import { HERO_IMAGES } from '@/lib/images'
 import { PLATEFORMES } from '@/lib/constants'
 import { JourneyPath } from '@/components/conversion/JourneyPath'
 import { PARCOURS_INTEGRATION } from '@/lib/parcours/registry'
@@ -143,20 +141,16 @@ export default function BienvenuePage() {
                   Tu n&apos;es pas un numéro : tu es attendu. Prenons 2 minutes ensemble pour t&apos;accueillir
                   et te montrer où commencer.
                 </p>
-                <div className="relative rounded-2xl overflow-hidden h-52 md:h-60 mb-8 flex items-center justify-center group"
-                  style={{ border: '1px solid rgba(212,175,55,0.2)', boxShadow: '0 16px 48px rgba(0,0,0,0.6)' }}>
-                  <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
-                    <PremiumImage image={HERO_IMAGES.welcome} fill overlay="cinematic" sizes="(max-width: 768px) 100vw, 600px" />
-                  </div>
-                  <motion.div animate={{ scale: [1, 1.08, 1] }} transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}
-                    className="relative w-20 h-20 rounded-full flex items-center justify-center"
-                    style={{ background: 'rgba(212,175,55,0.18)', border: '2px solid rgba(212,175,55,0.5)', backdropFilter: 'blur(16px)', boxShadow: '0 0 40px rgba(212,175,55,0.4)' }}>
-                    <Play className="w-7 h-7 ml-1" style={{ color: '#FFFFFF' }} fill="#FFFFFF" />
-                  </motion.div>
-                  <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between">
-                    <p className="font-inter text-xs font-semibold" style={{ color: 'rgba(245,230,216,0.7)' }}>Message de bienvenue · 3 min</p>
-                    <span className="chip-gold backdrop-blur-md">HD</span>
-                  </div>
+                <div className="relative rounded-2xl overflow-hidden mb-8"
+                  style={{ aspectRatio: '16 / 9', border: '1px solid rgba(212,175,55,0.2)', boxShadow: '0 16px 48px rgba(0,0,0,0.6)', background: '#000' }}>
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src="https://www.youtube-nocookie.com/embed/vgLXPl4-lB8?rel=0&playsinline=1"
+                    title="Message de bienvenue — La Citadelle"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
                 </div>
                 <p className="font-cormorant italic text-base md:text-lg leading-relaxed" style={{ color: 'rgba(245,230,216,0.75)' }}>
                   « Où que tu sois sur la terre, tu as une maison dans le Royaume. »
