@@ -1,34 +1,3 @@
-<!--
-  ============================================================================
-  CITADELLE DU ROYAUME — Email de confirmation d'inscription (Supabase Auth)
-  VERSION FINALE — personnalisée (prénom), tutoiement, logo HTTPS absolu
-  ----------------------------------------------------------------------------
-  À coller dans : Supabase → Authentication → Email Templates → "Confirm signup"
-  (sujet conseillé : « Active ton compte — Citadelle du Royaume »)
-
-  PERSONNALISATION (Go text/template — moteur des templates Supabase Auth) :
-    Les champs passés dans options.data lors de auth.signUp() sont exposés
-    sous {{ .Data.<clé> }}. Le formulaire d'inscription
-    (src/app/(auth)/register/page.tsx) écrit le prénom dans data.prenom, donc
-    on l'accède via {{ .Data.prenom }}. Fallback si absent :
-      {{ if .Data.prenom }}...{{ .Data.prenom }}...{{ else }}...{{ end }}
-
-  LOGO :
-    Les clients mail (Gmail, Outlook…) ne peuvent PAS résoudre une URL relative
-    comme src="/images/logo.png". L'image doit être une URL HTTPS ABSOLUE et
-    PUBLIQUE. On utilise le logo de marque du repo (public/images/logo-mark.png),
-    servi à https://citadelle.chapelleduroyaume.org/images/logo-mark.png
-
-  ⚠️ IMPORTANT — pour que le lien NE pointe JAMAIS vers node76-eu.n0c.com :
-    1. Supabase → Authentication → URL Configuration
-       • Site URL : https://citadelle.chapelleduroyaume.org
-       • Redirect URLs (ajouter) :
-           https://citadelle.chapelleduroyaume.org/auth/callback
-           https://citadelle.chapelleduroyaume.org/**
-    2. Déploiement : définir NEXT_PUBLIC_SITE_URL=https://citadelle.chapelleduroyaume.org
-  Le bouton ci-dessous utilise {{ .ConfirmationURL }}, qui s'appuie sur la Site URL.
-  ============================================================================
--->
 <!DOCTYPE html>
 <html lang="fr">
   <head>
