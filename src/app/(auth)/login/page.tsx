@@ -1,14 +1,15 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, LogIn, ArrowLeft, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, LogIn, ArrowLeft, AlertCircle, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import toast from 'react-hot-toast'
 import { events } from '@/lib/analytics'
+import { mapLoginError, resendConfirmationEmail, createPendingGuard } from '@/lib/auth/confirm-email'
 
 /** Client cookie-based (session SSR réelle). */
 const authClient = () => getBrowserClient() ?? supabase
@@ -24,6 +25,9 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [emailErr, setEmailErr] = useState<string | null>(null)
   const [passwordErr, setPasswordErr] = useState<string | null>(null)
+  const [needsConfirm, setNeedsConfirm] = useState(false)
+  const [resending, setResending] = useState(false)
+  const resendGuard = useRef(createPendingGuard())
 
   const validate = (): boolean => {
     let ok = true
@@ -45,6 +49,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    setNeedsConfirm(false)
     if (!validate()) return
     setLoading(true)
     events.signInStarted('email')
@@ -52,16 +57,29 @@ export default function LoginPage() {
     const { error } = await authClient().auth.signInWithPassword({ email, password })
 
     if (error) {
-      const msg = error.message === 'Invalid login credentials'
-        ? 'Email ou mot de passe incorrect'
-        : error.message
-      setFormError(msg)
-      toast.error(msg)
+      const mapped = mapLoginError(error.message)
+      setNeedsConfirm(mapped.needsConfirm)
+      setFormError(mapped.message)
+      toast.error(mapped.message)
     } else {
       toast.success('Bienvenue dans la Chapelle ! ✨')
       router.push('/member/dashboard')
     }
     setLoading(false)
+  }
+
+  // Renvoi de l'email de confirmation (self-service) — anti double-clic + feedback FR.
+  const handleResend = async () => {
+    if (resending) return
+    setResending(true)
+    try {
+      const outcome = await resendGuard.current.run(() =>
+        resendConfirmationEmail(authClient(), email),
+      )
+      if (outcome) outcome.ok ? toast.success(outcome.message) : toast.error(outcome.message)
+    } finally {
+      setResending(false)
+    }
   }
 
   // Connexion sociale : masquée tant que les providers OAuth ne sont pas activés
@@ -140,6 +158,18 @@ export default function LoginPage() {
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
                   <span>{formError}</span>
                 </div>
+              )}
+
+              {needsConfirm && (
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="btn-ghost w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Mail className="w-4 h-4" />
+                  {resending ? 'Envoi…' : "Renvoyer l'email de confirmation"}
+                </button>
               )}
 
               <div>
