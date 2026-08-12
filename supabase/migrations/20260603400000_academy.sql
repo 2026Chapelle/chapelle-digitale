@@ -858,6 +858,10 @@ $$;
 -- [Sécurité 5] VÉRIFICATION PUBLIQUE — FUITE POTENTIELLE & ÉNUMÉRATION — `academy_verify_credential` est correctement SECURITY DEFINER et ne renvoie pas le nom de l'étudiant (
 -- 1) Ne JAMAIS révéler d'info personnelle et marquer explicitement la validité;
 --    renvoyer seulement les champs strictement nécessaires à l'authentification.
+-- P0 migration-health: la def #1 (ligne ~507) déclare 7 colonnes OUT ; cette def #2 (forme finale « Sécurité 5 »)
+-- en déclare 6 → CREATE OR REPLACE interdit le changement de type de retour. DROP préalable (aucun dépendant ;
+-- grants ré-appliqués juste après). État final = def #2 = prod. Comportement identique.
+drop function if exists public.academy_verify_credential(text);
 create or replace function public.academy_verify_credential(p_code text)
 returns table (type text, numero text, titre text, mention text, valide boolean, issued_at timestamptz)
 language sql stable security definer set search_path = public as $$

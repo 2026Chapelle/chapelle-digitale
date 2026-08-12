@@ -6,21 +6,20 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
+import { useAuth } from '@/components/providers/AuthProvider'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { PremiumImage } from '@/components/ui/PremiumImage'
+import { JoinToListenModal } from '@/components/podcast/JoinToListenModal'
 import { HERO_IMAGES } from '@/lib/images'
+import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
+import { normalizePodcastEditorial, type PodcastAccessLevel } from '@/lib/podcast/editorial'
 
-const SERIES = [
-  { id: 'all', label: 'Tous', color: '#D4AF37', emoji: '✨' },
-  { id: 'fondements', label: 'Fondements Spirituels', color: '#D4AF37', emoji: '🌱' },
-  { id: 'leaders', label: 'École de Leaders', color: '#8B5CF6', emoji: '👑' },
-  { id: 'famille', label: 'Vie de Famille', color: '#22C55E', emoji: '💚' },
-  { id: 'identite', label: 'Qui Suis-Je ?', color: '#EC4899', emoji: '✨' },
-  { id: 'prophetic', label: 'Voix Prophétique', color: '#0EA5E9', emoji: '🔥' },
-  { id: 'finance', label: 'Prospérité du Royaume', color: '#F59E0B', emoji: '💰' },
-]
-
-type PodcastEpisode = AudioTrack & { ecoutes?: string; date?: string; serie: string }
+type PodcastEpisode = AudioTrack & {
+  ecoutes?: string
+  date?: string
+  serie: string
+  accessLevel: PodcastAccessLevel
+}
 
 // Liens plateformes RÉELS via l'env (aucun faux lien '#'). Masqués si non configurés.
 const PLATFORMS = [
@@ -32,33 +31,55 @@ const PLATFORMS = [
 
 export default function PodcastPage() {
   const { toggle, isPlaying } = useAudioPlayer()
+  const { user, isDemo } = useAuth()
   const [selectedSerie, setSelectedSerie] = useState('all')
   const [query, setQuery] = useState('')
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true, margin: '-60px' })
   const [episodes, setEpisodes] = useState<PodcastEpisode[]>([])
+  // PODCAST-0A — catalogue visible pour tous ; lecture réservée aux membres.
+  // Épisode qu'un visiteur non connecté a tenté de lancer → déclenche la modale.
+  const [joinFor, setJoinFor] = useState<PodcastEpisode | null>(null)
+  const canPlay = Boolean(user) || isDemo
 
-  // Épisodes RÉELS publiés (cms_podcasts). Aucun mock.
+  // Interception de la lecture : membre → lecture réelle ; visiteur → invitation.
+  const requestPlay = (ep: PodcastEpisode) => {
+    if (canPlay) toggle(ep)
+    else setJoinFor(ep)
+  }
+
+  // Épisodes RÉELS publiés (cms_podcasts). Aucun mock. Lecture résiliente :
+  // colonnes éditoriales PODCAST-0B si présentes, repli base sinon.
   useEffect(() => {
     if (IS_DEMO_MODE) return
     let cancelled = false
     ;(async () => {
       try {
-        const { data } = await supabase.from('cms_podcasts')
-          .select('id, title, description, audio_url, cover_url, duration, published_at')
-          .eq('status', 'published').order('published_at', { ascending: false }).limit(100)
-        if (!cancelled && data) setEpisodes(data.map((p: any) => ({
-          id: p.id, titre: p.title || 'Épisode', auteur: '', serie: 'all',
-          duree: p.duration || '', emoji: '🎙️', couleur: '#D4AF37',
-          audioUrl: p.audio_url || undefined, date: (p.published_at || '').slice(0, 10),
-        })))
+        const { rows } = await fetchPublishedPodcasts((cols) =>
+          supabase.from('cms_podcasts')
+            .select(cols)
+            .eq('status', 'published').order('published_at', { ascending: false }).limit(100),
+        )
+        if (cancelled) return
+        setEpisodes(rows.map((p) => {
+          const ed = normalizePodcastEditorial(p)
+          return {
+            id: String(p.id), titre: (p.title as string) || 'Épisode', auteur: '',
+            serie: ed.serie || 'all',
+            duree: (p.duration as string) || '', emoji: '🎙️', couleur: '#D4AF37',
+            audioUrl: (p.audio_url as string) || undefined,
+            date: ((p.published_at as string) || '').slice(0, 10),
+            accessLevel: ed.accessLevel,
+          }
+        }))
       } catch { /* liste vide */ }
     })()
     return () => { cancelled = true }
   }, [])
 
   const filtered = episodes.filter((ep) => {
-    const matchesSerie = selectedSerie === 'all' || ep.serie.toLowerCase().includes(selectedSerie)
+    // Émission réelle (PODCAST-0B) : filtre par correspondance exacte.
+    const matchesSerie = selectedSerie === 'all' || ep.serie === selectedSerie
     const matchesQuery =
       !query ||
       ep.titre.toLowerCase().includes(query.toLowerCase()) ||
@@ -66,9 +87,10 @@ export default function PodcastPage() {
     return matchesSerie && matchesQuery
   })
 
-  // Onglets de séries affichés uniquement si les épisodes réels portent plusieurs séries.
+  // Émissions dérivées des épisodes réels → onglets « ÉMISSIONS » dynamiques.
   const realSeries = Array.from(new Set(episodes.map((e) => e.serie).filter((s) => s && s !== 'all')))
   const showSeries = realSeries.length > 0
+  const serieTabs = [{ id: 'all', label: 'Tous', emoji: '✨' }, ...realSeries.map((s) => ({ id: s, label: s, emoji: '🎙️' }))]
 
   return (
     <div className="min-h-screen pb-32">
@@ -159,7 +181,7 @@ export default function PodcastPage() {
         {showSeries && (
         <div className="flex gap-2 flex-wrap mb-10 sticky top-20 z-30 py-3 -mx-4 px-4 backdrop-blur-xl"
           style={{ background: 'linear-gradient(180deg, rgba(5,3,8,0.7) 0%, rgba(5,3,8,0.3) 100%)' }}>
-          {SERIES.map((s) => {
+          {serieTabs.map((s) => {
             const active = selectedSerie === s.id
             return (
               <button
@@ -169,9 +191,9 @@ export default function PodcastPage() {
                 style={
                   active
                     ? {
-                        background: `linear-gradient(135deg, ${s.color}, ${s.color}AA)`,
+                        background: 'linear-gradient(135deg, #D4AF37, #D4AF37AA)',
                         color: '#FFFFFF',
-                        boxShadow: `0 4px 16px ${s.color}40`,
+                        boxShadow: '0 4px 16px #D4AF3740',
                       }
                     : {
                         background: 'rgba(255,255,255,0.04)',
@@ -200,7 +222,7 @@ export default function PodcastPage() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: i * 0.04, duration: 0.4 }}
               >
-                <EpisodeCard ep={ep} toggle={toggle} isPlaying={isPlaying} />
+                <EpisodeCard ep={ep} onPlay={requestPlay} isPlaying={isPlaying} />
               </motion.div>
             ))}
           </div>
@@ -226,17 +248,24 @@ export default function PodcastPage() {
           </Link>
         </div>
       </div>
+
+      {/* Verrou lecture visiteur — catalogue visible, écoute réservée aux membres. */}
+      <JoinToListenModal
+        open={!!joinFor}
+        onClose={() => setJoinFor(null)}
+        episodeTitle={joinFor?.titre}
+      />
     </div>
   )
 }
 
 function EpisodeCard({
   ep,
-  toggle,
+  onPlay,
   isPlaying,
 }: {
   ep: PodcastEpisode
-  toggle: (t: AudioTrack) => void
+  onPlay: (t: PodcastEpisode) => void
   isPlaying: (id: string) => boolean
 }) {
   const playing = isPlaying(ep.id)
@@ -247,7 +276,16 @@ function EpisodeCard({
         borderColor: `${ep.couleur}50`,
         boxShadow: `0 0 24px ${ep.couleur}25, 0 16px 40px rgba(0,0,0,0.5)`,
       } : undefined}
-      onClick={() => toggle(ep)}
+      role="button"
+      tabIndex={0}
+      aria-label={`Lire ${ep.titre}`}
+      onClick={() => onPlay(ep)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onPlay(ep)
+        }
+      }}
     >
       {playing && (
         <div className="absolute top-4 right-4 z-10">
@@ -275,8 +313,18 @@ function EpisodeCard({
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-inter font-bold mb-1 truncate tracking-widest uppercase"
-            style={{ color: ep.couleur }}>{ep.serie}</div>
+          <div className="flex items-center gap-2 mb-1">
+            {ep.serie && ep.serie !== 'all' && (
+              <span className="text-[10px] font-inter font-bold truncate tracking-widest uppercase"
+                style={{ color: ep.couleur }}>{ep.serie}</span>
+            )}
+            {ep.accessLevel === 'premium' && (
+              <span className="text-[9px] font-inter font-bold tracking-widest uppercase px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(212,175,55,0.14)', color: '#F5E6A7', border: '1px solid rgba(212,175,55,0.3)' }}>
+                Premium
+              </span>
+            )}
+          </div>
           <h3 className="font-inter text-sm font-bold text-white mb-1 leading-snug line-clamp-2">{ep.titre}</h3>
           <div className="text-[11px] font-inter truncate"
             style={{ color: 'rgba(245,230,216,0.5)' }}>

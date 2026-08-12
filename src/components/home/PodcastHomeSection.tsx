@@ -18,6 +18,13 @@ import {
   revealVisible,
   revealTransition,
 } from '@/lib/home-motion'
+import {
+  resolvePodcastHomeSlots,
+  parsePodcastSlotConfig,
+  type PodcastHomeSlotConfig,
+} from '@/lib/podcast/home-slots'
+import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
+import { normalizePodcastEditorial } from '@/lib/podcast/editorial'
 
 type PodEp = {
   id: string
@@ -26,6 +33,8 @@ type PodEp = {
   cover: string | null
   duration: string
   audioUrl: string | null
+  serie: string | null
+  destinations: string[]
 }
 
 /** Chemins exacts post-normalisation — formats vérifiés PNG sur disque */
@@ -44,7 +53,8 @@ function toTrack(ep: PodEp, serie?: string): AudioTrack {
   return {
     id: ep.id,
     titre: ep.title,
-    serie: serie || 'Podcast Citadelle',
+    // Émission réelle (PODCAST-0B) si renseignée, sinon libellé d'emplacement.
+    serie: ep.serie || serie || 'Podcast Citadelle',
     duree: ep.duration || '',
     emoji: '🎙️',
     couleur: '#D4AF37',
@@ -58,11 +68,14 @@ export function PodcastHomeSection() {
   const reduce = useReducedMotion()
   const { toggle, isPlaying } = useAudioPlayer()
   const [episodes, setEpisodes] = useState<PodEp[]>([])
+  const [slotConfig, setSlotConfig] = useState<PodcastHomeSlotConfig | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [parallaxSrc, setParallaxSrc] = useState(PARALLAX_IMG)
 
-  const featured = episodes[0] || null
-  const instantEp = episodes.find((e) => e.audioUrl) || featured
+  // PODCAST-0A — deux emplacements EXPLICITES et DISJOINTS (fin de la duplication).
+  // Pilotés par le bloc d'accueil `podcast` (data.instant_ids / data.premium_ids) ;
+  // repli déterministe garantissant deux épisodes distincts même sans config admin.
+  const { instant: instantEp, premium: featured } = resolvePodcastHomeSlots(episodes, slotConfig)
   const featuredPlaying = featured ? isPlaying(featured.id) : false
   const instantIsPlaying = instantEp ? isPlaying(instantEp.id) : false
   const featuredCover = featured?.cover || PREMIUM_COVER
@@ -82,24 +95,41 @@ export function PodcastHomeSection() {
     let cancelled = false
     ;(async () => {
       try {
-        const { data } = await supabase
-          .from('cms_podcasts')
-          .select('id, title, description, audio_url, cover_url, duration, published_at')
-          .eq('status', 'published')
-          .order('published_at', { ascending: false })
-          .limit(12)
+        // Épisodes + config des emplacements lus EN PARALLÈLE (pas de waterfall).
+        // Lecture résiliente : colonnes éditoriales si présentes, repli base sinon.
+        const [{ rows: podcastRows }, { data: podcastBlock }] = await Promise.all([
+          fetchPublishedPodcasts((cols) =>
+            supabase
+              .from('cms_podcasts')
+              .select(cols)
+              .eq('status', 'published')
+              .order('published_at', { ascending: false })
+              .limit(12),
+          ),
+          supabase
+            .from('cms_homepage_blocks')
+            .select('data')
+            .eq('block_key', 'podcast')
+            .maybeSingle(),
+        ])
         if (cancelled) return
-        const mapped: PodEp[] = (data || [])
-          .map((p: Record<string, unknown>) => ({
-            id: String(p.id),
-            title: (p.title as string) || 'Épisode',
-            description: ((p.description as string) || '').slice(0, 140),
-            cover: (p.cover_url as string) || null,
-            duration: (p.duration as string) || '',
-            audioUrl: (p.audio_url as string) || null,
-          }))
+        const mapped: PodEp[] = podcastRows
+          .map((p) => {
+            const ed = normalizePodcastEditorial(p)
+            return {
+              id: String(p.id),
+              title: (p.title as string) || 'Épisode',
+              description: ((p.description as string) || '').slice(0, 140),
+              cover: (p.cover_url as string) || null,
+              duration: (p.duration as string) || '',
+              audioUrl: (p.audio_url as string) || null,
+              serie: ed.serie,
+              destinations: ed.destinations,
+            }
+          })
           .filter((p) => p.title)
         setEpisodes(mapped)
+        setSlotConfig(parsePodcastSlotConfig((podcastBlock as { data?: unknown } | null)?.data))
       } catch {
         setEpisodes([])
       } finally {

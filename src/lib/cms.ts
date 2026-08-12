@@ -23,7 +23,17 @@ export interface CmsHomepageBlock extends CmsRow { block_key: string; title?: st
 export interface CmsMedia extends CmsRow { type: string; title: string; url: string; category?: string }
 export interface CmsEvent extends CmsRow { title: string; starts_at?: string; location?: string; is_online?: boolean }
 export interface CmsLive extends CmsRow { title: string; youtube_url?: string; scheduled_at?: string; is_live?: boolean }
-export interface CmsPodcast extends CmsRow { title: string; audio_url?: string; episode?: number }
+export interface CmsPodcast extends CmsRow {
+  title: string
+  audio_url?: string
+  episode?: number
+  // PODCAST-0B — modèle éditorial (migration 20260812153000). Optionnels : lignes
+  // legacy pré-migration peuvent ne pas les porter. Voir @/lib/podcast/editorial.
+  serie?: string | null
+  access_level?: 'public' | 'member' | 'premium'
+  destinations?: string[]
+  is_featured?: boolean
+}
 export interface CmsTeaching extends CmsRow { title: string; speaker?: string; scripture?: string }
 export interface CmsTestimony extends CmsRow { author_name: string; body: string; featured?: boolean }
 export interface CmsArticle extends CmsRow { title: string; slug?: string; excerpt?: string; body?: string; cover_url?: string; author?: string; category?: string; featured?: boolean }

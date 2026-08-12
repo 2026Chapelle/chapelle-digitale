@@ -1,4 +1,4 @@
-﻿-- CITADELLE V2.1D-B — Newcomer intakes
+-- CITADELLE V2.1D-B — Newcomer intakes
 -- Objectif :
 --   Créer une table d'attente publique sécurisée pour les nouveaux venus.
 --
