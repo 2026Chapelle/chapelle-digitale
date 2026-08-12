@@ -84,12 +84,12 @@ async function run(req: NextRequest) {
   })
 
   // 3) Membres inactifs (> 30 jours) → alerte pastorale
+  // P3 : signal réel = analytics_sessions.last_seen (profiles.derniere_connexion = colonne morte).
+  // RPC membres_inactifs = membres AYANT eu de l'activité mais aucune session depuis 30 j ; les
+  // profils SANS aucune session (never-seen) sont EXCLUS — port fidèle de l'ancien filtre (NULL exclu).
   await safe('inactifs', async () => {
-    const cutoff = new Date(now - days(30)).toISOString()
-    const { data } = await supabaseAdmin.from('profiles')
-      .select('id, prenom, nom, derniere_connexion').is('archived_at', null)
-      .lt('derniere_connexion', cutoff).limit(BATCH)
-    for (const m of data || []) {
+    const { data } = await supabaseAdmin.rpc('membres_inactifs', { p_days: 30, p_limit: BATCH })
+    for (const m of (data || []) as Array<{ id: string; prenom: string | null; nom: string | null }>) {
       await raisePastoralAlert({ memberId: m.id, type: 'inactif', nowMs: now,
         title: 'Membre inactif', body: `${m.prenom || ''} ${m.nom || ''}`.trim() || 'Un membre est inactif depuis plus de 30 jours.' })
       bump('inactif')
