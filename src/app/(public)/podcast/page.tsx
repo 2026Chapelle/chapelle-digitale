@@ -1,349 +1,161 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
-import { motion, useInView, AnimatePresence } from 'framer-motion'
-import {
-  Play, Pause, Search, Mic, ChevronRight, Clock, Filter,
-} from 'lucide-react'
-import Link from 'next/link'
+/**
+ * PODCAST-1 — « LA VOIX DU ROYAUME ». Expérience audio éditoriale (hero administrable,
+ * À la une / Nouveautés / Émissions dynamiques / catalogue), bâtie sur les acquis 0-A/0-B :
+ * modèle éditorial (serie/access_level/destinations/is_featured), fetch résilient, verrou
+ * visiteur (JoinToListenModal), et le player global persistant (AudioPlayerBar, micro-cover).
+ *
+ * Sections préparées mais MASQUÉES faute de données réelles (lots ultérieurs) :
+ *   • « Continuer l'écoute »  → nécessite une persistance audio_progress (inexistante).
+ *   • « Playlists de La Citadelle » / « Mes playlists » → nécessitent un modèle playlists
+ *     (audio_playlists / items) inexistant. Aucune fausse donnée n'est fabriquée.
+ */
+import { useEffect, useRef, useState } from 'react'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
-import { PremiumImage } from '@/components/ui/PremiumImage'
 import { JoinToListenModal } from '@/components/podcast/JoinToListenModal'
-import { HERO_IMAGES } from '@/lib/images'
+import { PodcastHero } from '@/components/podcast/PodcastHero'
+import { EpisodeRail, type RailEpisode } from '@/components/podcast/EpisodeRail'
+import { EmissionsRail } from '@/components/podcast/EmissionsRail'
+import { AllEpisodesSection, type CatalogEpisode } from '@/components/podcast/AllEpisodesSection'
 import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
-import { normalizePodcastEditorial, type PodcastAccessLevel } from '@/lib/podcast/editorial'
+import { normalizePodcastEditorial } from '@/lib/podcast/editorial'
+import {
+  parsePodcastHero, selectFeatured, selectNewReleases, buildEmissions, listSeriesFrom,
+  type VoixEpisode, type PodcastHeroConfig,
+} from '@/lib/podcast/sections'
 
-type PodcastEpisode = AudioTrack & {
-  ecoutes?: string
-  date?: string
-  serie: string
-  accessLevel: PodcastAccessLevel
+function toTrack(ep: VoixEpisode): AudioTrack {
+  return {
+    id: ep.id,
+    titre: ep.title,
+    serie: ep.serie || 'La Voix du Royaume',
+    duree: ep.duration || '',
+    emoji: '🎙️',
+    couleur: '#D4AF37',
+    audioUrl: ep.audioUrl || undefined,
+    coverUrl: ep.cover || undefined,
+  }
 }
-
-// Liens plateformes RÉELS via l'env (aucun faux lien '#'). Masqués si non configurés.
-const PLATFORMS = [
-  { name: 'Spotify', emoji: '🟢', url: process.env.NEXT_PUBLIC_SPOTIFY_URL || '' },
-  { name: 'Apple Podcasts', emoji: '🎵', url: process.env.NEXT_PUBLIC_APPLE_PODCAST_URL || '' },
-  { name: 'YouTube', emoji: '▶️', url: process.env.NEXT_PUBLIC_YOUTUBE_URL || '' },
-  { name: 'Deezer', emoji: '🎧', url: process.env.NEXT_PUBLIC_DEEZER_URL || '' },
-].filter((p) => p.url)
 
 export default function PodcastPage() {
   const { toggle, isPlaying } = useAudioPlayer()
   const { user, isDemo } = useAuth()
-  const [selectedSerie, setSelectedSerie] = useState('all')
-  const [query, setQuery] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
-  const isInView = useInView(ref, { once: true, margin: '-60px' })
-  const [episodes, setEpisodes] = useState<PodcastEpisode[]>([])
-  // PODCAST-0A — catalogue visible pour tous ; lecture réservée aux membres.
-  // Épisode qu'un visiteur non connecté a tenté de lancer → déclenche la modale.
-  const [joinFor, setJoinFor] = useState<PodcastEpisode | null>(null)
   const canPlay = Boolean(user) || isDemo
 
-  // Interception de la lecture : membre → lecture réelle ; visiteur → invitation.
-  const requestPlay = (ep: PodcastEpisode) => {
-    if (canPlay) toggle(ep)
-    else setJoinFor(ep)
-  }
+  const [episodes, setEpisodes] = useState<VoixEpisode[]>([])
+  const [hero, setHero] = useState<PodcastHeroConfig | null>(null)
+  const [joinFor, setJoinFor] = useState<VoixEpisode | null>(null)
+  const [selectedSerie, setSelectedSerie] = useState('all')
+  const catalogRef = useRef<HTMLDivElement>(null)
 
-  // Épisodes RÉELS publiés (cms_podcasts). Aucun mock. Lecture résiliente :
-  // colonnes éditoriales PODCAST-0B si présentes, repli base sinon.
   useEffect(() => {
     if (IS_DEMO_MODE) return
     let cancelled = false
     ;(async () => {
       try {
-        const { rows } = await fetchPublishedPodcasts((cols) =>
-          supabase.from('cms_podcasts')
-            .select(cols)
-            .eq('status', 'published').order('published_at', { ascending: false }).limit(100),
-        )
+        const [{ rows }, heroRes] = await Promise.all([
+          fetchPublishedPodcasts((cols) =>
+            supabase.from('cms_podcasts').select(cols)
+              .eq('status', 'published').order('published_at', { ascending: false }).limit(200)),
+          supabase.from('cms_homepage_blocks').select('*').eq('block_key', 'podcast_hero').maybeSingle(),
+        ])
         if (cancelled) return
-        setEpisodes(rows.map((p) => {
+        const mapped: VoixEpisode[] = rows.map((p) => {
           const ed = normalizePodcastEditorial(p)
           return {
-            id: String(p.id), titre: (p.title as string) || 'Épisode', auteur: '',
-            serie: ed.serie || 'all',
-            duree: (p.duration as string) || '', emoji: '🎙️', couleur: '#D4AF37',
-            audioUrl: (p.audio_url as string) || undefined,
-            date: ((p.published_at as string) || '').slice(0, 10),
+            id: String(p.id),
+            title: (p.title as string) || 'Épisode',
+            description: ((p.description as string) || '').slice(0, 160),
+            cover: (p.cover_url as string) || null,
+            duration: (p.duration as string) || '',
+            audioUrl: (p.audio_url as string) || null,
+            publishedAt: (p.published_at as string) || null,
+            serie: ed.serie,
             accessLevel: ed.accessLevel,
+            destinations: ed.destinations,
+            isFeatured: ed.isFeatured,
           }
-        }))
+        }).filter((e) => e.title)
+        setEpisodes(mapped)
+        setHero(parsePodcastHero((heroRes as { data?: Record<string, unknown> | null })?.data ?? null))
       } catch { /* liste vide */ }
     })()
     return () => { cancelled = true }
   }, [])
 
-  const filtered = episodes.filter((ep) => {
-    // Émission réelle (PODCAST-0B) : filtre par correspondance exacte.
-    const matchesSerie = selectedSerie === 'all' || ep.serie === selectedSerie
-    const matchesQuery =
-      !query ||
-      ep.titre.toLowerCase().includes(query.toLowerCase()) ||
-      ep.auteur?.toLowerCase().includes(query.toLowerCase())
-    return matchesSerie && matchesQuery
-  })
+  // Interception lecture : membre → lecture réelle ; visiteur → invitation (acquis 0-A).
+  const requestPlay = (ep: VoixEpisode) => {
+    if (canPlay) toggle(toTrack(ep))
+    else setJoinFor(ep)
+  }
+  const onPlayRail = (ep: RailEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode))
+  const onPlayCatalog = (ep: CatalogEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode))
 
-  // Émissions dérivées des épisodes réels → onglets « ÉMISSIONS » dynamiques.
-  const realSeries = Array.from(new Set(episodes.map((e) => e.serie).filter((s) => s && s !== 'all')))
-  const showSeries = realSeries.length > 0
-  const serieTabs = [{ id: 'all', label: 'Tous', emoji: '✨' }, ...realSeries.map((s) => ({ id: s, label: s, emoji: '🎙️' }))]
+  // Sections dérivées (pures, 0-B).
+  const featured = selectFeatured(episodes)
+  const nouveautes = selectNewReleases(episodes, { excludeIds: featured.map((e) => e.id), limit: 12 })
+  const emissions = buildEmissions(episodes)
+  const series = listSeriesFrom(episodes)
+
+  const toRail = (list: VoixEpisode[]): RailEpisode[] =>
+    list.map((e) => ({ id: e.id, title: e.title, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl }))
+  const toCatalog = (list: VoixEpisode[]): CatalogEpisode[] =>
+    list.map((e) => ({ id: e.id, title: e.title, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl, date: (e.publishedAt || '').slice(0, 10) }))
+
+  const selectEmission = (serie: string) => {
+    setSelectedSerie(serie)
+    catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
-    <div className="min-h-screen pb-32">
-      {/* HERO — cinematic */}
-      <section className="relative overflow-hidden pt-32 pb-12 px-4">
-        {/* Real podcast studio backdrop */}
-        <div className="absolute inset-0 pointer-events-none opacity-50">
-          <PremiumImage
-            image={HERO_IMAGES.podcast}
-            fill
-            priority
-            overlay="heavy"
-            sizes="100vw"
+    <div className="min-h-screen pb-40 pt-24 md:pt-28">
+      <div className="max-w-6xl mx-auto">
+        {/* Titre identité */}
+        <header className="px-4 md:px-0 mb-8 md:mb-10">
+          <h1 className="font-cinzel font-bold text-cinematic-gold text-3xl md:text-5xl leading-tight">
+            La Voix du Royaume
+          </h1>
+          <p className="font-inter text-sm md:text-base mt-2" style={{ color: 'rgba(245,230,216,0.55)' }}>
+            Podcasts &amp; enseignements audio
+          </p>
+        </header>
+
+        {/* À LA UNE / EVENT ADMINISTRABLE */}
+        <PodcastHero hero={hero} />
+
+        {/* Continuer l'écoute — RÉSERVÉ (lot audio_progress ultérieur) : masqué tant qu'aucune
+            progression réelle n'existe. Aucune fausse barre de progression n'est affichée. */}
+
+        {/* À la une (is_featured) */}
+        <EpisodeRail title="À la une" eyebrow="Sélection éditoriale" episodes={toRail(featured)} onPlay={onPlayRail} isPlaying={isPlaying} />
+
+        {/* Nouveautés (published_at DESC, hors featured) */}
+        <EpisodeRail title="Nouveautés" eyebrow="Derniers épisodes" episodes={toRail(nouveautes)} onPlay={onPlayRail} isPlaying={isPlaying} />
+
+        {/* Émissions (serie dynamique) */}
+        <EmissionsRail emissions={emissions} onSelect={selectEmission} />
+
+        {/* Playlists de La Citadelle / Mes playlists — RÉSERVÉ : aucun modèle playlists en base
+            (audio_playlists / items). Sections masquées ; « + Créer une playlist » non affiché
+            tant que le backend n'existe pas. Lot ultérieur. */}
+
+        {/* Tous les épisodes */}
+        <div ref={catalogRef} className="scroll-mt-24">
+          <AllEpisodesSection
+            episodes={toCatalog(episodes)}
+            series={series}
+            selectedSerie={selectedSerie}
+            onSelectedSerieChange={setSelectedSerie}
+            onPlay={onPlayCatalog}
+            isPlaying={isPlaying}
           />
         </div>
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="halo-gold w-[1000px] h-[600px] -top-20 left-1/2 -translate-x-1/2" />
-          <div className="halo-royal w-[800px] h-[500px] top-1/2 -right-40" />
-        </div>
-
-        <div className="max-w-4xl mx-auto text-center relative">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-inter text-xs font-bold tracking-[0.25em] uppercase mb-6 backdrop-blur-md"
-              style={{
-                background: 'rgba(212,175,55,0.10)',
-                border: '1px solid rgba(212,175,55,0.3)',
-                color: '#F5E6A7',
-              }}>
-              <Mic className="w-3.5 h-3.5" />
-              Podcast CIER
-            </div>
-            <h1 className="heading-cinematic-xl mb-5">
-              Des Enseignements qui
-              <span className="block text-cinematic-gold">Transforment les Vies</span>
-            </h1>
-            <p className="font-inter text-base md:text-lg mb-10 max-w-2xl mx-auto leading-relaxed"
-              style={{ color: 'rgba(245,230,216,0.6)' }}>
-              Des enseignements bibliques profonds —
-              disponibles sur toutes les plateformes, à toute heure.
-            </p>
-
-            {/* Platforms */}
-            <div className="flex items-center justify-center gap-2 flex-wrap">
-              {PLATFORMS.map((p) => (
-                <a key={p.name} href={p.url}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-inter font-medium transition-all hover:-translate-y-0.5"
-                  style={{
-                    background: 'rgba(255,255,255,0.05)',
-                    color: 'rgba(245,230,216,0.7)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                  }}>
-                  <span>{p.emoji}</span>
-                  {p.name}
-                </a>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* FILTERS + LIST */}
-      <div ref={ref} className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 mt-8">
-        {/* Search + filter */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4"
-              style={{ color: 'rgba(245,230,216,0.3)' }} />
-            <input
-              type="text"
-              placeholder="Rechercher un épisode ou un prédicateur…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="input-cinematic pl-11"
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs font-inter px-4 py-2 rounded-xl"
-            style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.06)',
-              color: 'rgba(245,230,216,0.5)',
-            }}>
-            <Filter className="w-3.5 h-3.5" />
-            {filtered.length} épisode{filtered.length !== 1 ? 's' : ''}
-          </div>
-        </div>
-
-        {/* Series tabs — affichés seulement si des séries réelles existent */}
-        {showSeries && (
-        <div className="flex gap-2 flex-wrap mb-10 sticky top-20 z-30 py-3 -mx-4 px-4 backdrop-blur-xl"
-          style={{ background: 'linear-gradient(180deg, rgba(5,3,8,0.7) 0%, rgba(5,3,8,0.3) 100%)' }}>
-          {serieTabs.map((s) => {
-            const active = selectedSerie === s.id
-            return (
-              <button
-                key={s.id}
-                onClick={() => setSelectedSerie(s.id)}
-                className="px-4 py-2 rounded-full text-xs font-inter font-semibold transition-all flex items-center gap-1.5"
-                style={
-                  active
-                    ? {
-                        background: 'linear-gradient(135deg, #D4AF37, #D4AF37AA)',
-                        color: '#FFFFFF',
-                        boxShadow: '0 4px 16px #D4AF3740',
-                      }
-                    : {
-                        background: 'rgba(255,255,255,0.04)',
-                        color: 'rgba(245,230,216,0.6)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                      }
-                }
-              >
-                <span>{s.emoji}</span>
-                {s.label}
-              </button>
-            )
-          })}
-        </div>
-        )}
-
-        {/* Episode grid */}
-        <AnimatePresence mode="popLayout">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map((ep, i) => (
-              <motion.div
-                key={ep.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: i * 0.04, duration: 0.4 }}
-              >
-                <EpisodeCard ep={ep} onPlay={requestPlay} isPlaying={isPlaying} />
-              </motion.div>
-            ))}
-          </div>
-        </AnimatePresence>
-
-        {filtered.length === 0 && (
-          <div className="card-cinematic text-center py-20">
-            <div className="text-5xl mb-4">🎙️</div>
-            <p className="font-cinzel text-xl text-white mb-2">
-              {query ? 'Aucun épisode trouvé' : 'Aucun épisode disponible pour le moment'}
-            </p>
-            <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.45)' }}>
-              {query ? `Pas de résultat pour "${query}"` : 'Les premiers épisodes du podcast arrivent bientôt.'}
-            </p>
-          </div>
-        )}
-
-        {/* Member CTA */}
-        <div className="text-center mt-12">
-          <Link href="/rejoindre" className="btn-gold-cinematic">
-            Devenir membre pour accéder à l'intégralité
-            <ChevronRight className="w-4 h-4" />
-          </Link>
-        </div>
       </div>
 
-      {/* Verrou lecture visiteur — catalogue visible, écoute réservée aux membres. */}
-      <JoinToListenModal
-        open={!!joinFor}
-        onClose={() => setJoinFor(null)}
-        episodeTitle={joinFor?.titre}
-      />
-    </div>
-  )
-}
-
-function EpisodeCard({
-  ep,
-  onPlay,
-  isPlaying,
-}: {
-  ep: PodcastEpisode
-  onPlay: (t: PodcastEpisode) => void
-  isPlaying: (id: string) => boolean
-}) {
-  const playing = isPlaying(ep.id)
-  return (
-    <div
-      className="group card-cinematic p-5 cursor-pointer relative"
-      style={playing ? {
-        borderColor: `${ep.couleur}50`,
-        boxShadow: `0 0 24px ${ep.couleur}25, 0 16px 40px rgba(0,0,0,0.5)`,
-      } : undefined}
-      role="button"
-      tabIndex={0}
-      aria-label={`Lire ${ep.titre}`}
-      onClick={() => onPlay(ep)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onPlay(ep)
-        }
-      }}
-    >
-      {playing && (
-        <div className="absolute top-4 right-4 z-10">
-          <div className="flex items-end gap-[3px] h-4">
-            {[0, 1, 2].map((b) => (
-              <motion.div key={b} className="w-[3px] rounded-full"
-                style={{ background: ep.couleur }}
-                animate={{ height: ['6px', '14px', '8px', '12px', '6px'] }}
-                transition={{ duration: 0.7, repeat: Infinity, delay: b * 0.15, ease: 'easeInOut' }} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-start gap-4">
-        <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 relative"
-          style={{
-            background: `${ep.couleur}18`,
-            border: `1px solid ${ep.couleur}30`,
-          }}>
-          {ep.emoji}
-          <div className="absolute inset-0 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: `${ep.couleur}45`, backdropFilter: 'blur(4px)' }}>
-            {playing ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white" fill="white" />}
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            {ep.serie && ep.serie !== 'all' && (
-              <span className="text-[10px] font-inter font-bold truncate tracking-widest uppercase"
-                style={{ color: ep.couleur }}>{ep.serie}</span>
-            )}
-            {ep.accessLevel === 'premium' && (
-              <span className="text-[9px] font-inter font-bold tracking-widest uppercase px-1.5 py-0.5 rounded"
-                style={{ background: 'rgba(212,175,55,0.14)', color: '#F5E6A7', border: '1px solid rgba(212,175,55,0.3)' }}>
-                Premium
-              </span>
-            )}
-          </div>
-          <h3 className="font-inter text-sm font-bold text-white mb-1 leading-snug line-clamp-2">{ep.titre}</h3>
-          <div className="text-[11px] font-inter truncate"
-            style={{ color: 'rgba(245,230,216,0.5)' }}>
-            {ep.auteur}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mt-4 pt-4"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-3 text-[10px] font-inter"
-          style={{ color: 'rgba(245,230,216,0.4)' }}>
-          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{ep.duree}</span>
-        </div>
-        {ep.date && (
-          <span className="text-[10px] font-inter"
-            style={{ color: 'rgba(245,230,216,0.3)' }}>{ep.date}</span>
-        )}
-      </div>
+      {/* Verrou lecture visiteur — catalogue visible, écoute réservée aux membres (acquis 0-A). */}
+      <JoinToListenModal open={!!joinFor} onClose={() => setJoinFor(null)} episodeTitle={joinFor?.title} />
     </div>
   )
 }

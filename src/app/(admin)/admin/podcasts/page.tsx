@@ -28,10 +28,13 @@ export default function AdminPodcastsPage() {
         { name: 'cover_url', label: 'Image', type: 'url', hideInTable: true },
         { name: 'access_level', label: 'Accès', type: 'select', options: ACCESS, default: 'member' },
         {
-          name: 'destinations', label: 'Destinations', type: 'tags', hideInTable: true,
-          placeholder: 'catalog, home_instant, home_premium, featured',
+          // Emplacements éditoriaux (clés techniques) : catalog = catalogue /podcast ;
+          // home_instant = Accueil « L'Instant Citadelle » ; home_premium = Accueil Premium ;
+          // featured = rail « À la une » de /podcast.
+          name: 'destinations', label: 'Destinations (emplacements)', type: 'tags', hideInTable: true,
+          placeholder: 'catalog · home_instant · home_premium · featured',
         },
-        { name: 'is_featured', label: 'À la une', type: 'boolean', default: false },
+        { name: 'is_featured', label: 'À la une (/podcast)', type: 'boolean', default: false },
         { name: 'saison', label: 'Saison', type: 'number', hideInTable: true },
         { name: 'episode', label: 'Épisode', type: 'number' },
         { name: 'duration', label: 'Durée', placeholder: 'ex: 42 min', hideInTable: true },
