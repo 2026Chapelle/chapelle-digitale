@@ -33,9 +33,12 @@ export async function nationStats(scopePays: string | null): Promise<NationStats
     const rows = (data || []) as any[]
     ids = scopePays ? rows.map((r) => r.id) : null
     inscrits = scopePays ? rows.length : await countIn('profiles', null)
+    // P1 data-semantics : « membre » = tout sauf visiteur (LARGE), aligné sur le SQL
+    // (command_center_kpis / antenne_governance_agg = membre_statut <> 'visiteur').
+    // Les anciens littéraux 'membre'/'fidele'/'actif' n'existaient dans AUCUN enum → membres=0.
     membres = scopePays
-      ? rows.filter((r) => ['membre', 'fidele', 'actif'].includes(r.membre_statut)).length
-      : await countIn('profiles', null, 'membre_statut', (q) => q.in('membre_statut', ['membre', 'fidele', 'actif']))
+      ? rows.filter((r) => r.membre_statut !== 'visiteur').length
+      : await countIn('profiles', null, 'membre_statut', (q) => q.neq('membre_statut', 'visiteur'))
     responsables = scopePays
       ? rows.filter((r) => ['nation_pastor', 'platform_admin', 'responsable_integration', 'coordinateur', 'pasteur'].includes(r.role)).length
       : 0
