@@ -27,6 +27,7 @@ import {
   PODCAST_PLAYBACK_TTL_SECONDS,
   type PlaybackReason,
 } from '@/lib/podcast/playback-access'
+import { hasPodcastPremiumAccess } from '@/lib/podcast/entitlement'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,11 +61,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const accessLevel = normalizeAccessLevel((ep as { access_level?: unknown }).access_level)
 
+    // PODCAST-5B : droit Premium RÉEL (entitlement canonique). Évalué côté serveur,
+    // fail-closed (erreur ⇒ false). Inutile de résoudre si l'épisode n'est pas premium.
+    const hasPremiumEntitlement =
+      accessLevel === 'premium' && authenticated
+        ? await hasPodcastPremiumAccess(supabaseAdmin, session?.uid)
+        : false
+
     const decision = decidePlaybackAccess(accessLevel, {
       authenticated,
       isMember,
       isAdmin,
-      hasPremiumEntitlement: false, // aucun modèle d'entitlement premium (décision métier requise)
+      hasPremiumEntitlement,
     })
 
     if (!decision.allowed) {

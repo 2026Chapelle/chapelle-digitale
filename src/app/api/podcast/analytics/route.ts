@@ -28,6 +28,7 @@ import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { isAdminRequest } from '@/lib/admin-auth'
 import { getSessionProfile } from '@/lib/member-auth'
 import { normalizeAccessLevel, isMemberStatus, decidePlaybackAccess } from '@/lib/podcast/playback-access'
+import { hasPodcastPremiumAccess } from '@/lib/podcast/entitlement'
 import { isAudioEventType, isAudioSourceContext } from '@/lib/podcast/audio-analytics'
 
 export const runtime = 'nodejs'
@@ -64,9 +65,11 @@ export async function POST(req: NextRequest) {
   if (!isAudioEventType(eventType)) return ok()
 
   try {
-    const isAdmin = isAdminRequest(req)
+    // Le back-office ne se compte pas (cohérent avec l'observateur qui ignore /admin).
+    // Évite aussi qu'un admin (bypass PODCAST-SEC) enregistre de faux plays premium anonymes.
+    if (isAdminRequest(req)) return ok()
     // ── Identité vérifiée serveur (null si anonyme). On NE fait JAMAIS confiance au userId client. ──
-    const session = isAdmin ? null : await getSessionProfile().catch(() => null)
+    const session = await getSessionProfile().catch(() => null)
     const userId = session?.uid ?? null
 
     // ── Épisode réel : existence + statut + access_level (source de vérité serveur). ──
@@ -84,11 +87,15 @@ export async function POST(req: NextRequest) {
     //    ne contourne la sécurité média. Un appelant qui n'aurait PAS pu lire l'épisode
     //    (anon sur member, non-membre sur member, non-premium sur premium) ne produit
     //    AUCUN événement → pas de faux play, breakdown par accès non pollué. ──
+    const hasPremiumEntitlement =
+      accessContext === 'premium' && session
+        ? await hasPodcastPremiumAccess(supabaseAdmin, session.uid)
+        : false
     const decision = decidePlaybackAccess(accessContext, {
       authenticated: Boolean(session),
       isMember: isMemberStatus(session?.profile?.membre_statut),
-      isAdmin,
-      hasPremiumEntitlement: false,
+      isAdmin: false,   // l'admin est déjà sorti plus haut (ne se compte pas)
+      hasPremiumEntitlement,
     })
     if (!decision.allowed) return ok()
 
