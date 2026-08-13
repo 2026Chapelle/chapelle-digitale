@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
+import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
 import { events } from '@/lib/analytics'
 import { selectHomeFormations, deriveDisplayType } from '@/lib/cms/featured'
 
@@ -32,7 +33,7 @@ const PODCAST_PLATFORMS = [
 export function GrowSection() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
-  const { toggle, isPlaying } = useAudioPlayer()
+  const { play, pause, resume, isPlaying, track } = useAudioPlayer()
 
   // Formations RÉELLES (table formations).
   const [formations, setFormations] = useState<FormationCard[]>([])
@@ -81,18 +82,31 @@ export function GrowSection() {
     // V2.10-A perf : podcasts lus EN PARALLÈLE des formations (lectures indépendantes → pas de waterfall).
     ;(async () => {
       try {
-        const { data } = await supabase.from('cms_podcasts').select('*').eq('status', 'published').order('episode', { ascending: false }).limit(4)
+        // PODCAST-SEC : plus de `select('*')` (exposait audio_url/youtube_url) ni de
+        // lecture d'URL côté client. Colonnes sûres + signal has_audio ; l'URL réelle
+        // est résolue au clic via /api/podcast/:id/play.
+        const { data } = await supabase.from('cms_podcasts')
+          .select('id, title, serie, duration, has_audio')
+          .eq('status', 'published').order('episode', { ascending: false }).limit(4)
         if (!cancelled) {
-          setEpisodes((data || []).filter((p: any) => p.audio_url).map((p: any) => ({
-            id: String(p.id), titre: p.title || 'Épisode', auteur: p.speaker || p.auteur || 'La Chapelle',
-            serie: p.serie || 'Podcast', duree: p.duree || '', dureeSecondes: Number(p.duree_secondes) || 0,
-            emoji: '🎙️', couleur: '#D4AF37', audioUrl: p.audio_url,
+          setEpisodes((data || []).filter((p: any) => p.has_audio !== false).map((p: any) => ({
+            id: String(p.id), titre: p.title || 'Épisode', auteur: 'La Chapelle',
+            serie: p.serie || 'Podcast', duree: p.duration || '',
+            emoji: '🎙️', couleur: '#D4AF37',
           })))
         }
       } catch { /* vide */ } finally { if (!cancelled) setPLoaded(true) }
     })()
     return () => { cancelled = true }
   }, [])
+
+  // PODCAST-SEC : lecture résolue côté serveur (public → visiteur inclus ; réservé → /podcast).
+  async function handlePlay(ep: AudioTrack) {
+    if (track?.id === ep.id) { isPlaying(ep.id) ? pause() : resume(); return }
+    const res = await resolvePlayback(ep.id)
+    if (isResolved(res)) { play({ ...ep, audioUrl: res.url }); return }
+    window.location.href = '/podcast'
+  }
 
   return (
     <section ref={ref} className="section-cinematic">
@@ -251,7 +265,7 @@ export function GrowSection() {
               <motion.button
                 key={ep.id}
                 type="button"
-                onClick={() => toggle(ep)}
+                onClick={() => handlePlay(ep)}
                 initial={{ opacity: 0, y: 16 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.15 + i * 0.06 }}

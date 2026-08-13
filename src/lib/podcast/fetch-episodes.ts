@@ -12,8 +12,11 @@
  * Supabase réelle) : la logique de repli reste pure et testable.
  */
 
-export const PODCAST_BASE_COLUMNS = 'id, title, description, audio_url, cover_url, duration, published_at'
-export const PODCAST_EDITORIAL_COLUMNS = 'serie, access_level, destinations, is_featured'
+// PODCAST-SEC : `audio_url` / `youtube_url` ne sont PLUS sélectionnés côté client
+// (verrou colonne anon/authenticated). Le catalogue affiche des métadonnées et le
+// signal sûr `has_audio` ; l'URL réelle est résolue au clic via /api/podcast/:id/play.
+export const PODCAST_BASE_COLUMNS = 'id, title, description, cover_url, duration, published_at'
+export const PODCAST_EDITORIAL_COLUMNS = 'serie, access_level, destinations, is_featured, has_audio'
 export const PODCAST_EXTENDED_COLUMNS = `${PODCAST_BASE_COLUMNS}, ${PODCAST_EDITORIAL_COLUMNS}`
 
 export type RawPodcastRow = Record<string, unknown>

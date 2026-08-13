@@ -19,6 +19,9 @@
 /** Forme minimale attendue d'un épisode pour la résolution des emplacements. */
 export interface HomeSlotEpisode {
   id: string
+  /** PODCAST-SEC : signal sûr de présence d'un média (remplace audioUrl côté client). */
+  hasAudio?: boolean
+  /** @deprecated PODCAST-SEC : URL média non exposée au client. Toléré pour repli. */
   audioUrl?: string | null
   /**
    * PODCAST-0B (optionnel) — destinations éditoriales natives de l'épisode.
@@ -117,7 +120,7 @@ export function resolvePodcastHomeSlots<T extends HomeSlotEpisode>(
   const instant =
     firstConfigured(byId, cfg.instantIds) ||
     list.find((e) => targets(e, 'home_instant')) ||
-    list.find((e) => e.audioUrl) ||
+    list.find((e) => e.hasAudio ?? e.audioUrl) ||
     list[0] ||
     null
 
@@ -128,7 +131,7 @@ export function resolvePodcastHomeSlots<T extends HomeSlotEpisode>(
   const premium =
     firstConfigured(byId, cfg.premiumIds, instantId) ||
     list.find((e) => e.id !== instantId && targets(e, 'home_premium')) ||
-    list.find((e) => e.id !== instantId && e.audioUrl) ||
+    list.find((e) => e.id !== instantId && (e.hasAudio ?? e.audioUrl)) ||
     list.find((e) => e.id !== instantId) ||
     null
 

@@ -6,6 +6,16 @@ import {
   type QueryResult,
 } from '@/lib/podcast/fetch-episodes'
 
+describe('colonnes — PODCAST-SEC : jamais audio_url/youtube_url, has_audio présent', () => {
+  it('les sélections client n\'exposent aucune URL média', () => {
+    expect(PODCAST_BASE_COLUMNS).not.toMatch(/audio_url|youtube_url/)
+    expect(PODCAST_EXTENDED_COLUMNS).not.toMatch(/audio_url|youtube_url/)
+  })
+  it('has_audio (signal sûr) est bien demandé', () => {
+    expect(PODCAST_EXTENDED_COLUMNS).toMatch(/\bhas_audio\b/)
+  })
+})
+
 describe('fetchPublishedPodcasts — repli gracieux', () => {
   it('schéma migré : lit les colonnes étendues, une seule requête', async () => {
     const runQuery = vi.fn(async (): Promise<QueryResult> => ({

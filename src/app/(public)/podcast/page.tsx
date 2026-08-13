@@ -30,8 +30,11 @@ import { PlaylistsSections } from '@/components/podcast/PlaylistsSections'
 import {
   fetchMyProgress, buildContinueListening, resumePositionSeconds, type AudioProgressRow,
 } from '@/lib/podcast/progress'
+import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
+import type { PlaybackReason } from '@/lib/podcast/playback-access'
 
-function toTrack(ep: VoixEpisode, startAt?: number): AudioTrack {
+// PODCAST-SEC : la piste reçoit l'URL RÉSOLUE côté serveur (jamais issue du client).
+function toTrack(ep: VoixEpisode, playbackUrl: string, startAt?: number): AudioTrack {
   return {
     id: ep.id,
     titre: ep.title,
@@ -39,20 +42,35 @@ function toTrack(ep: VoixEpisode, startAt?: number): AudioTrack {
     duree: ep.duration || '',
     emoji: '🎙️',
     couleur: '#D4AF37',
-    audioUrl: ep.audioUrl || undefined,
+    audioUrl: playbackUrl,
     coverUrl: ep.cover || undefined,
     startAt: startAt && startAt > 0 ? startAt : undefined,   // PODCAST-2 : reprise
   }
 }
 
+/** Message d'invite selon la raison de refus serveur (jamais d'URL exposée). */
+function noticeFor(reason: PlaybackReason): { title: string; message: string } {
+  switch (reason) {
+    case 'member_only':
+      return { title: 'Réservé aux membres', message: "Cet épisode est réservé aux membres de la Citadelle. Rejoins la communauté pour l'écouter." }
+    case 'premium_denied':
+      return { title: 'Contenu premium', message: "Cet épisode premium n'est pas encore accessible à ton compte." }
+    case 'no_media':
+      return { title: 'Bientôt disponible', message: "L'audio de cet épisode arrive bientôt." }
+    default:
+      return { title: 'Indisponible', message: "Cet épisode n'est pas disponible pour le moment." }
+  }
+}
+
 export default function PodcastPage() {
-  const { toggle, isPlaying } = useAudioPlayer()
+  const { play, pause, resume, isPlaying, track } = useAudioPlayer()
   const { user, isDemo } = useAuth()
   const canPlay = Boolean(user) || isDemo
 
   const [episodes, setEpisodes] = useState<VoixEpisode[]>([])
   const [hero, setHero] = useState<PodcastHeroConfig | null>(null)
   const [joinFor, setJoinFor] = useState<VoixEpisode | null>(null)
+  const [notice, setNotice] = useState<{ title: string; message: string } | null>(null)
   const [selectedSerie, setSelectedSerie] = useState('all')
   const [progressRows, setProgressRows] = useState<AudioProgressRow[]>([])   // PODCAST-2 : progression membre
   const catalogRef = useRef<HTMLDivElement>(null)
@@ -77,7 +95,9 @@ export default function PodcastPage() {
             description: ((p.description as string) || '').slice(0, 160),
             cover: (p.cover_url as string) || null,
             duration: (p.duration as string) || '',
-            audioUrl: (p.audio_url as string) || null,
+            // PODCAST-SEC : signal sûr (l'URL réelle n'est plus lue côté client).
+            // Legacy/repli sans colonne → optimiste true ; le serveur reste l'autorité.
+            hasAudio: p.has_audio !== false,
             publishedAt: (p.published_at as string) || null,
             serie: ed.serie,
             accessLevel: ed.accessLevel,
@@ -105,12 +125,20 @@ export default function PodcastPage() {
 
   const progressById = new Map(progressRows.map((r) => [r.podcast_id, r]))
 
-  // Interception lecture : membre → lecture réelle (avec REPRISE) ; visiteur → invitation (acquis 0-A).
-  const requestPlay = (ep: VoixEpisode) => {
-    if (canPlay) {
+  // Interception lecture (PODCAST-SEC) : visiteur non connecté → invitation (acquis 0-A) ;
+  // sinon on demande au SERVEUR l'URL autorisée (le client ne connaît plus l'URL média).
+  const requestPlay = async (ep: VoixEpisode) => {
+    if (!canPlay) { setJoinFor(ep); return }
+    // Même épisode déjà actif → simple pause/reprise (pas de nouvelle résolution).
+    if (track?.id === ep.id) { isPlaying(ep.id) ? pause() : resume(); return }
+    const res = await resolvePlayback(ep.id)
+    if (isResolved(res)) {
       const startAt = user ? resumePositionSeconds(progressById.get(ep.id)) : undefined
-      toggle(toTrack(ep, startAt))
-    } else setJoinFor(ep)
+      play(toTrack(ep, res.url, startAt))
+      return
+    }
+    if (res.error === 'auth_required') setJoinFor(ep)
+    else setNotice(noticeFor(res.error))
   }
   const onPlayRail = (ep: RailEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode))
   const onPlayCatalog = (ep: CatalogEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode))
@@ -195,6 +223,34 @@ export default function PodcastPage() {
 
       {/* Verrou lecture visiteur — catalogue visible, écoute réservée aux membres (acquis 0-A). */}
       <JoinToListenModal open={!!joinFor} onClose={() => setJoinFor(null)} episodeTitle={joinFor?.title} />
+
+      {/* PODCAST-SEC — refus serveur (membre / premium / indisponible) : invite discrète, jamais d'URL. */}
+      {notice && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={notice.title}
+          className="fixed inset-0 z-[120] flex items-center justify-center p-4"
+          onClick={() => setNotice(null)}
+        >
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-hidden />
+          <div
+            className="relative z-[1] w-full max-w-sm rounded-2xl border border-[rgba(212,175,55,0.35)] bg-[#0c0c14] p-6 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-cinzel font-bold text-cinematic-gold text-xl mb-2">{notice.title}</h3>
+            <p className="font-inter text-sm mb-5" style={{ color: 'rgba(245,230,216,0.7)' }}>{notice.message}</p>
+            <button
+              type="button"
+              onClick={() => setNotice(null)}
+              className="btn-gold-cinematic inline-flex"
+              style={{ padding: '10px 22px', fontSize: '0.9rem' }}
+            >
+              J&apos;ai compris
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

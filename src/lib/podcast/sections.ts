@@ -16,6 +16,11 @@ export interface VoixEpisode {
   description?: string
   cover?: string | null
   duration?: string
+  /** PODCAST-SEC : l'URL média n'est plus exposée au client. `hasAudio` = signal
+   *  sûr (existe-t-il un média ?) ; l'URL réelle est résolue au clic côté serveur. */
+  hasAudio?: boolean
+  /** @deprecated PODCAST-SEC : plus jamais renseigné côté client (verrou colonne).
+   *  Conservé pour compat de types ; la lecture passe par /api/podcast/:id/play. */
   audioUrl?: string | null
   publishedAt?: string | null
   serie?: string | null

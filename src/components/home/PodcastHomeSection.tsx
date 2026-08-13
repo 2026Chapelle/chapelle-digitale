@@ -25,6 +25,7 @@ import {
 } from '@/lib/podcast/home-slots'
 import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
 import { normalizePodcastEditorial } from '@/lib/podcast/editorial'
+import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
 
 type PodEp = {
   id: string
@@ -32,7 +33,8 @@ type PodEp = {
   description: string
   cover: string | null
   duration: string
-  audioUrl: string | null
+  /** PODCAST-SEC : signal sûr (l'URL réelle est résolue au clic côté serveur). */
+  hasAudio: boolean
   serie: string | null
   destinations: string[]
 }
@@ -49,7 +51,8 @@ const PLATFORMS = [
   { name: 'YouTube', emoji: '▶️', url: process.env.NEXT_PUBLIC_YOUTUBE_URL || '' },
 ].filter((p) => Boolean(p.url && p.url !== '#'))
 
-function toTrack(ep: PodEp, serie?: string): AudioTrack {
+// PODCAST-SEC : la piste reçoit l'URL RÉSOLUE côté serveur (jamais issue du client).
+function toTrack(ep: PodEp, playbackUrl: string, serie?: string): AudioTrack {
   return {
     id: ep.id,
     titre: ep.title,
@@ -58,7 +61,7 @@ function toTrack(ep: PodEp, serie?: string): AudioTrack {
     duree: ep.duration || '',
     emoji: '🎙️',
     couleur: '#D4AF37',
-    audioUrl: ep.audioUrl || undefined,
+    audioUrl: playbackUrl,
     coverUrl: ep.cover || INSTANT_COVER,
   }
 }
@@ -66,7 +69,7 @@ function toTrack(ep: PodEp, serie?: string): AudioTrack {
 export function PodcastHomeSection() {
   const parallaxRef = useRef<HTMLDivElement>(null)
   const reduce = useReducedMotion()
-  const { toggle, isPlaying } = useAudioPlayer()
+  const { play, pause, resume, isPlaying, track } = useAudioPlayer()
   const [episodes, setEpisodes] = useState<PodEp[]>([])
   const [slotConfig, setSlotConfig] = useState<PodcastHomeSlotConfig | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -122,7 +125,8 @@ export function PodcastHomeSection() {
               description: ((p.description as string) || '').slice(0, 140),
               cover: (p.cover_url as string) || null,
               duration: (p.duration as string) || '',
-              audioUrl: (p.audio_url as string) || null,
+              // PODCAST-SEC : signal sûr ; legacy/repli sans colonne → optimiste true.
+              hasAudio: p.has_audio !== false,
               serie: ed.serie,
               destinations: ed.destinations,
             }
@@ -141,10 +145,15 @@ export function PodcastHomeSection() {
     }
   }, [])
 
-  function handleListen(ep: PodEp | null, label: string) {
+  // PODCAST-SEC : lecture résolue côté serveur. Public → jouable (visiteur inclus) ;
+  // réservé (membre/premium) → renvoi au catalogue /podcast (connexion). Jamais d'URL client.
+  async function handleListen(ep: PodEp | null, label: string) {
     events.ctaClick(label)
-    if (ep?.audioUrl) {
-      toggle(toTrack(ep, label.includes('instant') ? "L'Instant Citadelle" : 'Podcast Premium'))
+    if (!ep) { window.location.href = '/podcast'; return }
+    if (track?.id === ep.id) { isPlaying(ep.id) ? pause() : resume(); return }
+    const res = await resolvePlayback(ep.id)
+    if (isResolved(res)) {
+      play(toTrack(ep, res.url, label.includes('instant') ? "L'Instant Citadelle" : 'Podcast Premium'))
       return
     }
     window.location.href = '/podcast'
@@ -197,7 +206,7 @@ export function PodcastHomeSection() {
               onClick={() => handleListen(instantEp, 'podcast_instant_citadelle')}
               className="citadelle-pod-card citadelle-pod-daily group block h-full w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
               aria-label={
-                instantEp?.audioUrl
+                instantEp?.hasAudio
                   ? `Écouter L'Instant Citadelle — ${instantEp.title}`
                   : "Ouvrir les podcasts — L'Instant Citadelle"
               }
@@ -230,7 +239,7 @@ export function PodcastHomeSection() {
                 )}
                 <span className="citadelle-pod-cta-line inline-flex items-center gap-2 text-sm font-medium text-gold group-hover:gap-3">
                   {instantIsPlaying ? <Pause className="w-4 h-4" aria-hidden /> : <Play className="w-4 h-4" aria-hidden />}
-                  {instantEp?.audioUrl
+                  {instantEp?.hasAudio
                     ? instantIsPlaying
                       ? 'Pause'
                       : "Écouter L'Instant Citadelle"
@@ -297,7 +306,7 @@ export function PodcastHomeSection() {
                 )}
 
                 <div className="mt-auto flex flex-col sm:flex-row gap-3">
-                  {featured?.audioUrl && (
+                  {featured?.hasAudio && (
                     <button
                       type="button"
                       onClick={() => handleListen(featured, 'podcast_featured')}
