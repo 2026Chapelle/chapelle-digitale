@@ -7,6 +7,7 @@ import { donationReceiptEmail } from '@/lib/email-templates'
 import { logActivity } from '@/lib/activity'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { notifyUser } from '@/lib/notify'
+import { grantEntitlementFromPurchase, entitlementKeyForProduct } from '@/lib/podcast/premium-acquisition'
 
 /**
  * Webhook Chariow — confirmation de paiement → enregistre le don RÉEL + reçu.
@@ -229,7 +230,7 @@ export async function POST(req: NextRequest) {
       if (productId) {
         try {
           const { data: prod } = await supabaseAdmin.from('marketplace_products')
-            .select('id, titre').eq('chariow_product_id', productId).maybeSingle()
+            .select('id, titre, entitlement_key, entitlement_duration_days').eq('chariow_product_id', productId).maybeSingle()
           if (prod) {
             // Vérifie l'idempotence de l'achat avant insertion pour éviter de créer un doublon
             const { data: existingPurchase } = await supabaseAdmin.from('product_purchases')
@@ -238,19 +239,25 @@ export async function POST(req: NextRequest) {
               .eq('chariow_product_id', productId)
               .maybeSingle()
 
+            let purchaseId: string | null = (existingPurchase as { id?: string } | null)?.id ?? null
+
             if (!existingPurchase) {
               const insPurchase = await supabaseAdmin.from('product_purchases').insert({
                 user_id: userId, email, product_id: prod.id,
                 chariow_product_id: productId, chariow_transaction_id: ref, don_id: don?.id ?? null,
                 access_token: randomBytes(32).toString('hex'), titre: prod.titre, montant: amount, devise: currency,
-              })
+              }).select('id').single()
               if (insPurchase.error) {
                 if (insPurchase.error.code === '23505') {
-                  // Conflit concurrent géré
+                  // Conflit concurrent géré — relire l'achat pour récupérer son id (octroi entitlement).
+                  const { data: raced } = await supabaseAdmin.from('product_purchases')
+                    .select('id').eq('chariow_transaction_id', ref).eq('chariow_product_id', productId).maybeSingle()
+                  purchaseId = (raced as { id?: string } | null)?.id ?? null
                 } else {
                   throw insPurchase.error
                 }
               } else {
+                purchaseId = (insPurchase.data as { id?: string } | null)?.id ?? null
                 try {
                   await notifyUser(userId, {
                     type: 'achat', title: '🎁 Votre achat est prêt',
@@ -258,6 +265,29 @@ export async function POST(req: NextRequest) {
                     href: '/member/dashboard/achats', meta: { product_id: prod.id },
                   })
                 } catch { /* non bloquant */ }
+              }
+            }
+
+            // PODCAST-5C : achat confirmé d'un produit qui ACCORDE un droit → octroi entitlement.
+            // Idempotent (uniq_entitlement_purchase_source) ; best-effort (l'achat prime toujours).
+            // N'attache le droit QUE si l'acheteur est un membre Citadelle (userId résolu SERVEUR
+            // via profiles.email) — jamais d'octroi sur email seul sans profil correspondant.
+            const entKey = entitlementKeyForProduct(prod as { entitlement_key?: string | null })
+            if (entKey && userId && purchaseId) {
+              const granted = await grantEntitlementFromPurchase(supabaseAdmin, {
+                userId, entitlementKey: entKey, sourceId: purchaseId,
+                durationDays: (prod as { entitlement_duration_days?: number | null }).entitlement_duration_days ?? null,
+              })
+              if (granted.granted) {
+                try {
+                  await notifyUser(userId, {
+                    type: 'achat', title: '⭐ Accès Premium activé',
+                    body: 'Votre accès Premium à La Voix du Royaume est actif.',
+                    href: '/podcast', meta: { entitlement_key: entKey },
+                  })
+                } catch { /* non bloquant */ }
+              } else if (granted.error) {
+                console.error('[webhook/chariow] entitlement non octroyé', granted.error)
               }
             }
           }

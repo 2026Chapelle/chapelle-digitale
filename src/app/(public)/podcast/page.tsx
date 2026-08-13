@@ -32,6 +32,8 @@ import {
 } from '@/lib/podcast/progress'
 import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
 import type { PlaybackReason } from '@/lib/podcast/playback-access'
+import { PODCAST_PREMIUM_ENTITLEMENT_KEY } from '@/lib/podcast/entitlement'
+import { normalizePremiumOffer, premiumDeniedNotice, type PremiumOffer, type PremiumNotice } from '@/lib/podcast/premium-offer'
 
 // PODCAST-4 : contexte d'origine d'une lecture (analytics), transporté sur la piste.
 interface PlayContext { sourceContext?: string; playlistId?: string }
@@ -53,13 +55,14 @@ function toTrack(ep: VoixEpisode, playbackUrl: string, startAt?: number, ctx?: P
   }
 }
 
-/** Message d'invite selon la raison de refus serveur (jamais d'URL exposée). */
-function noticeFor(reason: PlaybackReason): { title: string; message: string } {
+/** Message d'invite selon la raison de refus serveur (jamais d'URL média exposée).
+ *  Pour un refus premium, un CTA d'achat n'est ajouté QUE si une offre réelle existe. */
+function noticeFor(reason: PlaybackReason, premiumOffer: PremiumOffer | null): PremiumNotice {
   switch (reason) {
     case 'member_only':
       return { title: 'Réservé aux membres', message: "Cet épisode est réservé aux membres de la Citadelle. Rejoins la communauté pour l'écouter." }
     case 'premium_denied':
-      return { title: 'Contenu premium', message: "Cet épisode premium n'est pas encore accessible à ton compte." }
+      return premiumDeniedNotice(premiumOffer)
     case 'no_media':
       return { title: 'Bientôt disponible', message: "L'audio de cet épisode arrive bientôt." }
     default:
@@ -75,7 +78,8 @@ export default function PodcastPage() {
   const [episodes, setEpisodes] = useState<VoixEpisode[]>([])
   const [hero, setHero] = useState<PodcastHeroConfig | null>(null)
   const [joinFor, setJoinFor] = useState<VoixEpisode | null>(null)
-  const [notice, setNotice] = useState<{ title: string; message: string } | null>(null)
+  const [notice, setNotice] = useState<PremiumNotice | null>(null)
+  const [premiumOffer, setPremiumOffer] = useState<PremiumOffer | null>(null)
   const [selectedSerie, setSelectedSerie] = useState('all')
   const [progressRows, setProgressRows] = useState<AudioProgressRow[]>([])   // PODCAST-2 : progression membre
   const catalogRef = useRef<HTMLDivElement>(null)
@@ -128,6 +132,25 @@ export default function PodcastPage() {
     return () => { cancelled = true }
   }, [user])
 
+  // PODCAST-5C : offre Premium réelle (produit marketplace mappé, actif, avec lien d'achat).
+  // Lu via RLS publique (actif=true). Absente ⇒ aucun CTA (message neutre, jamais de faux bouton).
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('marketplace_products')
+          .select('lien_achat, titre')
+          .eq('entitlement_key', PODCAST_PREMIUM_ENTITLEMENT_KEY)
+          .eq('actif', true)
+          .limit(1)
+          .maybeSingle()
+        if (!cancelled) setPremiumOffer(normalizePremiumOffer(data as { lien_achat?: string | null; titre?: string | null } | null))
+      } catch { /* pas d'offre → CTA neutre */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
   const progressById = new Map(progressRows.map((r) => [r.podcast_id, r]))
 
   // Interception lecture (PODCAST-SEC) : visiteur non connecté → invitation (acquis 0-A) ;
@@ -143,7 +166,7 @@ export default function PodcastPage() {
       return
     }
     if (res.error === 'auth_required') setJoinFor(ep)
-    else setNotice(noticeFor(res.error))
+    else setNotice(noticeFor(res.error, premiumOffer))
   }
   const onPlayRail = (ep: RailEpisode, ctx: PlayContext = {}) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode), ctx)
   const onPlayCatalog = (ep: CatalogEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode), { sourceContext: 'catalog' })
@@ -245,14 +268,37 @@ export default function PodcastPage() {
           >
             <h3 className="font-cinzel font-bold text-cinematic-gold text-xl mb-2">{notice.title}</h3>
             <p className="font-inter text-sm mb-5" style={{ color: 'rgba(245,230,216,0.7)' }}>{notice.message}</p>
-            <button
-              type="button"
-              onClick={() => setNotice(null)}
-              className="btn-gold-cinematic inline-flex"
-              style={{ padding: '10px 22px', fontSize: '0.9rem' }}
-            >
-              J&apos;ai compris
-            </button>
+            {notice.ctaUrl ? (
+              <div className="flex flex-col gap-2">
+                <a
+                  href={notice.ctaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setNotice(null)}
+                  className="btn-gold-cinematic inline-flex items-center justify-center"
+                  style={{ padding: '10px 22px', fontSize: '0.9rem' }}
+                >
+                  {notice.ctaLabel || 'Découvrir le Premium'}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setNotice(null)}
+                  className="text-xs font-inter"
+                  style={{ color: 'rgba(245,230,216,0.5)' }}
+                >
+                  Plus tard
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setNotice(null)}
+                className="btn-gold-cinematic inline-flex"
+                style={{ padding: '10px 22px', fontSize: '0.9rem' }}
+              >
+                J&apos;ai compris
+              </button>
+            )}
           </div>
         </div>
       )}

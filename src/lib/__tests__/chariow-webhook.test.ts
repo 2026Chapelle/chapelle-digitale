@@ -338,4 +338,60 @@ describe('POST /api/webhook/chariow', () => {
     expect(body.ok).toBe(false)
     expect(body.message).toMatch(/persistance/i)
   })
+
+  // ── PODCAST-5C : achat d'un produit qui accorde un entitlement → octroi ──────
+  function premiumMocks(opts: { existingPurchase?: unknown; entInsertResult?: unknown; entInsert?: ReturnType<typeof vi.fn> } = {}) {
+    const entInsert = opts.entInsert ?? vi.fn().mockResolvedValue(opts.entInsertResult ?? { error: null })
+    from.mockImplementation((table: string) => {
+      if (table === 'giving_transactions_log') return { insert: vi.fn().mockResolvedValue({ error: null }) }
+      if (table === 'profiles') return {
+        select: vi.fn().mockReturnThis(), ilike: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'user-1' }, error: null }),
+      }
+      if (table === 'dons') return {
+        select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'don-1', recu_envoye: true }, error: null }) }) }),
+        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+      }
+      if (table === 'marketplace_products') return {
+        select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'prod-x', titre: 'Premium', entitlement_key: 'podcast_premium', entitlement_duration_days: null }, error: null }),
+      }
+      if (table === 'product_purchases') return {
+        select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: opts.existingPurchase ?? null, error: null }) }) }) }),
+        insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'purch-1' }, error: null }) }) }),
+      }
+      if (table === 'user_entitlements') return { insert: entInsert }
+      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }), insert: vi.fn().mockResolvedValue({ error: null }) }
+    })
+    return { entInsert }
+  }
+
+  it('achat Premium (produit mappé) → entitlement octroyé (source_type=purchase)', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('CHARIOW_WEBHOOK_SECRET', 's')
+    const { entInsert } = premiumMocks()
+    const payload = validSalePayload({ product: { id: 'prod-1', name: 'Premium' } })
+    const res = await POST(makeReq(payload, { 'x-chariow-secret': 's' }))
+    expect(res.status).toBe(200)
+    expect(entInsert).toHaveBeenCalledTimes(1)
+    expect(entInsert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'user-1', entitlement_key: 'podcast_premium', source_type: 'purchase', source_id: 'purch-1', expires_at: null,
+    }))
+  })
+
+  it('rejeu du même achat Premium → idempotent (conflit 23505 avalé, pas de crash)', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('CHARIOW_WEBHOOK_SECRET', 's')
+    // Achat déjà présent : pas de nouvel achat ; l'octroi retombe sur le conflit d'unicité DB.
+    const { entInsert } = premiumMocks({ existingPurchase: { id: 'purch-1' }, entInsertResult: { error: { code: '23505' } } })
+    const payload = validSalePayload({ product: { id: 'prod-1', name: 'Premium' } })
+    const res = await POST(makeReq(payload, { 'x-chariow-secret': 's' }))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.ok).toBe(true)
+    // L'octroi est tenté avec le même source_id → l'unicité (uniq_entitlement_purchase_source) garantit 1 droit.
+    expect(entInsert).toHaveBeenCalledWith(expect.objectContaining({ source_id: 'purch-1' }))
+  })
 })

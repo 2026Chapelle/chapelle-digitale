@@ -100,6 +100,7 @@ export const NAV_SECTIONS: AdminNavSection[] = [
       { label: 'Podcasts', href: '/admin/podcasts', icon: Mic, color: '#A855F7' },
       { label: 'Playlists Citadelle', href: '/admin/playlists', icon: Mic, color: '#D4AF37' },
       { label: 'Analytics audio', href: '/admin/podcast-analytics', icon: Headphones, color: '#0EA5E9' },
+      { label: 'Accès Premium', href: '/admin/podcast-premium', icon: Star, color: '#F5E6A7' },
       { label: 'Témoignages', href: '/admin/temoignages', icon: MessageSquare, color: '#22C55E' },
     ],
   },
