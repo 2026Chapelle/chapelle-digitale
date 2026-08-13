@@ -25,8 +25,12 @@ import {
   parsePodcastHero, selectFeatured, selectNewReleases, buildEmissions, listSeriesFrom,
   type VoixEpisode, type PodcastHeroConfig,
 } from '@/lib/podcast/sections'
+import { ContinueListening, type ContinueCard } from '@/components/podcast/ContinueListening'
+import {
+  fetchMyProgress, buildContinueListening, resumePositionSeconds, type AudioProgressRow,
+} from '@/lib/podcast/progress'
 
-function toTrack(ep: VoixEpisode): AudioTrack {
+function toTrack(ep: VoixEpisode, startAt?: number): AudioTrack {
   return {
     id: ep.id,
     titre: ep.title,
@@ -36,6 +40,7 @@ function toTrack(ep: VoixEpisode): AudioTrack {
     couleur: '#D4AF37',
     audioUrl: ep.audioUrl || undefined,
     coverUrl: ep.cover || undefined,
+    startAt: startAt && startAt > 0 ? startAt : undefined,   // PODCAST-2 : reprise
   }
 }
 
@@ -48,6 +53,7 @@ export default function PodcastPage() {
   const [hero, setHero] = useState<PodcastHeroConfig | null>(null)
   const [joinFor, setJoinFor] = useState<VoixEpisode | null>(null)
   const [selectedSerie, setSelectedSerie] = useState('all')
+  const [progressRows, setProgressRows] = useState<AudioProgressRow[]>([])   // PODCAST-2 : progression membre
   const catalogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -85,10 +91,25 @@ export default function PodcastPage() {
     return () => { cancelled = true }
   }, [])
 
-  // Interception lecture : membre → lecture réelle ; visiteur → invitation (acquis 0-A).
+  // PODCAST-2 : progression du membre (RLS → uniquement ses lignes). Visiteur = aucune.
+  useEffect(() => {
+    if (IS_DEMO_MODE || !user) { setProgressRows([]); return }
+    let cancelled = false
+    ;(async () => {
+      const rows = await fetchMyProgress(supabase)
+      if (!cancelled) setProgressRows(rows)
+    })()
+    return () => { cancelled = true }
+  }, [user])
+
+  const progressById = new Map(progressRows.map((r) => [r.podcast_id, r]))
+
+  // Interception lecture : membre → lecture réelle (avec REPRISE) ; visiteur → invitation (acquis 0-A).
   const requestPlay = (ep: VoixEpisode) => {
-    if (canPlay) toggle(toTrack(ep))
-    else setJoinFor(ep)
+    if (canPlay) {
+      const startAt = user ? resumePositionSeconds(progressById.get(ep.id)) : undefined
+      toggle(toTrack(ep, startAt))
+    } else setJoinFor(ep)
   }
   const onPlayRail = (ep: RailEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode))
   const onPlayCatalog = (ep: CatalogEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode))
@@ -98,6 +119,15 @@ export default function PodcastPage() {
   const nouveautes = selectNewReleases(episodes, { excludeIds: featured.map((e) => e.id), limit: 12 })
   const emissions = buildEmissions(episodes)
   const series = listSeriesFrom(episodes)
+
+  // PODCAST-2 : « Continuer l'écoute » (membre uniquement ; strictement dérivé des données réelles).
+  const continueItems: ContinueCard[] = user
+    ? buildContinueListening(episodes, progressRows).map((it) => ({
+        id: it.episode.id, title: it.episode.title, cover: it.episode.cover, serie: it.episode.serie,
+        duration: it.episode.duration, accessLevel: it.episode.accessLevel, audioUrl: it.episode.audioUrl,
+        positionSeconds: it.positionSeconds, percent: it.percent, remainingSeconds: it.remainingSeconds,
+      }))
+    : []
 
   const toRail = (list: VoixEpisode[]): RailEpisode[] =>
     list.map((e) => ({ id: e.id, title: e.title, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl }))
@@ -125,8 +155,15 @@ export default function PodcastPage() {
         {/* À LA UNE / EVENT ADMINISTRABLE */}
         <PodcastHero hero={hero} />
 
-        {/* Continuer l'écoute — RÉSERVÉ (lot audio_progress ultérieur) : masqué tant qu'aucune
-            progression réelle n'existe. Aucune fausse barre de progression n'est affichée. */}
+        {/* Continuer l'écoute (PODCAST-2) — membre + données réelles audio_progress uniquement.
+            Masqué pour les visiteurs et si aucune écoute en cours. Aucune progression simulée. */}
+        {canPlay && continueItems.length > 0 && (
+          <ContinueListening
+            items={continueItems}
+            isPlaying={isPlaying}
+            onResume={(ep) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as unknown as VoixEpisode))}
+          />
+        )}
 
         {/* À la une (is_featured) */}
         <EpisodeRail title="À la une" eyebrow="Sélection éditoriale" episodes={toRail(featured)} onPlay={onPlayRail} isPlaying={isPlaying} />

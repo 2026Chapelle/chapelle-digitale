@@ -16,6 +16,8 @@ export interface AudioTrack {
   couleur: string
   audioUrl?: string
   coverUrl?: string
+  /** PODCAST-2 : reprise — position de départ (secondes) appliquée après chargement des métadonnées. */
+  startAt?: number
 }
 
 interface AudioPlayerState {
@@ -64,6 +66,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const stateRef = useRef(state)
   stateRef.current = state
+  // PODCAST-2 : position de reprise à appliquer une fois les métadonnées chargées.
+  const pendingSeekRef = useRef<number | null>(null)
 
   // Élément audio unique
   useEffect(() => {
@@ -86,6 +90,12 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     const onMeta = () => {
       const a = audioRef.current
       if (!a || !a.duration || !Number.isFinite(a.duration)) return
+      // PODCAST-2 : reprise à la position enregistrée (garde-fous : > 0, < durée-2s).
+      const seekTo = pendingSeekRef.current
+      pendingSeekRef.current = null
+      if (seekTo != null && seekTo > 0 && seekTo < a.duration - 2) {
+        try { a.currentTime = seekTo } catch { /* seek impossible → lecture depuis 0 */ }
+      }
       setState((s) => {
         if (!s.track) return s
         const secs = Math.floor(a.duration)
@@ -148,6 +158,8 @@ export function AudioPlayerProvider({ children }: { children: React.ReactNode })
     if (!same) {
       a.src = track.audioUrl
       a.currentTime = 0
+      // PODCAST-2 : mémorise la position de reprise, appliquée à `loadedmetadata`.
+      pendingSeekRef.current = track.startAt && track.startAt > 0 ? track.startAt : null
     }
     void a.play().catch(() => {
       /* autoplay bloqué ou URL invalide — pas de faux état */

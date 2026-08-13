@@ -12,6 +12,7 @@ import { MotionProvider } from '@/components/providers/MotionProvider'
 import { DemoBanner } from '@/components/ui/DemoBanner'
 import { AudioPlayerProvider } from '@/components/providers/AudioPlayerProvider'
 import { AudioPlayerBar } from '@/components/ui/AudioPlayerBar'
+import { AudioProgressSync } from '@/components/podcast/AudioProgressSync'
 import { WebVitalsReporter } from '@/components/providers/WebVitalsReporter'
 import { AnalyticsTracker } from '@/components/providers/AnalyticsTracker'
 import { SkipLink } from '@/components/ui/SkipLink'
@@ -197,6 +198,7 @@ export default function RootLayout({
               <AudioPlayerProvider>
               {children}
               <AudioPlayerBar />
+              <AudioProgressSync />
               <DemoBanner />
               <Toaster
                 position="top-center"
