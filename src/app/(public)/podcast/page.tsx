@@ -26,6 +26,7 @@ import {
   type VoixEpisode, type PodcastHeroConfig,
 } from '@/lib/podcast/sections'
 import { ContinueListening, type ContinueCard } from '@/components/podcast/ContinueListening'
+import { PlaylistsSections } from '@/components/podcast/PlaylistsSections'
 import {
   fetchMyProgress, buildContinueListening, resumePositionSeconds, type AudioProgressRow,
 } from '@/lib/podcast/progress'
@@ -174,9 +175,10 @@ export default function PodcastPage() {
         {/* Émissions (serie dynamique) */}
         <EmissionsRail emissions={emissions} onSelect={selectEmission} />
 
-        {/* Playlists de La Citadelle / Mes playlists — RÉSERVÉ : aucun modèle playlists en base
-            (audio_playlists / items). Sections masquées ; « + Créer une playlist » non affiché
-            tant que le backend n'existe pas. Lot ultérieur. */}
+        {/* Playlists de La Citadelle (officielles) + Mes playlists (membre) — PODCAST-3.
+            Officielles visibles selon RLS (visiteur inclus si publiques) ; lecture verrouillée
+            pour le visiteur (JoinToListenModal). Une playlist ne déverrouille aucun access_level. */}
+        <PlaylistsSections episodes={episodes} userId={user?.id ?? null} canPlay={canPlay} onPlayEpisode={requestPlay} />
 
         {/* Tous les épisodes */}
         <div ref={catalogRef} className="scroll-mt-24">

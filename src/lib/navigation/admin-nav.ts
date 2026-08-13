@@ -98,6 +98,7 @@ export const NAV_SECTIONS: AdminNavSection[] = [
       { label: 'Médias', href: '/admin/medias', icon: Film, color: '#EF4444' },
       { label: 'Lives & Cultes', href: '/admin/lives', icon: Radio, color: '#F43F5E' },
       { label: 'Podcasts', href: '/admin/podcasts', icon: Mic, color: '#A855F7' },
+      { label: 'Playlists Citadelle', href: '/admin/playlists', icon: Mic, color: '#D4AF37' },
       { label: 'Témoignages', href: '/admin/temoignages', icon: MessageSquare, color: '#22C55E' },
     ],
   },
