@@ -6,6 +6,7 @@
 import { useMemo, useState } from 'react'
 import { Search, Filter, Play, Pause, Clock, X } from 'lucide-react'
 import { PodcastCover } from './PodcastCover'
+import { PremiumBadge } from './PremiumBadge'
 import type { RailEpisode } from './EpisodeRail'
 
 export interface CatalogEpisode extends RailEpisode {
@@ -113,10 +114,7 @@ export function AllEpisodesSection({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     {ep.serie && <span className="text-[10px] font-inter font-bold tracking-widest uppercase text-gold/70 truncate">{ep.serie}</span>}
-                    {premium && (
-                      <span className="text-[9px] font-inter font-bold tracking-widest uppercase px-1.5 py-0.5 rounded flex-shrink-0"
-                        style={{ background: 'rgba(212,175,55,0.14)', color: '#F5E6A7', border: '1px solid rgba(212,175,55,0.3)' }}>Premium</span>
-                    )}
+                    {premium && <PremiumBadge className="flex-shrink-0" />}
                   </div>
                   <h3 className="font-inter text-sm font-semibold text-pearl leading-snug line-clamp-2 mt-0.5">{ep.title}</h3>
                   <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'rgba(245,230,216,0.4)' }}>

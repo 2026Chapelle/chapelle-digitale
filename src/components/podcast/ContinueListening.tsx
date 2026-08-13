@@ -6,6 +6,7 @@
 import { useRef } from 'react'
 import { Play, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { PodcastCover } from './PodcastCover'
+import { PremiumBadge } from './PremiumBadge'
 import type { RailEpisode } from './EpisodeRail'
 
 export interface ContinueCard extends RailEpisode {
@@ -73,6 +74,7 @@ export function ContinueListening({
               >
                 <div className="relative">
                   <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="240px" />
+                  {ep.accessLevel === 'premium' && <PremiumBadge className="absolute top-2 left-2 z-[3]" />}
                   <span className="absolute bottom-2 right-2 z-[3] w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
                     style={{ background: 'linear-gradient(135deg, #D4AF37, #b8952e)', color: '#1a1206' }} aria-hidden>
                     {playing ? <Play className="w-5 h-5" fill="currentColor" /> : <RotateCcw className="w-5 h-5" />}

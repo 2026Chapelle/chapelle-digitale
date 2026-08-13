@@ -32,22 +32,33 @@ export interface PremiumNotice {
   ctaLabel?: string
 }
 
+export interface PremiumNoticeContext {
+  /** Le membre a DÉJÀ eu l'accès mais il n'est plus actif (expiré/révoqué) → copie distincte. */
+  lapsed?: boolean
+}
+
 /**
  * Message affiché sur un refus « premium ». Avec offre réelle → invitation + CTA vers
  * la destination d'achat ; sans offre → message neutre (aucun CTA), conforme à l'acquis
- * PODCAST-5B (pas de fausse destination).
+ * PODCAST-5B (pas de fausse destination). Si l'accès a EXPIRÉ/été RÉVOQUÉ (`lapsed`),
+ * la copie le reflète (« n'est plus actif ») — sans jamais contourner le gate serveur.
  */
-export function premiumDeniedNotice(offer: PremiumOffer | null | undefined): PremiumNotice {
+export function premiumDeniedNotice(
+  offer: PremiumOffer | null | undefined,
+  ctx: PremiumNoticeContext = {},
+): PremiumNotice {
+  const lapsed = ctx.lapsed === true
+  const title = lapsed ? 'Accès Premium expiré' : 'Contenu premium'
+  const message = lapsed
+    ? "Ton accès Premium n'est plus actif. Réactive-le pour continuer à écouter cet enseignement."
+    : 'Cet épisode fait partie de l’offre Premium de La Voix du Royaume. Débloque l’accès pour l’écouter.'
   if (offer) {
-    return {
-      title: 'Contenu premium',
-      message: 'Cet épisode fait partie de l’offre Premium de La Voix du Royaume. Débloquez l’accès pour l’écouter.',
-      ctaUrl: offer.url,
-      ctaLabel: 'Découvrir le Premium',
-    }
+    return { title, message, ctaUrl: offer.url, ctaLabel: lapsed ? 'Réactiver le Premium' : 'Découvrir le Premium' }
   }
   return {
-    title: 'Contenu premium',
-    message: "Cet épisode premium n'est pas encore accessible à ton compte.",
+    title,
+    message: lapsed
+      ? "Ton accès Premium n'est plus actif."
+      : "Cet épisode premium n'est pas encore accessible à ton compte.",
   }
 }

@@ -7,6 +7,7 @@
 import { useRef } from 'react'
 import { Play, Pause, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { PodcastCover } from './PodcastCover'
+import { PremiumBadge } from './PremiumBadge'
 
 export interface RailEpisode {
   id: string
@@ -38,12 +39,7 @@ export function EpisodeCoverCard({
       >
         <div className="relative">
           <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="192px" />
-          {premium && (
-            <span className="absolute top-2 left-2 z-[3] text-[9px] font-inter font-bold tracking-widest uppercase px-1.5 py-0.5 rounded"
-              style={{ background: 'rgba(212,175,55,0.18)', color: '#F5E6A7', border: '1px solid rgba(212,175,55,0.4)' }}>
-              Premium
-            </span>
-          )}
+          {premium && <PremiumBadge className="absolute top-2 left-2 z-[3]" />}
           {/* Bouton lecture flottant (apparait au survol / focus) */}
           <span
             className="absolute bottom-2 right-2 z-[3] w-10 h-10 rounded-full flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 transition-all"

@@ -34,6 +34,8 @@ import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
 import type { PlaybackReason } from '@/lib/podcast/playback-access'
 import { PODCAST_PREMIUM_ENTITLEMENT_KEY } from '@/lib/podcast/entitlement'
 import { normalizePremiumOffer, premiumDeniedNotice, type PremiumOffer, type PremiumNotice } from '@/lib/podcast/premium-offer'
+import { fetchMyPremiumStatus, type MyPremiumStatus } from '@/lib/podcast/premium-status'
+import { PremiumBadge } from '@/components/podcast/PremiumBadge'
 
 // PODCAST-4 : contexte d'origine d'une lecture (analytics), transporté sur la piste.
 interface PlayContext { sourceContext?: string; playlistId?: string }
@@ -57,12 +59,12 @@ function toTrack(ep: VoixEpisode, playbackUrl: string, startAt?: number, ctx?: P
 
 /** Message d'invite selon la raison de refus serveur (jamais d'URL média exposée).
  *  Pour un refus premium, un CTA d'achat n'est ajouté QUE si une offre réelle existe. */
-function noticeFor(reason: PlaybackReason, premiumOffer: PremiumOffer | null): PremiumNotice {
+function noticeFor(reason: PlaybackReason, premiumOffer: PremiumOffer | null, lapsed = false): PremiumNotice {
   switch (reason) {
     case 'member_only':
       return { title: 'Réservé aux membres', message: "Cet épisode est réservé aux membres de la Citadelle. Rejoins la communauté pour l'écouter." }
     case 'premium_denied':
-      return premiumDeniedNotice(premiumOffer)
+      return premiumDeniedNotice(premiumOffer, { lapsed })
     case 'no_media':
       return { title: 'Bientôt disponible', message: "L'audio de cet épisode arrive bientôt." }
     default:
@@ -80,6 +82,7 @@ export default function PodcastPage() {
   const [joinFor, setJoinFor] = useState<VoixEpisode | null>(null)
   const [notice, setNotice] = useState<PremiumNotice | null>(null)
   const [premiumOffer, setPremiumOffer] = useState<PremiumOffer | null>(null)
+  const [myPremium, setMyPremium] = useState<MyPremiumStatus>({ active: false, hadAny: false, activeExpiresAt: null })
   const [selectedSerie, setSelectedSerie] = useState('all')
   const [progressRows, setProgressRows] = useState<AudioProgressRow[]>([])   // PODCAST-2 : progression membre
   const catalogRef = useRef<HTMLDivElement>(null)
@@ -151,6 +154,18 @@ export default function PodcastPage() {
     return () => { cancelled = true }
   }, [])
 
+  // PODCAST-6 : état Premium DU MEMBRE (badge « Premium actif » + copie de refus).
+  // Lecture RLS select-own (5B) ; visiteur = aucun droit. Ne déverrouille rien (gate serveur).
+  useEffect(() => {
+    if (IS_DEMO_MODE || !user) { setMyPremium({ active: false, hadAny: false, activeExpiresAt: null }); return }
+    let cancelled = false
+    ;(async () => {
+      const status = await fetchMyPremiumStatus(supabase)
+      if (!cancelled) setMyPremium(status)
+    })()
+    return () => { cancelled = true }
+  }, [user])
+
   const progressById = new Map(progressRows.map((r) => [r.podcast_id, r]))
 
   // Interception lecture (PODCAST-SEC) : visiteur non connecté → invitation (acquis 0-A) ;
@@ -166,7 +181,11 @@ export default function PodcastPage() {
       return
     }
     if (res.error === 'auth_required') setJoinFor(ep)
-    else setNotice(noticeFor(res.error, premiumOffer))
+    else {
+      // Accès Premium déjà possédé mais expiré/révoqué → copie « n'est plus actif ».
+      const lapsed = res.error === 'premium_denied' && myPremium.hadAny && !myPremium.active
+      setNotice(noticeFor(res.error, premiumOffer, lapsed))
+    }
   }
   const onPlayRail = (ep: RailEpisode, ctx: PlayContext = {}) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode), ctx)
   const onPlayCatalog = (ep: CatalogEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode), { sourceContext: 'catalog' })
@@ -204,9 +223,13 @@ export default function PodcastPage() {
           <h1 className="font-cinzel font-bold text-cinematic-gold text-3xl md:text-5xl leading-tight">
             La Voix du Royaume
           </h1>
-          <p className="font-inter text-sm md:text-base mt-2" style={{ color: 'rgba(245,230,216,0.55)' }}>
-            Podcasts &amp; enseignements audio
-          </p>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <p className="font-inter text-sm md:text-base" style={{ color: 'rgba(245,230,216,0.55)' }}>
+              Podcasts &amp; enseignements audio
+            </p>
+            {/* PODCAST-6 : état possédé, discret. N'apparaît que si un droit est réellement actif. */}
+            {myPremium.active && <PremiumBadge tone="active" />}
+          </div>
         </header>
 
         {/* À LA UNE / EVENT ADMINISTRABLE */}

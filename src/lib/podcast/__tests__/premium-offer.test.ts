@@ -26,4 +26,16 @@ describe('premiumDeniedNotice', () => {
     expect(n.ctaUrl).toBeUndefined()
     expect(n.title).toBe('Contenu premium')
   })
+  it('accès expiré/révoqué (lapsed) + offre → copie « n’est plus actif » + CTA réactiver', () => {
+    const n = premiumDeniedNotice({ url: 'https://buy.example/x', titre: null }, { lapsed: true })
+    expect(n.title).toBe('Accès Premium expiré')
+    expect(n.message).toMatch(/n'est plus actif/i)
+    expect(n.ctaUrl).toBe('https://buy.example/x')
+    expect(n.ctaLabel).toMatch(/réactiver/i)
+  })
+  it('lapsed SANS offre → copie « n’est plus actif », AUCUN CTA (pas de faux bouton)', () => {
+    const n = premiumDeniedNotice(null, { lapsed: true })
+    expect(n.ctaUrl).toBeUndefined()
+    expect(n.message).toMatch(/n'est plus actif/i)
+  })
 })

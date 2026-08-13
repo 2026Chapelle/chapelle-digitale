@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus, X, Play, Trash2, ChevronLeft, ChevronRight, ListMusic, Loader2, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react'
 import { PodcastCover } from './PodcastCover'
+import { PremiumBadge } from './PremiumBadge'
 import { supabase } from '@/lib/supabase'
 import type { VoixEpisode } from '@/lib/podcast/sections'
 import {
@@ -240,7 +241,7 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         {ep.serie && <span className="text-[10px] font-inter font-bold tracking-widest uppercase text-gold/70 truncate">{ep.serie}</span>}
-                        {premium && <span className="text-[9px] font-inter font-bold uppercase px-1.5 py-0.5 rounded flex-shrink-0" style={{ background: 'rgba(212,175,55,0.14)', color: '#F5E6A7' }}>Premium</span>}
+                        {premium && <PremiumBadge className="flex-shrink-0" />}
                       </div>
                       <p className="font-inter text-sm text-pearl/85 truncate">{ep.title}</p>
                     </div>

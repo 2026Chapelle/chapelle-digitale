@@ -12,9 +12,12 @@
  * les colonnes (déploiement partiel / prod pré-migration). Elles ne jettent jamais
  * et retombent sur des defaults sûrs → aucune régression PODCAST-0A.
  *
- * SÉCURITÉ : `access_level` n'est PAS un verrou. La RLS `cms_podcasts_read` laisse
- * `anon`/`authenticated` lire toute ligne `status='published'`, audio_url compris.
- * Le vrai verrou premium (URLs signées / RPC gated) est un lot séparé.
+ * SÉCURITÉ : `access_level` est une MÉTADONNÉE ÉDITORIALE (affichage, tri, badge), pas un
+ * verrou en soi — la RLS `cms_podcasts_read` laisse `anon`/`authenticated` lire les lignes
+ * `status='published'`. L'ENFORCEMENT RÉEL est assuré côté serveur par PODCAST-SEC
+ * (/api/podcast/[id]/play : identité vérifiée + URL signée jamais exposée au client) et,
+ * pour `premium`, par l'entitlement canonique PODCAST-5B/5C (`has_podcast_premium_access`,
+ * fail-closed). Le champ ci-dessous alimente l'UI ; il ne remplace jamais ce gate.
  */
 
 // ── Niveaux d'accès ─────────────────────────────────────────────────────────

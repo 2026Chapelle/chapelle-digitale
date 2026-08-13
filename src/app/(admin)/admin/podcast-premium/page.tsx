@@ -4,9 +4,12 @@
  * Rechercher un membre, voir son statut Premium, accorder (durée facultative) ou révoquer.
  * S'appuie sur /api/admin/podcast-premium (garde cookie admin, primitives canoniques).
  */
-import { useState, useCallback } from 'react'
-import { Loader2, Search, Star, ShieldOff, Check } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { Loader2, Search, Star, ShieldOff, Check, ExternalLink } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { supabase } from '@/lib/supabase'
+import { PODCAST_PREMIUM_ENTITLEMENT_KEY } from '@/lib/podcast/entitlement'
+import { normalizePremiumOffer, type PremiumOffer } from '@/lib/podcast/premium-offer'
 
 interface MemberRow {
   id: string
@@ -25,6 +28,26 @@ export default function AdminPodcastPremiumPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState('')
   const [msg, setMsg] = useState('')
+  const [offer, setOffer] = useState<PremiumOffer | null>(null)
+  const [offerLoaded, setOfferLoaded] = useState(false)
+
+  // Statut de l'offre Premium (CTA membre) : produit mappé, actif, lien_achat valide ?
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data } = await supabase.from('marketplace_products')
+          .select('lien_achat, titre')
+          .eq('entitlement_key', PODCAST_PREMIUM_ENTITLEMENT_KEY)
+          .eq('actif', true)
+          .limit(1)
+          .maybeSingle()
+        if (!cancelled) setOffer(normalizePremiumOffer(data as { lien_achat?: string | null; titre?: string | null } | null))
+      } catch { /* pas d'offre */ }
+      if (!cancelled) setOfferLoaded(true)
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   const search = useCallback(async () => {
     setLoading(true); setMsg(''); setSearched(true)
@@ -69,6 +92,23 @@ export default function AdminPodcastPremiumPage() {
           title={<>Accès <span className="text-cinematic-gold">Premium</span></>}
           description="Accordez ou révoquez manuellement le droit Premium podcast d'un membre. L'achat confirmé l'active automatiquement ; cet écran couvre les octrois et retraits manuels."
         />
+
+        {/* Statut de l'offre Premium (CTA membre) — lecture seule. */}
+        {offerLoaded && (
+          <div className="card-cinematic p-4 flex flex-col sm:flex-row sm:items-center gap-3 text-sm font-inter">
+            <span className="inline-flex items-center gap-2 text-pearl/70">
+              <span className={`w-2 h-2 rounded-full ${offer ? 'bg-emerald-400' : 'bg-pearl/30'}`} aria-hidden />
+              {offer
+                ? <>Offre Premium configurée — le CTA d'achat est <strong className="text-cinematic-gold">actif</strong> pour les membres.</>
+                : <>Aucune offre Premium canonique configurée — les membres voient un message neutre (aucun CTA). Configurez un produit Marketplace avec <code className="text-pearl/80">entitlement_key=podcast_premium</code> et un lien d'achat.</>}
+            </span>
+            {offer && (
+              <a href={offer.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-cinematic-gold hover:underline text-xs">
+                <ExternalLink className="w-3.5 h-3.5" /> Voir la destination
+              </a>
+            )}
+          </div>
+        )}
 
         <div className="card-cinematic p-4">
           <div className="flex flex-col sm:flex-row gap-3">
