@@ -33,8 +33,11 @@ import {
 import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
 import type { PlaybackReason } from '@/lib/podcast/playback-access'
 
+// PODCAST-4 : contexte d'origine d'une lecture (analytics), transporté sur la piste.
+interface PlayContext { sourceContext?: string; playlistId?: string }
+
 // PODCAST-SEC : la piste reçoit l'URL RÉSOLUE côté serveur (jamais issue du client).
-function toTrack(ep: VoixEpisode, playbackUrl: string, startAt?: number): AudioTrack {
+function toTrack(ep: VoixEpisode, playbackUrl: string, startAt?: number, ctx?: PlayContext): AudioTrack {
   return {
     id: ep.id,
     titre: ep.title,
@@ -45,6 +48,8 @@ function toTrack(ep: VoixEpisode, playbackUrl: string, startAt?: number): AudioT
     audioUrl: playbackUrl,
     coverUrl: ep.cover || undefined,
     startAt: startAt && startAt > 0 ? startAt : undefined,   // PODCAST-2 : reprise
+    sourceContext: ctx?.sourceContext,                        // PODCAST-4 : analytics
+    playlistId: ctx?.playlistId,
   }
 }
 
@@ -127,21 +132,21 @@ export default function PodcastPage() {
 
   // Interception lecture (PODCAST-SEC) : visiteur non connecté → invitation (acquis 0-A) ;
   // sinon on demande au SERVEUR l'URL autorisée (le client ne connaît plus l'URL média).
-  const requestPlay = async (ep: VoixEpisode) => {
+  const requestPlay = async (ep: VoixEpisode, ctx: PlayContext = {}) => {
     if (!canPlay) { setJoinFor(ep); return }
     // Même épisode déjà actif → simple pause/reprise (pas de nouvelle résolution).
     if (track?.id === ep.id) { isPlaying(ep.id) ? pause() : resume(); return }
     const res = await resolvePlayback(ep.id)
     if (isResolved(res)) {
       const startAt = user ? resumePositionSeconds(progressById.get(ep.id)) : undefined
-      play(toTrack(ep, res.url, startAt))
+      play(toTrack(ep, res.url, startAt, { sourceContext: ctx.sourceContext ?? 'catalog', playlistId: ctx.playlistId }))
       return
     }
     if (res.error === 'auth_required') setJoinFor(ep)
     else setNotice(noticeFor(res.error))
   }
-  const onPlayRail = (ep: RailEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode))
-  const onPlayCatalog = (ep: CatalogEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode))
+  const onPlayRail = (ep: RailEpisode, ctx: PlayContext = {}) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode), ctx)
+  const onPlayCatalog = (ep: CatalogEpisode) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as VoixEpisode), { sourceContext: 'catalog' })
 
   // Sections dérivées (pures, 0-B).
   const featured = selectFeatured(episodes)
@@ -190,15 +195,15 @@ export default function PodcastPage() {
           <ContinueListening
             items={continueItems}
             isPlaying={isPlaying}
-            onResume={(ep) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as unknown as VoixEpisode))}
+            onResume={(ep) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as unknown as VoixEpisode), { sourceContext: 'continue_listening' })}
           />
         )}
 
         {/* À la une (is_featured) */}
-        <EpisodeRail title="À la une" eyebrow="Sélection éditoriale" episodes={toRail(featured)} onPlay={onPlayRail} isPlaying={isPlaying} />
+        <EpisodeRail title="À la une" eyebrow="Sélection éditoriale" episodes={toRail(featured)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'featured' })} isPlaying={isPlaying} />
 
         {/* Nouveautés (published_at DESC, hors featured) */}
-        <EpisodeRail title="Nouveautés" eyebrow="Derniers épisodes" episodes={toRail(nouveautes)} onPlay={onPlayRail} isPlaying={isPlaying} />
+        <EpisodeRail title="Nouveautés" eyebrow="Derniers épisodes" episodes={toRail(nouveautes)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'new_release' })} isPlaying={isPlaying} />
 
         {/* Émissions (serie dynamique) */}
         <EmissionsRail emissions={emissions} onSelect={selectEmission} />

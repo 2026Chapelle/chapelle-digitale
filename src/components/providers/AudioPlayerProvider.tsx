@@ -18,6 +18,10 @@ export interface AudioTrack {
   coverUrl?: string
   /** PODCAST-2 : reprise — position de départ (secondes) appliquée après chargement des métadonnées. */
   startAt?: number
+  /** PODCAST-4 (analytics) : contexte d'origine de la lecture (catalog|featured|official_playlist…). */
+  sourceContext?: string
+  /** PODCAST-4 (analytics) : playlist d'origine si la lecture vient d'une playlist. */
+  playlistId?: string
 }
 
 interface AudioPlayerState {

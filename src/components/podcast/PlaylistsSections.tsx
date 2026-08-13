@@ -17,13 +17,16 @@ import {
   type Playlist, type PlaylistItem,
 } from '@/lib/podcast/playlists'
 
+/** PODCAST-4 : contexte analytics transmis lors d'une lecture depuis une playlist. */
+export interface PlaylistPlayContext { sourceContext?: string; playlistId?: string }
+
 export function PlaylistsSections({
   episodes, userId, canPlay, onPlayEpisode,
 }: {
   episodes: VoixEpisode[]
   userId: string | null
   canPlay: boolean
-  onPlayEpisode: (ep: VoixEpisode) => void
+  onPlayEpisode: (ep: VoixEpisode, ctx?: PlaylistPlayContext) => void
 }) {
   const [official, setOfficial] = useState<Playlist[]>([])
   const [mine, setMine] = useState<Playlist[]>([])
@@ -157,9 +160,14 @@ function CreateModal({ onClose, onCreated, userId }: { onClose: () => void; onCr
 // ── Vue détail (lecture + gestion si owner) ──────────────────────────────────
 function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpisode, onChanged, firstCover }: {
   playlist: Playlist; episodes: VoixEpisode[]; canPlay: boolean; isOwner: boolean
-  onClose: () => void; onPlayEpisode: (ep: VoixEpisode) => void; onChanged: () => void; firstCover: (items: PlaylistItem[]) => string | null
+  onClose: () => void; onPlayEpisode: (ep: VoixEpisode, ctx?: PlaylistPlayContext) => void; onChanged: () => void; firstCover: (items: PlaylistItem[]) => string | null
 }) {
   const byId = new Map(episodes.map((e) => [e.id, e]))
+  // PODCAST-4 : origine de la lecture pour l'analytics (savoir quelle playlist génère l'écoute).
+  const playCtx: PlaylistPlayContext = {
+    sourceContext: playlist.playlist_type === 'official' ? 'official_playlist' : 'personal_playlist',
+    playlistId: playlist.id,
+  }
   const [items, setItems] = useState<PlaylistItem[]>([])
   const [loading, setLoading] = useState(true)
   const [addId, setAddId] = useState('')
@@ -225,7 +233,7 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
                 return (
                   <div key={ep.id} className="flex items-center gap-3 p-2 rounded-lg group" style={{ background: 'rgba(255,255,255,0.03)' }}>
                     <span className="text-pearl/30 text-xs w-5 text-center">{i + 1}</span>
-                    <button onClick={() => onPlayEpisode(ep)} className="relative w-12 h-12 flex-shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37] rounded-lg" aria-label={`Écouter ${ep.title}`}>
+                    <button onClick={() => onPlayEpisode(ep, playCtx)} className="relative w-12 h-12 flex-shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37] rounded-lg" aria-label={`Écouter ${ep.title}`}>
                       <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="48px" rounded="rounded-lg" />
                       <span className="absolute inset-0 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'rgba(6,6,10,0.45)' }}><Play className="w-4 h-4 text-gold" fill="currentColor" /></span>
                     </button>
@@ -252,14 +260,14 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
           {isOwner && (
             <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
               {canPlay && eps.length > 0 && (
-                <button onClick={() => onPlayEpisode(eps[0])} className="btn-gold-cinematic px-4 py-2 text-xs"><RotateCcw className="w-4 h-4" /> Lire depuis le début</button>
+                <button onClick={() => onPlayEpisode(eps[0], playCtx)} className="btn-gold-cinematic px-4 py-2 text-xs"><RotateCcw className="w-4 h-4" /> Lire depuis le début</button>
               )}
               <button onClick={del} className="ml-auto text-xs font-inter text-danger/80 hover:text-danger inline-flex items-center gap-1.5"><Trash2 className="w-4 h-4" /> Supprimer la playlist</button>
             </div>
           )}
           {!isOwner && canPlay && eps.length > 0 && (
             <div className="mt-6 pt-4 border-t border-white/5">
-              <button onClick={() => onPlayEpisode(eps[0])} className="btn-gold-cinematic px-4 py-2 text-xs"><Play className="w-4 h-4" fill="currentColor" /> Lire depuis le début</button>
+              <button onClick={() => onPlayEpisode(eps[0], playCtx)} className="btn-gold-cinematic px-4 py-2 text-xs"><Play className="w-4 h-4" fill="currentColor" /> Lire depuis le début</button>
             </div>
           )}
         </div>

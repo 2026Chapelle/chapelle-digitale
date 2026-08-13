@@ -13,6 +13,7 @@ import { DemoBanner } from '@/components/ui/DemoBanner'
 import { AudioPlayerProvider } from '@/components/providers/AudioPlayerProvider'
 import { AudioPlayerBar } from '@/components/ui/AudioPlayerBar'
 import { AudioProgressSync } from '@/components/podcast/AudioProgressSync'
+import { AudioAnalyticsTracker } from '@/components/podcast/AudioAnalyticsTracker'
 import { WebVitalsReporter } from '@/components/providers/WebVitalsReporter'
 import { AnalyticsTracker } from '@/components/providers/AnalyticsTracker'
 import { SkipLink } from '@/components/ui/SkipLink'
@@ -199,6 +200,7 @@ export default function RootLayout({
               {children}
               <AudioPlayerBar />
               <AudioProgressSync />
+              <AudioAnalyticsTracker />
               <DemoBanner />
               <Toaster
                 position="top-center"

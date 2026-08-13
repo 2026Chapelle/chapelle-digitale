@@ -4,13 +4,13 @@ import { getVisibleSections, isItemVisible } from '@/lib/navigation/nav-visibili
 import type { AdminNavItem } from '@/lib/navigation/admin-nav'
 
 // Liste EXACTE des liens de navigation admin (référence anti-régression).
-// 48 liens historiques + V2.9-B : /admin/contenus-en-vedette.
+// 48 liens historiques + V2.9-B : /admin/contenus-en-vedette + PODCAST-4 : /admin/podcast-analytics.
 const LEGACY_HREFS = [
   '/admin/command-center', '/admin/global-command', '/admin/dashboard', '/admin/pastoral',
   '/admin/nouveaux-venus', '/admin/intelligence-pastorale', '/admin/gouvernement', '/admin/gouvernance',
   '/admin/international', '/admin/nation-dashboard', '/admin/sante-spirituelle', '/admin/activites',
   '/admin/cartographie', '/admin/membres', '/admin/roles', '/admin/communication', '/admin/tunnel-integration',
-  '/admin/homepage-blocks', '/admin/chapelle-home', '/admin/contenus-en-vedette', '/admin/pages', '/admin/articles', '/admin/medias', '/admin/lives', '/admin/podcasts', '/admin/playlists',
+  '/admin/homepage-blocks', '/admin/chapelle-home', '/admin/contenus-en-vedette', '/admin/pages', '/admin/articles', '/admin/medias', '/admin/lives', '/admin/podcasts', '/admin/playlists', '/admin/podcast-analytics',
   '/admin/enseignements', '/admin/formations', '/admin/modules', '/admin/parcours', '/admin/questions-formations',
   '/admin/evenements', '/admin/inscriptions', '/admin/temoignages', '/admin/dons', '/admin/transactions',
   '/admin/marketplace', '/admin/notifications', '/admin/prieres', '/admin/prieres-guides', '/admin/temoignages-prieres',
