@@ -31,6 +31,10 @@ export type AudioEventType = (typeof AUDIO_EVENT_TYPES)[number]
 export const AUDIO_SOURCE_CONTEXTS = [
   'catalog', 'featured', 'new_release', 'continue_listening',
   'official_playlist', 'personal_playlist', 'homepage_instant', 'homepage_premium', 'direct',
+  // PODCAST-8 : lecture depuis une recommandation. Deux dimensions DISTINCTES (pas de quasi-doublon) :
+  //  • 'personalized' = rail « Pour toi » (ranking par membre) ;
+  //  • 'popular'      = rail « Populaire dans La Voix du Royaume » (agrégat global, non personnalisé).
+  'personalized', 'popular',
 ] as const
 export type AudioSourceContext = (typeof AUDIO_SOURCE_CONTEXTS)[number]
 

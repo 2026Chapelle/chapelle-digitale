@@ -10,7 +10,7 @@
  *   • « Playlists de La Citadelle » / « Mes playlists » → nécessitent un modèle playlists
  *     (audio_playlists / items) inexistant. Aucune fausse donnée n'est fabriquée.
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
@@ -31,12 +31,17 @@ import {
   fetchMyProgress, buildContinueListening, resumePositionSeconds, type AudioProgressRow,
 } from '@/lib/podcast/progress'
 import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
-import type { PlaybackReason } from '@/lib/podcast/playback-access'
+import { isMemberStatus, type PlaybackReason } from '@/lib/podcast/playback-access'
 import { PODCAST_PREMIUM_ENTITLEMENT_KEY } from '@/lib/podcast/entitlement'
 import { normalizePremiumOffer, premiumDeniedNotice, type PremiumOffer, type PremiumNotice } from '@/lib/podcast/premium-offer'
 import { fetchMyPremiumStatus, type MyPremiumStatus } from '@/lib/podcast/premium-status'
 import { PremiumBadge } from '@/components/podcast/PremiumBadge'
 import { AddToPlaylistSheet } from '@/components/podcast/AddToPlaylistSheet'
+import { fetchMyPlaylists } from '@/lib/podcast/playlists'
+import {
+  buildMemberSignals, normalizePopularity, rankRecommendations,
+  type PopularityMap, type RecoEpisode,
+} from '@/lib/podcast/recommendations'
 
 // PODCAST-4 : contexte d'origine d'une lecture (analytics), transporté sur la piste.
 interface PlayContext { sourceContext?: string; playlistId?: string }
@@ -75,8 +80,9 @@ function noticeFor(reason: PlaybackReason, premiumOffer: PremiumOffer | null, la
 
 export default function PodcastPage() {
   const { play, pause, resume, isPlaying, track } = useAudioPlayer()
-  const { user, isDemo } = useAuth()
+  const { user, profile, isDemo } = useAuth()
   const canPlay = Boolean(user) || isDemo
+  const isMember = isMemberStatus(profile?.membre_statut)   // PODCAST-8 : « écoutable maintenant »
 
   const [episodes, setEpisodes] = useState<VoixEpisode[]>([])
   const [hero, setHero] = useState<PodcastHeroConfig | null>(null)
@@ -86,6 +92,9 @@ export default function PodcastPage() {
   const [myPremium, setMyPremium] = useState<MyPremiumStatus>({ active: false, hadAny: false, activeExpiresAt: null })
   const [addToPlaylistFor, setAddToPlaylistFor] = useState<string | null>(null)   // PODCAST-7 : épisode ciblé par ⋯
   const [playlistRefresh, setPlaylistRefresh] = useState(0)                        // signal de rafraîchissement « Mes playlists »
+  const [popularity, setPopularity] = useState<PopularityMap>({})                  // PODCAST-8 : popularité globale (agrégat)
+  const [playlistEpisodeIds, setPlaylistEpisodeIds] = useState<string[]>([])       // PODCAST-8 : affinité playlists membre
+  const nowMs = useMemo(() => Date.now(), [])                                        // horloge figée → ordre stable/déterministe
   const [selectedSerie, setSelectedSerie] = useState('all')
   const [progressRows, setProgressRows] = useState<AudioProgressRow[]>([])   // PODCAST-2 : progression membre
   const catalogRef = useRef<HTMLDivElement>(null)
@@ -169,6 +178,36 @@ export default function PodcastPage() {
     return () => { cancelled = true }
   }, [user])
 
+  // PODCAST-8 : popularité globale (tous publics ; agrégat non nominatif). Fail-safe → {}.
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/podcast/popularity')
+        const j = await res.json()
+        if (!cancelled && j?.episodes) setPopularity(j.episodes as PopularityMap)
+      } catch { /* pas de popularité → reco retombe sur récence/featured */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  // PODCAST-8 : ids d'épisodes présents dans les playlists PERSONNELLES du membre (affinité).
+  useEffect(() => {
+    if (IS_DEMO_MODE || !user) { setPlaylistEpisodeIds([]); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const mine = await fetchMyPlaylists(supabase)
+        const ids = mine.map((p) => p.id)
+        if (ids.length === 0) { if (!cancelled) setPlaylistEpisodeIds([]); return }
+        const { data } = await supabase.from('audio_playlist_items').select('podcast_id').in('playlist_id', ids)
+        if (!cancelled) setPlaylistEpisodeIds((data as Array<{ podcast_id?: string }> | null)?.map((r) => r.podcast_id).filter((v): v is string => !!v) ?? [])
+      } catch { /* pas d'affinité playlist */ }
+    })()
+    return () => { cancelled = true }
+  }, [user, playlistRefresh])
+
   const progressById = new Map(progressRows.map((r) => [r.podcast_id, r]))
 
   // Interception lecture (PODCAST-SEC) : visiteur non connecté → invitation (acquis 0-A) ;
@@ -207,6 +246,40 @@ export default function PodcastPage() {
         positionSeconds: it.positionSeconds, percent: it.percent, remainingSeconds: it.remainingSeconds,
       }))
     : []
+
+  // PODCAST-8 : recommandations DÉTERMINISTES et explicables. Rails « Pour toi » (membre) et
+  // « Populaire » (tous). Aucune lecture n'est déverrouillée : le gate PODCAST-SEC reste l'autorité.
+  const reco = useMemo(() => {
+    const episodesById = new Map<string, RecoEpisode>(episodes.map((e) => [e.id, e as RecoEpisode]))
+    const normalizedPop = normalizePopularity(popularity)
+    // « Continuer l'écoute » a la priorité : on exclut ces épisodes des recommandations (pas de doublon).
+    const continueIds = user ? buildContinueListening(episodes, progressRows).map((it) => it.episode.id) : []
+
+    // « Pour toi » — membre uniquement, écoutable maintenant (Premium inaccessible masqué).
+    const signals = user ? buildMemberSignals(progressRows, playlistEpisodeIds, episodesById, nowMs) : null
+    const forYou = user
+      ? rankRecommendations({
+          episodes: episodes as RecoEpisode[], signals, popularity: normalizedPop, nowMs,
+          isPremiumActive: myPremium.active, isMember, mode: 'listen_now', excludeIds: continueIds, limit: 12,
+        })
+      : []
+    const forYouEyebrow = signals?.topSerie ? `Parce que tu écoutes ${signals.topSerie}` : 'Recommandé pour toi'
+
+    // « Populaire » — global (non personnalisé), découverte : Premium montré avec badge, gate à la lecture.
+    // Affiché seulement si une vraie popularité existe (sinon ce ne serait que de la récence = Nouveautés).
+    const popular = normalizedPop.size > 0
+      ? rankRecommendations({
+          episodes: episodes as RecoEpisode[], signals: null, popularity: normalizedPop, nowMs,
+          isPremiumActive: myPremium.active, mode: 'discovery',
+          excludeIds: [...continueIds, ...forYou.map((r) => r.episode.id)], limit: 12,
+        })
+      : []
+
+    const toEp = (ids: { episode: RecoEpisode }[]) => ids
+      .map((r) => episodes.find((e) => e.id === r.episode.id))
+      .filter((e): e is VoixEpisode => !!e)
+    return { forYou: toEp(forYou), forYouEyebrow, popular: toEp(popular) }
+  }, [episodes, progressRows, playlistEpisodeIds, popularity, myPremium.active, isMember, user, nowMs])
 
   const toRail = (list: VoixEpisode[]): RailEpisode[] =>
     list.map((e) => ({ id: e.id, title: e.title, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl }))
@@ -253,11 +326,23 @@ export default function PodcastPage() {
           />
         )}
 
+        {/* PODCAST-8 — « Pour toi » (membre) : recommandations personnalisées écoutables maintenant.
+            Priorité à la reprise réelle : placé APRÈS « Continuer l'écoute ». Jamais pour un visiteur. */}
+        {reco.forYou.length > 0 && (
+          <EpisodeRail title="Pour toi" eyebrow={reco.forYouEyebrow} episodes={toRail(reco.forYou)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'personalized' })} isPlaying={isPlaying} onAddToPlaylist={onAddToPlaylist} />
+        )}
+
         {/* À la une (is_featured) */}
         <EpisodeRail title="À la une" eyebrow="Sélection éditoriale" episodes={toRail(featured)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'featured' })} isPlaying={isPlaying} onAddToPlaylist={onAddToPlaylist} />
 
         {/* Nouveautés (published_at DESC, hors featured) */}
         <EpisodeRail title="Nouveautés" eyebrow="Derniers épisodes" episodes={toRail(nouveautes)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'new_release' })} isPlaying={isPlaying} onAddToPlaylist={onAddToPlaylist} />
+
+        {/* PODCAST-8 — « Populaire dans La Voix du Royaume » (tous, y compris visiteur) : agrégat GLOBAL,
+            non personnalisé. Affiché seulement si une vraie popularité existe. Gate PODCAST-SEC à la lecture. */}
+        {reco.popular.length > 0 && (
+          <EpisodeRail title="Populaire dans La Voix du Royaume" eyebrow="Le plus écouté" episodes={toRail(reco.popular)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'popular' })} isPlaying={isPlaying} onAddToPlaylist={onAddToPlaylist} />
+        )}
 
         {/* Émissions (serie dynamique) */}
         <EmissionsRail emissions={emissions} onSelect={selectEmission} />
