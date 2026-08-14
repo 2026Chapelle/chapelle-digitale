@@ -14,7 +14,7 @@ import type { VoixEpisode } from '@/lib/podcast/sections'
 import {
   fetchOfficialPlaylists, fetchMyPlaylists, fetchPlaylistItems, createPersonalPlaylist,
   addItemToPlaylist, removeItemFromPlaylist, deletePersonalPlaylist, reorderMyPlaylistItems,
-  resolvePlaylistCover, nextItemPosition,
+  resolvePlaylistCover, nextItemPosition, totalDurationSeconds, durationLabel,
   type Playlist, type PlaylistItem,
 } from '@/lib/podcast/playlists'
 
@@ -22,12 +22,14 @@ import {
 export interface PlaylistPlayContext { sourceContext?: string; playlistId?: string }
 
 export function PlaylistsSections({
-  episodes, userId, canPlay, onPlayEpisode,
+  episodes, userId, canPlay, onPlayEpisode, refreshSignal,
 }: {
   episodes: VoixEpisode[]
   userId: string | null
   canPlay: boolean
   onPlayEpisode: (ep: VoixEpisode, ctx?: PlaylistPlayContext) => void
+  /** PODCAST-7 : incrémenté quand un épisode est ajouté ailleurs (menu ⋯) → recharge « Mes playlists ». */
+  refreshSignal?: number
 }) {
   const [official, setOfficial] = useState<Playlist[]>([])
   const [mine, setMine] = useState<Playlist[]>([])
@@ -40,6 +42,8 @@ export function PlaylistsSections({
   const reloadMine = useCallback(async () => { if (userId) setMine(await fetchMyPlaylists(supabase)) }, [userId])
   useEffect(() => { (async () => setOfficial(await fetchOfficialPlaylists(supabase)))() }, [])
   useEffect(() => { if (userId) reloadMine(); else setMine([]) }, [userId, reloadMine])
+  // Rafraîchit après un ajout depuis le menu ⋯ (hors de cette section).
+  useEffect(() => { if (refreshSignal && userId) reloadMine() }, [refreshSignal, userId, reloadMine])
 
   return (
     <>
@@ -56,17 +60,33 @@ export function PlaylistsSections({
               <h2 className="font-cinzel text-xl md:text-2xl font-bold text-pearl">Mes playlists</h2>
             </div>
           </div>
-          <div className="flex gap-4 overflow-x-auto px-4 md:px-0 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <button onClick={() => setCreating(true)}
-              className="w-40 sm:w-44 md:w-48 flex-shrink-0 aspect-square rounded-xl flex flex-col items-center justify-center gap-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]"
-              style={{ background: 'rgba(212,175,55,0.06)', border: '1px dashed rgba(212,175,55,0.4)' }}>
-              <Plus className="w-8 h-8 text-gold/70" />
-              <span className="font-inter text-sm text-gold/80 font-medium">Créer une playlist</span>
-            </button>
-            {mine.map((p) => (
-              <PlaylistCard key={p.id} p={p} cover={resolvePlaylistCover(p.cover_url, null)} onOpen={() => setDetail(p)} />
-            ))}
-          </div>
+          {mine.length === 0 ? (
+            /* État vide — invite claire à créer une première playlist. */
+            <div className="card-cinematic px-4 md:px-6 py-8 md:py-10 text-center">
+              <div className="mx-auto mb-4 w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)' }}>
+                <ListMusic className="w-6 h-6 text-gold" aria-hidden />
+              </div>
+              <p className="font-cinzel text-lg text-pearl mb-1">Tu n'as pas encore créé de playlist</p>
+              <p className="font-inter text-sm mb-5 max-w-md mx-auto" style={{ color: 'rgba(245,230,216,0.5)' }}>
+                Regroupe ici les enseignements que tu veux retrouver facilement.
+              </p>
+              <button onClick={() => setCreating(true)} className="btn-gold-cinematic inline-flex items-center gap-2 px-5 py-2.5 text-sm">
+                <Plus className="w-4 h-4" /> Créer ma première playlist
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto px-4 md:px-0 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button onClick={() => setCreating(true)}
+                className="w-40 sm:w-44 md:w-48 flex-shrink-0 aspect-square rounded-xl flex flex-col items-center justify-center gap-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]"
+                style={{ background: 'rgba(212,175,55,0.06)', border: '1px dashed rgba(212,175,55,0.4)' }}>
+                <Plus className="w-8 h-8 text-gold/70" />
+                <span className="font-inter text-sm text-gold/80 font-medium">Créer une playlist</span>
+              </button>
+              {mine.map((p) => (
+                <PlaylistCard key={p.id} p={p} cover={resolvePlaylistCover(p.cover_url, null)} onOpen={() => setDetail(p)} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -177,6 +197,7 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
 
   const eps = items.map((it) => byId.get(it.podcast_id)).filter(Boolean) as VoixEpisode[]
   const cover = resolvePlaylistCover(playlist.cover_url, firstCover(items))
+  const totalLabel = durationLabel(totalDurationSeconds(eps.map((e) => e.duration)))
 
   async function add() {
     if (!addId) return
@@ -207,7 +228,9 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
             <p className="section-label-dark mb-1">{playlist.playlist_type === 'official' ? 'Playlist Citadelle' : 'Ma playlist'}</p>
             <h2 className="font-cinzel text-xl md:text-2xl font-bold text-pearl leading-tight">{playlist.title}</h2>
             {playlist.description && <p className="mt-1 text-sm font-inter" style={{ color: 'rgba(245,230,216,0.5)' }}>{playlist.description}</p>}
-            <p className="mt-2 text-[11px] text-pearl/40 font-inter">{items.length} épisode{items.length > 1 ? 's' : ''}</p>
+            <p className="mt-2 text-[11px] text-pearl/40 font-inter">
+              {playlist.playlist_type === 'official' ? 'Officielle' : 'Personnelle'} · {items.length} épisode{items.length > 1 ? 's' : ''}{totalLabel ? ` · ${totalLabel}` : ''}
+            </p>
           </div>
           <button onClick={onClose} className="text-pearl/40 hover:text-pearl self-start"><X className="w-5 h-5" /></button>
         </div>
@@ -226,7 +249,11 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
           {loading ? (
             <div className="flex items-center gap-2 text-pearl/40 py-8 font-inter text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Chargement…</div>
           ) : eps.length === 0 ? (
-            <p className="text-pearl/40 font-inter text-sm py-8 text-center">Cette playlist est vide{isOwner ? ' — ajoutez des épisodes ci-dessus.' : '.'}</p>
+            <div className="text-center py-10">
+              <ListMusic className="w-8 h-8 text-pearl/25 mx-auto mb-3" aria-hidden />
+              <p className="text-pearl/50 font-inter text-sm">Cette playlist ne contient encore aucun épisode.</p>
+              {isOwner && <p className="text-pearl/35 font-inter text-xs mt-1">Ajoute des épisodes avec le sélecteur ci-dessus ou le menu ⋯ d'un épisode.</p>}
+            </div>
           ) : (
             <div className="space-y-2">
               {eps.map((ep, i) => {
@@ -246,10 +273,11 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
                       <p className="font-inter text-sm text-pearl/85 truncate">{ep.title}</p>
                     </div>
                     {isOwner && (
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => move(ep.id, -1)} disabled={i === 0} title="Monter" className="text-pearl/30 hover:text-gold disabled:opacity-20 p-1"><ArrowUp className="w-4 h-4" /></button>
-                        <button onClick={() => move(ep.id, 1)} disabled={i === eps.length - 1} title="Descendre" className="text-pearl/30 hover:text-gold disabled:opacity-20 p-1"><ArrowDown className="w-4 h-4" /></button>
-                        <button onClick={() => remove(ep.id)} title="Retirer de la playlist" className="text-pearl/30 hover:text-danger p-1"><Trash2 className="w-4 h-4" /></button>
+                      /* Toujours visibles (tactile mobile — pas de survol requis). */
+                      <div className="flex items-center flex-shrink-0">
+                        <button onClick={() => move(ep.id, -1)} disabled={i === 0} aria-label={`Monter ${ep.title}`} title="Monter" className="text-pearl/40 hover:text-gold disabled:opacity-20 p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37] rounded"><ArrowUp className="w-4 h-4" /></button>
+                        <button onClick={() => move(ep.id, 1)} disabled={i === eps.length - 1} aria-label={`Descendre ${ep.title}`} title="Descendre" className="text-pearl/40 hover:text-gold disabled:opacity-20 p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37] rounded"><ArrowDown className="w-4 h-4" /></button>
+                        <button onClick={() => remove(ep.id)} aria-label={`Retirer ${ep.title} de la playlist`} title="Retirer de la playlist" className="text-pearl/40 hover:text-danger p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37] rounded"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     )}
                   </div>

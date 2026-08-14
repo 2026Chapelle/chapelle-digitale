@@ -8,6 +8,7 @@ import { useRef } from 'react'
 import { Play, Pause, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { PodcastCover } from './PodcastCover'
 import { PremiumBadge } from './PremiumBadge'
+import { PlaylistMenuButton } from './PlaylistMenuButton'
 
 export interface RailEpisode {
   id: string
@@ -23,14 +24,24 @@ export function EpisodeCoverCard({
   ep,
   onPlay,
   playing,
+  onAddToPlaylist,
 }: {
   ep: RailEpisode
   onPlay: (ep: RailEpisode) => void
   playing: boolean
+  /** PODCAST-7 : si fourni (membre connecté), affiche le menu ⋯ « Ajouter à une playlist ». */
+  onAddToPlaylist?: (episodeId: string) => void
 }) {
   const premium = ep.accessLevel === 'premium'
   return (
     <div className="group relative w-40 sm:w-44 md:w-48 flex-shrink-0">
+      {onAddToPlaylist && (
+        <PlaylistMenuButton
+          onClick={() => onAddToPlaylist(ep.id)}
+          title={ep.title}
+          className="absolute top-2 right-2 z-[4]"
+        />
+      )}
       <button
         type="button"
         onClick={() => onPlay(ep)}
@@ -67,12 +78,14 @@ export function EpisodeRail({
   onPlay,
   isPlaying,
   eyebrow,
+  onAddToPlaylist,
 }: {
   title: string
   eyebrow?: string
   episodes: RailEpisode[]
   onPlay: (ep: RailEpisode) => void
   isPlaying: (id: string) => boolean
+  onAddToPlaylist?: (episodeId: string) => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
   if (!episodes.length) return null
@@ -106,7 +119,7 @@ export function EpisodeRail({
       >
         {episodes.map((ep) => (
           <div key={ep.id} className="snap-start">
-            <EpisodeCoverCard ep={ep} onPlay={onPlay} playing={isPlaying(ep.id)} />
+            <EpisodeCoverCard ep={ep} onPlay={onPlay} playing={isPlaying(ep.id)} onAddToPlaylist={onAddToPlaylist} />
           </div>
         ))}
       </div>

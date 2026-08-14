@@ -36,6 +36,7 @@ import { PODCAST_PREMIUM_ENTITLEMENT_KEY } from '@/lib/podcast/entitlement'
 import { normalizePremiumOffer, premiumDeniedNotice, type PremiumOffer, type PremiumNotice } from '@/lib/podcast/premium-offer'
 import { fetchMyPremiumStatus, type MyPremiumStatus } from '@/lib/podcast/premium-status'
 import { PremiumBadge } from '@/components/podcast/PremiumBadge'
+import { AddToPlaylistSheet } from '@/components/podcast/AddToPlaylistSheet'
 
 // PODCAST-4 : contexte d'origine d'une lecture (analytics), transporté sur la piste.
 interface PlayContext { sourceContext?: string; playlistId?: string }
@@ -83,6 +84,8 @@ export default function PodcastPage() {
   const [notice, setNotice] = useState<PremiumNotice | null>(null)
   const [premiumOffer, setPremiumOffer] = useState<PremiumOffer | null>(null)
   const [myPremium, setMyPremium] = useState<MyPremiumStatus>({ active: false, hadAny: false, activeExpiresAt: null })
+  const [addToPlaylistFor, setAddToPlaylistFor] = useState<string | null>(null)   // PODCAST-7 : épisode ciblé par ⋯
+  const [playlistRefresh, setPlaylistRefresh] = useState(0)                        // signal de rafraîchissement « Mes playlists »
   const [selectedSerie, setSelectedSerie] = useState('all')
   const [progressRows, setProgressRows] = useState<AudioProgressRow[]>([])   // PODCAST-2 : progression membre
   const catalogRef = useRef<HTMLDivElement>(null)
@@ -215,6 +218,10 @@ export default function PodcastPage() {
     catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  // PODCAST-7 : entrée « Ajouter à une playlist » (membre connecté uniquement ; visiteur = undefined).
+  const onAddToPlaylist = user ? (episodeId: string) => setAddToPlaylistFor(episodeId) : undefined
+  const addToPlaylistTitle = addToPlaylistFor ? episodes.find((e) => e.id === addToPlaylistFor)?.title ?? null : null
+
   return (
     <div className="min-h-screen pb-40 pt-24 md:pt-28">
       <div className="max-w-6xl mx-auto">
@@ -242,14 +249,15 @@ export default function PodcastPage() {
             items={continueItems}
             isPlaying={isPlaying}
             onResume={(ep) => requestPlay(episodes.find((e) => e.id === ep.id) || (ep as unknown as VoixEpisode), { sourceContext: 'continue_listening' })}
+            onAddToPlaylist={onAddToPlaylist}
           />
         )}
 
         {/* À la une (is_featured) */}
-        <EpisodeRail title="À la une" eyebrow="Sélection éditoriale" episodes={toRail(featured)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'featured' })} isPlaying={isPlaying} />
+        <EpisodeRail title="À la une" eyebrow="Sélection éditoriale" episodes={toRail(featured)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'featured' })} isPlaying={isPlaying} onAddToPlaylist={onAddToPlaylist} />
 
         {/* Nouveautés (published_at DESC, hors featured) */}
-        <EpisodeRail title="Nouveautés" eyebrow="Derniers épisodes" episodes={toRail(nouveautes)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'new_release' })} isPlaying={isPlaying} />
+        <EpisodeRail title="Nouveautés" eyebrow="Derniers épisodes" episodes={toRail(nouveautes)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'new_release' })} isPlaying={isPlaying} onAddToPlaylist={onAddToPlaylist} />
 
         {/* Émissions (serie dynamique) */}
         <EmissionsRail emissions={emissions} onSelect={selectEmission} />
@@ -257,7 +265,7 @@ export default function PodcastPage() {
         {/* Playlists de La Citadelle (officielles) + Mes playlists (membre) — PODCAST-3.
             Officielles visibles selon RLS (visiteur inclus si publiques) ; lecture verrouillée
             pour le visiteur (JoinToListenModal). Une playlist ne déverrouille aucun access_level. */}
-        <PlaylistsSections episodes={episodes} userId={user?.id ?? null} canPlay={canPlay} onPlayEpisode={requestPlay} />
+        <PlaylistsSections episodes={episodes} userId={user?.id ?? null} canPlay={canPlay} onPlayEpisode={requestPlay} refreshSignal={playlistRefresh} />
 
         {/* Tous les épisodes */}
         <div ref={catalogRef} className="scroll-mt-24">
@@ -268,12 +276,24 @@ export default function PodcastPage() {
             onSelectedSerieChange={setSelectedSerie}
             onPlay={onPlayCatalog}
             isPlaying={isPlaying}
+            onAddToPlaylist={onAddToPlaylist}
           />
         </div>
       </div>
 
       {/* Verrou lecture visiteur — catalogue visible, écoute réservée aux membres (acquis 0-A). */}
       <JoinToListenModal open={!!joinFor} onClose={() => setJoinFor(null)} episodeTitle={joinFor?.title} />
+
+      {/* PODCAST-7 — « Ajouter à une playlist » (membre). N'altère jamais l'access_level ni la progression. */}
+      {addToPlaylistFor && user && (
+        <AddToPlaylistSheet
+          episodeId={addToPlaylistFor}
+          episodeTitle={addToPlaylistTitle}
+          userId={user.id}
+          onClose={() => setAddToPlaylistFor(null)}
+          onChanged={() => setPlaylistRefresh((n) => n + 1)}
+        />
+      )}
 
       {/* PODCAST-SEC — refus serveur (membre / premium / indisponible) : invite discrète, jamais d'URL. */}
       {notice && (

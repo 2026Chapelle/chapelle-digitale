@@ -2,7 +2,13 @@ import { describe, it, expect } from 'vitest'
 import {
   resolvePlaylistCover, nextItemPosition, sortItems, computeReorder,
   parseDurationToSeconds, totalDurationSeconds, durationLabel,
+  buildAddToPlaylistRows, type Playlist,
 } from '@/lib/podcast/playlists'
+
+const pl = (id: string, type: 'personal' | 'official' = 'personal'): Playlist => ({
+  id, playlist_type: type, owner_user_id: type === 'personal' ? 'u1' : null,
+  title: `PL ${id}`, description: null, cover_url: null, visibility: 'private',
+})
 
 describe('resolvePlaylistCover', () => {
   it('cover administrée prioritaire, sinon 1er épisode, sinon null', () => {
@@ -44,6 +50,20 @@ describe('parseDurationToSeconds', () => {
     expect(parseDurationToSeconds(3723)).toBe(3723)
     expect(parseDurationToSeconds('n/a')).toBeNull()
     expect(parseDurationToSeconds(null)).toBeNull()
+  })
+})
+
+describe('buildAddToPlaylistRows (menu ⋯ « Ajouter à une playlist »)', () => {
+  it('ne garde que les playlists PERSONNELLES + état « déjà présent »', () => {
+    const rows = buildAddToPlaylistRows([pl('a'), pl('off', 'official'), pl('b')], ['b'])
+    expect(rows.map((r) => r.playlist.id)).toEqual(['a', 'b']) // officielle exclue
+    expect(rows.find((r) => r.playlist.id === 'b')?.contains).toBe(true)
+    expect(rows.find((r) => r.playlist.id === 'a')?.contains).toBe(false)
+  })
+  it('accepte un Set comme un tableau ; robuste au vide/null', () => {
+    expect(buildAddToPlaylistRows([pl('a')], new Set(['a']))[0].contains).toBe(true)
+    expect(buildAddToPlaylistRows([pl('a')], [])[0].contains).toBe(false)
+    expect(buildAddToPlaylistRows([], ['x'])).toEqual([])
   })
 })
 

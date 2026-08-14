@@ -44,6 +44,25 @@ export function sortItems<T extends { position: number }>(items: T[]): T[] {
   return (Array.isArray(items) ? [...items] : []).sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
 }
 
+/** Ligne « Ajouter à une playlist » : la playlist + son état « déjà présent » (PODCAST-7). */
+export interface AddToPlaylistRow {
+  playlist: Playlist
+  contains: boolean
+}
+
+/**
+ * Construit les lignes de la modale « Ajouter à une playlist » : UNIQUEMENT les playlists
+ * PERSONNELLES (une officielle n'est jamais éditable par le membre), avec l'état « déjà présent »
+ * dérivé des ids contenant l'épisode. PUR (testable) — l'insert reste protégé par la contrainte DB,
+ * mais l'UX évite un doublon inutile en connaissant l'état à l'avance.
+ */
+export function buildAddToPlaylistRows(playlists: Playlist[], containingIds: string[] | Set<string>): AddToPlaylistRow[] {
+  const set = containingIds instanceof Set ? containingIds : new Set(containingIds ?? [])
+  return (Array.isArray(playlists) ? playlists : [])
+    .filter((p) => p.playlist_type === 'personal')
+    .map((p) => ({ playlist: p, contains: set.has(p.id) }))
+}
+
 /** Réattribue des positions 0..n-1 à partir d'un ordre de podcast_id (réordonnancement). */
 export function computeReorder(orderedPodcastIds: string[]): Array<{ podcastId: string; position: number }> {
   return (Array.isArray(orderedPodcastIds) ? orderedPodcastIds : []).map((podcastId, position) => ({ podcastId, position }))
@@ -104,6 +123,16 @@ export async function fetchMyPlaylists(client: Client): Promise<Playlist[]> {
     const { data } = await client.from('audio_playlists').select('*')
       .eq('playlist_type', 'personal').order('updated_at', { ascending: false })
     return (data as Playlist[]) ?? []
+  } catch { return [] }
+}
+
+/** Ids des playlists (visibles par RLS) contenant déjà cet épisode → état « déjà ajouté » (PODCAST-7).
+ *  RLS limite aux items visibles (les playlists personnelles du membre) ; on dédoublonne. */
+export async function fetchMyPlaylistIdsContainingEpisode(client: Client, podcastId: string): Promise<string[]> {
+  try {
+    const { data } = await client.from('audio_playlist_items').select('playlist_id').eq('podcast_id', podcastId)
+    const ids = Array.isArray(data) ? (data as Array<{ playlist_id?: string }>).map((r) => r.playlist_id).filter((v): v is string => !!v) : []
+    return Array.from(new Set(ids))
   } catch { return [] }
 }
 

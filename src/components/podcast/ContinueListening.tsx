@@ -7,6 +7,7 @@ import { useRef } from 'react'
 import { Play, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react'
 import { PodcastCover } from './PodcastCover'
 import { PremiumBadge } from './PremiumBadge'
+import { PlaylistMenuButton } from './PlaylistMenuButton'
 import type { RailEpisode } from './EpisodeRail'
 
 export interface ContinueCard extends RailEpisode {
@@ -26,10 +27,13 @@ export function ContinueListening({
   items,
   onResume,
   isPlaying,
+  onAddToPlaylist,
 }: {
   items: ContinueCard[]
   onResume: (ep: ContinueCard) => void
   isPlaying: (id: string) => boolean
+  /** PODCAST-7 : menu ⋯ « Ajouter à une playlist » (membre) — n'affecte pas audio_progress. */
+  onAddToPlaylist?: (episodeId: string) => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
   if (!items.length) return null
@@ -65,7 +69,10 @@ export function ContinueListening({
           const playing = isPlaying(ep.id)
           const pct = Math.round(Math.min(1, Math.max(0, ep.percent)) * 100)
           return (
-            <div key={ep.id} className="group snap-start w-52 sm:w-56 md:w-60 flex-shrink-0">
+            <div key={ep.id} className="group relative snap-start w-52 sm:w-56 md:w-60 flex-shrink-0">
+              {onAddToPlaylist && (
+                <PlaylistMenuButton onClick={() => onAddToPlaylist(ep.id)} title={ep.title} className="absolute top-2 right-2 z-[4]" />
+              )}
               <button
                 type="button"
                 onClick={() => onResume(ep)}
