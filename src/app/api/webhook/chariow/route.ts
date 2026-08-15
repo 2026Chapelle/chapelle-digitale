@@ -7,6 +7,7 @@ import { donationReceiptEmail } from '@/lib/email-templates'
 import { logActivity } from '@/lib/activity'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { notifyUser } from '@/lib/notify'
+import { grantEntitlementFromPurchase, entitlementKeyForProduct } from '@/lib/podcast/premium-acquisition'
 
 /**
  * Webhook Chariow — confirmation de paiement → enregistre le don RÉEL + reçu.
@@ -16,10 +17,13 @@ import { notifyUser } from '@/lib/notify'
  * Chariow étant une boutique externe, ce point d'entrée reçoit les notifications
  * de paiement (à configurer dans Chariow). Parsing DÉFENSIF (le format peut
  * varier) : on cherche email / montant / id de transaction dans les clés usuelles.
- * Idempotent via chariow_transaction_id. Sécurisé par un secret partagé optionnel
- * (en-tête `x-chariow-secret` = env CHARIOW_WEBHOOK_SECRET).
+ * Idempotent via chariow_transaction_id (sale.id strict, pas de fallback temporel).
  *
- * Renvoie toujours 200 rapidement (convention webhook) sauf secret invalide.
+ * Sécurité :
+ *  - production : refuse si ni CHARIOW_WEBHOOK_SECRET ni CHARIOW_WEBHOOK_HMAC_SECRET ;
+ *  - chaque mécanisme configuré est validé ;
+ *  - HMAC et secret partagé en comparaison temps constant ;
+ *  - échec de persistance critique → HTTP non-2xx (retry provider).
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,14 +63,32 @@ export async function POST(req: NextRequest) {
   // Corps BRUT (nécessaire pour la vérification de signature HMAC).
   const rawBody = await req.text()
 
-  // Secret partagé simple (si configuré).
   const secret = process.env.CHARIOW_WEBHOOK_SECRET
-  if (secret && req.headers.get('x-chariow-secret') !== secret) {
-    return NextResponse.json({ ok: false, message: 'Signature invalide.' }, { status: 401 })
+  const hmacSecret = process.env.CHARIOW_WEBHOOK_HMAC_SECRET
+
+  // Refuse en production si aucun secret simple ou HMAC n'est configuré
+  if (process.env.NODE_ENV === 'production' && !secret && !hmacSecret) {
+    return NextResponse.json({ ok: false, message: 'Configuration de sécurité manquante.' }, { status: 500 })
   }
 
-  // Signature HMAC-SHA256 (si configurée) : vérifiée en temps constant sur le corps brut.
-  const hmacSecret = process.env.CHARIOW_WEBHOOK_HMAC_SECRET
+  // Secret partagé simple — comparaison temps constant via digests de longueur fixe.
+  // Priorité : en-tête `x-chariow-secret` ; fallback Pulse : query `chariow_token`
+  // (l'UI Chariow Pulse ne permet pas d'en-tête personnalisé).
+  // Le jeton n'est jamais loggé.
+  if (secret) {
+    const headerSecret = req.headers.get('x-chariow-secret')
+    const urlToken = req.nextUrl.searchParams.get('chariow_token')
+    // Header prioritaire dès qu'il est présent (même vide) — empêche un token URL de contourner un header faux.
+    const providedSecret =
+      headerSecret !== null ? headerSecret : (urlToken ?? '')
+    const a = createHmac('sha256', 'chariow-shared-secret-cmp').update(providedSecret).digest()
+    const b = createHmac('sha256', 'chariow-shared-secret-cmp').update(secret).digest()
+    if (!timingSafeEqual(a, b)) {
+      return NextResponse.json({ ok: false, message: 'Signature invalide.' }, { status: 401 })
+    }
+  }
+
+  // Signature HMAC-SHA256 : vérifiée en temps constant sur le corps brut.
   if (hmacSecret) {
     const provided = req.headers.get('x-chariow-signature') || req.headers.get('x-signature') || ''
     const computed = createHmac('sha256', hmacSecret).update(rawBody).digest('hex')
@@ -76,8 +98,14 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  let body: any = {}
-  try { body = JSON.parse(rawBody) } catch { body = {} }
+  // Refuse un JSON invalide avec HTTP 400
+  let body: any
+  try {
+    body = JSON.parse(rawBody)
+  } catch {
+    return NextResponse.json({ ok: false, message: 'JSON invalide.' }, { status: 400 })
+  }
+
   // Log clair du payload brut (diagnostic Passenger).
   console.error('[webhook/chariow] RAW PAYLOAD =', JSON.stringify(body).slice(0, 2000))
 
@@ -89,8 +117,9 @@ export async function POST(req: NextRequest) {
 
   const event = String(body?.event ?? '').toLowerCase()                 // payload.event
   const saleStatus = String(sale?.status ?? '').toLowerCase()           // payload.sale.status
-  const reference = sale?.id != null ? String(sale.id)                  // payload.sale.id
-    : (deepFind(body, /transaction|order|sale|reference|^id$/i, (v) => typeof v === 'string' || typeof v === 'number') ?? null)
+
+  // Exige strictement sale.id (pas de fallback temporel)
+  const reference = sale?.id != null ? String(sale.id) : null
   const amount = Number(amountObj?.value) || toNum(deepFind(body, /amount|montant|value|total|price/i, (v) => toNum(v) > 0)) // payload.sale.amount.value
   const currency = amountObj?.currency || pick(body, ['currency', 'devise']) || 'FCFA'   // payload.sale.amount.currency
   const productId = product?.id ?? null                                 // payload.product.id
@@ -114,6 +143,11 @@ export async function POST(req: NextRequest) {
 
   // VALIDATION STRICTE : don créé UNIQUEMENT si event=successful.sale ET sale.status=completed.
   const isValidSale = event === 'successful.sale' && saleStatus === 'completed'
+
+  if (isValidSale && !reference) {
+    return NextResponse.json({ ok: false, message: 'Identifiant de vente (sale.id) requis.' }, { status: 400 })
+  }
+
   if (IS_DEMO_MODE || !isValidSale || !email || !(amount > 0)) {
     if (!IS_DEMO_MODE) console.error(`[webhook/chariow] ignoré (event=${event}, sale.status=${saleStatus}, email=${!!email}, montant=${amount})`)
     return NextResponse.json({ ok: true, recorded: false })
@@ -127,7 +161,7 @@ export async function POST(req: NextRequest) {
       userId = prof?.id ?? null
     } catch { /* profil introuvable → don anonyme */ }
 
-    const ref = reference ? String(reference) : `DON-${Date.now()}`
+    const ref = String(reference)
     const row: Record<string, any> = {
       user_id: userId, user_nom: name, user_email: email,
       montant: amount, devise: currency, methode_paiement: 'chariow', statut: 'complete',
@@ -136,8 +170,8 @@ export async function POST(req: NextRequest) {
       reference: ref, chariow_transaction_id: ref,
       meta_json: body, webhook_received_at: new Date().toISOString(), recu_envoye: false,
     }
-    // Idempotence par id de vente Chariow (sans ON CONFLICT : l'index est partiel).
-    // → on vérifie l'existence, puis insert si absent. Jamais 2 dons pour la même vente.
+
+    // Idempotence stable via chariow_transaction_id (gestion propre des conflits)
     let don: { id: string; recu_envoye: boolean } | null = null
     let isNew = false
     const { data: existing } = await supabaseAdmin.from('dons')
@@ -151,46 +185,111 @@ export async function POST(req: NextRequest) {
         const { meta_json, ...base } = row
         ins = await supabaseAdmin.from('dons').insert(base).select('id, recu_envoye').single()
       }
-      if (ins.error) throw ins.error
-      don = ins.data as any
-      isNew = true
+      if (ins.error) {
+        if (ins.error.code === '23505') {
+          // Conflit de contrainte existante sur requête concurrente
+          const { data: retryData } = await supabaseAdmin.from('dons')
+            .select('id, recu_envoye').eq('chariow_transaction_id', ref).maybeSingle()
+          if (retryData) {
+            don = retryData as any
+            isNew = false
+          } else {
+            throw ins.error
+          }
+        } else {
+          throw ins.error
+        }
+      } else {
+        don = ins.data as any
+        isNew = true
+      }
     }
 
     // Journal d'activité — UNE SEULE FOIS, à la création réelle du don
-    // (jamais sur une re-livraison du même Pulse → aucun doublon).
     if (isNew) {
-      await logActivity({
-        userId, nom: name, email, action_type: 'don',
-        resource_type: 'don', resource_title: produit || 'Don',
-        amount, currency, source: row.source || 'chariow',
-        metadata: { reference: ref, product_id: productId, store: body?.store?.name ?? null },
-      })
+      try {
+        await logActivity({
+          userId, nom: name, email, action_type: 'don',
+          resource_type: 'don', resource_title: produit || 'Don',
+          amount, currency, source: row.source || 'chariow',
+          metadata: { reference: ref, product_id: productId, store: body?.store?.name ?? null },
+        })
+      } catch { /* non bloquant */ }
 
       // Notification TEMPS RÉEL au membre (si rattaché).
-      await notifyUser(userId, {
-        type: 'don', title: '🙏 Merci pour votre générosité',
-        body: `Votre ${produit || 'don'} de ${amount.toLocaleString('fr-FR')} ${currency} a bien été reçu.`,
-        href: '/member/dashboard/dons',
-        meta: { reference: ref },
-      })
+      try {
+        await notifyUser(userId, {
+          type: 'don', title: '🙏 Merci pour votre générosité',
+          body: `Votre ${produit || 'don'} de ${amount.toLocaleString('fr-FR')} ${currency} a bien été reçu.`,
+          href: '/member/dashboard/dons',
+          meta: { reference: ref },
+        })
+      } catch { /* non bloquant */ }
 
-      // MARKETPLACE : si le produit Chariow correspond à un produit catalogue,
-      // créer l'achat + jeton d'accès (ebook/masterclass/billet…). Best-effort.
+      // MARKETPLACE : si le produit Chariow correspond à un produit catalogue, créer l'achat
       if (productId) {
         try {
           const { data: prod } = await supabaseAdmin.from('marketplace_products')
-            .select('id, titre').eq('chariow_product_id', productId).maybeSingle()
+            .select('id, titre, entitlement_key, entitlement_duration_days').eq('chariow_product_id', productId).maybeSingle()
           if (prod) {
-            await supabaseAdmin.from('product_purchases').insert({
-              user_id: userId, email, product_id: prod.id,
-              chariow_product_id: productId, chariow_transaction_id: ref, don_id: don?.id ?? null,
-              access_token: randomBytes(32).toString('hex'), titre: prod.titre, montant: amount, devise: currency,
-            })
-            await notifyUser(userId, {
-              type: 'achat', title: '🎁 Votre achat est prêt',
-              body: `Accédez à « ${prod.titre} » depuis vos achats.`,
-              href: '/member/dashboard/achats', meta: { product_id: prod.id },
-            })
+            // Vérifie l'idempotence de l'achat avant insertion pour éviter de créer un doublon
+            const { data: existingPurchase } = await supabaseAdmin.from('product_purchases')
+              .select('id')
+              .eq('chariow_transaction_id', ref)
+              .eq('chariow_product_id', productId)
+              .maybeSingle()
+
+            let purchaseId: string | null = (existingPurchase as { id?: string } | null)?.id ?? null
+
+            if (!existingPurchase) {
+              const insPurchase = await supabaseAdmin.from('product_purchases').insert({
+                user_id: userId, email, product_id: prod.id,
+                chariow_product_id: productId, chariow_transaction_id: ref, don_id: don?.id ?? null,
+                access_token: randomBytes(32).toString('hex'), titre: prod.titre, montant: amount, devise: currency,
+              }).select('id').single()
+              if (insPurchase.error) {
+                if (insPurchase.error.code === '23505') {
+                  // Conflit concurrent géré — relire l'achat pour récupérer son id (octroi entitlement).
+                  const { data: raced } = await supabaseAdmin.from('product_purchases')
+                    .select('id').eq('chariow_transaction_id', ref).eq('chariow_product_id', productId).maybeSingle()
+                  purchaseId = (raced as { id?: string } | null)?.id ?? null
+                } else {
+                  throw insPurchase.error
+                }
+              } else {
+                purchaseId = (insPurchase.data as { id?: string } | null)?.id ?? null
+                try {
+                  await notifyUser(userId, {
+                    type: 'achat', title: '🎁 Votre achat est prêt',
+                    body: `Accédez à « ${prod.titre} » depuis vos achats.`,
+                    href: '/member/dashboard/achats', meta: { product_id: prod.id },
+                  })
+                } catch { /* non bloquant */ }
+              }
+            }
+
+            // PODCAST-5C : achat confirmé d'un produit qui ACCORDE un droit → octroi entitlement.
+            // Idempotent (uniq_entitlement_purchase_source) ; best-effort (l'achat prime toujours).
+            // N'attache le droit QUE si l'acheteur est un membre Citadelle (userId résolu SERVEUR
+            // via profiles.email) — jamais d'octroi sur email seul sans profil correspondant.
+            const entKey = entitlementKeyForProduct(prod as { entitlement_key?: string | null })
+            if (entKey && userId && purchaseId) {
+              const granted = await grantEntitlementFromPurchase(supabaseAdmin, {
+                userId, entitlementKey: entKey, sourceId: purchaseId,
+                durationDays: (prod as { entitlement_duration_days?: number | null }).entitlement_duration_days ?? null,
+              })
+              if (granted.granted) {
+                try {
+                  await notifyUser(userId, {
+                    type: 'achat', title: '⭐ Accès Premium activé',
+                    body: 'Votre accès Premium à La Voix du Royaume est actif.',
+                    href: '/podcast', meta: { entitlement_key: entKey },
+                  })
+                } catch { /* non bloquant */ }
+              } else if (granted.error) {
+                console.error('[webhook/chariow] entitlement non octroyé', granted.error)
+              }
+            }
           }
         } catch (e: any) { console.error('[webhook/chariow] achat marketplace non créé', e?.message) }
       }
@@ -215,6 +314,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, recorded: true, reference: ref })
   } catch (e: any) {
     console.error('[webhook/chariow] échec enregistrement don', e?.message)
-    return NextResponse.json({ ok: true, recorded: false })
+    // Retourne un statut non-2xx lors d'un échec critique de persistance
+    return NextResponse.json({ ok: false, message: 'Échec de persistance.' }, { status: 500 })
   }
 }

@@ -7,7 +7,9 @@ import {
 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
+import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
 import { events } from '@/lib/analytics'
+import { selectHomeFormations, deriveDisplayType } from '@/lib/cms/featured'
 
 /* ============================================================
    BLOC 5 — GRANDIR (fusion Formations + Podcast)
@@ -19,6 +21,7 @@ import { events } from '@/lib/analytics'
 interface FormationCard {
   slug: string; titre: string; description: string; niveau: string;
   duree: string; modules: number; gratuit: boolean; emoji: string; plateforme: string
+  image: string | null; displayType: string
 }
 
 const PODCAST_PLATFORMS = [
@@ -30,7 +33,7 @@ const PODCAST_PLATFORMS = [
 export function GrowSection() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
-  const { toggle, isPlaying } = useAudioPlayer()
+  const { play, pause, resume, isPlaying, track } = useAudioPlayer()
 
   // Formations RÉELLES (table formations).
   const [formations, setFormations] = useState<FormationCard[]>([])
@@ -44,35 +47,66 @@ export function GrowSection() {
     let cancelled = false
     ;(async () => {
       try {
-        const { data } = await supabase.from('formations').select('*').limit(3)
+        // V2.9-B : formations PUBLIÉES ; vedettes (is_featured) triées par featured_order,
+        // sinon repli déterministe (plus récentes). Fusion tous types (le badge garde le
+        // type réel). Vedettes remontées d'abord côté requête pour un pool suffisant.
+        const { data } = await supabase.from('formations')
+          // V2.10-A perf : colonnes explicites (réduit le payload — pas d'objectifs/tags/méta/compteurs).
+          .select('id, slug, titre, description, contenu_court, niveau, duree_heures, gratuit, prix, image_couverture, type, statut, is_featured, featured_order, date_publication, created_at')
+          .eq('statut', 'publie')
+          .order('is_featured', { ascending: false })
+          .order('featured_order', { ascending: true })
+          .order('date_publication', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false })
+          .limit(12)
         if (!cancelled) {
-          setFormations((data || []).map((f: any) => ({
+          const selected = selectHomeFormations((data || []) as any[], 3)
+          setFormations(selected.map((f: any) => ({
             slug: f.slug || f.id,
             titre: f.titre || f.title || 'Formation',
-            description: f.description || '',
+            description: f.description || f.contenu_court || '',
             niveau: f.niveau || 'Tous niveaux',
             duree: f.duree_heures ? `${f.duree_heures}h` : (f.duree || ''),
             modules: Number(f.nb_modules || f.modules || 0),
             gratuit: f.gratuit === true || Number(f.prix) === 0,
             emoji: f.emoji || '📖',
             plateforme: f.plateforme || f.categorie || '',
+            // Image de couverture RÉELLE (CMS). null → repli visuel (icône) seulement si absente.
+            image: f.image_couverture || null,
+            // Type réel (Parcours / Formation / Enseignement / Programme).
+            displayType: deriveDisplayType(f.type),
           })))
         }
       } catch { /* vide */ } finally { if (!cancelled) setFLoaded(true) }
-
+    })()
+    // V2.10-A perf : podcasts lus EN PARALLÈLE des formations (lectures indépendantes → pas de waterfall).
+    ;(async () => {
       try {
-        const { data } = await supabase.from('cms_podcasts').select('*').eq('status', 'published').order('episode', { ascending: false }).limit(4)
+        // PODCAST-SEC : plus de `select('*')` (exposait audio_url/youtube_url) ni de
+        // lecture d'URL côté client. Colonnes sûres + signal has_audio ; l'URL réelle
+        // est résolue au clic via /api/podcast/:id/play.
+        const { data } = await supabase.from('cms_podcasts')
+          .select('id, title, serie, duration, has_audio')
+          .eq('status', 'published').order('episode', { ascending: false }).limit(4)
         if (!cancelled) {
-          setEpisodes((data || []).filter((p: any) => p.audio_url).map((p: any) => ({
-            id: String(p.id), titre: p.title || 'Épisode', auteur: p.speaker || p.auteur || 'La Chapelle',
-            serie: p.serie || 'Podcast', duree: p.duree || '', dureeSecondes: Number(p.duree_secondes) || 0,
-            emoji: '🎙️', couleur: '#D4AF37', audioUrl: p.audio_url,
+          setEpisodes((data || []).filter((p: any) => p.has_audio !== false).map((p: any) => ({
+            id: String(p.id), titre: p.title || 'Épisode', auteur: 'La Chapelle',
+            serie: p.serie || 'Podcast', duree: p.duration || '',
+            emoji: '🎙️', couleur: '#D4AF37',
           })))
         }
       } catch { /* vide */ } finally { if (!cancelled) setPLoaded(true) }
     })()
     return () => { cancelled = true }
   }, [])
+
+  // PODCAST-SEC : lecture résolue côté serveur (public → visiteur inclus ; réservé → /podcast).
+  async function handlePlay(ep: AudioTrack) {
+    if (track?.id === ep.id) { isPlaying(ep.id) ? pause() : resume(); return }
+    const res = await resolvePlayback(ep.id)
+    if (isResolved(res)) { play({ ...ep, audioUrl: res.url }); return }
+    window.location.href = '/podcast'
+  }
 
   return (
     <section ref={ref} className="section-cinematic">
@@ -90,13 +124,12 @@ export function GrowSection() {
             <GraduationCap className="w-3 h-3" />
             Grandir
           </div>
-          <h2 className="heading-cinematic-lg mb-5">
-            Nourrissez votre foi,
-            <span className="block text-cinematic-gold">où que vous soyez</span>
+          <h2 className="heading-cinematic-lg mb-6">
+            Nourris ta foi
+            <span className="block text-cinematic-gold">en profondeur</span>
           </h2>
-          <p className="font-inter text-base md:text-lg leading-relaxed" style={{ color: 'rgba(245,230,216,0.55)' }}>
-            Des formations bibliques certifiantes et des enseignements à écouter partout —
-            tout est pensé pour votre croissance, à votre rythme.
+          <p className="font-inter text-base md:text-lg leading-relaxed max-w-lg mx-auto" style={{ color: 'rgba(245,230,216,0.48)' }}>
+            Formations et enseignements — à ton rythme, partout.
           </p>
         </motion.div>
 
@@ -129,20 +162,33 @@ export function GrowSection() {
                   className="block h-full card-cinematic overflow-hidden group"
                 >
                   <div className="relative h-44 overflow-hidden">
-                    <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110"
-                      style={{
-                        background:
-                          'radial-gradient(circle at 30% 30%, rgba(212,175,55,0.30) 0%, transparent 60%),' +
-                          'radial-gradient(circle at 70% 70%, rgba(212,175,55,0.16) 0%, transparent 60%),' +
-                          'linear-gradient(135deg, rgba(212,175,55,0.16) 0%, #050308 100%)',
-                      }} />
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(5,3,8,0.85) 100%)' }} />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-7xl drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]">{f.emoji}</span>
-                    </div>
+                    {f.image ? (
+                      <>
+                        {/* Image de couverture RÉELLE — remplit la zone (object-cover), sans déformation. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={f.image} alt={f.titre} loading="lazy" decoding="async"
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(5,3,8,0.85) 100%)' }} />
+                      </>
+                    ) : (
+                      <>
+                        {/* Repli visuel (icône) UNIQUEMENT si aucune image de couverture réelle. */}
+                        <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-110"
+                          style={{
+                            background:
+                              'radial-gradient(circle at 30% 30%, rgba(212,175,55,0.30) 0%, transparent 60%),' +
+                              'radial-gradient(circle at 70% 70%, rgba(212,175,55,0.16) 0%, transparent 60%),' +
+                              'linear-gradient(135deg, rgba(212,175,55,0.16) 0%, #050308 100%)',
+                          }} />
+                        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(5,3,8,0.85) 100%)' }} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-7xl drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]">{f.emoji}</span>
+                        </div>
+                      </>
+                    )}
 
                     <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
-                      <span className="chip-gold backdrop-blur-md">{f.niveau}</span>
+                      <span className="chip-gold backdrop-blur-md">{f.displayType}</span>
                       {f.gratuit ? (
                         <span className="text-[9px] font-inter font-bold tracking-widest uppercase px-2 py-0.5 rounded-full backdrop-blur-md"
                           style={{ background: 'rgba(34,197,94,0.3)', color: '#86EFAC', border: '1px solid rgba(34,197,94,0.5)' }}>
@@ -219,7 +265,7 @@ export function GrowSection() {
               <motion.button
                 key={ep.id}
                 type="button"
-                onClick={() => toggle(ep)}
+                onClick={() => handlePlay(ep)}
                 initial={{ opacity: 0, y: 16 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.15 + i * 0.06 }}

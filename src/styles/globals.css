@@ -56,9 +56,16 @@
     scrollbar-color: rgba(212,175,55,0.35) transparent;
   }
 
+  html {
+    overflow-x: clip;
+    max-width: 100%;
+  }
   body {
     @apply font-inter overflow-x-hidden;
+    max-width: 100%;
+    overflow-x: clip;
     color: #F5E6D8;
+    transition: padding-bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     background: #050505;
     background-image:
       radial-gradient(1200px 800px at 80% -10%, rgba(75,0,130,0.18), transparent 60%),
@@ -66,6 +73,10 @@
       radial-gradient(1100px 900px at 50% 110%, rgba(75,0,130,0.12), transparent 65%),
       linear-gradient(180deg, #050307 0%, #07050C 50%, #050308 100%);
     min-height: 100vh;
+  }
+  /* Espace footer quand lecteur audio persistant actif */
+  body.has-audio-player {
+    padding-bottom: var(--audio-player-h, 76px);
   }
 
   /* Scrollbar */
@@ -780,50 +791,680 @@
   }
 
   /* ============================================================
-     Home « Charbon & Lumière » — raffinements premium SCOPÉS
-     (descendants de .bg-charbon → n'affectent QUE la page d'accueil)
+     Home « Charbon & Lumière » — Phase 3 direction artistique
+     (scopé .bg-charbon — page d'accueil uniquement)
+     Émotion · lumière · respiration · profondeur
      ============================================================ */
 
-  /* Cartes : contraste de bord + survol plus marqué + transition fluide */
+  .bg-charbon {
+    /* Cosmique : nuit + or discret + lumière */
+    background:
+      radial-gradient(1100px 700px at 50% -5%, rgba(212,175,55,0.07), transparent 55%),
+      radial-gradient(900px 600px at 90% 18%, rgba(30,58,138,0.12), transparent 55%),
+      radial-gradient(820px 620px at 5% 45%, rgba(244,241,233,0.04), transparent 58%),
+      radial-gradient(1000px 820px at 50% 100%, rgba(212,175,55,0.05), transparent 66%),
+      linear-gradient(180deg, #06060A 0%, #0A0B12 40%, #07080C 72%, #050508 100%);
+  }
+
+  /* Scènes — palette Citadelle (nuit → royauté → chaleur → cosmos → décision) */
+  .bg-charbon .scene-hope {
+    background:
+      radial-gradient(ellipse 95% 75% at 50% 0%, rgba(212,175,55,0.08), transparent 68%),
+      radial-gradient(ellipse 60% 40% at 50% 100%, rgba(15,23,42,0.5), transparent 70%);
+  }
+  .bg-charbon .scene-transform {
+    background:
+      radial-gradient(ellipse 70% 55% at 15% 30%, rgba(37,99,235,0.09), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 85% 70%, rgba(212,175,55,0.04), transparent 55%);
+  }
+  .bg-charbon .scene-belong {
+    /* Légèrement plus chaleureux que le cosmique pur */
+    background:
+      radial-gradient(ellipse 75% 55% at 75% 40%, rgba(251,243,219,0.05), transparent 58%),
+      radial-gradient(ellipse 55% 45% at 20% 80%, rgba(212,175,55,0.05), transparent 55%);
+  }
+  .bg-charbon .scene-joy {
+    background:
+      radial-gradient(ellipse 90% 55% at 50% 100%, rgba(212,175,55,0.07), transparent 68%),
+      radial-gradient(ellipse 40% 35% at 10% 20%, rgba(56,189,248,0.04), transparent 50%);
+  }
+  .bg-charbon .scene-mission {
+    background:
+      radial-gradient(ellipse 110% 90% at 65% 45%, rgba(30,64,175,0.14), transparent 58%),
+      radial-gradient(ellipse 50% 40% at 20% 80%, rgba(15,23,42,0.6), transparent 55%);
+  }
+  .bg-charbon .scene-continuity {
+    background:
+      radial-gradient(ellipse 65% 50% at 25% 45%, rgba(244,241,233,0.05), transparent 60%),
+      radial-gradient(ellipse 50% 40% at 80% 60%, rgba(212,175,55,0.05), transparent 55%);
+  }
+  .bg-charbon .scene-decision {
+    background:
+      radial-gradient(ellipse 85% 70% at 50% 35%, rgba(212,175,55,0.10), transparent 65%),
+      radial-gradient(ellipse 100% 50% at 50% 100%, rgba(8,8,12,0.9), transparent 70%);
+  }
+
+  /* Cartes : profondeur, pas de « UI box » */
   .bg-charbon .card-cinematic {
-    border-color: rgba(244,241,233,0.11);
+    border-color: transparent;
+    border-radius: 1.35rem;
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 55%, rgba(15,23,42,0.15) 100%);
     box-shadow:
-      0 1px 0 rgba(244,241,233,0.05) inset,
-      0 18px 50px rgba(0,0,0,0.45);
+      0 1px 0 rgba(244,241,233,0.035) inset,
+      0 18px 48px rgba(0,0,0,0.4);
     transition:
-      transform .5s var(--ease-cinematic),
-      border-color .5s var(--ease-cinematic),
-      box-shadow .5s var(--ease-cinematic);
+      transform .7s var(--ease-cinematic),
+      box-shadow .7s var(--ease-cinematic),
+      background .7s var(--ease-cinematic);
   }
   .bg-charbon .card-cinematic:hover {
-    transform: translateY(-6px);
-    border-color: rgba(212,175,55,0.36);
+    transform: translateY(-4px);
+    border-color: transparent;
+    background:
+      linear-gradient(160deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.015) 55%, rgba(30,58,138,0.12) 100%);
     box-shadow:
-      0 1px 0 rgba(244,241,233,0.08) inset,
-      0 30px 72px rgba(0,0,0,0.55),
-      0 0 38px rgba(212,175,55,0.15);
+      0 1px 0 rgba(244,241,233,0.06) inset,
+      0 26px 64px rgba(0,0,0,0.48),
+      0 0 40px rgba(212,175,55,0.06);
   }
 
-  /* Boutons verre : survol or bien lisible sur charbon */
+  /* Overflow mobile : clip page d'accueil */
+  .bg-charbon {
+    overflow-x: clip;
+    max-width: 100vw;
+  }
+
+  /* Capsule preuve — liquid glass hover */
+  .bg-charbon .citadelle-proof-capsule {
+    max-width: min(48rem, 100%);
+    transition: box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .bg-charbon .citadelle-proof-capsule:hover {
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.45),
+      inset 0 0 0 1px rgba(245, 230, 167, 0.18),
+      0 18px 48px rgba(0, 0, 0, 0.35),
+      0 0 40px rgba(212, 175, 55, 0.08);
+  }
+  .bg-charbon .citadelle-proof-link {
+    color: rgba(235, 217, 160, 0.52);
+  }
+  .bg-charbon .citadelle-proof-link:hover {
+    color: rgba(245, 230, 167, 0.92);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .bg-charbon .citadelle-proof-capsule::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(
+        105deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.07) 50%,
+        transparent 60%
+      );
+      background-size: 200% 100%;
+      animation: citadelleProofSheen 9s ease-in-out infinite;
+      opacity: 0.5;
+    }
+  }
+  @keyframes citadelleProofSheen {
+    0%, 100% { background-position: 120% 0; }
+    50% { background-position: -20% 0; }
+  }
+
+  /* Vision — lumière au hover */
+  .bg-charbon .citadelle-vision-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    color: #D4AF37;
+    border: 1px solid rgba(212, 175, 55, 0.22);
+    background: radial-gradient(circle at 40% 30%, rgba(245, 230, 167, 0.08), transparent 70%);
+    transition:
+      border-color 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+      color 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .bg-charbon .citadelle-vision-pillar:hover .citadelle-vision-icon {
+    border-color: rgba(212, 175, 55, 0.45);
+    box-shadow: 0 0 28px rgba(212, 175, 55, 0.18);
+    transform: translateY(-2px) scale(1.04);
+    color: #F5E6A7;
+  }
+  .bg-charbon .citadelle-vision-pillar:hover p {
+    color: rgba(245, 230, 216, 0.62) !important;
+  }
+
+  /* Hero — jamais de troncature desktop ; sous-titre 1 ligne desktop */
+  .bg-charbon .hero-title-line {
+    max-width: 100%;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .hero-subtitle {
+      white-space: nowrap;
+      max-width: none;
+    }
+  }
+  /* Hero mobile compact — moins de vide */
+  @media (max-width: 767px) {
+    .bg-charbon .citadelle-hero {
+      min-height: 100svh;
+      height: auto;
+      padding-bottom: 1.5rem;
+    }
+    .bg-charbon .citadelle-hero-inner {
+      padding-top: 4.5rem !important;
+      padding-bottom: 1.25rem !important;
+      justify-content: center;
+    }
+    .bg-charbon .citadelle-hero-title {
+      margin-bottom: 0.75rem !important;
+    }
+    .bg-charbon .citadelle-hero-title .mt-2,
+    .bg-charbon .citadelle-hero-title .sm\:mt-3 {
+      margin-top: 0.35rem !important;
+    }
+    .bg-charbon .citadelle-hero-sub,
+    .bg-charbon .hero-subtitle {
+      max-width: 18rem;
+      white-space: normal;
+      margin-bottom: 1.25rem !important;
+    }
+    .bg-charbon .citadelle-hero-ctas {
+      gap: 0.65rem !important;
+    }
+    .bg-charbon .citadelle-hero-fade {
+      height: 3.5rem !important;
+    }
+    .bg-charbon .citadelle-proof-section {
+      margin-top: 0;
+    }
+  }
+
+  /* Preuve mobile — boutons centrés, largeur contenu (78–88% / max 320px) */
+  .citadelle-proof-mobile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 84%;
+    max-width: 320px;
+    min-height: 48px;
+    padding: 0.7rem 1.25rem;
+    margin-inline: auto;
+  }
+  .bg-charbon .citadelle-journey-editorial-card:hover .citadelle-journey-visual-frame {
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.06) inset,
+      0 32px 72px rgba(0,0,0,0.5),
+      0 0 48px rgba(212,175,55,0.1);
+  }
+  .bg-charbon .citadelle-journey-editorial-card:hover .citadelle-journey-visual-img {
+    transform: scale(1.02);
+  }
+  .bg-charbon .citadelle-journey-visual-img {
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bg-charbon .citadelle-journey-editorial-card:hover .citadelle-journey-visual-img {
+      transform: none;
+    }
+  }
+
+  .citadelle-premium-tag {
+    font-size: 9px;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    color: #F5E6A7;
+    background: linear-gradient(135deg, rgba(12, 10, 8, 0.78), rgba(20, 16, 10, 0.68));
+    border: 1px solid rgba(212, 175, 55, 0.38);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 6px 16px rgba(0, 0, 0, 0.28),
+      0 0 14px rgba(212, 175, 55, 0.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .citadelle-platform-chip {
+    color: rgba(245, 230, 216, 0.75);
+    background: rgba(8, 8, 14, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: border-color 0.3s ease, color 0.3s ease, background 0.3s ease;
+  }
+  .citadelle-platform-chip:hover {
+    color: #F5E6A7;
+    border-color: rgba(212, 175, 55, 0.35);
+    background: rgba(212, 175, 55, 0.08);
+  }
+
+  /* Parallax full-bleed */
+  .bg-charbon .citadelle-pod-parallax {
+    min-height: 24rem;
+    width: 100vw;
+    max-width: 100vw;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-pod-parallax {
+      min-height: 32rem;
+    }
+  }
+  @media (max-width: 767px) {
+    /* Pas de parallax lourd mobile — image fixe */
+    .bg-charbon .citadelle-pod-parallax .will-change-transform {
+      transform: none !important;
+    }
+  }
+
+  /* Parcours éditorial — large, object-contain, alternance */
+  .bg-charbon .citadelle-journey-editorial {
+    position: relative;
+  }
+  .bg-charbon .citadelle-journey-thread-ed {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-thread-ed {
+      display: block;
+      position: absolute;
+      left: 50%;
+      top: 2rem;
+      bottom: 2rem;
+      width: 1px;
+      margin-left: -0.5px;
+      background: linear-gradient(
+        180deg,
+        transparent,
+        rgba(212,175,55,0.25) 12%,
+        rgba(212,175,55,0.35) 50%,
+        rgba(37,99,235,0.2) 85%,
+        transparent
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+  }
+  .bg-charbon .citadelle-journey-row {
+    position: relative;
+    z-index: 1;
+  }
+  .bg-charbon .citadelle-journey-dot-ed {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-dot-ed {
+      display: block;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0.7rem;
+      height: 0.7rem;
+      margin-left: -0.35rem;
+      margin-top: -0.35rem;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #F5E6A7, #D4AF37);
+      box-shadow: 0 0 14px rgba(212,175,55,0.5);
+      z-index: 2;
+    }
+  }
+  .bg-charbon .citadelle-journey-editorial-card {
+    text-decoration: none;
+    color: inherit;
+    border-radius: 1.75rem;
+    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-editorial-card:hover {
+      transform: translateY(-3px);
+    }
+  }
+  .bg-charbon .citadelle-journey-visual-frame {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    min-height: 16rem;
+    padding: 1rem;
+    border-radius: 1.75rem;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(212,175,55,0.06), transparent 65%),
+      linear-gradient(160deg, rgba(255,255,255,0.04), rgba(8,8,14,0.85));
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.05) inset,
+      0 28px 64px rgba(0,0,0,0.42);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-visual-frame {
+      min-height: 20rem;
+      max-width: 520px;
+      border-radius: 2rem;
+      padding: 1.25rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .bg-charbon .citadelle-journey-visual-frame {
+      max-width: 560px;
+      min-height: 22rem;
+    }
+  }
+  .bg-charbon .citadelle-journey-visual-img {
+    width: 100%;
+    height: auto;
+    max-height: 20rem;
+    object-fit: contain;
+    border-radius: 1.1rem;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-visual-img {
+      max-height: 24rem;
+    }
+  }
+  .bg-charbon .citadelle-journey-cta {
+    background: linear-gradient(135deg, rgba(212,175,55,0.18), rgba(212,175,55,0.08));
+    border: 1px solid rgba(212,175,55,0.35);
+    color: #F5E6A7;
+  }
+  .bg-charbon .citadelle-journey-editorial-card:hover .citadelle-journey-cta {
+    background: linear-gradient(135deg, #D4AF37, #C49A20);
+    color: #1A0F00;
+    border-color: transparent;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bg-charbon .citadelle-journey-editorial-card:hover {
+      transform: none;
+    }
+  }
+
+  /* Podcast cards — cadre premium (proche parcours, identité propre) */
+  .bg-charbon .citadelle-pod-card {
+    position: relative;
+    border-radius: 1.875rem; /* 30px */
+    overflow: hidden;
+    isolation: isolate;
+    text-decoration: none;
+    color: inherit;
+    transition:
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* Reflet supérieur discret */
+  .bg-charbon .citadelle-pod-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 2;
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      transparent 38%
+    );
+  }
+  /* Liseré interne */
+  .bg-charbon .citadelle-pod-card::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: calc(1.875rem - 1px);
+    pointer-events: none;
+    z-index: 2;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
+  }
+  .bg-charbon .citadelle-pod-daily {
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(91, 33, 182, 0.12), transparent 55%),
+      linear-gradient(165deg, rgba(18, 14, 32, 0.98), rgba(8, 8, 16, 0.99));
+    border: 1px solid rgba(167, 139, 250, 0.14);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.06) inset,
+      0 22px 52px rgba(0, 0, 0, 0.42),
+      0 0 40px rgba(91, 33, 182, 0.07);
+  }
+  .bg-charbon .citadelle-pod-featured {
+    background:
+      radial-gradient(ellipse at 80% 0%, rgba(212, 175, 55, 0.1), transparent 50%),
+      linear-gradient(160deg, rgba(22, 18, 10, 0.98) 0%, rgba(12, 14, 28, 0.96) 45%, rgba(8, 8, 14, 0.99) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.22);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.07) inset,
+      0 26px 60px rgba(0, 0, 0, 0.46),
+      0 0 48px rgba(212, 175, 55, 0.09);
+  }
+  .bg-charbon .citadelle-pod-featured::after {
+    box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.08);
+  }
+  .bg-charbon .citadelle-pod-card .citadelle-pod-media {
+    border-radius: 1.875rem 1.875rem 0 0;
+  }
+  .bg-charbon .citadelle-pod-card img,
+  .bg-charbon .citadelle-pod-card [data-nimg] {
+    transition: transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .bg-charbon .citadelle-pod-card .citadelle-pod-cta-line {
+    transition: color 0.45s ease, gap 0.45s ease, opacity 0.45s ease;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-pod-card:hover {
+      transform: translateY(-5px);
+    }
+    .bg-charbon .citadelle-pod-daily:hover {
+      border-color: rgba(167, 139, 250, 0.28);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.08) inset,
+        0 28px 64px rgba(0, 0, 0, 0.48),
+        0 0 52px rgba(91, 33, 182, 0.12);
+    }
+    .bg-charbon .citadelle-pod-featured:hover {
+      border-color: rgba(212, 175, 55, 0.38);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.09) inset,
+        0 30px 68px rgba(0, 0, 0, 0.5),
+        0 0 56px rgba(212, 175, 55, 0.14);
+    }
+    .bg-charbon .citadelle-pod-card:hover img,
+    .bg-charbon .citadelle-pod-card:hover [data-nimg] {
+      transform: scale(1.03);
+    }
+    .bg-charbon .citadelle-pod-card:hover .citadelle-pod-cta-line {
+      color: #F5E6A7;
+    }
+  }
+  @media (max-width: 767px) {
+    .bg-charbon .citadelle-pod-card {
+      border-radius: 1.5rem; /* 24px mobile */
+    }
+    .bg-charbon .citadelle-pod-card::after {
+      border-radius: calc(1.5rem - 1px);
+    }
+    .bg-charbon .citadelle-pod-card .citadelle-pod-media {
+      border-radius: 1.5rem 1.5rem 0 0;
+    }
+  }
+  .bg-charbon .citadelle-pod-parallax {
+    min-height: 22rem;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-pod-parallax {
+      min-height: 28rem;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .bg-charbon .citadelle-pod-card:hover {
+      transform: none;
+    }
+    .bg-charbon .citadelle-pod-card:hover img,
+    .bg-charbon .citadelle-pod-card:hover [data-nimg] {
+      transform: none;
+    }
+  }
+
+  /* Bouton retour en haut — liquid glass, au-dessus du lecteur audio */
+  .citadelle-back-top {
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+  body.has-audio-player .citadelle-back-top {
+    bottom: calc(var(--audio-player-h, 76px) + 0.85rem + env(safe-area-inset-bottom, 0px));
+  }
+  .citadelle-back-top-btn {
+    color: rgba(245, 230, 216, 0.92);
+    background: rgba(10, 10, 18, 0.72);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    backdrop-filter: blur(16px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.12) inset,
+      0 10px 28px rgba(0, 0, 0, 0.35),
+      0 0 24px rgba(212, 175, 55, 0.1);
+    transition:
+      border-color 0.35s ease,
+      box-shadow 0.35s ease,
+      background 0.35s ease,
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .citadelle-back-top-btn:hover {
+    border-color: rgba(212, 175, 55, 0.35);
+    background: rgba(14, 12, 22, 0.85);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.14) inset,
+      0 12px 32px rgba(0, 0, 0, 0.4),
+      0 0 28px rgba(212, 175, 55, 0.16);
+    transform: translateY(-2px);
+  }
+  .citadelle-back-top-btn:active {
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .citadelle-back-top-btn:hover {
+      transform: none;
+    }
+  }
+  .bg-charbon .citadelle-journey-body {
+    padding: 1.35rem 1.4rem 1.5rem;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .citadelle-journey-body {
+      padding: 1.6rem 1.75rem;
+    }
+  }
+  .bg-charbon .citadelle-journey-step:hover .citadelle-journey-dot {
+    box-shadow: 0 0 24px rgba(212,175,55,0.85);
+    transform: scale(1.15);
+  }
+
+  /* Ancien path (compat) */
+  .bg-charbon .citadelle-path { position: relative; }
+  .bg-charbon .citadelle-path-spine {
+    position: absolute;
+    left: 1.35rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(212,175,55,0.35) 12%, rgba(37,99,235,0.25) 50%, rgba(212,175,55,0.45) 88%, transparent);
+    pointer-events: none;
+  }
+  .bg-charbon .citadelle-path-node {
+    position: absolute;
+    left: 0.85rem;
+    top: 1.45rem;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, #F5E6A7, #D4AF37);
+    box-shadow: 0 0 12px rgba(212,175,55,0.55);
+  }
+  .bg-charbon .citadelle-path-step {
+    position: relative;
+    padding: 1.25rem 1.25rem 1.25rem 3.25rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.03), transparent 70%);
+  }
+
   .bg-charbon .btn-glass-cinematic {
-    border-color: rgba(244,241,233,0.14);
+    border-color: rgba(244,241,233,0.10);
+    background: rgba(255,255,255,0.04);
   }
   .bg-charbon .btn-glass-cinematic:hover {
-    border-color: rgba(212,175,55,0.5);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 24px rgba(212,175,55,0.12);
+    border-color: rgba(212,175,55,0.35);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35), 0 0 20px rgba(212,175,55,0.08);
   }
 
-  /* Intitulés de section : doré lumineux + lettrage premium */
-  .bg-charbon .section-label {
-    color: #EBD9A0;
-    letter-spacing: 0.28em;
+  .bg-charbon .section-label,
+  .bg-charbon .section-label-dark {
+    color: rgba(235,217,160,0.85);
+    letter-spacing: 0.32em;
+    font-weight: 600;
   }
 
-  /* Rythme vertical plus ample sur grand écran (respiration premium) */
+  /* Espacements −25 % : rythme plus fluide (Hero hors scope) */
+  .bg-charbon .section-cinematic {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+  @media (min-width: 768px) {
+    .bg-charbon .section-cinematic {
+      padding-top: 5.5rem;
+      padding-bottom: 5.5rem;
+    }
+  }
   @media (min-width: 1024px) {
     .bg-charbon .section-cinematic {
-      padding-top: 8.5rem;
-      padding-bottom: 8.5rem;
+      padding-top: 7rem;
+      padding-bottom: 7rem;
+    }
+  }
+
+  /* Titres : calme + langage motion unifié */
+  .bg-charbon .heading-cinematic-lg {
+    letter-spacing: -0.025em;
+    font-weight: 800;
+  }
+
+  /* Reduced motion : coupe lifts & sheens */
+  @media (prefers-reduced-motion: reduce) {
+    .bg-charbon .card-cinematic,
+    .bg-charbon .card-cinematic:hover {
+      transform: none;
+      transition: none;
+    }
+    .bg-charbon .btn-gold-cinematic:hover,
+    .bg-charbon .btn-glass-cinematic:hover {
+      transform: none;
+    }
+    .bg-charbon .citadelle-vision-icon,
+    .bg-charbon .citadelle-vision-pillar:hover .citadelle-vision-icon,
+    .bg-charbon .citadelle-vision-pillar:hover h3,
+    .bg-charbon .citadelle-vision-pillar:hover p,
+    .bg-charbon .citadelle-journey-card,
+    .bg-charbon .citadelle-journey-step:hover .citadelle-journey-card,
+    .bg-charbon .citadelle-journey-step:hover .citadelle-journey-dot {
+      transform: none !important;
+      transition: none !important;
+    }
+    .bg-charbon .citadelle-proof-capsule::before {
+      animation: none !important;
+    }
+    .text-gradient-light-gold {
+      animation: none;
     }
   }
 
@@ -986,7 +1627,7 @@
    ============================================ */
 
 @media print {
-  .no-print { display: none !important; }
+  .no-print, [data-print-hide] { display: none !important; }
   body { background: white; color: black; }
 }
 

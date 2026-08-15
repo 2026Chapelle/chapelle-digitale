@@ -17,7 +17,14 @@ const fmt = (iso?: string) => {
 }
 
 export default async function ArticlesPage() {
-  const articles = (await cmsList<CmsArticle>('cms_articles', { publicOnly: true })) ?? []
+  // Lecture live (noStore) : tout article publié en admin apparaît immédiatement,
+  // sans redéploiement. Tri du plus récent au plus ancien.
+  const articles = (await cmsList<CmsArticle>('cms_articles', {
+    publicOnly: true,
+    noStore: true,
+    orderBy: 'created_at',
+    ascending: false,
+  })) ?? []
 
   return (
     <div className="min-h-screen bg-abyss pt-28 pb-20">

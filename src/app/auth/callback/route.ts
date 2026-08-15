@@ -1,30 +1,53 @@
 /**
- * Callback OAuth / confirmation email Supabase.
+ * Callback OAuth / confirmation email / recovery Supabase (PKCE `?code=`).
  *
- * Supabase redirige ici avec un `?code=...` après connexion Google/Facebook
- * ou validation d'email. On échange ce code contre une session (cookies) puis
- * on renvoie l'utilisateur vers son espace membre.
+ * Échange le code contre une session cookie, puis redirige vers un `next`
+ * allowlisté uniquement (anti open-redirect).
  */
 import { NextResponse } from 'next/server'
 import { createRouteClient } from '@/lib/supabase-server'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 import { SITE_URL } from '@/lib/site-url'
+import {
+  resolveAuthRedirectOrigin,
+  sanitizeAuthNext,
+} from '@/lib/auth/safe-redirect'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const nextParam = searchParams.get('next') ?? '/member/dashboard'
-  // On n'autorise que des chemins internes (anti open-redirect).
-  const next = nextParam.startsWith('/') ? nextParam : '/member/dashboard'
+  const next = sanitizeAuthNext(searchParams.get('next'), '/member/dashboard')
+  const origin = resolveAuthRedirectOrigin(request.url, SITE_URL)
 
-  if (code && !IS_DEMO_MODE) {
-    const supabase = createRouteClient()
-    await supabase.auth.exchangeCodeForSession(code)
+  if (!code) {
+    // Recovery / OAuth invalide — pas de détail sensible
+    if (next.startsWith('/admin')) {
+      return NextResponse.redirect(`${origin}/admin/login?error=recovery`)
+    }
+    return NextResponse.redirect(`${origin}/login?error=auth`)
   }
 
-  // Redirection TOUJOURS vers le domaine canonique de la Citadelle —
-  // jamais vers le host d'hébergement interne (node76-eu.n0c.com).
-  return NextResponse.redirect(`${SITE_URL}${next}`)
+  if (IS_DEMO_MODE) {
+    return NextResponse.redirect(`${origin}/login?error=demo`)
+  }
+
+  try {
+    const supabase = createRouteClient()
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
+      if (next.startsWith('/admin')) {
+        return NextResponse.redirect(`${origin}/admin/login?error=recovery`)
+      }
+      return NextResponse.redirect(`${origin}/login?error=auth`)
+    }
+  } catch {
+    if (next.startsWith('/admin')) {
+      return NextResponse.redirect(`${origin}/admin/login?error=recovery`)
+    }
+    return NextResponse.redirect(`${origin}/login?error=auth`)
+  }
+
+  return NextResponse.redirect(`${origin}${next}`)
 }

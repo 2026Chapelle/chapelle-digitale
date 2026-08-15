@@ -122,8 +122,9 @@ returns table (
 language sql stable security definer set search_path = public as $$
   select
     a.id, a.nom, a.pays, coalesce(a.devise,'FCFA'), a.parent_id,
-    (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut in ('membre','fidele','actif')),
-    (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut in ('membre','fidele','actif')
+    -- P0 migration-health: cast enum→text (fonction SQL créable). DETTE: littéraux ∉ enum → 0 (cf. v4_command_center).
+    (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut::text in ('membre','fidele','actif')),
+    (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut::text in ('membre','fidele','actif')
        and p.derniere_connexion >= now() - interval '30 days'),
     (select count(*) from public.profiles p where p.antenne_id = a.id and p.created_at >= now() - interval '30 days'),
     (select count(*) from public.profiles p where p.antenne_id = a.id and p.created_at >= now() - interval '90 days'),
@@ -954,11 +955,11 @@ create or replace view public.v_finance_flux as
     upper(coalesce(d.devise, 'FCFA')) as devise,
     d.antenne_id      as antenne_id,
     a.pays            as pays,
-    d.created_at      as created_at,
-    (d.created_at)::date as jour
+    d.date_creation   as created_at,               -- P0 migration-health: public.dons a `date_creation`, pas `created_at`
+    (d.date_creation)::date as jour
   from public.dons d
   left join public.antennes a on a.id = d.antenne_id
-  where lower(coalesce(d.statut, '')) = 'complete'
+  where lower(coalesce(d.statut::text, '')) = 'complete'  -- P0 migration-health: cast enum→text (vue créable ; comportement identique)
   union all
   select
     pp.id             as flux_id,
@@ -1215,7 +1216,7 @@ begin
     select count(*) into v_actifs from public.profiles
       where antenne_id = p_scope_id::uuid and derniere_connexion >= now() - interval '30 days';
     select coalesce(sum(montant),0), count(*) into v_dons, v_dons_nb from public.dons
-      where antenne_id = p_scope_id::uuid and statut = 'complete' and created_at >= v_debut;
+      where antenne_id = p_scope_id::uuid and statut = 'complete' and date_creation >= v_debut;  -- P0: dons.date_creation
     select nom into v_label from public.antennes where id = p_scope_id::uuid;
   elsif p_scope_type = 'nation' then
     select count(*) into v_membres from public.profiles where pays ilike p_scope_id;
@@ -1238,7 +1239,7 @@ begin
     select count(*) into v_pri_urg from public.priere_demandes
       where priorite in ('urgent','tres_urgent') and statut not in ('repondue','archivee','clos') and created_at >= v_debut;
     select count(*) into v_pri_suivi from public.priere_demandes where assigned_to is null and created_at >= v_debut;
-    select coalesce(sum(montant),0), count(*) into v_dons, v_dons_nb from public.dons where statut = 'complete' and created_at >= v_debut;
+    select coalesce(sum(montant),0), count(*) into v_dons, v_dons_nb from public.dons where statut = 'complete' and date_creation >= v_debut;  -- P0: dons.date_creation
     v_label := 'Monde';
   end if;
 

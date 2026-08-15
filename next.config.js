@@ -5,6 +5,10 @@ const nextConfig = {
   // minimal. Voir app.js (point d'entrée Passenger) et le dossier deploy-citadelle.
   output: 'standalone',
   reactStrictMode: true,
+  // Passkeys/WebAuthn : @simplewebauthn/server est transpilé pour garantir un
+  // bundle standalone portable (Passenger/PlanetHoster). Import serveur uniquement
+  // (routes runtime='nodejs') — jamais dans le middleware Edge.
+  transpilePackages: ['@simplewebauthn/server'],
   // Le type-checking TypeScript reste actif (sécurité). ESLint est désactivé
   // pendant le build : la résolution du plugin @typescript-eslint est instable
   // dans l'environnement de build portable (next/typescript). Lint en dev via
@@ -67,6 +71,10 @@ const nextConfig = {
       },
     ]
   },
+  // Transition post-lancement (10 août 2026) : la campagne d'ouverture est
+  // terminée. La racine `/` sert de nouveau la vraie Home V3 (src/app/(public)/
+  // page.tsx → HomeSections). Les pages de campagne restent accessibles sur
+  // /ouverture et /ouverture/vision (URLs déjà diffusées publiquement).
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', '@radix-ui/react-icons'],
   },

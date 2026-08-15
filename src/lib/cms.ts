@@ -10,7 +10,7 @@
  * /api/cms/[resource] ou /api/admin/cms/[resource]. Les *types* sont importables
  * via `import type`.
  */
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin, supabaseCmsRead, IS_DEMO_MODE } from '@/lib/supabase'
 
 // ── Types de contenu ────────────────────────────────────────────────────────
 export type CmsStatus = 'draft' | 'published' | 'scheduled' | 'live' | 'ended' | 'submitted' | 'approved' | 'rejected'
@@ -23,7 +23,17 @@ export interface CmsHomepageBlock extends CmsRow { block_key: string; title?: st
 export interface CmsMedia extends CmsRow { type: string; title: string; url: string; category?: string }
 export interface CmsEvent extends CmsRow { title: string; starts_at?: string; location?: string; is_online?: boolean }
 export interface CmsLive extends CmsRow { title: string; youtube_url?: string; scheduled_at?: string; is_live?: boolean }
-export interface CmsPodcast extends CmsRow { title: string; audio_url?: string; episode?: number }
+export interface CmsPodcast extends CmsRow {
+  title: string
+  audio_url?: string
+  episode?: number
+  // PODCAST-0B — modèle éditorial (migration 20260812153000). Optionnels : lignes
+  // legacy pré-migration peuvent ne pas les porter. Voir @/lib/podcast/editorial.
+  serie?: string | null
+  access_level?: 'public' | 'member' | 'premium'
+  destinations?: string[]
+  is_featured?: boolean
+}
 export interface CmsTeaching extends CmsRow { title: string; speaker?: string; scripture?: string }
 export interface CmsTestimony extends CmsRow { author_name: string; body: string; featured?: boolean }
 export interface CmsArticle extends CmsRow { title: string; slug?: string; excerpt?: string; body?: string; cover_url?: string; author?: string; category?: string; featured?: boolean }
@@ -51,7 +61,15 @@ interface ListOptions {
   filter?: Record<string, string | number | boolean>
   /** Colonne de tri (défaut: sort_order). */
   orderBy?: string
+  /** Sens du tri (défaut: ascendant). */
+  ascending?: boolean
   limit?: number
+  /**
+   * Lecture live : contourne le Data Cache de fetch de Next.js (cache: 'no-store').
+   * À activer pour les listes publiques qui doivent refléter immédiatement les
+   * publications admin (ex. /articles), sans redéploiement ni revalidation.
+   */
+  noStore?: boolean
 }
 
 /**
@@ -60,7 +78,8 @@ interface ListOptions {
 export async function cmsList<T = CmsRow>(table: CmsTable, opts: ListOptions = {}): Promise<T[] | null> {
   if (IS_DEMO_MODE) return null
   try {
-    let q = supabaseAdmin.from(table).select('*')
+    const client = opts.noStore ? supabaseCmsRead : supabaseAdmin
+    let q = client.from(table).select('*')
     if (opts.publicOnly) {
       const statuses = publicStatusesFor(table)
       q = q.in('status', statuses)
@@ -70,7 +89,7 @@ export async function cmsList<T = CmsRow>(table: CmsTable, opts: ListOptions = {
       }
     }
     if (opts.filter) for (const [k, v] of Object.entries(opts.filter)) q = q.eq(k, v as any)
-    q = q.order(opts.orderBy ?? 'sort_order', { ascending: true })
+    q = q.order(opts.orderBy ?? 'sort_order', { ascending: opts.ascending ?? true })
     if (opts.limit) q = q.limit(opts.limit)
     const { data, error } = await q
     if (error) return null

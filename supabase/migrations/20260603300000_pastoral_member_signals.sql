@@ -83,7 +83,7 @@ as $$
     select d.user_id, count(*) as dons
     from public.dons d
     where d.user_id is not null
-      and lower(coalesce(d.statut, '')) = 'complete'
+      and lower(coalesce(d.statut::text, '')) = 'complete'  -- P0 migration-health: cast enum→text (statut NOT NULL → comportement identique)
     group by d.user_id
   )
   select

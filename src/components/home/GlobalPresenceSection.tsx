@@ -1,0 +1,159 @@
+'use client'
+/**
+ * Section « Présence internationale » — globe image léger + motion unifiée.
+ * Accessibilité : prefers-reduced-motion coupe rotation et apparitions.
+ */
+import { useRef } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
+// Constellation SYMBOLIQUE des nations où des drapeaux apparaissent réellement sur les
+// pages publiques (MovementSection + Contact). Positions décoratives — ce n'est PAS une
+// cartographie exacte. Aucun chiffre, aucune statistique. Exactement 14 lumières.
+const NATION_LIGHTS = [
+  { name: 'RDC',            flag: '🇨🇩', top: '30%', left: '44%', delay: '0s'   },
+  { name: 'France',         flag: '🇫🇷', top: '21%', left: '61%', delay: '0.4s' },
+  { name: 'Belgique',       flag: '🇧🇪', top: '37%', left: '72%', delay: '0.8s' },
+  { name: 'Canada',         flag: '🇨🇦', top: '18%', left: '33%', delay: '1.2s' },
+  { name: "Côte d'Ivoire",  flag: '🇨🇮', top: '55%', left: '39%', delay: '1.6s' },
+  { name: 'Cameroun',       flag: '🇨🇲', top: '48%', left: '57%', delay: '2s'   },
+  { name: 'Ghana',          flag: '🇬🇭', top: '63%', left: '51%', delay: '2.4s' },
+  { name: 'Sénégal',        flag: '🇸🇳', top: '43%', left: '27%', delay: '2.8s' },
+  { name: 'Suisse',         flag: '🇨🇭', top: '29%', left: '68%', delay: '0.2s' },
+  { name: 'Royaume-Uni',    flag: '🇬🇧', top: '25%', left: '49%', delay: '0.6s' },
+  { name: 'États-Unis',     flag: '🇺🇸', top: '41%', left: '18%', delay: '1s'   },
+  { name: 'Allemagne',      flag: '🇩🇪', top: '20%', left: '77%', delay: '1.4s' },
+  { name: 'Gabon',          flag: '🇬🇦', top: '68%', left: '61%', delay: '1.8s' },
+  { name: 'Italie',         flag: '🇮🇹', top: '58%', left: '74%', delay: '2.2s' },
+]
+
+// CSS injecté via dangerouslySetInnerHTML (quotes de `content` non échappées → pas de
+// mismatch d'hydratation). Rotation : 120s mobile, 90s dès 768px. Pulsations légères.
+const GLOBE_CSS = `
+  @keyframes citadelleGlobeSpin { to { transform: rotate(360deg); } }
+  @keyframes citadelleNationPulse {
+    0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.82); }
+    50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.18); }
+  }
+  @keyframes citadelleOrbit {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes citadelleHaloBreath {
+    0%, 100% { opacity: 0.45; transform: scale(1); }
+    50% { opacity: 0.75; transform: scale(1.04); }
+  }
+  .citadelle-globe-rotate {
+    animation: citadelleGlobeSpin 120s linear infinite;
+    will-change: transform;
+  }
+  @media (min-width: 768px) {
+    .citadelle-globe-rotate { animation-duration: 90s; }
+  }
+  .citadelle-nation {
+    transform: translate(-50%, -50%);
+    animation: citadelleNationPulse 3.4s ease-in-out infinite;
+  }
+  .citadelle-orbit {
+    position: absolute;
+    inset: -6%;
+    border-radius: 9999px;
+    border: 1px solid rgba(212,175,55,0.18);
+    animation: citadelleOrbit 48s linear infinite;
+    pointer-events: none;
+  }
+  .citadelle-orbit-2 {
+    inset: -12%;
+    border-color: rgba(245,230,167,0.10);
+    animation-duration: 72s;
+    animation-direction: reverse;
+  }
+  .citadelle-halo {
+    position: absolute;
+    inset: -18%;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(212,175,55,0.16) 0%, transparent 68%);
+    animation: citadelleHaloBreath 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .citadelle-globe-rotate { animation: none; }
+    .citadelle-nation { animation: none; opacity: 0.85; }
+    .citadelle-orbit, .citadelle-orbit-2, .citadelle-halo { animation: none; }
+  }
+`
+
+export function GlobalPresenceSection() {
+  const ref = useRef<HTMLElement>(null)
+  const reduce = useReducedMotion()
+
+  return (
+    <section ref={ref} className="py-20 sm:py-24 overflow-hidden">
+      <style dangerouslySetInnerHTML={{ __html: GLOBE_CSS }} />
+      <div className="container-royal grid lg:grid-cols-2 gap-12 items-center">
+        <motion.div
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
+        >
+          <h2 className="heading-cinematic-lg">
+            Le Royaume
+            <span className="block text-cinematic-gold">dépasse les frontières.</span>
+          </h2>
+        </motion.div>
+
+        {/* Globe — très grand, animation lente, borné mobile. Aucune statistique. */}
+        <motion.div
+          className="flex justify-center"
+          initial={revealInitial(reduce, { y: 40, blur: false })}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.body)}
+        >
+          <div className="relative aspect-square w-[min(460px,100%)] max-w-[92vw] md:w-[640px] md:max-w-none mx-auto">
+            <div className="citadelle-halo" aria-hidden />
+            <div className="citadelle-orbit" aria-hidden />
+            <div className="citadelle-orbit citadelle-orbit-2" aria-hidden />
+            <div className="citadelle-globe-rotate absolute inset-0 rounded-full overflow-hidden shadow-[0_0_80px_rgba(212,175,55,0.12)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/home/globe-nations.webp"
+                alt="Globe terrestre — la portée internationale de La Citadelle"
+                width={540}
+                height={540}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover object-center select-none"
+                draggable={false}
+              />
+            </div>
+
+            {/* 14 lumières des nations — constellation symbolique, fixes (ne tournent pas).
+                Pulsations opacity + scale uniquement ; petite lueur fixe autorisée (pas de blur). */}
+            {NATION_LIGHTS.map((n) => (
+              <span
+                key={n.name}
+                role="img"
+                title={`${n.name} ${n.flag}`}
+                aria-label={`${n.name} ${n.flag}`}
+                className="citadelle-nation absolute block w-[7px] h-[7px] rounded-full"
+                style={{
+                  top: n.top,
+                  left: n.left,
+                  animationDelay: n.delay,
+                  background: '#F5E6A7',
+                  boxShadow: '0 0 8px 2px rgba(245,230,167,0.75)',
+                }}
+              />
+            ))}
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}

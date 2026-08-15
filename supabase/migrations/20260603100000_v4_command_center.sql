@@ -880,7 +880,9 @@ returns jsonb language sql stable security definer set search_path = public as $
   select jsonb_build_object(
     'membres_total',        (select count(*) from prof),
     'nouveaux_30j',         (select count(*) from prof p, bornes b where p.created_at >= b.d30),
-    'membres_actifs',       (select count(*) from prof where membre_statut = any (array['membre','fidele','actif'])),
+    -- P0 migration-health: cast enum→text pour rendre la fonction SQL créable au reset.
+    -- DETTE connue: 'membre'/'fidele'/'actif' ∉ enum membre_statut → compteur = 0 (bug métier préexistant, sémantique à trancher séparément).
+    'membres_actifs',       (select count(*) from prof where membre_statut::text = any (array['membre','fidele','actif'])),
     'dons_par_devise',      (select coalesce(jsonb_object_agg(upper(coalesce(devise,'FCFA')), s), '{}'::jsonb)
                                from (select devise, sum(montant) s from dons_ok group by devise) t),
     'dons_count',           (select count(*) from dons_ok),
