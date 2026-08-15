@@ -9,7 +9,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X, Plus, Check, Loader2, ListMusic } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
+// PODCAST-9 / D2 : opérations playlists member-owned (RLS) → client COOKIE authentifié.
+import { getMemberClient } from '@/lib/supabase-browser'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import {
   fetchMyPlaylists, fetchMyPlaylistIdsContainingEpisode, fetchPlaylistItems,
   addItemToPlaylist, removeItemFromPlaylist, createPersonalPlaylist,
@@ -33,34 +35,31 @@ export function AddToPlaylistSheet({ episodeId, episodeTitle, userId, onClose, o
   const [newTitle, setNewTitle] = useState('')
   const [error, setError] = useState('')
   const closeRef = useRef<HTMLButtonElement>(null)
+  // PODCAST-9 / D3 : focus initial (bouton Fermer), piège Tab/Shift+Tab, Échap et
+  // restauration du focus sur le déclencheur — via hook accessible partagé.
+  const panelRef = useFocusTrap<HTMLDivElement>(true, { onEscape: onClose, initialFocusRef: closeRef })
 
   const load = useCallback(async () => {
     setLoading(true)
     const [mine, containing] = await Promise.all([
-      fetchMyPlaylists(supabase),
-      fetchMyPlaylistIdsContainingEpisode(supabase, episodeId),
+      fetchMyPlaylists(getMemberClient()),
+      fetchMyPlaylistIdsContainingEpisode(getMemberClient(), episodeId),
     ])
     setRows(buildAddToPlaylistRows(mine, containing))
     setLoading(false)
   }, [episodeId])
 
   useEffect(() => { load() }, [load])
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    closeRef.current?.focus()
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
 
   const toggle = async (row: AddToPlaylistRow) => {
     setBusyId(row.playlist.id); setError('')
     try {
       let ok: boolean
       if (row.contains) {
-        ok = await removeItemFromPlaylist(supabase, row.playlist.id, episodeId)
+        ok = await removeItemFromPlaylist(getMemberClient(), row.playlist.id, episodeId)
       } else {
-        const items = await fetchPlaylistItems(supabase, row.playlist.id)
-        ok = await addItemToPlaylist(supabase, row.playlist.id, episodeId, nextItemPosition(items))
+        const items = await fetchPlaylistItems(getMemberClient(), row.playlist.id)
+        ok = await addItemToPlaylist(getMemberClient(), row.playlist.id, episodeId, nextItemPosition(items))
       }
       if (!ok) { setError("Action impossible. Vérifie ta connexion et réessaie."); return }
       setRows((prev) => prev.map((r) => (r.playlist.id === row.playlist.id ? { ...r, contains: !r.contains } : r)))
@@ -77,9 +76,9 @@ export function AddToPlaylistSheet({ episodeId, episodeTitle, userId, onClose, o
     if (!title) return
     setBusyId('__create__'); setError('')
     try {
-      const pl = await createPersonalPlaylist(supabase, { userId, title })
+      const pl = await createPersonalPlaylist(getMemberClient(), { userId, title })
       if (!pl) { setError('Création impossible. Réessaie.'); return }
-      const added = await addItemToPlaylist(supabase, pl.id, episodeId, 0)
+      const added = await addItemToPlaylist(getMemberClient(), pl.id, episodeId, 0)
       setNewTitle(''); setCreating(false)
       await load()
       if (!added) setError("Playlist créée, mais l'ajout a échoué. Réessaie depuis la liste.")
@@ -98,7 +97,9 @@ export function AddToPlaylistSheet({ episodeId, episodeTitle, userId, onClose, o
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="w-full sm:max-w-md max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-gold/20 shadow-[0_-10px_60px_rgba(0,0,0,0.6)] sm:shadow-2xl"
+        ref={panelRef}
+        tabIndex={-1}
+        className="w-full sm:max-w-md max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-gold/20 shadow-[0_-10px_60px_rgba(0,0,0,0.6)] sm:shadow-2xl focus:outline-none"
         style={{ background: 'linear-gradient(180deg, #0b0713 0%, #050308 100%)' }}
         onClick={(e) => e.stopPropagation()}
       >

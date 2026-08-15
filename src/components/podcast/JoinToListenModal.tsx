@@ -10,9 +10,10 @@
  * Ne change RIEN à la lecture membre ni à l'écoute libre de L'Instant Citadelle
  * depuis la page d'accueil (ce composant n'y est pas monté).
  */
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import Link from 'next/link'
 import { X, ArrowRight, Headphones, Lock } from 'lucide-react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 export interface JoinToListenModalProps {
   open: boolean
@@ -23,16 +24,9 @@ export interface JoinToListenModalProps {
 
 export function JoinToListenModal({ open, onClose, episodeTitle }: JoinToListenModalProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    closeRef.current?.focus()
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  // PODCAST-9 / D3 : focus initial (bouton Fermer), piège Tab/Shift+Tab, Échap et
+  // restauration du focus sur le déclencheur — via hook accessible partagé.
+  const panelRef = useFocusTrap<HTMLDivElement>(open, { onEscape: onClose, initialFocusRef: closeRef })
 
   if (!open) return null
 
@@ -48,7 +42,9 @@ export function JoinToListenModal({ open, onClose, episodeTitle }: JoinToListenM
       }}
     >
       <div
-        className="relative isolate z-10 w-full max-w-sm max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-2xl border border-gold/20 shadow-[0_30px_90px_rgba(0,0,0,0.7)]"
+        ref={panelRef}
+        tabIndex={-1}
+        className="relative isolate z-10 w-full max-w-sm max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-2xl border border-gold/20 shadow-[0_30px_90px_rgba(0,0,0,0.7)] focus:outline-none"
         style={{ background: 'linear-gradient(180deg, #0b0713 0%, #050308 100%)' }}
       >
         <button

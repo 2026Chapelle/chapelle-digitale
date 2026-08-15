@@ -125,6 +125,16 @@ export interface AccessLevelStat {
   listening_seconds: number
 }
 
+// PODCAST-9 / D1 : répartition des écoutes par contexte d'origine (rail).
+// `source_context` provient de l'UI (validé serveur contre AUDIO_SOURCE_CONTEXTS).
+// Utile pour mesurer l'efficacité des rails « Pour toi » / « Populaire » / catalogue.
+export interface SourceContextStat {
+  source_context: string   // ex. 'personalized', 'popular', 'catalog'… ('inconnu' = non fourni)
+  plays: number
+  unique_listeners: number
+  listening_seconds: number
+}
+
 export interface TrendPoint {
   bucket: string   // 'YYYY-MM-DD' (jour) ou 'YYYY-Www' (semaine)
   plays: number
@@ -137,6 +147,7 @@ export interface AudioAnalytics {
   top_series: SeriesStat[]
   playlists: PlaylistStat[]
   access_breakdown: AccessLevelStat[]
+  source_breakdown: SourceContextStat[]   // PODCAST-9 / D1 : plays & temps par rail d'origine
   trend: TrendPoint[]
 }
 
@@ -162,6 +173,9 @@ interface Group {
   maxPosition: number
   duration: number | null
   plays: number
+  // PODCAST-9 / D1 : nb de plays par contexte d'origine (rail) pour ce groupe.
+  // Sert à attribuer le temps d'écoute au rail dominant (sans double comptage).
+  sourceCounts: Map<string, number>
 }
 
 /** Regroupe les événements par (auditeur, épisode). Les lignes SANS auditeur
@@ -178,10 +192,14 @@ function buildGroups(rows: AudioEventRow[]): Group[] {
     const key = `${lk}::${r.podcast_id}`
     let g = map.get(key)
     if (!g) {
-      g = { listener: lk, podcast_id: r.podcast_id, started: false, resumed: false, completedEvent: false, maxPercent: 0, maxPosition: 0, duration: null, plays: 0 }
+      g = { listener: lk, podcast_id: r.podcast_id, started: false, resumed: false, completedEvent: false, maxPercent: 0, maxPosition: 0, duration: null, plays: 0, sourceCounts: new Map() }
       map.set(key, g)
     }
-    if (isPlay(r.event_type)) { g.started = true; g.plays += 1 }
+    if (isPlay(r.event_type)) {
+      g.started = true; g.plays += 1
+      const sc = r.source_context || 'inconnu'
+      g.sourceCounts.set(sc, (g.sourceCounts.get(sc) || 0) + 1)
+    }
     if (r.event_type === 'play_resume') g.resumed = true
     if (r.event_type === 'completed') { g.completedEvent = true; g.maxPercent = 100 }
     const pct = num(r.percent_complete)
@@ -353,6 +371,30 @@ export function aggregateAudioAnalytics(
     .map(([access_context, a]) => ({ access_context, plays: a.plays, unique_listeners: a.listeners.size, listening_seconds: a.seconds }))
     .sort((a, b) => b.plays - a.plays)
 
+  // ── Répartition par contexte d'origine (rail) — PODCAST-9 / D1 ──
+  // plays & listeners depuis les événements (source_context tel qu'émis par l'UI,
+  // validé serveur) ; seconds attribuées au rail DOMINANT du groupe (max de plays
+  // par contexte) → aucune double comptabilisation d'une même écoute.
+  const bySource = new Map<string, { plays: number; listeners: Set<string>; seconds: number }>()
+  for (const r of rows) {
+    if (!isPlay(r.event_type)) continue
+    const sc = r.source_context || 'inconnu'
+    let s = bySource.get(sc)
+    if (!s) { s = { plays: 0, listeners: new Set(), seconds: 0 }; bySource.set(sc, s) }
+    s.plays += 1
+    const lk = listenerKey(r); if (lk) s.listeners.add(lk)
+  }
+  for (const g of groups) {
+    if (g.sourceCounts.size === 0) continue
+    // Rail dominant = celui qui a lancé le plus de plays pour ce (auditeur × épisode).
+    let dominant = 'inconnu'; let best = -1
+    for (const [sc, n] of Array.from(g.sourceCounts.entries())) { if (n > best) { best = n; dominant = sc } }
+    const s = bySource.get(dominant); if (s) s.seconds += groupListeningSeconds(g)
+  }
+  const source_breakdown: SourceContextStat[] = Array.from(bySource.entries())
+    .map(([source_context, s]) => ({ source_context, plays: s.plays, unique_listeners: s.listeners.size, listening_seconds: s.seconds }))
+    .sort((a, b) => b.plays - a.plays)
+
   // ── Tendance temporelle ──
   const byBucket = new Map<string, { plays: number; listeners: Set<string> }>()
   for (const r of rows) {
@@ -367,5 +409,5 @@ export function aggregateAudioAnalytics(
     .map(([bucket, t]) => ({ bucket, plays: t.plays, unique_listeners: t.listeners.size }))
     .sort((a, b) => (a.bucket < b.bucket ? -1 : a.bucket > b.bucket ? 1 : 0))
 
-  return { kpis, top_episodes, top_series, playlists, access_breakdown, trend }
+  return { kpis, top_episodes, top_series, playlists, access_breakdown, source_breakdown, trend }
 }

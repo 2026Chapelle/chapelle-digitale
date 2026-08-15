@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { getMemberClient } from '@/lib/supabase-browser'
 import { JoinToListenModal } from '@/components/podcast/JoinToListenModal'
 import { PodcastHero } from '@/components/podcast/PodcastHero'
 import { EpisodeRail, type RailEpisode } from '@/components/podcast/EpisodeRail'
@@ -141,7 +142,8 @@ export default function PodcastPage() {
     if (IS_DEMO_MODE || !user) { setProgressRows([]); return }
     let cancelled = false
     ;(async () => {
-      const rows = await fetchMyProgress(supabase)
+      // PODCAST-9 / D2 : lecture member-owned (RLS) → client COOKIE authentifié.
+      const rows = await fetchMyProgress(getMemberClient())
       if (!cancelled) setProgressRows(rows)
     })()
     return () => { cancelled = true }
@@ -172,7 +174,8 @@ export default function PodcastPage() {
     if (IS_DEMO_MODE || !user) { setMyPremium({ active: false, hadAny: false, activeExpiresAt: null }); return }
     let cancelled = false
     ;(async () => {
-      const status = await fetchMyPremiumStatus(supabase)
+      // PODCAST-9 / D2 : entitlement Premium du membre (RLS select-own) → client COOKIE.
+      const status = await fetchMyPremiumStatus(getMemberClient())
       if (!cancelled) setMyPremium(status)
     })()
     return () => { cancelled = true }
@@ -198,10 +201,12 @@ export default function PodcastPage() {
     let cancelled = false
     ;(async () => {
       try {
-        const mine = await fetchMyPlaylists(supabase)
+        // PODCAST-9 / D2 : playlists personnelles + items (RLS owner) → client COOKIE.
+        const memberClient = getMemberClient()
+        const mine = await fetchMyPlaylists(memberClient)
         const ids = mine.map((p) => p.id)
         if (ids.length === 0) { if (!cancelled) setPlaylistEpisodeIds([]); return }
-        const { data } = await supabase.from('audio_playlist_items').select('podcast_id').in('playlist_id', ids)
+        const { data } = await memberClient.from('audio_playlist_items').select('podcast_id').in('playlist_id', ids)
         if (!cancelled) setPlaylistEpisodeIds((data as Array<{ podcast_id?: string }> | null)?.map((r) => r.podcast_id).filter((v): v is string => !!v) ?? [])
       } catch { /* pas d'affinité playlist */ }
     })()

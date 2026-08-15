@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import {
   Headphones, Users, Clock, CheckCircle2, RotateCcw, LogOut, Gauge,
-  Mic, ListMusic, Loader2, RefreshCw, TrendingUp, Lock,
+  Mic, ListMusic, Loader2, RefreshCw, TrendingUp, Lock, Compass,
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -20,18 +20,27 @@ interface EpisodeStat { podcast_id: string; title: string; serie: string | null;
 interface SeriesStat { serie: string; plays: number; unique_listeners: number; listening_seconds: number; completion_rate: number }
 interface PlaylistStat { playlist_id: string; title: string; playlist_type: string; plays: number; unique_listeners: number; listening_seconds: number; completion_rate: number }
 interface AccessStat { access_context: string; plays: number; unique_listeners: number; listening_seconds: number }
+interface SourceStat { source_context: string; plays: number; unique_listeners: number; listening_seconds: number }
 interface TrendPoint { bucket: string; plays: number; unique_listeners: number }
 interface Payload {
   ok: boolean; range: string; granularity: string; sampled: boolean
   available_series: string[]
   filters: { serie: string | null; access: string | null; playlist: string | null }
   kpis: Kpis; top_episodes: EpisodeStat[]; top_series: SeriesStat[]
-  playlists: PlaylistStat[]; access_breakdown: AccessStat[]; trend: TrendPoint[]
+  playlists: PlaylistStat[]; access_breakdown: AccessStat[]; source_breakdown?: SourceStat[]; trend: TrendPoint[]
 }
 
 const RANGES = [{ v: '7d', l: '7 jours' }, { v: '30d', l: '30 jours' }, { v: '90d', l: '90 jours' }, { v: 'all', l: 'Tout' }]
 const ACCESS_LABEL: Record<string, string> = { public: 'Public', member: 'Membre', premium: 'Premium', inconnu: 'Inconnu' }
 const ACCESS_COLOR: Record<string, string> = { public: '#22C55E', member: '#0EA5E9', premium: '#D4AF37', inconnu: '#6B7280' }
+// PODCAST-9 / D1 : libellés FR des rails d'origine de lecture (source_context).
+const SOURCE_LABEL: Record<string, string> = {
+  catalog: 'Catalogue', featured: 'À la une', new_release: 'Nouveautés',
+  continue_listening: "Continuer l'écoute", official_playlist: 'Playlist officielle',
+  personal_playlist: 'Playlist perso', homepage_instant: 'Accueil · Instant',
+  homepage_premium: 'Accueil · Premium', direct: 'Direct',
+  personalized: 'Pour toi', popular: 'Populaire', inconnu: 'Inconnu',
+}
 
 function fmtDur(s: number): string {
   if (!s || s < 0) return '0s'
@@ -163,6 +172,26 @@ export default function PodcastAnalyticsPage() {
                 ) : <Empty />}
               </Panel>
             </div>
+
+            {/* PODCAST-9 / D1 — Répartition par rail d'origine (efficacité « Pour toi » / « Populaire » / catalogue) */}
+            <Panel icon={Compass} title="Répartition par rail d'origine">
+              {data.source_breakdown && data.source_breakdown.length ? (
+                <div className="space-y-2.5">
+                  {data.source_breakdown.map((s) => {
+                    const tot = data.source_breakdown!.reduce((acc, x) => acc + x.plays, 0) || 1
+                    return (
+                      <div key={s.source_context}>
+                        <div className="flex justify-between text-[11px] font-inter mb-1">
+                          <span className="text-pearl/70">{SOURCE_LABEL[s.source_context] || s.source_context}</span>
+                          <span className="font-bold text-white">{s.plays.toLocaleString('fr-FR')} <span className="text-pearl/30 font-normal">· {fmtDur(s.listening_seconds)} · {s.unique_listeners.toLocaleString('fr-FR')} aud.</span></span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-white/6"><div className="h-full rounded-full bg-gold" style={{ width: `${(s.plays / tot) * 100}%` }} /></div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : <Empty hint="Aucune écoute contextualisée par rail sur la période." />}
+            </Panel>
 
             <p className="text-[10px] font-inter text-pearl/25 text-center pt-2">
               Confidentialité : événements d'écoute agrégés, aucune identité d'auditeur exposée. Auditeurs uniques anonymes estimés par session (précision limitée, aucun fingerprint).

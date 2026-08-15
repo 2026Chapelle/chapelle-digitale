@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import {
   aggregateAudioAnalytics, listenerKey, timeBucket,
   isAudioEventType, isAudioSourceContext, isAudioAccessContext,
+  AUDIO_SOURCE_CONTEXTS,
   type AudioEventRow, type EpisodeMeta,
 } from '../audio-analytics'
 
@@ -238,5 +241,63 @@ describe('tendance', () => {
     expect(a.trend).toHaveLength(2)
     expect(a.trend[0]).toMatchObject({ bucket: '2026-08-11', plays: 2 })
     expect(a.trend[1]).toMatchObject({ bucket: '2026-08-12', plays: 1 })
+  })
+})
+
+// ── PODCAST-9 / D1 : rails de recommandation + garde anti-dérive SQL↔TS ──────
+describe('PODCAST-9 / D1 — source_context personalized/popular', () => {
+  it('accepte les nouvelles valeurs PODCAST-8', () => {
+    expect(isAudioSourceContext('personalized')).toBe(true)
+    expect(isAudioSourceContext('popular')).toBe(true)
+  })
+
+  it('produit un source_breakdown (plays + temps + auditeurs par rail)', () => {
+    const rows = [
+      ev({ user_id: 'u1', podcast_id: 'ep1', event_type: 'play_start', source_context: 'personalized', duration_seconds: 100, position_seconds: 60 }),
+      ev({ user_id: 'u2', podcast_id: 'ep1', event_type: 'play_start', source_context: 'personalized', position_seconds: 20 }),
+      ev({ session_key: 's3', podcast_id: 'ep2', event_type: 'play_start', source_context: 'popular', position_seconds: 10 }),
+      ev({ user_id: 'u4', podcast_id: 'ep3', event_type: 'play_start', source_context: 'catalog' }),
+    ]
+    const a = aggregateAudioAnalytics(rows, EPISODES)
+    const perso = a.source_breakdown.find((s) => s.source_context === 'personalized')
+    const pop = a.source_breakdown.find((s) => s.source_context === 'popular')
+    const cat = a.source_breakdown.find((s) => s.source_context === 'catalog')
+    expect(perso?.plays).toBe(2)
+    expect(perso?.unique_listeners).toBe(2)
+    expect(perso?.listening_seconds).toBe(80)   // 60 (u1) + 20 (u2), rail dominant
+    expect(pop?.plays).toBe(1)
+    expect(cat?.plays).toBe(1)
+  })
+
+  it('attribue les secondes au rail dominant sans double comptage', () => {
+    // Un même (auditeur × épisode) lancé depuis deux rails : secondes comptées une seule fois.
+    const rows = [
+      ev({ user_id: 'u1', podcast_id: 'ep1', event_type: 'play_start', source_context: 'personalized', position_seconds: 30 }),
+      ev({ user_id: 'u1', podcast_id: 'ep1', event_type: 'play_resume', source_context: 'personalized', position_seconds: 90 }),
+      ev({ user_id: 'u1', podcast_id: 'ep1', event_type: 'play_start', source_context: 'catalog', position_seconds: 90 }),
+    ]
+    const a = aggregateAudioAnalytics(rows, EPISODES)
+    const total = a.source_breakdown.reduce((s, x) => s + x.listening_seconds, 0)
+    expect(total).toBe(90)   // pas 180 : une seule écoute (max position 90)
+    const perso = a.source_breakdown.find((s) => s.source_context === 'personalized')
+    expect(perso?.listening_seconds).toBe(90)   // rail dominant (2 plays vs 1)
+  })
+
+  it('classe les événements sans source_context comme « inconnu »', () => {
+    const rows = [ev({ user_id: 'u1', podcast_id: 'ep1', event_type: 'play_start', position_seconds: 5 })]
+    const a = aggregateAudioAnalytics(rows, EPISODES)
+    expect(a.source_breakdown.find((s) => s.source_context === 'inconnu')?.plays).toBe(1)
+  })
+
+  it('GARDE ANTI-DÉRIVE : la migration SQL couvre exactement AUDIO_SOURCE_CONTEXTS', () => {
+    // La whitelist CHECK PostgreSQL DOIT rester alignée sur le vocabulaire TypeScript.
+    // Ce test échoue si un nouveau contexte TS est ajouté sans migration additive.
+    const sql = readFileSync(
+      resolve(__dirname, '../../../../supabase/migrations/20260814120000_podcast_analytics_source_context_extend.sql'),
+      'utf8',
+    )
+    for (const ctx of AUDIO_SOURCE_CONTEXTS) {
+      expect(sql, `source_context '${ctx}' manquant dans la migration CHECK`).toContain(`'${ctx}'`)
+    }
   })
 })

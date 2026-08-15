@@ -9,7 +9,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Plus, X, Play, Trash2, ChevronLeft, ChevronRight, ListMusic, Loader2, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react'
 import { PodcastCover } from './PodcastCover'
 import { PremiumBadge } from './PremiumBadge'
-import { supabase } from '@/lib/supabase'
+// PODCAST-9 / D2 : toutes les opérations playlists (lecture officielle publique +
+// CRUD personnel RLS) passent par le client COOKIE authentifié — le client anon
+// repartait role=anon après refresh → 401 (playlists cassées).
+import { getMemberClient } from '@/lib/supabase-browser'
 import type { VoixEpisode } from '@/lib/podcast/sections'
 import {
   fetchOfficialPlaylists, fetchMyPlaylists, fetchPlaylistItems, createPersonalPlaylist,
@@ -39,8 +42,8 @@ export function PlaylistsSections({
   const byId = new Map(episodes.map((e) => [e.id, e]))
   const firstCover = (items: PlaylistItem[]) => byId.get(items[0]?.podcast_id)?.cover ?? null
 
-  const reloadMine = useCallback(async () => { if (userId) setMine(await fetchMyPlaylists(supabase)) }, [userId])
-  useEffect(() => { (async () => setOfficial(await fetchOfficialPlaylists(supabase)))() }, [])
+  const reloadMine = useCallback(async () => { if (userId) setMine(await fetchMyPlaylists(getMemberClient())) }, [userId])
+  useEffect(() => { (async () => setOfficial(await fetchOfficialPlaylists(getMemberClient())))() }, [])
   useEffect(() => { if (userId) reloadMine(); else setMine([]) }, [userId, reloadMine])
   // Rafraîchit après un ajout depuis le menu ⋯ (hors de cette section).
   useEffect(() => { if (refreshSignal && userId) reloadMine() }, [refreshSignal, userId, reloadMine])
@@ -152,7 +155,7 @@ function CreateModal({ onClose, onCreated, userId }: { onClose: () => void; onCr
   async function submit() {
     if (!title.trim()) return
     setState('loading')
-    const pl = await createPersonalPlaylist(supabase, { userId, title: title.trim(), description: description.trim() || null })
+    const pl = await createPersonalPlaylist(getMemberClient(), { userId, title: title.trim(), description: description.trim() || null })
     if (pl) onCreated(); else setState('error')
   }
   return (
@@ -192,7 +195,7 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
   const [items, setItems] = useState<PlaylistItem[]>([])
   const [loading, setLoading] = useState(true)
   const [addId, setAddId] = useState('')
-  const reload = useCallback(async () => { setLoading(true); setItems(await fetchPlaylistItems(supabase, playlist.id)); setLoading(false) }, [playlist.id])
+  const reload = useCallback(async () => { setLoading(true); setItems(await fetchPlaylistItems(getMemberClient(), playlist.id)); setLoading(false) }, [playlist.id])
   useEffect(() => { reload() }, [reload])
 
   const eps = items.map((it) => byId.get(it.podcast_id)).filter(Boolean) as VoixEpisode[]
@@ -201,22 +204,22 @@ function DetailModal({ playlist, episodes, canPlay, isOwner, onClose, onPlayEpis
 
   async function add() {
     if (!addId) return
-    await addItemToPlaylist(supabase, playlist.id, addId, nextItemPosition(items))
+    await addItemToPlaylist(getMemberClient(), playlist.id, addId, nextItemPosition(items))
     setAddId(''); reload()
   }
-  async function remove(podcastId: string) { await removeItemFromPlaylist(supabase, playlist.id, podcastId); reload() }
+  async function remove(podcastId: string) { await removeItemFromPlaylist(getMemberClient(), playlist.id, podcastId); reload() }
   async function move(podcastId: string, dir: -1 | 1) {
     const ordered = items.map((i) => i.podcast_id)
     const idx = ordered.indexOf(podcastId)
     const j = idx + dir
     if (idx < 0 || j < 0 || j >= ordered.length) return
     ;[ordered[idx], ordered[j]] = [ordered[j], ordered[idx]]
-    await reorderMyPlaylistItems(supabase, playlist.id, ordered)
+    await reorderMyPlaylistItems(getMemberClient(), playlist.id, ordered)
     reload()
   }
   async function del() {
     if (!confirm(`Supprimer la playlist « ${playlist.title} » ? (les épisodes ne sont pas supprimés)`)) return
-    if (await deletePersonalPlaylist(supabase, playlist.id)) { onChanged(); onClose() }
+    if (await deletePersonalPlaylist(getMemberClient(), playlist.id)) { onChanged(); onClose() }
   }
 
   return (

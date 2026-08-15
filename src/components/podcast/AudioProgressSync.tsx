@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useAudioPlayer } from '@/components/providers/AudioPlayerProvider'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { supabase } from '@/lib/supabase'
+import { getMemberClient } from '@/lib/supabase-browser'
 import { computeCompleted, shouldPersist, upsertProgress } from '@/lib/podcast/progress'
 
 const PERSIST_INTERVAL_MS = 15_000
@@ -57,7 +57,9 @@ export function AudioProgressSync() {
     const next = { position: snap.position, completed: snap.completed }
     if (!shouldPersist(prev, next, force)) return
     lastSavedRef.current = { id: snap.id, position: next.position, completed: next.completed }
-    void upsertProgress(supabase, {
+    // PODCAST-9 / D2 : écriture member-owned (RLS) → client COOKIE authentifié
+    // (le client anon repartait role=anon après refresh → 401, progression perdue).
+    void upsertProgress(getMemberClient(), {
       userId: uid, podcastId: snap.id, position: snap.position, duration: snap.duration, completed: snap.completed,
     })
   }, [])
