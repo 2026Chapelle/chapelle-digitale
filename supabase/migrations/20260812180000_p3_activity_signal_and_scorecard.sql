@@ -155,3 +155,13 @@ as $$
 $$;
 revoke all on function public.membres_inactifs(integer, integer) from public;
 grant execute on function public.membres_inactifs(integer, integer) to service_role;
+
+-- ── Durcissement (audit vague août) ──────────────────────────────────────
+--   capture_world_snapshot & prophetic_compute_snapshot sont SECURITY DEFINER
+--   et n'avaient AUCUN revoke depuis leur création en v5 (proacl NULL => EXECUTE
+--   PUBLIC : anon/authenticated pouvaient déclencher des écritures de snapshots).
+--   Redéfinies dans cette vague (p1/p3) → on ferme public/anon/authenticated.
+--   Aucun appelant backend (0 .rpc dans src, 0 appel interne) → owner-only, pas de
+--   grant service_role (cohérent avec les autres fonctions dormantes verrouillées).
+revoke all on function public.capture_world_snapshot(date) from public, anon, authenticated;
+revoke all on function public.prophetic_compute_snapshot(text, text, integer) from public, anon, authenticated;

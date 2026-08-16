@@ -60,7 +60,7 @@ AS $function$
     -- P0 migration-health: cast enum→text pour rendre la fonction SQL créable au reset.
     -- DETTE connue: 'membre'/'fidele'/'actif' ∉ enum membre_statut → compteur = 0 (bug métier préexistant, sémantique à trancher séparément).
     'membres_actifs',       (select count(*) from prof where membre_statut <> 'visiteur'),
-    'dons_par_devise',      (select coalesce(jsonb_object_agg(upper(coalesce(devise,'FCFA')), s), '{}'::jsonb)
+    'dons_par_devise',      (select coalesce(jsonb_object_agg(upper(coalesce(devise,'XOF')), s), '{}'::jsonb)
                                from (select devise, sum(montant) s from dons_ok group by devise) t),
     'dons_count',           (select count(*) from dons_ok),
     'prieres_attente',      (select count(*) from public.priere_demandes pr
@@ -91,7 +91,7 @@ CREATE OR REPLACE FUNCTION public.antenne_governance_agg(p_antenne_ids uuid[])
  SET search_path TO 'public'
 AS $function$
   select
-    a.id, a.nom, a.pays, coalesce(a.devise,'FCFA'), a.parent_id,
+    a.id, a.nom, a.pays, coalesce(a.devise,'XOF'), a.parent_id,
     -- P0 migration-health: cast enum→text (fonction SQL créable). DETTE: littéraux ∉ enum → 0 (cf. v4_command_center).
     (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut <> 'visiteur'),
     (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut <> 'visiteur'
@@ -111,7 +111,7 @@ AS $function$
        join public.discipulat_relations dr on dr.disciple_id = dp.disciple_id and dr.antenne_id = a.id
        where dp.statut = 'valide' and dp.valide_le >= now() - interval '30 days'),
     (select count(*) from public.dons dn where dn.antenne_id = a.id and dn.statut = 'complete'),
-    coalesce((select jsonb_object_agg(upper(coalesce(dn.devise, coalesce(a.devise,'FCFA'))), s)
+    coalesce((select jsonb_object_agg(upper(coalesce(dn.devise, coalesce(a.devise,'XOF'))), s)
        from (select dn.devise, sum(coalesce(dn.montant,0)) s
              from public.dons dn where dn.antenne_id = a.id and dn.statut = 'complete'
              group by dn.devise) dn), '{}'::jsonb),
@@ -134,11 +134,11 @@ declare v_devise jsonb;
 begin
   select coalesce(jsonb_object_agg(d.devise, d.total), '{}'::jsonb) into v_devise
   from (
-    select coalesce(a.devise, 'FCFA') as devise, sum(coalesce(dn.montant, 0)) as total
+    select coalesce(a.devise, 'XOF') as devise, sum(coalesce(dn.montant, 0)) as total
     from public.dons dn
     left join public.antennes a on a.id = dn.antenne_id
     where dn.antenne_id = any(p_antenne_ids) and dn.statut = 'complete'
-    group by coalesce(a.devise, 'FCFA')
+    group by coalesce(a.devise, 'XOF')
   ) d;
   return query
   select

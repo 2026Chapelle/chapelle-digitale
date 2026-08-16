@@ -108,7 +108,7 @@ CREATE OR REPLACE FUNCTION public.antenne_governance_agg(p_antenne_ids uuid[])
  SET search_path TO 'public'
 AS $function$
   select
-    a.id, a.nom, a.pays, coalesce(a.devise,'FCFA'), a.parent_id,
+    a.id, a.nom, a.pays, coalesce(a.devise,'XOF'), a.parent_id,
     -- P0 migration-health: cast enum→text (fonction SQL créable). DETTE: littéraux ∉ enum → 0 (cf. v4_command_center).
     (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut <> 'visiteur'),
     (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut <> 'visiteur'
@@ -128,7 +128,7 @@ AS $function$
        join public.discipulat_relations dr on dr.disciple_id = dp.disciple_id and dr.antenne_id = a.id
        where dp.statut = 'valide' and dp.valide_le >= now() - interval '30 days'),
     (select count(*) from public.dons dn where dn.antenne_id = a.id and dn.statut = 'complete'),
-    coalesce((select jsonb_object_agg(upper(coalesce(dn.devise, coalesce(a.devise,'FCFA'))), s)
+    coalesce((select jsonb_object_agg(upper(coalesce(dn.devise, coalesce(a.devise,'XOF'))), s)
        from (select dn.devise, sum(coalesce(dn.montant,0)) s
              from public.dons dn where dn.antenne_id = a.id and dn.statut = 'complete'
              group by dn.devise) dn), '{}'::jsonb),
@@ -168,7 +168,7 @@ AS $function$
     -- P0 migration-health: cast enum→text pour rendre la fonction SQL créable au reset.
     -- DETTE connue: 'membre'/'fidele'/'actif' ∉ enum membre_statut → compteur = 0 (bug métier préexistant, sémantique à trancher séparément).
     'membres_actifs',       (select count(*) from prof where membre_statut <> 'visiteur' and public.membre_actif_30j(prof.id)),
-    'dons_par_devise',      (select coalesce(jsonb_object_agg(upper(coalesce(devise,'FCFA')), s), '{}'::jsonb)
+    'dons_par_devise',      (select coalesce(jsonb_object_agg(upper(coalesce(devise,'XOF')), s), '{}'::jsonb)
                                from (select devise, sum(montant) s from dons_ok group by devise) t),
     'dons_count',           (select count(*) from dons_ok),
     'prieres_attente',      (select count(*) from public.priere_demandes pr
