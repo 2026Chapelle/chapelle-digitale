@@ -10,9 +10,26 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { PasskeysManager } from './PasskeysManager'
+import { OrganizationEssentialsForm } from './OrganizationEssentialsForm'
+import { UnitHierarchyNav, type HierarchyUnit, type HierarchyActor } from './UnitHierarchyNav'
+import { UnitSettingsForm } from './UnitSettingsForm'
+import { PastoralSettingsPanel } from './PastoralSettingsPanel'
+import { UnitGovernancePanel } from './UnitGovernancePanel'
+
+const ADMIN_WRITE_ROLES = new Set([
+  'world_super_admin',
+  'world_admin',
+  'zone_admin',
+  'national_admin',
+  'local_admin',
+])
 
 const SECTIONS = [
   { id: 'general', label: 'Général', icon: Settings, color: '#D4AF37' },
+  { id: 'hierarchie', label: 'Hiérarchie & unité', icon: Church, color: '#D4AF37' },
+  { id: 'acces', label: 'Accès & nominations', icon: Users, color: '#A78BFA' },
+  { id: 'pastoral', label: 'Parcours pastoral', icon: BookOpen, color: '#8B5CF6' },
   { id: 'notifications', label: 'Notifications', icon: Bell, color: '#0EA5E9' },
   { id: 'securite', label: 'Sécurité', icon: Shield, color: '#EF4444' },
   { id: 'plateformes', label: 'Plateformes', icon: Globe, color: '#22C55E' },
@@ -24,18 +41,23 @@ export default function AdminParametresPage() {
   const [activeSection, setActiveSection] = useState('general')
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [activeUnit, setActiveUnit] = useState<HierarchyUnit | null>(null)
+  const [hierarchyActor, setHierarchyActor] = useState<HierarchyActor | null>(null)
+  const canWrite = Boolean(
+    hierarchyActor?.highestRole && ADMIN_WRITE_ROLES.has(hierarchyActor.highestRole),
+  )
   const [form, setForm] = useState({
-    churchName: 'La Chapelle Internationale des Élus du Royaume',
-    slogan: 'Une Église Ouverte au Monde',
-    email: 'info@chapelleduroyaume.org',
-    phone: '+33 1 23 45 67 89',
-    timezone: 'Europe/Paris',
-    language: 'fr',
-    currency: 'EUR',
+    churchName: '',
+    slogan: '',
+    email: '',
+    phone: '',
+    timezone: '',
+    language: '',
+    currency: '',
     apiKey: '••••••••••••••••••••••••••',
     emailProvider: 'resend',
-    emailFrom: 'noreply@chapelleduroyaume.org',
-    emailFromName: 'CIER — La Chapelle',
+    emailFrom: '',
+    emailFromName: '',
     maintenanceMode: false,
     registrationOpen: true,
     requireEmailVerification: true,
@@ -55,8 +77,8 @@ export default function AdminParametresPage() {
 
         <PageHeader
           eyebrow="Administration"
-          title={<>Paramètres <span className="text-cinematic-gold">Globaux</span></>}
-          description="Configuration générale de la plateforme CIER."
+          title={<>Paramètres <span className="text-cinematic-gold">Organisation</span></>}
+          description="Hiérarchie mondiale, identité, unités et parcours pastoral (ERP Lot 5)."
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -96,75 +118,62 @@ export default function AdminParametresPage() {
             transition={{ duration: 0.3 }}
             className="lg:col-span-3 space-y-6"
           >
+            {activeSection === 'hierarchie' && (
+              <>
+                <UnitHierarchyNav
+                  activeUnitId={activeUnit?.id || null}
+                  onSelect={setActiveUnit}
+                  onActor={setHierarchyActor}
+                  canWrite={canWrite}
+                />
+                <UnitSettingsForm
+                  unitId={activeUnit?.id || null}
+                  unitLabel={activeUnit?.name}
+                  unitType={activeUnit?.unit_type}
+                />
+              </>
+            )}
+
+            {activeSection === 'acces' && (
+              <>
+                <UnitHierarchyNav
+                  activeUnitId={activeUnit?.id || null}
+                  onSelect={setActiveUnit}
+                  onActor={setHierarchyActor}
+                  canWrite={canWrite}
+                />
+                <UnitGovernancePanel
+                  unitId={activeUnit?.id || null}
+                  unitLabel={activeUnit?.name}
+                  unitType={activeUnit?.unit_type}
+                  canWrite={canWrite}
+                />
+              </>
+            )}
+
+            {activeSection === 'pastoral' && <PastoralSettingsPanel />}
+
             {activeSection === 'general' && (
               <>
                 <LivretSetting />
-                <div className="card-royal">
-                  <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-gold" />
-                    Identité de l'Église
-                  </h2>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Nom de l'église</label>
-                      <input
-                        className="input-royal w-full"
-                        value={form.churchName}
-                        onChange={e => setForm({ ...form, churchName: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Slogan</label>
-                      <input
-                        className="input-royal w-full"
-                        value={form.slogan}
-                        onChange={e => setForm({ ...form, slogan: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Email de contact</label>
-                        <input className="input-royal w-full" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-                      </div>
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Téléphone</label>
-                        <input className="input-royal w-full" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Fuseau horaire</label>
-                        <select className="input-royal w-full" value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })}>
-                          <option value="Europe/Paris">Europe/Paris (UTC+1)</option>
-                          <option value="Africa/Kinshasa">Africa/Kinshasa (UTC+1)</option>
-                          <option value="Africa/Abidjan">Africa/Abidjan (UTC)</option>
-                          <option value="America/Montreal">America/Montréal (UTC-4)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Langue</label>
-                        <select className="input-royal w-full" value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}>
-                          <option value="fr">Français</option>
-                          <option value="en">English</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs text-pearl/50 font-inter font-medium block mb-1.5">Devise</label>
-                        <select className="input-royal w-full" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}>
-                          <option value="EUR">EUR — Euro</option>
-                          <option value="USD">USD — Dollar</option>
-                          <option value="XAF">XAF — Franc CFA</option>
-                          <option value="GBP">GBP — Livre</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <OrganizationEssentialsForm />
+                <UnitHierarchyNav
+                  activeUnitId={activeUnit?.id || null}
+                  onSelect={setActiveUnit}
+                  onActor={setHierarchyActor}
+                  canWrite={canWrite}
+                />
+                <UnitSettingsForm
+                  unitId={activeUnit?.id || null}
+                  unitLabel={activeUnit?.name}
+                  unitType={activeUnit?.unit_type}
+                />
 
                 <div className="card-royal">
                   <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-gold" />
                     Fonctionnalités Plateforme
+                    <span className="text-[10px] text-pearl/30 font-inter font-normal ml-2">(legacy mock)</span>
                   </h2>
                   <div className="space-y-4">
                     {[
@@ -242,6 +251,8 @@ export default function AdminParametresPage() {
             )}
 
             {activeSection === 'securite' && (
+              <>
+              <PasskeysManager />
               <div className="card-royal">
                 <h2 className="font-cinzel text-sm font-bold text-pearl mb-5 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-gold" />
@@ -284,6 +295,7 @@ export default function AdminParametresPage() {
                   </div>
                 </div>
               </div>
+              </>
             )}
 
             {activeSection === 'paiements' && (

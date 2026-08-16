@@ -121,9 +121,10 @@ returns table (
 )
 language sql stable security definer set search_path = public as $$
   select
-    a.id, a.nom, a.pays, coalesce(a.devise,'FCFA'), a.parent_id,
-    (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut in ('membre','fidele','actif')),
-    (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut in ('membre','fidele','actif')
+    a.id, a.nom, a.pays, coalesce(a.devise,'XOF'), a.parent_id,
+    -- P0 migration-health: cast enum→text (fonction SQL créable). DETTE: littéraux ∉ enum → 0 (cf. v4_command_center).
+    (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut::text in ('membre','fidele','actif')),
+    (select count(*) from public.profiles p where p.antenne_id = a.id and p.membre_statut::text in ('membre','fidele','actif')
        and p.derniere_connexion >= now() - interval '30 days'),
     (select count(*) from public.profiles p where p.antenne_id = a.id and p.created_at >= now() - interval '30 days'),
     (select count(*) from public.profiles p where p.antenne_id = a.id and p.created_at >= now() - interval '90 days'),
@@ -140,7 +141,7 @@ language sql stable security definer set search_path = public as $$
        join public.discipulat_relations dr on dr.disciple_id = dp.disciple_id and dr.antenne_id = a.id
        where dp.statut = 'valide' and dp.valide_le >= now() - interval '30 days'),
     (select count(*) from public.dons dn where dn.antenne_id = a.id and dn.statut = 'complete'),
-    coalesce((select jsonb_object_agg(upper(coalesce(dn.devise, coalesce(a.devise,'FCFA'))), s)
+    coalesce((select jsonb_object_agg(upper(coalesce(dn.devise, coalesce(a.devise,'XOF'))), s)
        from (select dn.devise, sum(coalesce(dn.montant,0)) s
              from public.dons dn where dn.antenne_id = a.id and dn.statut = 'complete'
              group by dn.devise) dn), '{}'::jsonb),
@@ -462,7 +463,7 @@ comment on function public.capture_world_snapshot(date) is
 -- Persiste les prédictions explicables par membre (snapshot quotidien) pour
 -- tenir l'échelle (dizaines de milliers de membres, multi-pays/antennes).
 -- AUCUN contenu sensible (jamais le texte d'une prière) — uniquement des scores
--- et des agrégats de signaux. Devise FCFA. Réutilise profiles/antennes.
+-- et des agrégats de signaux. Devise canonique DB = XOF (UI: « FCFA »). Réutilise profiles/antennes.
 -- ============================================================================
 
 -- ── Feature store léger : signaux numériques figés par membre & par jour ──
@@ -657,7 +658,10 @@ alter table public.spiritual_health_snapshots enable row level security;
 -- Lecture des AGRÉGATS (non nominatifs) autorisée aux responsables authentifiés ;
 -- la portée fine reste imposée par l'API. Écriture = service role (cron).
 drop policy if exists shs_read on public.spiritual_health_snapshots;
-create policy shs_read on public.spiritual_health_snapshots for select to authenticated using (true);
+-- Durcissement Wave 3 : lecture service_role uniquement (RLS active, aucune policy),
+-- cohérent avec les tables snapshot sœurs (indices de santé cross-nation = données
+-- de gouvernance, non exposées à un membre authentifié). Une visibilité membre scopée
+-- (par antenne) devra passer par une policy dédiée ou une RPC service_role (décision owner).
 
 -- 3) ALERTES DE ZONE : déclin détecté automatiquement au moment du snapshot.
 create table if not exists public.spiritual_health_alerts (
@@ -937,7 +941,7 @@ create policy fx_rates_read on public.fx_rates for select to anon, authenticated
 -- Ecriture: service role uniquement.
 -- Seed des taux courants (idempotent). FCFA/XOF = pivot (1:1).
 insert into public.fx_rates (devise, taux_pivot, source) values
-  ('XOF', 1, 'pivot'), ('FCFA', 1, 'pivot'),
+  ('XOF', 1, 'pivot'),
   ('EUR', 655.957, 'bceao'),   -- parite fixe XOF/EUR
   ('CAD', 445, 'manuel'),
   ('USD', 605, 'manuel'),
@@ -951,21 +955,21 @@ create or replace view public.v_finance_flux as
     'don'             as flux_kind,
     coalesce(d.source, 'don') as source,
     d.montant         as montant,
-    upper(coalesce(d.devise, 'FCFA')) as devise,
+    upper(coalesce(d.devise, 'XOF')) as devise,
     d.antenne_id      as antenne_id,
     a.pays            as pays,
-    d.created_at      as created_at,
-    (d.created_at)::date as jour
+    d.date_creation   as created_at,               -- P0 migration-health: public.dons a `date_creation`, pas `created_at`
+    (d.date_creation)::date as jour
   from public.dons d
   left join public.antennes a on a.id = d.antenne_id
-  where lower(coalesce(d.statut, '')) = 'complete'
+  where lower(coalesce(d.statut::text, '')) = 'complete'  -- P0 migration-health: cast enum→text (vue créable ; comportement identique)
   union all
   select
     pp.id             as flux_id,
     'marketplace'     as flux_kind,
     'marketplace'     as source,
     pp.montant        as montant,
-    upper(coalesce(pp.devise, 'FCFA')) as devise,
+    upper(coalesce(pp.devise, 'XOF')) as devise,
     null::uuid        as antenne_id,
     mp.pays           as pays,
     pp.created_at     as created_at,
@@ -1054,7 +1058,7 @@ language sql security definer set search_path = public as $$
   group by f.jour, f.devise
   order by f.jour;
 $$;
-revoke all on function public.finance_aggregate(text, uuid, date, date) from anon, authenticated;
+revoke all on function public.finance_aggregate(text, uuid, date, date) from public, anon, authenticated;
 
 -- 7) RPC de materialisation des snapshots (appelee par cron nocturne)
 create or replace function public.finance_build_snapshots(p_jour date default current_date)
@@ -1091,7 +1095,7 @@ begin
   get diagnostics n = row_count;
   return n;
 end; $$;
-revoke all on function public.finance_build_snapshots(date) from anon, authenticated;
+revoke all on function public.finance_build_snapshots(date) from public, anon, authenticated;
 
 
 -- ════════════════════════════════════════════════════════════════════════
@@ -1215,7 +1219,7 @@ begin
     select count(*) into v_actifs from public.profiles
       where antenne_id = p_scope_id::uuid and derniere_connexion >= now() - interval '30 days';
     select coalesce(sum(montant),0), count(*) into v_dons, v_dons_nb from public.dons
-      where antenne_id = p_scope_id::uuid and statut = 'complete' and created_at >= v_debut;
+      where antenne_id = p_scope_id::uuid and statut = 'complete' and date_creation >= v_debut;  -- P0: dons.date_creation
     select nom into v_label from public.antennes where id = p_scope_id::uuid;
   elsif p_scope_type = 'nation' then
     select count(*) into v_membres from public.profiles where pays ilike p_scope_id;
@@ -1238,7 +1242,7 @@ begin
     select count(*) into v_pri_urg from public.priere_demandes
       where priorite in ('urgent','tres_urgent') and statut not in ('repondue','archivee','clos') and created_at >= v_debut;
     select count(*) into v_pri_suivi from public.priere_demandes where assigned_to is null and created_at >= v_debut;
-    select coalesce(sum(montant),0), count(*) into v_dons, v_dons_nb from public.dons where statut = 'complete' and created_at >= v_debut;
+    select coalesce(sum(montant),0), count(*) into v_dons, v_dons_nb from public.dons where statut = 'complete' and date_creation >= v_debut;  -- P0: dons.date_creation
     v_label := 'Monde';
   end if;
 
@@ -1264,7 +1268,7 @@ comment on function public.prophetic_compute_snapshot(text,text,integer) is
 -- CENTRE MISSIONNAIRE MONDIAL — V5 (couche intelligence/orchestration)
 -- ADDITIF & IDEMPOTENT. NE RECRÉE RIEN : étend expansion_zones, réutilise
 -- antennes, profiles, dons (Chariow), geo_localites, antenne_descendants.
--- Toute écriture = service role. Devise défaut FCFA. Commentaires FR.
+-- Toute écriture = service role. Devise canonique DB = XOF (UI: « FCFA »). Commentaires FR.
 -- ============================================================================
 
 -- A. RÔLE missionnaire (hors transaction d'usage, idempotent)
@@ -1318,7 +1322,7 @@ create table if not exists public.mission_projets (
   statut              text        not null default 'prospect', -- prospect|preparation|lancement|implantee|suspendu
   objectif_membres    integer,
   objectif_financement numeric,
-  devise              text        not null default 'FCFA',
+  devise              text        not null default 'XOF',
   date_cible          date,
   date_lancement      date,
   date_implantation   date,
@@ -1420,12 +1424,12 @@ returns jsonb language sql stable security definer set search_path = public as $
            coalesce(sum(t.total) filter (where upper(t.devise) = upper(pj.devise)), 0) as total_devise_projet
     from proj pj
     left join lateral (
-      select upper(coalesce(d.devise,'FCFA')) as devise, sum(coalesce(d.montant,0)) as total
+      select upper(coalesce(d.devise,'XOF')) as devise, sum(coalesce(d.montant,0)) as total
       from public.dons d
       where d.statut = 'complete'
         and (d.campagne = 'mission:' || pj.id::text
              or d.meta_json->>'mission_projet_id' = pj.id::text)
-      group by upper(coalesce(d.devise,'FCFA'))
+      group by upper(coalesce(d.devise,'XOF'))
     ) t on true
     group by pj.id, pj.devise
   ),
@@ -1503,9 +1507,9 @@ returns jsonb language sql stable security definer set search_path = public as $
     'fruits_30j',       (select coalesce(sum(mf.quantite),0) from public.mission_fruits mf join proj on proj.id = mf.projet_id where mf.date_fruit >= current_date - 30),
     'financement_par_devise', (
       select coalesce(jsonb_object_agg(devise, s), '{}'::jsonb) from (
-        select upper(coalesce(d.devise,'FCFA')) devise, sum(coalesce(d.montant,0)) s
+        select upper(coalesce(d.devise,'XOF')) devise, sum(coalesce(d.montant,0)) s
         from public.dons d join proj on (d.campagne = 'mission:'||proj.id::text or d.meta_json->>'mission_projet_id' = proj.id::text)
-        where d.statut='complete' group by upper(coalesce(d.devise,'FCFA'))
+        where d.statut='complete' group by upper(coalesce(d.devise,'XOF'))
       ) t)
   );
 $$;
@@ -1574,7 +1578,7 @@ revoke all on function public.refresh_mission_pulse() from public, anon, authent
 -- Brique du Centre de Commandement Apostolique Global. Réutilise priere_demandes
 -- (tres_urgent), delivrance, antennes (hiérarchie parent_id), nation_responsables,
 -- notify()/Realtime. Écriture = service role. Données sensibles = pas de policy
--- (service role only) + sensitive_access_logs. Additif & idempotent. Devise FCFA.
+-- (service role only) + sensitive_access_logs. Additif & idempotent. Devise canonique DB = XOF.
 -- Timestamp réservé V5 (> 20260603200000).
 -- ============================================================================
 
@@ -1729,8 +1733,47 @@ as $$
                           from (select severite, count(*) n from f group by severite) t), '{}'::jsonb)
   );
 $$;
-revoke all on function public.crisis_overview(text) from anon, authenticated;
+revoke all on function public.crisis_overview(text) from public, anon, authenticated;
 
+
+-- ════════════════════════════════════════════════════════════════════════
+-- Z. DURCISSEMENT SÉCURITÉ (pré-application Wave 3)
+--   Ces vues lisent des tables snapshot « service_role only » (RLS sans policy) ;
+--   une vue s'exécute avec les droits du définisseur et contourne donc la RLS
+--   des tables sous-jacentes. Le SELECT accordé par défaut à anon/authenticated
+--   exposerait des prédictions par membre, des flux financiers et des incidents
+--   de crise. On le retire ; service_role conserve l'accès (RPC serveur admin).
+--   Idem pour la matview mv_mission_pulse (non protégée par RLS).
+-- ════════════════════════════════════════════════════════════════════════
+revoke all on public.v_predictions_latest   from anon, authenticated;
+revoke all on public.v_finance_flux          from anon, authenticated;
+revoke all on public.v_crisis_open           from anon, authenticated;
+revoke all on public.v_health_zone_members   from anon, authenticated;
+revoke all on public.mv_mission_pulse        from anon, authenticated;
+
+-- ── Correctif service_role EXECUTE (révélé par db reset) ──────────────────
+--   Fonctions SECURITY DEFINER révoquées de public/anon/authenticated ci-dessus
+--   mais jamais grantées à service_role → l'app (supabaseAdmin, routes admin
+--   global-command & cron/scorecard) prenait un 403. EXECUTE au SEUL service_role.
+--   RPC serveur réellement utilisées ; audit 3 agents (aucun appelant membre/anon).
+grant execute on function public.antenne_scorecard_refresh() to service_role;
+grant execute on function public.antenne_governance_agg(uuid[]) to service_role;
+grant execute on function public.predictions_aggregate(uuid, text) to service_role;
+grant execute on function public.finance_aggregate(text, uuid, date, date) to service_role;
+grant execute on function public.crisis_overview(text) to service_role;
+grant execute on function public.mission_pulse_kpis(text[], uuid[]) to service_role;
+grant execute on function public.mission_carte_monde(text) to service_role;
+
+-- ── Fermeture d'un trou d'exposition anon (révélé par audit) ──────────────
+--   world_overview & aggregate_spiritual_health n'avaient AUCUN revoke (proacl NULL
+--   => EXECUTE PUBLIC : anon/authenticated pouvaient les appeler). Ce sont pourtant
+--   des RPC serveur admin (global-command). Verrou canonique serveur : révoquer
+--   public/anon/authenticated puis granter le SEUL service_role. Aucun appelant
+--   membre/anon dans src/ (audit 3 agents).
+revoke all on function public.world_overview(text, text) from public, anon, authenticated;
+grant execute on function public.world_overview(text, text) to service_role;
+revoke all on function public.aggregate_spiritual_health(text, interval) from public, anon, authenticated;
+grant execute on function public.aggregate_spiritual_health(text, interval) to service_role;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- FIN — 20260603200000_v5_global_command.sql

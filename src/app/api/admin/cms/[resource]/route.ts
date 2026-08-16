@@ -19,6 +19,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 import { isAdminRequest } from '@/lib/admin-auth'
+import { isNotifiableContent, notifyIfFirstPublish } from '@/lib/notifications/content'
 
 function resolveTable(resource: string): CmsTable | null {
   const name = (resource.startsWith('cms_') ? resource : `cms_${resource}`) as CmsTable
@@ -57,6 +58,8 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
     delete body.id; delete body.created_at; delete body.updated_at
     const { data, error } = await supabaseAdmin.from(table).insert(body).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
+    // Contenu créé directement publié → notifier les membres (1re publication).
+    try { await notifyIfFirstPublish(table, null, data) } catch { /* non bloquant */ }
     return NextResponse.json({ ok: true, data })
   } catch (e: any) {
     return NextResponse.json({ ok: false, message: e?.message || 'Erreur' }, { status: 500 })
@@ -74,8 +77,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
     const keyVal = body[keyCol]
     if (keyVal == null) return NextResponse.json({ ok: false, message: `${keyCol} requis.` }, { status: 400 })
     const patch = { ...body }; delete patch[keyCol]; delete patch.created_at; delete patch.updated_at
+    // Pré-lecture du statut ANTÉRIEUR (uniquement pour les tables notifiables) afin
+    // de détecter une transition brouillon → publié. Aucune surcharge ailleurs.
+    let before: Record<string, any> | null = null
+    if (isNotifiableContent(table)) {
+      const { data: prev } = await supabaseAdmin.from(table).select('*').eq(keyCol, keyVal).maybeSingle()
+      before = prev ?? null
+    }
     const { data, error } = await supabaseAdmin.from(table).update(patch).eq(keyCol, keyVal).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
+    try { await notifyIfFirstPublish(table, before, data) } catch { /* non bloquant */ }
     return NextResponse.json({ ok: true, data })
   } catch (e: any) {
     return NextResponse.json({ ok: false, message: e?.message || 'Erreur' }, { status: 500 })

@@ -7,6 +7,7 @@ import { parcoursGate } from '@/lib/formations/parcours-gate-server'
 import { computeStatutUpgrade } from '@/lib/formations/statut-progression'
 import { ensureIntegrationCertificate } from '@/lib/formations/integration-progress-server'
 import { WATCH_THRESHOLD, hasPlayableVideo } from '@/lib/formations/video-validation'
+import { evaluateDailyLock } from '@/lib/formations/module-daily-unlock'
 import { can } from '@/lib/permissions'
 import { notifyModuleCompleted, notifyParcoursCompleted, notifyStatusReached, notifyCertificate, notifyAcademieUnlocked } from '@/lib/notifications/events'
 
@@ -66,10 +67,26 @@ export async function POST(req: NextRequest) {
       .eq('id', module_id).eq('formation_id', formation_id).maybeSingle()
     if (!mod || mod.status !== 'published') return NextResponse.json({ ok: false, message: 'Module introuvable.' }, { status: 404 })
     if (!hasPlayableVideo(mod)) return NextResponse.json({ ok: false, message: 'Module en préparation : validation indisponible.' }, { status: 403 })
+    // Métadonnées formation (slug pour Option C + notifs / certificats).
+    const { data: f } = await supabaseAdmin.from('formations').select('titre, certifiant, slug').eq('id', formation_id).maybeSingle()
+
     if (mod.prerequis_module_id && !override) {
       const { data: prereqDone } = await supabaseAdmin.from('module_completions')
-        .select('id').eq('user_id', sp.uid).eq('module_id', mod.prerequis_module_id).maybeSingle()
+        .select('id, completed_at').eq('user_id', sp.uid).eq('module_id', mod.prerequis_module_id).maybeSingle()
       if (!prereqDone) return NextResponse.json({ ok: false, message: 'Terminez d\'abord le module précédent.' }, { status: 403 })
+
+      // 3b) Option C — verrou quotidien (4 parcours d'intégration uniquement).
+      // Le module validé aujourd'hui débloque le suivant seulement au prochain minuit UTC.
+      // Anti-contournement API : refuser la validation d'un module encore sous délai minuit.
+      const daily = evaluateDailyLock(f?.slug, prereqDone.completed_at, new Date())
+      if (daily.locked) {
+        return NextResponse.json({
+          ok: false,
+          message: 'Votre prochain module sera disponible demain à 00h00.'
+            + (daily.remaining_label ? ` ${daily.remaining_label}` : ''),
+          next_available_at: daily.next_available_at,
+        }, { status: 403 })
+      }
     }
 
     // 4) VALIDATION RÉELLE : visionnage ≥ 90 % (anti-contournement serveur).
@@ -85,7 +102,6 @@ export async function POST(req: NextRequest) {
       .upsert({ user_id: sp.uid, module_id, formation_id }, { onConflict: 'user_id,module_id', ignoreDuplicates: true })
 
     const res = await recompute(sp.uid, formation_id)
-    const { data: f } = await supabaseAdmin.from('formations').select('titre, certifiant, slug').eq('id', formation_id).maybeSingle()
 
     // Notification : module terminé (temps réel, non bloquant).
     try { await notifyModuleCompleted(sp.uid, { moduleTitre: mod.titre, formationTitre: f?.titre, slug: f?.slug }) } catch { /* */ }

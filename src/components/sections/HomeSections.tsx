@@ -1,47 +1,32 @@
+/**
+ * Homepage V3 — Citadelle Experience Operating System
+ *
+ * Ordre narratif :
+ *   Hero → Preuve → Vision → Parcours → La vie → Podcast
+ *   → Communauté → Royaume → Application → CTA final
+ */
 import { cmsList, type CmsHomepageBlock } from '@/lib/cms'
 import { HeroSection } from '@/components/sections/HeroSection'
-import { LiveSection } from '@/components/sections/LiveSection'
+import { ProofStripSection } from '@/components/sections/ProofStripSection'
+import { VisionSection } from '@/components/sections/VisionSection'
 import { StartHereSection } from '@/components/sections/StartHereSection'
-import { MovementSection } from '@/components/sections/MovementSection'
-import { GrowSection } from '@/components/sections/GrowSection'
+import { LifeExperiencesSection } from '@/components/sections/LifeExperiencesSection'
+import { PodcastHomeSection } from '@/components/home/PodcastHomeSection'
 import { CommunitySection } from '@/components/sections/CommunitySection'
 import { JoinSection } from '@/components/sections/JoinSection'
 import { SectionGlow } from '@/components/ui/SectionGlow'
-
-/**
- * Accueil PILOTÉ PAR LE CMS (table cms_homepage_blocks).
- *
- * Refonte premium — architecture en 7 blocs (audit homepage) :
- *   hero → live → start → movement → grow → community → join
- *   (fusions : Impact+Platforms→movement, Formations+Podcast→grow,
- *    Prière+Témoignages→community ; pricing retiré de l'accueil).
- *
- * - Ordre  : chaque bloc a un `sort_order` modifiable en back-office.
- * - Visibilité : un bloc `is_active=false` ou non « published » est masqué.
- * - Contenu : titre/sous-titre/image/CTA passés à la section (override optionnel).
- * - Fallback : si aucune ligne CMS pour une section → contenu par défaut affiché.
- *
- * Les anciennes clés (platforms, impact, formations, prayer, testimonials,
- * podcast) ne sont plus rendues : leurs blocs sont désormais fusionnés.
- *
- * Server component : lit le CMS côté serveur, rend des sections clientes animées.
- */
+import { HomeJoinPopupLazy } from '@/components/home/HomeJoinPopupLazy'
+import { InstallCitadelleSection } from '@/components/home/InstallCitadelleSection'
+import { GlobalPresenceSection } from '@/components/home/GlobalPresenceSection'
 
 type Block = CmsHomepageBlock & {
-  body?: string; image_url?: string; cta_label?: string; cta_href?: string; status?: string; sort_order?: number
+  body?: string
+  image_url?: string
+  cta_label?: string
+  cta_href?: string
+  status?: string
+  sort_order?: number
 }
-
-const COMPONENTS: Record<string, (props: { block?: Block }) => JSX.Element> = {
-  hero: HeroSection,
-  live: LiveSection,
-  start: StartHereSection,
-  movement: MovementSection,
-  grow: GrowSection,
-  community: CommunitySection,
-  join: JoinSection,
-}
-
-const DEFAULT_ORDER = ['hero', 'live', 'start', 'movement', 'grow', 'community', 'join']
 
 export async function HomeSections() {
   const rows = (await cmsList<Block>('cms_homepage_blocks')) ?? []
@@ -50,28 +35,79 @@ export async function HomeSections() {
 
   const isVisible = (key: string) => {
     const b = byKey[key]
-    if (!b) return true // pas de ligne CMS → section affichée par défaut
+    if (!b) return true
     if (b.is_active === false) return false
     return b.status ? b.status === 'published' : true
   }
 
-  const ordered = DEFAULT_ORDER
-    .map((key, i) => ({ key, order: byKey[key]?.sort_order ?? i }))
-    .sort((a, b) => a.order - b.order)
-    .map((x) => x.key)
-    .filter((key) => COMPONENTS[key] && isVisible(key))
+  const showHero = isVisible('hero')
+  const showJoin = isVisible('join')
 
   return (
     <div className="bg-charbon relative">
-      {ordered.map((key, i) => {
-        const Section = COMPONENTS[key]
-        return (
-          <div key={key}>
-            {i > 0 && <SectionGlow />}
-            <Section block={byKey[key]} />
-          </div>
-        )
-      })}
+      <HomeJoinPopupLazy />
+
+      {/* 1 — Hero */}
+      {showHero && (
+        <div className="scene-hope">
+          <HeroSection block={byKey.hero} />
+        </div>
+      )}
+
+      {/* 2 — Preuve */}
+      <div className="scene-hope">
+        <ProofStripSection />
+      </div>
+
+      {/* 3 — Vision */}
+      <div className="scene-transform">
+        <SectionGlow />
+        <VisionSection />
+      </div>
+
+      {/* 4 — Parcours */}
+      <div className="scene-transform">
+        <SectionGlow />
+        <StartHereSection />
+      </div>
+
+      {/* 5 — La vie */}
+      <div className="scene-joy">
+        <SectionGlow />
+        <LifeExperiencesSection />
+      </div>
+
+      {/* 5b — Podcast */}
+      <div className="scene-joy">
+        <SectionGlow />
+        <PodcastHomeSection />
+      </div>
+
+      {/* 6 — Communauté */}
+      <div className="scene-belong">
+        <SectionGlow />
+        <CommunitySection />
+      </div>
+
+      {/* 7 — Le Royaume (globe) */}
+      <div className="scene-mission">
+        <SectionGlow />
+        <GlobalPresenceSection />
+      </div>
+
+      {/* 8 — Application (PWA réelle) */}
+      <div className="scene-continuity">
+        <SectionGlow />
+        <InstallCitadelleSection />
+      </div>
+
+      {/* 9 — CTA final */}
+      {showJoin && (
+        <div className="scene-decision">
+          <SectionGlow />
+          <JoinSection block={byKey.join} />
+        </div>
+      )}
     </div>
   )
 }

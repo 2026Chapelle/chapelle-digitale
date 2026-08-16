@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic'
 
 const ALLOWED = ['formations', 'formation_modules', 'parcours', 'parcours_formations', 'certificats'] as const
 import { isAdminRequest } from '@/lib/admin-auth'
+import { isNotifiableContent, notifyIfFirstPublish } from '@/lib/notifications/content'
 
 function guard(req: NextRequest, resource: string): NextResponse | null {
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
   for (const k of Object.keys(body)) if (body[k] === '') body[k] = null
   const { data, error } = await supabaseAdmin.from(params.resource).insert(body).select().single()
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
+  try { await notifyIfFirstPublish(params.resource, null, data) } catch { /* non bloquant */ }
   return NextResponse.json({ ok: true, data })
 }
 
@@ -48,8 +50,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
   if (!body.id) return NextResponse.json({ ok: false, message: 'id requis.' }, { status: 400 })
   const patch = { ...body }; delete patch.id; delete patch.created_at; delete patch.updated_at
   for (const k of Object.keys(patch)) if (patch[k] === '') patch[k] = null
+  // Détection transition brouillon → publié (formations) pour notifier les membres.
+  let before: Record<string, any> | null = null
+  if (isNotifiableContent(params.resource)) {
+    const { data: prev } = await supabaseAdmin.from(params.resource).select('*').eq('id', body.id).maybeSingle()
+    before = prev ?? null
+  }
   const { data, error } = await supabaseAdmin.from(params.resource).update(patch).eq('id', body.id).select().single()
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
+  try { await notifyIfFirstPublish(params.resource, before, data) } catch { /* non bloquant */ }
   return NextResponse.json({ ok: true, data })
 }
 

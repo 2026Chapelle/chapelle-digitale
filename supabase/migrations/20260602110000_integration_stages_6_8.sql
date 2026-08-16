@@ -35,3 +35,10 @@ as $$
     'leadership', (select count(*) from chapelle.integration_journeys where a_suivi_leadership)
   );
 $$;
+
+-- Durcissement Wave 3 : SECURITY DEFINER sans grant → EXECUTE par défaut à PUBLIC.
+-- On retire PUBLIC/anon/authenticated (l'entonnoir agrège des compteurs de gouvernance)
+-- et on accorde explicitement à service_role (schéma chapelle : pas de default privilege
+-- Supabase, la lecture serveur passe déjà par service_role via supabaseAdmin).
+revoke all on function chapelle.integration_funnel() from public, anon, authenticated;
+grant execute on function chapelle.integration_funnel() to service_role;

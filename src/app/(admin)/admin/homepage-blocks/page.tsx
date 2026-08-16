@@ -10,7 +10,8 @@ const BLOCKS = [
   { value: 'formations', label: 'Formations' },
   { value: 'prayer', label: 'Prière' },
   { value: 'testimonials', label: 'Témoignages' },
-  { value: 'podcast', label: 'Podcast' },
+  { value: 'podcast', label: 'Podcast (accueil)' },
+  { value: 'podcast_hero', label: 'Podcast — À la une (/podcast)' },
   { value: 'join', label: 'Rejoindre' },
 ]
 

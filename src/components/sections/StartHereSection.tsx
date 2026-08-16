@@ -1,93 +1,242 @@
 'use client'
+/**
+ * SCÈNE 4 — PARCOURS éditorial
+ * Assets explicites (noms réels) · motion safe (jamais bloqué invisible)
+ */
 import { useRef } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
-import { Compass, GraduationCap, HeartHandshake, Gift, ArrowRight, type LucideIcon } from 'lucide-react'
+import Image from 'next/image'
+import {
+  ArrowRight,
+  Eye,
+  Anchor,
+  Sprout,
+  HandHeart,
+  Compass,
+  Share2,
+  type LucideIcon,
+} from 'lucide-react'
 import { events } from '@/lib/analytics'
+import {
+  HOME_VIEWPORT,
+  HOME_DELAY,
+  HOME_EASE,
+  revealInitial,
+  revealVisible,
+  revealTransition,
+} from '@/lib/home-motion'
 
-/* ============================================================
-   BLOC 3 — COMMENCEZ ICI
-   Router de parcours : oriente le visiteur sans imposer le compte.
-   Conversion par paliers (découvrir → se former → servir → donner).
-   ============================================================ */
-
-type Door = {
-  key: string
-  titre: string
-  sous: string
-  href: string
+type PathStep = {
+  n: string
+  title: string
+  phrase: string
   icon: LucideIcon
-  cta: string
+  image: string
+  alt: string
 }
 
-const DOORS: Door[] = [
-  { key: 'decouvrir', titre: 'Je découvre',   sous: 'Nouveau ici ? Découvrez notre histoire, notre vision et ce que nous croyons.', href: '/notre-histoire', icon: Compass,        cta: 'Découvrir la CIER' },
-  { key: 'former',    titre: 'Je me forme',   sous: 'Grandissez par des formations bibliques et des parcours de disciple.',        href: '/formations',     icon: GraduationCap,   cta: 'Voir les formations' },
-  { key: 'servir',    titre: 'Je veux servir',sous: 'Mettez vos dons au service du Royaume et rejoignez une équipe.',               href: '/servir',         icon: HeartHandshake,  cta: 'Servir avec nous' },
-  { key: 'donner',    titre: 'Je soutiens',   sous: 'Participez à l’avancement de l’œuvre par un don ou un partenariat.',          href: '/dons',           icon: Gift,            cta: 'Faire un don' },
+/** Table explicite — chemins réels post-normalisation (.png unique) */
+const PATH_STEPS: PathStep[] = [
+  {
+    n: '01',
+    title: 'Découvrir',
+    phrase: 'Entrer dans la maison et voir le chemin s’ouvrir.',
+    icon: Eye,
+    image: '/images/formations/parcours-1/module-1-vision-et-histoire.png',
+    alt: 'Vision et histoire de la maison',
+  },
+  {
+    n: '02',
+    title: "S'enraciner",
+    phrase: 'Poser des fondations solides dans la foi.',
+    icon: Anchor,
+    image: '/images/formations/parcours-1/module-2-valeurs-du-royaume.png',
+    alt: 'Valeurs du Royaume',
+  },
+  {
+    n: '03',
+    title: 'Grandir',
+    phrase: 'Avancer pas à pas, nourri et accompagné.',
+    icon: Sprout,
+    image: '/images/formations/parcours-1/module-5-mes-premiers-pas.png',
+    alt: 'Premiers pas de croissance',
+  },
+  {
+    n: '04',
+    title: 'Servir',
+    phrase: 'Mettre ses dons au service des autres.',
+    icon: HandHeart,
+    image: '/images/formations/parcours-1/module-3-rejoindre-une-cellule.png',
+    alt: 'Rejoindre une cellule et servir',
+  },
+  {
+    n: '05',
+    title: 'Conduire',
+    phrase: 'Guider avec sagesse et responsabilité.',
+    icon: Compass,
+    image: '/images/formations/parcours-1/module-4-nos-plateformes.png',
+    alt: 'Nos plateformes et le leadership',
+  },
+  {
+    n: '06',
+    title: 'Multiplier',
+    phrase: 'Former d’autres et étendre le Royaume.',
+    icon: Share2,
+    image: '/images/formations/parcours-1/module-6-mon-engagement.png',
+    alt: 'Engagement et multiplication',
+  },
 ]
+
+const CTA = 'Découvrir cette étape'
+const HREF = '/parcours'
+const FALLBACK_IMG = '/images/formations/parcours-1/parcours-1-je-decouvre-la-maison.png'
 
 export function StartHereSection() {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-80px' })
+  const reduce = useReducedMotion()
 
   return (
-    <section ref={ref} className="section-cinematic">
-      <div className="halo-gold w-[800px] h-[420px] -top-10 left-1/2 -translate-x-1/2" />
-
-      <div className="container-cinematic">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center mb-14 md:mb-16"
+    <section
+      id="decouvrir-citadelle"
+      ref={ref}
+      className="section-cinematic scroll-mt-24"
+      aria-labelledby="parcours-title"
+    >
+      <div className="container-cinematic max-w-6xl">
+        <motion.h2
+          id="parcours-title"
+          initial={revealInitial(reduce)}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.title)}
+          className="heading-cinematic-lg text-center mb-14 md:mb-20"
         >
-          <div className="section-label-dark justify-center">Par où commencer</div>
-          <h2 className="heading-cinematic-lg mb-5">
-            Vous êtes nouveau ?
-            <span className="block text-cinematic-gold">Commencez ici</span>
-          </h2>
-          <p className="font-inter text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
-            style={{ color: 'rgba(245,230,216,0.55)' }}>
-            Quatre chemins, une seule famille. Choisissez celui qui correspond à votre saison —
-            chaque porte vous conduit plus près du cœur de Dieu.
-          </p>
-        </motion.div>
+          Le parcours
+        </motion.h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {DOORS.map((door, i) => (
-            <motion.div
-              key={door.key}
-              initial={{ opacity: 0, y: 28 }}
-              animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <Link
-                href={door.href}
-                onClick={() => events.ctaClick(`start_${door.key}`)}
-                className="group flex h-full flex-col card-cinematic p-6"
-              >
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 transition-all duration-500 group-hover:scale-110"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(212,175,55,0.22), rgba(212,175,55,0.06))',
-                    border: '1px solid rgba(212,175,55,0.32)',
-                    boxShadow: '0 0 24px rgba(212,175,55,0.14)',
-                  }}>
-                  <door.icon className="w-6 h-6" style={{ color: '#D4AF37' }} />
-                </div>
-                <h3 className="font-cinzel font-bold text-lg text-white mb-2">{door.titre}</h3>
-                <p className="font-inter text-sm leading-relaxed mb-5 flex-1" style={{ color: 'rgba(245,230,216,0.55)' }}>
-                  {door.sous}
-                </p>
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold font-inter transition-all group-hover:gap-2.5"
-                  style={{ color: '#D4AF37' }}>
-                  {door.cta}
-                  <ArrowRight className="w-4 h-4" />
-                </span>
-              </Link>
-            </motion.div>
-          ))}
+        <div className="citadelle-journey-editorial relative">
+          <motion.div
+            className="citadelle-journey-thread-ed"
+            aria-hidden
+            initial={reduce ? false : { scaleY: 0, opacity: 0 }}
+            whileInView={{ scaleY: 1, opacity: 1 }}
+            viewport={HOME_VIEWPORT}
+            transition={{ duration: 1.15, ease: HOME_EASE, delay: reduce ? 0 : 0.06 }}
+            style={{ transformOrigin: 'top center' }}
+          />
+
+          <ol className="relative list-none m-0 p-0 space-y-12 md:space-y-16 lg:space-y-20">
+            {PATH_STEPS.map((step, i) => {
+              const Icon = step.icon
+              const reverse = i % 2 === 1
+              const stepDelay = reduce ? 0 : HOME_DELAY.card + i * HOME_DELAY.cardStep
+              return (
+                <motion.li
+                  key={step.n}
+                  initial={revealInitial(reduce, { y: 40, scale: true })}
+                  whileInView={revealVisible({ scale: true })}
+                  viewport={HOME_VIEWPORT}
+                  transition={revealTransition(reduce, stepDelay)}
+                  className="citadelle-journey-row relative"
+                >
+                  <motion.span
+                    className="citadelle-journey-dot-ed"
+                    aria-hidden
+                    initial={reduce ? false : { scale: 0, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={HOME_VIEWPORT}
+                    transition={{
+                      duration: reduce ? 0.01 : 0.45,
+                      delay: Math.max(0, stepDelay - 0.04),
+                      ease: HOME_EASE,
+                    }}
+                  />
+
+                  <Link
+                    href={HREF}
+                    onClick={() => events.ctaClick(`parcours_etape_${step.n}`)}
+                    aria-label={`${step.title} — ${CTA}`}
+                    className={`citadelle-journey-editorial-card group grid md:grid-cols-2 gap-0 md:gap-10 lg:gap-14 items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37] ${
+                      reverse ? 'md:[direction:rtl]' : ''
+                    }`}
+                  >
+                    <div
+                      className={`citadelle-journey-visual relative ${reverse ? 'md:[direction:ltr]' : ''}`}
+                    >
+                      <div className="citadelle-journey-visual-frame">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={step.image}
+                          alt={step.alt}
+                          width={560}
+                          height={420}
+                          className="citadelle-journey-visual-img"
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            const el = e.currentTarget
+                            if (el.src.indexOf(FALLBACK_IMG) === -1) {
+                              el.src = FALLBACK_IMG
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className={`citadelle-journey-copy px-1 md:px-2 py-6 md:py-4 ${reverse ? 'md:[direction:ltr]' : ''}`}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span
+                          className="font-cinzel text-xs font-bold tracking-[0.3em]"
+                          style={{ color: 'rgba(212,175,55,0.55)' }}
+                        >
+                          {step.n}
+                        </span>
+                        <Icon
+                          className="w-5 h-5"
+                          style={{ color: 'rgba(212,175,55,0.75)' }}
+                          strokeWidth={1.5}
+                          aria-hidden
+                        />
+                      </div>
+                      <h3 className="font-cinzel font-bold text-pearl text-2xl md:text-3xl mb-3 group-hover:text-gold transition-colors">
+                        {step.title}
+                      </h3>
+                      <p
+                        className="font-inter text-base md:text-lg leading-relaxed mb-6 max-w-md"
+                        style={{ color: 'rgba(245,230,216,0.52)' }}
+                      >
+                        {step.phrase}
+                      </p>
+                      <span className="citadelle-journey-cta inline-flex items-center justify-center gap-2 w-full md:w-auto px-6 py-3.5 min-h-[48px] rounded-full font-inter text-sm font-semibold transition-all group-hover:gap-3">
+                        {CTA}
+                        <ArrowRight className="w-4 h-4" aria-hidden />
+                      </span>
+                    </div>
+                  </Link>
+                </motion.li>
+              )
+            })}
+          </ol>
         </div>
+
+        <motion.div
+          initial={revealInitial(reduce, { y: 36 })}
+          whileInView={revealVisible()}
+          viewport={HOME_VIEWPORT}
+          transition={revealTransition(reduce, HOME_DELAY.cta)}
+          className="text-center mt-16 md:mt-20"
+        >
+          <Link
+            href="/parcours"
+            onClick={() => events.ctaClick('voir_parcours_complet')}
+            className="btn-gold-cinematic group inline-flex focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
+            style={{ padding: '15px 32px', fontSize: '0.92rem' }}
+          >
+            Voir le parcours complet
+            <ArrowRight className="w-4 h-4" aria-hidden />
+          </Link>
+        </motion.div>
       </div>
     </section>
   )

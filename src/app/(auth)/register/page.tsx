@@ -1,16 +1,16 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, AlertCircle, Mail, MailCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import { PAYS_AFRICAINS, PAYS_DIASPORA, PLATEFORMES } from '@/lib/constants'
 import { siteUrl } from '@/lib/site-url'
 import toast from 'react-hot-toast'
 import { events } from '@/lib/analytics'
+import { resendConfirmationEmail, createPendingGuard } from '@/lib/auth/confirm-email'
 
 const PAYS = [...PAYS_AFRICAINS, ...PAYS_DIASPORA].sort()
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -19,11 +19,15 @@ type Step = 1 | 2 | 3
 type FieldErrs = Record<string, string | null>
 
 export default function RegisterPage() {
-  const router = useRouter()
   const [step, setStep] = useState<Step>(1)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [errs, setErrs] = useState<FieldErrs>({})
+  // Écran persistant post-inscription : l'utilisateur doit confirmer son email
+  // avant de pouvoir se connecter (mailer confirmation requis côté Supabase).
+  const [submitted, setSubmitted] = useState(false)
+  const [resending, setResending] = useState(false)
+  const resendGuard = useRef(createPendingGuard())
 
   const [form, setForm] = useState({
     // Step 1 — Identity
@@ -109,13 +113,99 @@ export default function RegisterPage() {
       toast.error(error.message)
     } else {
       events.signUpCompleted()
-      toast.success('Bienvenue dans la famille ! 🎉 Vérifiez votre email.')
-      // Le nouvel inscrit entre directement dans l'accueil guidé (onboarding 7 étapes).
-      const params = new URLSearchParams({ prenom: form.prenom })
-      if (form.plateforme) params.set('plateforme', form.plateforme)
-      router.push(`/bienvenue?${params.toString()}`)
+      toast.success('Compte créé ! Vérifie ta boîte mail. 📩')
+      // La confirmation email est requise : on affiche un écran persistant plutôt
+      // que d'enchaîner l'onboarding (l'accueil guidé /bienvenue reste accessible
+      // après connexion). L'utilisateur ne découvre plus « Email not confirmed »
+      // par surprise au login.
+      setSubmitted(true)
     }
     setLoading(false)
+  }
+
+  // Renvoi de l'email de confirmation — anti double-clic + feedback FR.
+  const handleResend = async () => {
+    if (resending) return
+    setResending(true)
+    try {
+      const outcome = await resendGuard.current.run(() =>
+        resendConfirmationEmail(getBrowserClient() ?? supabase, form.email),
+      )
+      if (outcome) outcome.ok ? toast.success(outcome.message) : toast.error(outcome.message)
+    } finally {
+      setResending(false)
+    }
+  }
+
+  // ── Écran persistant « Vérifiez votre boîte mail » (post-inscription) ──────
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-abyss" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full opacity-10 blur-[150px]"
+          style={{ background: 'radial-gradient(circle, #4B0082 0%, transparent 70%)' }} />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full opacity-8 blur-[120px]"
+          style={{ background: 'radial-gradient(circle, #D4AF37 0%, transparent 70%)' }} />
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 w-full max-w-lg"
+        >
+          <div className="rounded-3xl overflow-hidden border border-gold/15 shadow-premium"
+            style={{ background: 'linear-gradient(145deg, #0a0018 0%, #050505 100%)' }}
+          >
+            <div className="h-1 bg-gradient-gold" />
+            <div className="p-8 md:p-10 text-center">
+              <div className="relative w-16 h-16 mx-auto mb-5">
+                <div className="absolute inset-0 rounded-full opacity-50 blur-2xl" style={{ background: 'radial-gradient(circle, #D4AF37 0%, transparent 70%)' }} />
+                <div className="relative w-16 h-16 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                  <MailCheck className="w-8 h-8 text-gold" aria-hidden />
+                </div>
+              </div>
+
+              <h1 className="font-cinzel text-2xl font-bold text-pearl mb-3">
+                Vérifiez votre boîte mail
+              </h1>
+
+              <p className="text-pearl/60 text-sm font-inter leading-relaxed mb-2">
+                Ton compte a bien été créé. Nous venons de t'envoyer un email de confirmation à :
+              </p>
+              <p className="text-gold font-semibold font-inter break-all mb-4">
+                {form.email}
+              </p>
+              <p className="text-pearl/60 text-sm font-inter leading-relaxed mb-6">
+                Ouvre ta boîte mail et clique sur «&nbsp;<span className="text-pearl font-semibold">ACTIVER MON COMPTE</span>&nbsp;»
+                avant de te connecter.
+              </p>
+
+              <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl text-xs font-inter text-left mb-8"
+                style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.18)', color: 'rgba(255,255,255,0.55)' }}>
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5 text-gold/70" aria-hidden />
+                <span>Pense également à vérifier le dossier <b>Spam</b> ou <b>Courrier indésirable</b>.</span>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="btn-ghost w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Mail className="w-4 h-4" />
+                  {resending ? 'Envoi…' : "Renvoyer l'email de confirmation"}
+                </button>
+
+                <Link href="/login" className="btn-gold w-full justify-center">
+                  <Check className="w-4 h-4" />
+                  J'ai confirmé mon email — Se connecter
+                </Link>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    )
   }
 
   const steps = [

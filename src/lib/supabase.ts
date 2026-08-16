@@ -28,3 +28,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
+
+/**
+ * Client de LECTURE CMS (service role) qui force `cache: 'no-store'` sur chaque
+ * requête HTTP PostgREST. Objectif : contourner le Data Cache de fetch de
+ * Next.js afin que les listes CMS publiques (ex. articles publiés) reflètent
+ * TOUJOURS l'état live de la base — sans redéploiement ni revalidation, et sans
+ * transformer en dynamique les pages qui, elles, s'appuient sur l'ISR
+ * (l'accueil garde son `revalidate`). Réservé aux lectures ciblées via cms.ts
+ * qui passent `noStore: true`.
+ */
+export const supabaseCmsRead = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+  global: {
+    fetch: ((input: any, init?: any) => fetch(input, { ...(init || {}), cache: 'no-store' })) as typeof fetch,
+  },
+})

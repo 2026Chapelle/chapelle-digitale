@@ -7,7 +7,7 @@
 -- NE RECRÉE RIEN d'existant : antennes (20260602270000), profiles.antenne_id,
 -- dons.antenne_id, evenements.antenne_id, priere_demandes, marketplace_products,
 -- product_purchases, app_notifications, nation_responsables, scale_indexes.
--- Toute écriture = service role (back-office / API gardée). Devise défaut FCFA.
+-- Toute écriture = service role (back-office / API gardée). Devise canonique DB = XOF (UI: « FCFA »).
 -- ============================================================================
 
 -- ════════════════════════════════════════════════════════════════════════
@@ -90,11 +90,11 @@ declare v_devise jsonb;
 begin
   select coalesce(jsonb_object_agg(d.devise, d.total), '{}'::jsonb) into v_devise
   from (
-    select coalesce(a.devise, 'FCFA') as devise, sum(coalesce(dn.montant, 0)) as total
+    select coalesce(a.devise, 'XOF') as devise, sum(coalesce(dn.montant, 0)) as total
     from public.dons dn
     left join public.antennes a on a.id = dn.antenne_id
     where dn.antenne_id = any(p_antenne_ids) and dn.statut = 'complete'
-    group by coalesce(a.devise, 'FCFA')
+    group by coalesce(a.devise, 'XOF')
   ) d;
   return query
   select
@@ -109,8 +109,8 @@ begin
     v_devise;
 end;
 $$;
-revoke all on function public.antenne_descendants(uuid) from anon, authenticated;
-revoke all on function public.antenne_stats_agg(uuid[]) from anon, authenticated;
+revoke all on function public.antenne_descendants(uuid) from public, anon, authenticated;
+revoke all on function public.antenne_stats_agg(uuid[]) from public, anon, authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- C. MARKETPLACE — catégories, stock, abonnements, avis, revenus
@@ -204,7 +204,7 @@ create or replace function public.marketplace_revenue(
 ) returns table (devise text, total numeric, nb_ventes bigint, nb_abonnements bigint)
 language sql security definer set search_path = public stable as $$
   select
-    coalesce(pp.devise, 'FCFA') as devise,
+    coalesce(pp.devise, 'XOF') as devise,
     coalesce(sum(d.montant), 0) as total,
     count(distinct pp.id) as nb_ventes,
     count(distinct pp.id) filter (where pp.subscription_status = 'active') as nb_abonnements
@@ -216,26 +216,26 @@ language sql security definer set search_path = public stable as $$
     and (p_pays    is null or mp.pays ilike p_pays)
     and (p_from    is null or pp.created_at >= p_from)
     and (p_to      is null or pp.created_at <  p_to)
-  group by coalesce(pp.devise, 'FCFA');
+  group by coalesce(pp.devise, 'XOF');
 $$;
 
 create or replace function public.marketplace_top_products(
   p_pays text default null, p_antenne uuid default null, p_limit int default 10
 ) returns table (product_id uuid, titre text, type text, devise text, nb_ventes bigint, ca numeric)
 language sql security definer set search_path = public stable as $$
-  select mp.id, mp.titre, mp.type, coalesce(pp.devise, mp.devise, 'FCFA'),
+  select mp.id, mp.titre, mp.type, coalesce(pp.devise, mp.devise, 'XOF'),
          count(pp.id) as nb_ventes, coalesce(sum(d.montant), 0) as ca
   from public.marketplace_products mp
   join public.product_purchases pp on pp.product_id = mp.id and pp.statut = 'complete'
   left join public.dons d on d.id = pp.don_id and d.statut = 'complete'
   where (p_antenne is null or mp.antenne_id = p_antenne or pp.antenne_id = p_antenne)
     and (p_pays    is null or mp.pays ilike p_pays)
-  group by mp.id, mp.titre, mp.type, coalesce(pp.devise, mp.devise, 'FCFA')
+  group by mp.id, mp.titre, mp.type, coalesce(pp.devise, mp.devise, 'XOF')
   order by nb_ventes desc
   limit greatest(1, least(p_limit, 50));
 $$;
-revoke all on function public.marketplace_revenue(text, uuid, timestamptz, timestamptz) from anon, authenticated;
-revoke all on function public.marketplace_top_products(text, uuid, int) from anon, authenticated;
+revoke all on function public.marketplace_revenue(text, uuid, timestamptz, timestamptz) from public, anon, authenticated;
+revoke all on function public.marketplace_top_products(text, uuid, int) from public, anon, authenticated;
 
 insert into public.marketplace_categories (slug, nom, icone, position) values
   ('ebooks','E-books','book-open',10), ('livres','Livres physiques','book',20),
@@ -347,7 +347,7 @@ language sql stable security definer set search_path = public as $$
     'membres_equipes', (select count(distinct user_id) from public.mobile_devices)
   );
 $$;
-revoke all on function public.mobile_adoption_stats() from anon, authenticated;
+revoke all on function public.mobile_adoption_stats() from public, anon, authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- E. INTERCESSION (MAHANAÏM) — salles, chaînes, garde, mur, escalade
@@ -548,7 +548,7 @@ returns json language sql security definer set search_path = public as $$
     'demandes_30j',       (select count(*) from priere_demandes where created_at >= now() - interval '30 days' and (p_antenne is null or antenne_id=p_antenne))
   );
 $$;
-revoke all on function public.mahanaim_cockpit(uuid) from anon, authenticated;
+revoke all on function public.mahanaim_cockpit(uuid) from public, anon, authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- F. DISCIPULAT — chemins, étapes, relations, progression, jalons
@@ -709,7 +709,7 @@ returns jsonb language sql security definer set search_path = public as $$
     'jalons_30j', (select count(*) from public.discipulat_jalons where jalon_at >= now() - interval '30 days')
   );
 $$;
-revoke all on function public.discipulat_overview(uuid, text) from anon, authenticated;
+revoke all on function public.discipulat_overview(uuid, text) from public, anon, authenticated;
 
 insert into public.discipulat_chemins (slug, titre, description, cible_stage, niveau, ordre) values
   ('nouvelle-naissance', 'Nouvelle Naissance', 'Premiers pas du nouveau converti.', 'disciple', 1, 0),
@@ -834,7 +834,7 @@ begin
   return j;
 end;
 $$;
-revoke all on function public.cartographie_monde(text) from anon, authenticated;
+revoke all on function public.cartographie_monde(text) from public, anon, authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- H. COCKPIT — préférences, agrégat transverse, vue matérialisée tendance
@@ -880,8 +880,10 @@ returns jsonb language sql stable security definer set search_path = public as $
   select jsonb_build_object(
     'membres_total',        (select count(*) from prof),
     'nouveaux_30j',         (select count(*) from prof p, bornes b where p.created_at >= b.d30),
-    'membres_actifs',       (select count(*) from prof where membre_statut = any (array['membre','fidele','actif'])),
-    'dons_par_devise',      (select coalesce(jsonb_object_agg(upper(coalesce(devise,'FCFA')), s), '{}'::jsonb)
+    -- P0 migration-health: cast enum→text pour rendre la fonction SQL créable au reset.
+    -- DETTE connue: 'membre'/'fidele'/'actif' ∉ enum membre_statut → compteur = 0 (bug métier préexistant, sémantique à trancher séparément).
+    'membres_actifs',       (select count(*) from prof where membre_statut::text = any (array['membre','fidele','actif'])),
+    'dons_par_devise',      (select coalesce(jsonb_object_agg(upper(coalesce(devise,'XOF')), s), '{}'::jsonb)
                                from (select devise, sum(montant) s from dons_ok group by devise) t),
     'dons_count',           (select count(*) from dons_ok),
     'prieres_attente',      (select count(*) from public.priere_demandes pr
@@ -921,6 +923,22 @@ returns void language sql security definer set search_path = public as $$
   refresh materialized view concurrently public.mv_command_center_daily;
 $$;
 revoke all on function public.refresh_command_center_daily() from public, anon, authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════
+-- Z. DURCISSEMENT SÉCURITÉ (pré-application Wave 3)
+--   Une matview n'est PAS soumise à la RLS : le SELECT accordé par défaut à
+--   anon/authenticated (default privileges Supabase) exposerait ses agrégats.
+--   On le retire ; service_role conserve l'accès (résolveurs serveur admin).
+-- ════════════════════════════════════════════════════════════════════════
+revoke all on public.mv_command_center_daily from anon, authenticated;
+
+-- ── Correctif service_role EXECUTE (révélé par db reset) ──────────────────
+--   Ces fonctions SECURITY DEFINER sont révoquées de public/anon/authenticated
+--   ci-dessus mais jamais grantées à service_role → l'app (supabaseAdmin) les
+--   appelle et prenait un 403. On accorde EXECUTE au SEUL service_role.
+--   RPC serveur réellement utilisées (route admin/command-center) ; audit 3 agents.
+grant execute on function public.antenne_descendants(uuid) to service_role;
+grant execute on function public.command_center_kpis(text[], uuid[]) to service_role;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- FIN — 20260603100000_command_center_v4.sql

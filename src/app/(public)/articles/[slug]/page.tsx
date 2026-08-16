@@ -15,7 +15,7 @@ const fmt = (iso?: string) => {
 }
 
 async function getArticle(slug: string): Promise<CmsArticle | null> {
-  const rows = await cmsList<CmsArticle>('cms_articles', { publicOnly: true, filter: { slug } })
+  const rows = await cmsList<CmsArticle>('cms_articles', { publicOnly: true, noStore: true, filter: { slug } })
   return rows?.[0] ?? null
 }
 

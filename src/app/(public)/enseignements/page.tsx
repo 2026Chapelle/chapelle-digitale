@@ -16,7 +16,9 @@ const fmt = (iso?: string) => {
 }
 
 export default async function EnseignementsPage() {
-  const items = (await cmsList<CmsTeaching>('cms_teachings', { publicOnly: true })) ?? []
+  // Lecture live (noStore) : même correctif que /articles — évite que le Data
+  // Cache de fetch de Next.js fige un instantané des enseignements publiés.
+  const items = (await cmsList<CmsTeaching>('cms_teachings', { publicOnly: true, noStore: true })) ?? []
 
   return (
     <div className="min-h-screen bg-abyss pt-28 pb-20">

@@ -34,7 +34,7 @@ try {
 
 // ── #3 dons (simulation webhook) ──
 try {
-  const ins = await db.from('dons').insert({ user_id: p?.id ?? null, user_nom: 'TEST E2E', user_email: p?.email || 'test@e2e.local', montant: 1000, devise: 'FCFA', methode_paiement: 'chariow', source: 'live', programme: 'Test', reference: 'DON-TESTE2E', chariow_transaction_id: 'txn_test_e2e', recu_envoye: false }).select('id, source, reference').single()
+  const ins = await db.from('dons').insert({ user_id: p?.id ?? null, user_nom: 'TEST E2E', user_email: p?.email || 'test@e2e.local', montant: 1000, devise: 'XOF', methode_paiement: 'chariow', source: 'live', programme: 'Test', reference: 'DON-TESTE2E', chariow_transaction_id: 'txn_test_e2e', recu_envoye: false }).select('id, source, reference').single()
   if (ins.error) throw ins.error
   const sel = await db.from('dons').select('id, source, programme, reference, chariow_transaction_id').eq('id', ins.data.id).single()
   await db.from('dons').delete().eq('id', ins.data.id)

@@ -14,7 +14,7 @@ create table if not exists public.antennes (
   pays           text,                                   -- code pays (CI, CA, FR…)
   ville          text,
   fuseau         text,                                   -- ex. 'Africa/Abidjan'
-  devise         text        not null default 'FCFA',    -- devise locale par défaut
+  devise         text        not null default 'XOF',     -- devise locale par défaut (ISO 4217 ; franc CFA)
   responsable_id uuid        references public.profiles(id) on delete set null,
   parent_id      uuid        references public.antennes(id) on delete set null, -- hiérarchie (antenne mère)
   description    text,
@@ -40,7 +40,7 @@ alter table public.dons add column if not exists antenne_id uuid references publ
 
 -- Seed des antennes connues (idempotent).
 insert into public.antennes (nom, slug, pays, ville, fuseau, devise) values
-  ('Chapelle Royale Abidjan', 'abidjan', 'CI', 'Abidjan', 'Africa/Abidjan', 'FCFA'),
+  ('Chapelle Royale Abidjan', 'abidjan', 'CI', 'Abidjan', 'Africa/Abidjan', 'XOF'),
   ('Chapelle Royale Canada', 'canada', 'CA', 'Montréal', 'America/Toronto', 'CAD'),
   ('Chapelle Royale Europe', 'europe', 'FR', 'Paris', 'Europe/Paris', 'EUR')
 on conflict (slug) do nothing;
