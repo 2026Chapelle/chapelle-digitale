@@ -13,7 +13,7 @@ create table if not exists public.marketplace_products (
   description        text,
   type               text        not null default 'numerique', -- ebook|livre|masterclass|formation|billet|abonnement|don|physique|numerique
   prix               numeric     not null default 0,
-  devise             text        not null default 'FCFA',
+  devise             text        not null default 'XOF',      -- code ISO 4217 (franc CFA)
   chariow_product_id text,                                      -- lien produit Chariow
   fichier_path       text,                                      -- chemin dans le bucket privé 'produits'
   cover_url          text,
@@ -42,7 +42,7 @@ create table if not exists public.product_purchases (
   access_token           text        not null,
   titre                  text,
   montant                numeric,
-  devise                 text        default 'FCFA',
+  devise                 text        default 'XOF',
   statut                 text        not null default 'complete', -- complete | rembourse | revoque
   created_at             timestamptz not null default now()
 );

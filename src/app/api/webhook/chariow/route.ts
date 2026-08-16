@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
   // Exige strictement sale.id (pas de fallback temporel)
   const reference = sale?.id != null ? String(sale.id) : null
   const amount = Number(amountObj?.value) || toNum(deepFind(body, /amount|montant|value|total|price/i, (v) => toNum(v) > 0)) // payload.sale.amount.value
-  const currency = amountObj?.currency || pick(body, ['currency', 'devise']) || 'FCFA'   // payload.sale.amount.currency
+  const currency = amountObj?.currency || pick(body, ['currency', 'devise']) || 'XOF'   // payload.sale.amount.currency (XOF = valeur DB canonique)
   const productId = product?.id ?? null                                 // payload.product.id
   const produit = product?.name ?? null                                 // payload.product.name
   const email = String(customer?.email ?? pick(body, ['email', 'customer.email']) ?? '').trim().toLowerCase() // payload.customer.email
