@@ -932,6 +932,14 @@ revoke all on function public.refresh_command_center_daily() from public, anon, 
 -- ════════════════════════════════════════════════════════════════════════
 revoke all on public.mv_command_center_daily from anon, authenticated;
 
+-- ── Correctif service_role EXECUTE (révélé par db reset) ──────────────────
+--   Ces fonctions SECURITY DEFINER sont révoquées de public/anon/authenticated
+--   ci-dessus mais jamais grantées à service_role → l'app (supabaseAdmin) les
+--   appelle et prenait un 403. On accorde EXECUTE au SEUL service_role.
+--   RPC serveur réellement utilisées (route admin/command-center) ; audit 3 agents.
+grant execute on function public.antenne_descendants(uuid) to service_role;
+grant execute on function public.command_center_kpis(text[], uuid[]) to service_role;
+
 -- ════════════════════════════════════════════════════════════════════════
 -- FIN — 20260603100000_command_center_v4.sql
 -- ════════════════════════════════════════════════════════════════════════

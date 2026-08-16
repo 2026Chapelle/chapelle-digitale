@@ -1751,6 +1751,30 @@ revoke all on public.v_crisis_open           from anon, authenticated;
 revoke all on public.v_health_zone_members   from anon, authenticated;
 revoke all on public.mv_mission_pulse        from anon, authenticated;
 
+-- ── Correctif service_role EXECUTE (révélé par db reset) ──────────────────
+--   Fonctions SECURITY DEFINER révoquées de public/anon/authenticated ci-dessus
+--   mais jamais grantées à service_role → l'app (supabaseAdmin, routes admin
+--   global-command & cron/scorecard) prenait un 403. EXECUTE au SEUL service_role.
+--   RPC serveur réellement utilisées ; audit 3 agents (aucun appelant membre/anon).
+grant execute on function public.antenne_scorecard_refresh() to service_role;
+grant execute on function public.antenne_governance_agg(uuid[]) to service_role;
+grant execute on function public.predictions_aggregate(uuid, text) to service_role;
+grant execute on function public.finance_aggregate(text, uuid, date, date) to service_role;
+grant execute on function public.crisis_overview(text) to service_role;
+grant execute on function public.mission_pulse_kpis(text[], uuid[]) to service_role;
+grant execute on function public.mission_carte_monde(text) to service_role;
+
+-- ── Fermeture d'un trou d'exposition anon (révélé par audit) ──────────────
+--   world_overview & aggregate_spiritual_health n'avaient AUCUN revoke (proacl NULL
+--   => EXECUTE PUBLIC : anon/authenticated pouvaient les appeler). Ce sont pourtant
+--   des RPC serveur admin (global-command). Verrou canonique serveur : révoquer
+--   public/anon/authenticated puis granter le SEUL service_role. Aucun appelant
+--   membre/anon dans src/ (audit 3 agents).
+revoke all on function public.world_overview(text, text) from public, anon, authenticated;
+grant execute on function public.world_overview(text, text) to service_role;
+revoke all on function public.aggregate_spiritual_health(text, interval) from public, anon, authenticated;
+grant execute on function public.aggregate_spiritual_health(text, interval) to service_role;
+
 -- ════════════════════════════════════════════════════════════════════════
 -- FIN — 20260603200000_v5_global_command.sql
 -- ════════════════════════════════════════════════════════════════════════
