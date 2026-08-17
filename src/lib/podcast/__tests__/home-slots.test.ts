@@ -131,3 +131,81 @@ describe('resolvePodcastHomeSlots — destinations éditoriales (PODCAST-0B)', (
     expect(premium?.id).toBe('2')
   })
 })
+
+describe('resolvePodcastHomeSlots — access-aware (P0 : disjonction par NIVEAU)', () => {
+  type Lvl = 'public' | 'member' | 'premium'
+  const lvl = (id: string, accessLevel: Lvl): HomeSlotEpisode => ({
+    id,
+    accessLevel,
+    hasAudio: true,
+  })
+
+  it('P0 : instant privilégie le public, premium prend le vrai premium', () => {
+    const { instant, premium } = resolvePodcastHomeSlots([lvl('1', 'public'), lvl('2', 'premium')])
+    expect(instant?.id).toBe('1')
+    expect(premium?.id).toBe('2')
+  })
+
+  it('P0 : instant ne retient JAMAIS un premium par repli quand un non-premium existe', () => {
+    // premier de la liste = premium ; instant doit sauter au public.
+    const { instant, premium } = resolvePodcastHomeSlots([lvl('1', 'premium'), lvl('2', 'public')])
+    expect(instant?.id).toBe('2')
+    expect(premium?.id).toBe('1')
+    expect(instant?.id).not.toBe(premium?.id)
+  })
+
+  it('P0 : catalogue 100% public → premium NUL (jamais un public déguisé en Premium)', () => {
+    const { instant, premium } = resolvePodcastHomeSlots([lvl('1', 'public'), lvl('2', 'public')])
+    expect(instant?.id).toBe('1')
+    expect(premium).toBeNull()
+  })
+
+  it('P0 : un membre n’est ni instant gratuit ni premium ; premium reste nul', () => {
+    const { instant, premium } = resolvePodcastHomeSlots([lvl('1', 'member'), lvl('2', 'member')])
+    // aucun public → instant retombe sur le premier non-premium (membre), jamais un premium.
+    expect(instant?.id).toBe('1')
+    expect(premium).toBeNull()
+  })
+
+  it('P0 : sélection mixte public/member/premium → instant public, premium premium', () => {
+    const { instant, premium } = resolvePodcastHomeSlots([
+      lvl('1', 'public'),
+      lvl('2', 'member'),
+      lvl('3', 'premium'),
+    ])
+    expect(instant?.id).toBe('1')
+    expect(premium?.id).toBe('3')
+  })
+
+  it('la config admin reste ABSOLUE même en access-aware (teaser premium public assumé)', () => {
+    // Admin place explicitement un public dans le slot premium → honoré (choix éditorial).
+    const { instant, premium } = resolvePodcastHomeSlots(
+      [lvl('1', 'public'), lvl('2', 'public'), lvl('3', 'premium')],
+      { instantIds: ['1'], premiumIds: ['2'] },
+    )
+    expect(instant?.id).toBe('1')
+    expect(premium?.id).toBe('2')
+  })
+
+  it('la destination home_premium prime sur le repli access-aware', () => {
+    const list: HomeSlotEpisode[] = [
+      { id: '1', accessLevel: 'public', hasAudio: true },
+      { id: '2', accessLevel: 'member', hasAudio: true, destinations: ['home_premium'] },
+      { id: '3', accessLevel: 'premium', hasAudio: true },
+    ]
+    const { instant, premium } = resolvePodcastHomeSlots(list)
+    expect(instant?.id).toBe('1')
+    // home_premium (ep2) prioritaire sur le repli qui aurait pris ep3.
+    expect(premium?.id).toBe('2')
+  })
+
+  it('disjonction par id conservée en access-aware (premium ≠ instant)', () => {
+    // Un seul épisode premium : il alimente instant (via non-premium indispo) ? Non —
+    // ici public en tête donc instant=public, et le premium unique va en premium.
+    const single: HomeSlotEpisode[] = [{ id: '1', accessLevel: 'premium', hasAudio: true }]
+    const { instant, premium } = resolvePodcastHomeSlots(single)
+    // aucun non-premium → instant retombe sur l'unique épisode (premium), premium exclut l'id → null.
+    expect(instant?.id).toBe('1')
+    expect(premium).toBeNull()
+  })
+})

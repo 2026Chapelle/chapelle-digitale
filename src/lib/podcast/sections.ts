@@ -93,6 +93,9 @@ export interface Emission {
   serie: string
   /** Cover de repli : première cover disponible de la série (dernier épisode publié en tête si trié). */
   cover: string | null
+  /** Promesse de la série : première description non vide rencontrée (= épisode le plus récent
+   *  si l'appelant trie par date décroissante). Jamais fabriquée : undefined si aucune. */
+  description?: string
   count: number
 }
 
@@ -104,28 +107,53 @@ export interface Emission {
  */
 export function buildEmissions(episodes: VoixEpisode[]): Emission[] {
   const list = Array.isArray(episodes) ? episodes.filter((e) => e && e.id) : []
-  const bySerie = new Map<string, { cover: string | null; count: number; order: number }>()
+  const bySerie = new Map<string, { cover: string | null; description: string | null; count: number; order: number }>()
   let order = 0
   for (const e of list) {
     const s = typeof e.serie === 'string' ? e.serie.trim() : ''
     if (!s) continue
     const cur = bySerie.get(s)
     if (!cur) {
-      bySerie.set(s, { cover: str(e.cover) , count: 1, order: order++ })
+      bySerie.set(s, { cover: str(e.cover), description: str(e.description), count: 1, order: order++ })
     } else {
       cur.count += 1
       if (!cur.cover) cur.cover = str(e.cover)
+      if (!cur.description) cur.description = str(e.description)
     }
   }
   return Array.from(bySerie.entries())
-    .map(([serie, v]) => ({ serie, cover: v.cover, count: v.count, order: v.order }))
+    .map(([serie, v]) => ({ serie, cover: v.cover, description: v.description, count: v.count, order: v.order }))
     .sort((a, b) => (b.count - a.count) || (a.order - b.order))
-    .map(({ serie, cover, count }) => ({ serie, cover, count }))
+    .map(({ serie, cover, description, count }) => ({ serie, cover, description: description ?? undefined, count }))
 }
 
 /** Vrai si un épisode est jouable librement (public ou instant) — pour l'accueil, pas /podcast. */
 export function isPremium(e: VoixEpisode): boolean {
   return e.accessLevel === 'premium'
+}
+
+const hasPremiumDestination = (e: VoixEpisode): boolean =>
+  Array.isArray(e.destinations) && e.destinations.includes('home_premium')
+
+/**
+ * « CITADELLE PREMIUM » : épisodes réellement premium — `access_level === 'premium'`
+ * OU explicitement placés dans l'emplacement éditorial `home_premium`. Ne fabrique jamais
+ * de donnée : si aucun épisode ne qualifie, renvoie []. Exclut `excludeIds` (dé-duplication
+ * vs « À la une »), respecte l'ordre d'entrée, tronqué à `limit` (défaut 4).
+ * NB : ce champ est ÉDITORIAL (affichage/badge) — l'accès réel reste garanti côté serveur
+ * (PODCAST-SEC + entitlement Premium fail-closed). Ce sélecteur ne déverrouille rien.
+ */
+export function selectPremium(
+  episodes: VoixEpisode[],
+  opts: { excludeIds?: Iterable<string>; limit?: number } = {},
+): VoixEpisode[] {
+  const exclude = new Set(opts.excludeIds ? Array.from(opts.excludeIds) : [])
+  const limit = opts.limit ?? 4
+  const list = Array.isArray(episodes) ? episodes.filter((e) => e && e.id) : []
+  const premium = list.filter(
+    (e) => (isPremium(e) || hasPremiumDestination(e)) && !exclude.has(e.id),
+  )
+  return premium.slice(0, Math.max(0, limit))
 }
 
 /** Liste des émissions distinctes (pour les filtres du catalogue), triées comme buildEmissions. */

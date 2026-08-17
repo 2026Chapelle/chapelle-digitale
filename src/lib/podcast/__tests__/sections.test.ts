@@ -3,6 +3,7 @@ import {
   parsePodcastHero,
   selectFeatured,
   selectNewReleases,
+  selectPremium,
   buildEmissions,
   isPremium,
   type VoixEpisode,
@@ -67,6 +68,55 @@ describe('buildEmissions', () => {
   })
   it('liste vide si aucune série', () => {
     expect(buildEmissions([ep('1'), ep('2')])).toEqual([])
+  })
+  it('porte la 1re description non vide par série (promesse du dernier épisode si trié desc)', () => {
+    const list = [
+      ep('1', { serie: 'Veilleurs', description: '' }),               // vide → ignorée
+      ep('2', { serie: 'Veilleurs', description: 'Trois jours de prière' }), // 1re non vide
+      ep('3', { serie: 'Veilleurs', description: 'Autre promesse' }), // ignorée (déjà une)
+    ]
+    expect(buildEmissions(list)[0].description).toBe('Trois jours de prière')
+  })
+  it('description undefined quand aucun épisode n’en fournit (jamais fabriquée)', () => {
+    const em = buildEmissions([ep('1', { serie: 'Veilleurs' }), ep('2', { serie: 'Veilleurs', description: '   ' })])
+    expect(em[0].description).toBeUndefined()
+  })
+})
+
+describe('selectPremium', () => {
+  it('retient les épisodes réellement premium (access_level ou destination home_premium), ordre + limite', () => {
+    const list = [
+      ep('1'),
+      ep('2', { accessLevel: 'premium' }),
+      ep('3', { accessLevel: 'member' }),
+      ep('4', { destinations: ['home_premium'] }),
+      ep('5', { accessLevel: 'public', destinations: ['catalog'] }),
+      ep('6', { accessLevel: 'premium' }),
+    ]
+    expect(selectPremium(list).map((e) => e.id)).toEqual(['2', '4', '6'])
+  })
+  it('respecte la limite (défaut 4)', () => {
+    const list = [
+      ep('1', { accessLevel: 'premium' }),
+      ep('2', { accessLevel: 'premium' }),
+      ep('3', { accessLevel: 'premium' }),
+      ep('4', { accessLevel: 'premium' }),
+      ep('5', { accessLevel: 'premium' }),
+    ]
+    expect(selectPremium(list).map((e) => e.id)).toEqual(['1', '2', '3', '4'])
+    expect(selectPremium(list, { limit: 2 }).map((e) => e.id)).toEqual(['1', '2'])
+  })
+  it('exclut les ids fournis (dé-duplication vs À la une)', () => {
+    const list = [
+      ep('1', { accessLevel: 'premium' }),
+      ep('2', { accessLevel: 'premium' }),
+      ep('3', { destinations: ['home_premium'] }),
+    ]
+    expect(selectPremium(list, { excludeIds: ['1'] }).map((e) => e.id)).toEqual(['2', '3'])
+  })
+  it('liste vide si aucun épisode premium (jamais de fausse donnée)', () => {
+    expect(selectPremium([ep('1'), ep('2', { accessLevel: 'member' })])).toEqual([])
+    expect(selectPremium([])).toEqual([])
   })
 })
 

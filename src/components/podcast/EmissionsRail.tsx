@@ -53,8 +53,13 @@ export function EmissionsRail({
             className="group snap-start w-44 sm:w-48 md:w-52 flex-shrink-0 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] rounded-xl"
             aria-label={`Voir l'émission ${em.serie}`}
           >
-            <PodcastCover src={em.cover} alt={em.serie} label={em.serie} sizes="208px" className="transition-transform group-hover:scale-[1.02]" />
+            <PodcastCover src={em.cover} alt={em.serie} label={em.serie} sizes="(max-width: 640px) 176px, (max-width: 768px) 192px, 208px" className="transition-transform group-hover:scale-[1.02]" />
             <h3 className="mt-2.5 font-cinzel text-base font-bold text-pearl leading-snug line-clamp-2 group-hover:text-cinematic-gold transition-colors">{em.serie}</h3>
+            {em.description && (
+              <p className="mt-1 font-inter text-[11px] leading-snug line-clamp-2" style={{ color: 'rgba(245,230,216,0.55)' }}>
+                {em.description}
+              </p>
+            )}
             <p className="mt-0.5 inline-flex items-center gap-1.5 text-[11px] font-inter" style={{ color: 'rgba(245,230,216,0.45)' }}>
               <Headphones className="w-3 h-3 text-gold/70" />
               {em.count} épisode{em.count > 1 ? 's' : ''}

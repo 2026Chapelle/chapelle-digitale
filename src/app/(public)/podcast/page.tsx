@@ -11,6 +11,7 @@
  *     (audio_playlists / items) inexistant. Aucune fausse donnée n'est fabriquée.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
@@ -23,9 +24,13 @@ import { AllEpisodesSection, type CatalogEpisode } from '@/components/podcast/Al
 import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
 import { normalizePodcastEditorial } from '@/lib/podcast/editorial'
 import {
-  parsePodcastHero, selectFeatured, selectNewReleases, buildEmissions, listSeriesFrom,
+  parsePodcastHero, selectFeatured, selectNewReleases, selectPremium, buildEmissions, listSeriesFrom,
   type VoixEpisode, type PodcastHeroConfig,
 } from '@/lib/podcast/sections'
+import { PremiumSection } from '@/components/podcast/PremiumSection'
+import { PodcastEventsSection } from '@/components/podcast/PodcastEventsSection'
+import { PodcastPromotionCard } from '@/components/podcast/PodcastPromotionCard'
+import { parsePodcastPromotion, type PodcastPromotion } from '@/lib/podcast/promotion'
 import { ContinueListening, type ContinueCard } from '@/components/podcast/ContinueListening'
 import { PlaylistsSections } from '@/components/podcast/PlaylistsSections'
 import {
@@ -87,6 +92,8 @@ export default function PodcastPage() {
 
   const [episodes, setEpisodes] = useState<VoixEpisode[]>([])
   const [hero, setHero] = useState<PodcastHeroConfig | null>(null)
+  // Promotion native (bloc CMS `podcast_promo`) — fail-safe : null si rien d'exploitable.
+  const [promotion, setPromotion] = useState<PodcastPromotion | null>(null)
   const [joinFor, setJoinFor] = useState<VoixEpisode | null>(null)
   const [notice, setNotice] = useState<PremiumNotice | null>(null)
   const [premiumOffer, setPremiumOffer] = useState<PremiumOffer | null>(null)
@@ -99,17 +106,20 @@ export default function PodcastPage() {
   const [selectedSerie, setSelectedSerie] = useState('all')
   const [progressRows, setProgressRows] = useState<AudioProgressRow[]>([])   // PODCAST-2 : progression membre
   const catalogRef = useRef<HTMLDivElement>(null)
+  // PODCAST-9 / D3 — piège à focus du dialogue de refus (Escape + focus trap + restauration).
+  const noticePanelRef = useFocusTrap<HTMLDivElement>(!!notice, { onEscape: () => setNotice(null) })
 
   useEffect(() => {
     if (IS_DEMO_MODE) return
     let cancelled = false
     ;(async () => {
       try {
-        const [{ rows }, heroRes] = await Promise.all([
+        const [{ rows }, heroRes, promoRes] = await Promise.all([
           fetchPublishedPodcasts((cols) =>
             supabase.from('cms_podcasts').select(cols)
               .eq('status', 'published').order('published_at', { ascending: false }).limit(200)),
           supabase.from('cms_homepage_blocks').select('*').eq('block_key', 'podcast_hero').maybeSingle(),
+          supabase.from('cms_homepage_blocks').select('*').eq('block_key', 'podcast_promo').maybeSingle(),
         ])
         if (cancelled) return
         const mapped: VoixEpisode[] = rows.map((p) => {
@@ -132,6 +142,13 @@ export default function PodcastPage() {
         }).filter((e) => e.title)
         setEpisodes(mapped)
         setHero(parsePodcastHero((heroRes as { data?: Record<string, unknown> | null })?.data ?? null))
+        // Bloc `podcast_promo` : on fusionne les colonnes natives (title/subtitle/body/image_url/
+        // cta_*) avec le jsonb `data` (où l'admin peut poser `kind`, faute de colonne dédiée).
+        const promoRow = (promoRes as { data?: Record<string, unknown> | null })?.data ?? null
+        const promoJson = promoRow && typeof promoRow.data === 'object' && promoRow.data
+          ? (promoRow.data as Record<string, unknown>)
+          : {}
+        setPromotion(parsePodcastPromotion(promoRow ? { ...promoRow, ...promoJson } : null))
       } catch { /* liste vide */ }
     })()
     return () => { cancelled = true }
@@ -242,6 +259,8 @@ export default function PodcastPage() {
   const nouveautes = selectNewReleases(episodes, { excludeIds: featured.map((e) => e.id), limit: 12 })
   const emissions = buildEmissions(episodes)
   const series = listSeriesFrom(episodes)
+  // CITADELLE PREMIUM — épisodes réellement premium, dé-dupliqués vs « À la une ».
+  const premiumEpisodes = selectPremium(episodes, { excludeIds: featured.map((e) => e.id) })
 
   // PODCAST-2 : « Continuer l'écoute » (membre uniquement ; strictement dérivé des données réelles).
   const continueItems: ContinueCard[] = user
@@ -287,9 +306,9 @@ export default function PodcastPage() {
   }, [episodes, progressRows, playlistEpisodeIds, popularity, myPremium.active, isMember, user, nowMs])
 
   const toRail = (list: VoixEpisode[]): RailEpisode[] =>
-    list.map((e) => ({ id: e.id, title: e.title, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl }))
+    list.map((e) => ({ id: e.id, title: e.title, description: e.description, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl }))
   const toCatalog = (list: VoixEpisode[]): CatalogEpisode[] =>
-    list.map((e) => ({ id: e.id, title: e.title, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl, date: (e.publishedAt || '').slice(0, 10) }))
+    list.map((e) => ({ id: e.id, title: e.title, description: e.description, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl, date: (e.publishedAt || '').slice(0, 10) }))
 
   const selectEmission = (serie: string) => {
     setSelectedSerie(serie)
@@ -349,13 +368,33 @@ export default function PodcastPage() {
           <EpisodeRail title="Populaire dans La Voix du Royaume" eyebrow="Le plus écouté" episodes={toRail(reco.popular)} onPlay={(ep) => onPlayRail(ep, { sourceContext: 'popular' })} isPlaying={isPlaying} onAddToPlaylist={onAddToPlaylist} />
         )}
 
+        {/* CITADELLE PREMIUM — écrin distinct des contenus exclusifs. Ne rend rien sans épisode
+            réellement premium. La lecture passe par requestPlay (gate serveur réel) : un visiteur
+            non éligible reçoit le dialogue de refus (aucun contournement). */}
+        <PremiumSection
+          episodes={premiumEpisodes}
+          onPlay={(ep) => requestPlay(ep, { sourceContext: 'premium' })}
+          isPlaying={isPlaying}
+          hasPremium={myPremium.active}
+        />
+
         {/* Émissions (serie dynamique) */}
         <EmissionsRail emissions={emissions} onSelect={selectEmission} />
+
+        {/* EN CE MOMENT À LA CITADELLE — passerelle vers la vie de l'Église (cms_events réels).
+            Ne rend rien s'il n'y a aucun événement futur publié. */}
+        <PodcastEventsSection />
 
         {/* Playlists de La Citadelle (officielles) + Mes playlists (membre) — PODCAST-3.
             Officielles visibles selon RLS (visiteur inclus si publiques) ; lecture verrouillée
             pour le visiteur (JoinToListenModal). Une playlist ne déverrouille aucun access_level. */}
         <PlaylistsSections episodes={episodes} userId={user?.id ?? null} canPlay={canPlay} onPlayEpisode={requestPlay} refreshSignal={playlistRefresh} />
+
+        {/* PROMOTION NATIVE — emplacement éditorial réutilisable (événement / partenaire / don /
+            formation / livre / campagne). Alimenté par le bloc CMS `podcast_promo` (aucune table
+            dédiée). Fail-safe : masqué tant qu'aucun contenu réel n'est fourni. Placé entre la
+            découverte et le catalogue complet, sans casser le rythme de la page. */}
+        {promotion && <PodcastPromotionCard promotion={promotion} />}
 
         {/* Tous les épisodes */}
         <div ref={catalogRef} className="scroll-mt-24">
@@ -396,7 +435,9 @@ export default function PodcastPage() {
         >
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-hidden />
           <div
-            className="relative z-[1] w-full max-w-sm rounded-2xl border border-[rgba(212,175,55,0.35)] bg-[#0c0c14] p-6 text-center shadow-2xl"
+            ref={noticePanelRef}
+            tabIndex={-1}
+            className="relative z-[1] w-full max-w-sm rounded-2xl border border-[rgba(212,175,55,0.35)] bg-[#0c0c14] p-6 text-center shadow-2xl outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="font-cinzel font-bold text-cinematic-gold text-xl mb-2">{notice.title}</h3>

@@ -121,6 +121,11 @@ export function AllEpisodesSection({
                       {premium && <PremiumBadge className="flex-shrink-0" />}
                     </div>
                     <h3 className="font-inter text-sm font-semibold text-pearl leading-snug line-clamp-2 mt-0.5">{ep.title}</h3>
+                    {ep.description && (
+                      <p className="font-inter text-[11px] leading-snug line-clamp-1 mt-0.5" style={{ color: 'rgba(245,230,216,0.5)' }}>
+                        {ep.description}
+                      </p>
+                    )}
                     <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'rgba(245,230,216,0.4)' }}>
                       {ep.duration && <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{ep.duration}</span>}
                       {ep.date && <span>{ep.date}</span>}
@@ -152,19 +157,45 @@ export function AllEpisodesSection({
 function FilterChip({
   active, onClick, label, subtle, onClear,
 }: { active: boolean; onClick: () => void; label: string; subtle?: boolean; onClear?: () => void }) {
+  const chipStyle = active
+    ? { background: 'linear-gradient(135deg, #D4AF37, #D4AF37AA)', color: '#1a1206', boxShadow: '0 4px 16px rgba(212,175,55,0.25)' }
+    : { background: 'rgba(255,255,255,0.04)', color: subtle ? 'rgba(245,230,216,0.5)' : 'rgba(245,230,216,0.65)', border: '1px solid rgba(255,255,255,0.08)' }
+
+  // Chip filtrable actif : conteneur avec deux vrais boutons (plus de <span onClick>
+  // imbriqué dans un <button>) → l'affordance « retirer » devient accessible au clavier.
+  if (active && onClear) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-inter font-semibold transition-all"
+        style={chipStyle}
+      >
+        <button
+          type="button"
+          onClick={onClick}
+          className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+        >
+          {label}
+        </button>
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label={`Retirer le filtre ${label}`}
+          className="inline-flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+        >
+          <X className="w-3 h-3" aria-hidden />
+        </button>
+      </span>
+    )
+  }
+
   return (
     <button
       type="button"
       onClick={onClick}
       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-inter font-semibold transition-all"
-      style={active
-        ? { background: 'linear-gradient(135deg, #D4AF37, #D4AF37AA)', color: '#1a1206', boxShadow: '0 4px 16px rgba(212,175,55,0.25)' }
-        : { background: 'rgba(255,255,255,0.04)', color: subtle ? 'rgba(245,230,216,0.5)' : 'rgba(245,230,216,0.65)', border: '1px solid rgba(255,255,255,0.08)' }}
+      style={chipStyle}
     >
       {label}
-      {active && onClear && (
-        <span onClick={(e) => { e.stopPropagation(); onClear() }} aria-hidden><X className="w-3 h-3" /></span>
-      )}
     </button>
   )
 }

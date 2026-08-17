@@ -8,6 +8,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Play, Pause, X, Volume2, VolumeX } from 'lucide-react'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
 
 function fmtTime(s: number) {
   if (!Number.isFinite(s) || s < 0) return '0:00'
@@ -34,6 +35,18 @@ export function AudioPlayerBar() {
   const pathname = usePathname()
   const reduce = useReducedMotion()
   const onMemberRoute = pathname?.startsWith('/member') ?? false
+
+  // Sur route membre mobile, la barre audio s'empile au-dessus de MobileBottomNav
+  // (bottom-[64px]). On pose une classe scoping afin que globals.css augmente le
+  // dégagement bas (padding-bottom) uniquement dans ce cas — desktop/public inchangés.
+  useEffect(() => {
+    const cls = 'audio-over-mobile-nav'
+    if (track && onMemberRoute) document.body.classList.add(cls)
+    else document.body.classList.remove(cls)
+    return () => document.body.classList.remove(cls)
+  }, [track, onMemberRoute])
+
+  const totalLabel = track ? (track.duree || fmtTime(track.dureeSecondes || 0)) : '0:00'
 
   return (
     <AnimatePresence>
@@ -97,6 +110,7 @@ export function AudioPlayerBar() {
                   aria-valuenow={Math.round(progress * 100)}
                   aria-valuemin={0}
                   aria-valuemax={100}
+                  aria-valuetext={`${fmtTime(elapsed)} sur ${totalLabel}`}
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === 'ArrowRight') seek(Math.min(1, progress + 0.05))
@@ -128,6 +142,7 @@ export function AudioPlayerBar() {
                 aria-valuenow={Math.round(progress * 100)}
                 aria-valuemin={0}
                 aria-valuemax={100}
+                aria-valuetext={`${fmtTime(elapsed)} sur ${totalLabel}`}
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowRight') seek(Math.min(1, progress + 0.05))

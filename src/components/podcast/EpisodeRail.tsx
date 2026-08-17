@@ -16,6 +16,8 @@ export interface RailEpisode {
   cover?: string | null
   serie?: string | null
   duration?: string
+  /** Promesse courte (description CMS, déjà tronquée ~160c en amont). Optionnel : masqué si vide. */
+  description?: string
   accessLevel?: 'public' | 'member' | 'premium'
   audioUrl?: string | null
 }
@@ -49,7 +51,7 @@ export function EpisodeCoverCard({
         className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] rounded-xl"
       >
         <div className="relative">
-          <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="192px" />
+          <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="(max-width: 640px) 160px, (max-width: 768px) 176px, 192px" />
           {premium && <PremiumBadge className="absolute top-2 left-2 z-[3]" />}
           {/* Bouton lecture flottant (apparait au survol / focus) */}
           <span
@@ -61,6 +63,11 @@ export function EpisodeCoverCard({
           </span>
         </div>
         <h3 className="mt-2.5 font-inter text-sm font-semibold text-pearl leading-snug line-clamp-2">{ep.title}</h3>
+        {ep.description && (
+          <p className="mt-1 font-inter text-[11px] leading-snug line-clamp-2" style={{ color: 'rgba(245,230,216,0.55)' }}>
+            {ep.description}
+          </p>
+        )}
         <div className="mt-1 flex items-center gap-2 text-[11px]" style={{ color: 'rgba(245,230,216,0.45)' }}>
           {ep.serie && <span className="truncate text-gold/70 font-medium">{ep.serie}</span>}
           {ep.duration && (
