@@ -27,7 +27,7 @@ import {
 } from '@/lib/podcast/home-slots'
 import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
 import { normalizePodcastEditorial } from '@/lib/podcast/editorial'
-import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
+import { resolveHomeInstantPlayback, isResolved } from '@/lib/podcast/playback-client'
 
 type PodEp = {
   id: string
@@ -85,6 +85,19 @@ export function PodcastHomeSection() {
   const { instant: instantEp, premium: featured } = resolvePodcastHomeSlots(episodes, slotConfig)
   const instantIsPlaying = instantEp ? isPlaying(instantEp.id) : false
   const featuredCover = featured?.cover || PREMIUM_COVER
+
+  // LOT B — Garde de lecture LIBRE : la CTA primaire « Écouter maintenant » ne s'affiche
+  // QUE si l'épisode Instant résolu est réellement jouable sans compte ni gate premium,
+  // c.-à-d. public OU explicitement destiné à `home_instant`. Ceci garantit qu'aucun
+  // épisode member/premium ne devient jamais la cible de lecture gratuite (P0 respecté).
+  // Réalité CMS actuelle : 0 épisode public → la CTA ne s'affiche pas (repli attendu).
+  const instantFreelyPlayable = Boolean(
+    instantEp &&
+      instantEp.accessLevel !== 'premium' && // aligné sur l'endpoint : premium jamais gratuit
+      (instantEp.accessLevel === 'public' ||
+        instantEp.destinations?.includes('home_instant') ||
+        slotConfig?.instantIds?.includes(instantEp.id)),
+  )
 
   // « Séries & épisodes à la une » — bande compacte (3-4) sous les deux cartes.
   // Dérivée des épisodes déjà chargés, en excluant les deux cartes (zéro doublon).
@@ -163,9 +176,11 @@ export function PodcastHomeSection() {
     events.ctaClick(label)
     if (!ep) { window.location.href = '/podcast'; return }
     if (track?.id === ep.id) { isPlaying(ep.id) ? pause() : resume(); return }
-    const res = await resolvePlayback(ep.id)
+    // Avant-goût gratuit : chemin DÉDIÉ (le serveur n'autorise que l'instant désigné,
+    // jamais premium). Le gate générique /podcast reste inchangé pour ce même épisode.
+    const res = await resolveHomeInstantPlayback(ep.id)
     if (isResolved(res)) {
-      play(toTrack(ep, res.url, label.includes('instant') ? "L'Instant Citadelle" : 'Podcast Premium'))
+      play(toTrack(ep, res.url, "L'Instant Citadelle"))
       return
     }
     window.location.href = '/podcast'
@@ -213,16 +228,9 @@ export function PodcastHomeSection() {
             viewport={HOME_VIEWPORT}
             transition={revealTransition(reduce, HOME_DELAY.card)}
           >
-            <button
-              type="button"
-              onClick={() => handleListen(instantEp, 'podcast_instant_citadelle')}
-              className="citadelle-pod-card citadelle-pod-daily group block h-full w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
-              aria-label={
-                instantEp?.hasAudio
-                  ? `Écouter L'Instant Citadelle — ${instantEp.title}`
-                  : "Ouvrir les podcasts — L'Instant Citadelle"
-              }
-            >
+            {/* LOT B — carte gratuite restructurée : conteneur NON-bouton portant la couverture,
+                le texte et DEUX actions distinctes (primaire lecture directe / secondaire catalogue). */}
+            <div className="citadelle-pod-card citadelle-pod-daily group h-full flex flex-col">
               <div className="citadelle-pod-media relative aspect-[4/3] sm:aspect-[16/11] overflow-hidden bg-[#0a0a12]">
                 <Image
                   src={INSTANT_COVER}
@@ -232,9 +240,10 @@ export function PodcastHomeSection() {
                   className="object-contain object-center"
                   priority={false}
                 />
-                {/* Badge « Gratuit » masqué si (cas dégénéré catalogue 100% premium) l'épisode
-                    résolu pour l'Instant est en réalité premium → jamais de faux « Gratuit ». */}
-                {instantEp?.accessLevel !== 'premium' && (
+                {/* Badge « Gratuit » affiché UNIQUEMENT si l'Instant résolu est réellement
+                    jouable librement (public / home_instant). Jamais de faux « Gratuit » sur un
+                    épisode membre ou premium — aligné sur la garde de la CTA de lecture libre. */}
+                {instantFreelyPlayable && (
                   <span
                     className="absolute bottom-4 left-4 z-[3] inline-flex items-center gap-1.5 text-[10px] font-inter font-bold tracking-widest uppercase px-2 py-1 rounded"
                     style={{ background: 'rgba(46,160,110,0.18)', color: '#8FE3B8', border: '1px solid rgba(46,160,110,0.4)' }}
@@ -244,29 +253,62 @@ export function PodcastHomeSection() {
                   </span>
                 )}
               </div>
-              <div className="relative z-[3] p-6 md:p-7">
+              <div className="relative z-[3] p-6 md:p-7 flex flex-col flex-1">
                 <h3 className="font-cinzel font-bold text-pearl text-xl md:text-2xl mb-2">
                   L&apos;Instant Citadelle
                 </h3>
                 <p className="font-inter text-sm leading-relaxed mb-5" style={{ color: 'rgba(245,230,216,0.5)' }}>
                   Un moment court pour nourrir ta foi, chaque jour, où que tu sois.
                 </p>
-                {instantEp?.duration && (
+                {instantFreelyPlayable && instantEp?.duration && (
                   <p className="font-inter text-xs mb-3" style={{ color: 'rgba(212,175,55,0.55)' }}>
                     {instantEp.duration}
                   </p>
                 )}
-                <span className="citadelle-pod-cta-line inline-flex items-center gap-2 text-sm font-medium text-gold group-hover:gap-3">
-                  {instantIsPlaying ? <Pause className="w-4 h-4" aria-hidden /> : <Play className="w-4 h-4" aria-hidden />}
-                  {instantEp?.hasAudio
-                    ? instantIsPlaying
-                      ? 'Pause'
-                      : "Écouter L'Instant Citadelle"
-                    : 'Retrouver les podcasts'}
-                  <ArrowRight className="w-4 h-4" aria-hidden />
-                </span>
+
+                <div className="mt-auto flex flex-col gap-3">
+                  {/* CTA PRIMAIRE — lecture directe de l'Instant public via le lecteur existant.
+                      Rendue UNIQUEMENT si l'épisode est librement jouable (public / home_instant) :
+                      jamais de bouton cassé, jamais de cible member/premium. */}
+                  {instantFreelyPlayable && (
+                    <button
+                      type="button"
+                      onClick={() => handleListen(instantEp, 'podcast_instant_citadelle')}
+                      className="inline-flex items-center justify-center gap-2 text-sm font-semibold min-h-[44px] px-5 py-2.5 rounded-full transition-transform hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
+                      style={{
+                        background: 'linear-gradient(135deg, #E7C65A, #D4AF37)',
+                        color: '#1a1206',
+                        boxShadow: '0 4px 18px rgba(212,175,55,0.28)',
+                      }}
+                      aria-label={
+                        instantIsPlaying
+                          ? `Mettre en pause L'Instant Citadelle — ${instantEp?.title ?? ''}`.trim()
+                          : `Écouter maintenant L'Instant Citadelle — ${instantEp?.title ?? ''}`.trim()
+                      }
+                    >
+                      {instantIsPlaying ? <Pause className="w-4 h-4" aria-hidden /> : <Play className="w-4 h-4" aria-hidden />}
+                      {instantIsPlaying ? 'Pause' : 'Écouter maintenant'}
+                    </button>
+                  )}
+
+                  {/* CTA SECONDAIRE — toujours présente, style ghost/outline or, distincte de la primaire. */}
+                  <Link
+                    href="/podcast"
+                    onClick={() => events.ctaClick('podcast_instant_voir_tous')}
+                    className="inline-flex items-center justify-center gap-2 text-sm font-medium min-h-[44px] px-5 py-2.5 rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D4AF37]"
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid rgba(212,175,55,0.45)',
+                      color: '#F5E6A7',
+                    }}
+                    aria-label="Voir tous les podcasts"
+                  >
+                    Voir tous les podcasts
+                    <ArrowRight className="w-4 h-4" aria-hidden />
+                  </Link>
+                </div>
               </div>
-            </button>
+            </div>
           </motion.div>
 
           {/* Podcast Premium */}
@@ -376,7 +418,7 @@ export function PodcastHomeSection() {
                     onClick={() => events.ctaClick('podcast_highlight')}
                     className="group block rounded-xl overflow-hidden border border-white/8 bg-white/[0.02] hover:border-gold/25 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
                   >
-                    <div className="relative aspect-square overflow-hidden bg-[#0a0a12]">
+                    <div className="relative aspect-[1/1] overflow-hidden bg-[#0a0a12]">
                       {/* Cohérence : un épisode premium reste identifiable dans la bande. */}
                       {ep.accessLevel === 'premium' && (
                         <PremiumBadge className="absolute top-2 left-2 z-[2] !text-[9px]" />

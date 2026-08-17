@@ -80,7 +80,7 @@ export function PlaylistsSections({
           ) : (
             <div className="flex gap-4 overflow-x-auto px-4 md:px-0 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button onClick={() => setCreating(true)}
-                className="w-40 sm:w-44 md:w-48 flex-shrink-0 aspect-square rounded-xl flex flex-col items-center justify-center gap-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]"
+                className="w-40 sm:w-44 md:w-48 flex-shrink-0 aspect-[1/1] rounded-xl flex flex-col items-center justify-center gap-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]"
                 style={{ background: 'rgba(212,175,55,0.06)', border: '1px dashed rgba(212,175,55,0.4)' }}>
                 <Plus className="w-8 h-8 text-gold/70" />
                 <span className="font-inter text-sm text-gold/80 font-medium">Créer une playlist</span>

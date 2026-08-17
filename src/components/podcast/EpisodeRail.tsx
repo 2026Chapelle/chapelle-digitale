@@ -1,14 +1,16 @@
 'use client'
 /**
- * PODCAST-1 — Rail horizontal d'épisodes (carrousel scrollable) + carte cover.
- * Réutilisé par « À la une » et « Nouveautés ». Mobile : scroll tactile ; desktop :
- * flèches discrètes. Une carte = cover valorisée + play intelligent + badge Premium.
+ * PODCAST-1 — Rail horizontal d'épisodes (carrousel scrollable) + carte média.
+ * Réutilisé par « Pour toi », « À la une », « Nouveautés », « Populaire ». Mobile : scroll
+ * tactile snap ; desktop : flèches discrètes. Une carte = COVER valorisée (~60-70 % de la
+ * hauteur) + chip durée + play perceptible, puis titre / promesse CMS / série + accès.
  */
 import { useRef } from 'react'
 import { Play, Pause, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { PodcastCover } from './PodcastCover'
 import { PremiumBadge } from './PremiumBadge'
 import { PlaylistMenuButton } from './PlaylistMenuButton'
+import { ACCESS_LEVEL_LABELS } from '@/lib/podcast/editorial'
 
 export interface RailEpisode {
   id: string
@@ -20,6 +22,23 @@ export interface RailEpisode {
   description?: string
   accessLevel?: 'public' | 'member' | 'premium'
   audioUrl?: string | null
+}
+
+/** Puce d'accès discrète (public/membre). Premium passe par <PremiumBadge> ailleurs. */
+function AccessChip({ level }: { level: 'public' | 'member' }) {
+  const isPublic = level === 'public'
+  return (
+    <span
+      className="inline-flex items-center text-[9px] font-inter font-bold tracking-widest uppercase px-1.5 py-0.5 rounded flex-shrink-0"
+      style={
+        isPublic
+          ? { background: 'rgba(74,222,128,0.14)', color: '#86efac', border: '1px solid rgba(74,222,128,0.3)' }
+          : { background: 'rgba(255,255,255,0.06)', color: 'rgba(245,230,216,0.6)', border: '1px solid rgba(255,255,255,0.12)' }
+      }
+    >
+      {isPublic ? 'Gratuit' : ACCESS_LEVEL_LABELS.member}
+    </span>
+  )
 }
 
 export function EpisodeCoverCard({
@@ -36,44 +55,67 @@ export function EpisodeCoverCard({
 }) {
   const premium = ep.accessLevel === 'premium'
   return (
-    <div className="group relative w-40 sm:w-44 md:w-48 flex-shrink-0">
+    <div className="group relative w-48 sm:w-52 md:w-56 flex-shrink-0 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-2 transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(212,175,55,0.4)]">
       {onAddToPlaylist && (
         <PlaylistMenuButton
           onClick={() => onAddToPlaylist(ep.id)}
           title={ep.title}
-          className="absolute top-2 right-2 z-[4]"
+          className="absolute top-3 right-3 z-[5]"
         />
       )}
       <button
         type="button"
         onClick={() => onPlay(ep)}
-        aria-label={`Écouter ${ep.title}`}
+        aria-label={playing ? 'Mettre en pause' : `Écouter ${ep.title}`}
         className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] rounded-xl"
       >
-        <div className="relative">
-          <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="(max-width: 640px) 160px, (max-width: 768px) 176px, 192px" />
+        {/* COVER — pièce maîtresse (aspect-square) : zoom + brightness au survol du group */}
+        <div className="relative overflow-hidden rounded-xl [&_img]:transition-transform [&_img]:duration-500 group-hover:[&_img]:scale-[1.03] group-hover:[&_img]:brightness-110">
+          <PodcastCover
+            src={ep.cover}
+            alt={ep.title}
+            label={ep.serie || ep.title}
+            sizes="(max-width: 640px) 192px, (max-width: 768px) 208px, 224px"
+          />
           {premium && <PremiumBadge className="absolute top-2 left-2 z-[3]" />}
-          {/* Bouton lecture flottant (apparait au survol / focus) */}
+          {/* Chip durée (bas-droite) */}
+          {ep.duration && (
+            <span
+              className="absolute bottom-2 right-2 z-[3] inline-flex items-center gap-1 text-[10px] font-inter font-semibold px-1.5 py-0.5 rounded-md"
+              style={{ background: 'rgba(6,6,10,0.72)', color: 'rgba(245,230,216,0.9)', backdropFilter: 'blur(2px)' }}
+            >
+              <Clock className="w-2.5 h-2.5" aria-hidden />
+              {ep.duration}
+            </span>
+          )}
+          {/* Play — perceptible d'emblée (opacity-80), renforcé au survol / focus */}
           <span
-            className="absolute bottom-2 right-2 z-[3] w-10 h-10 rounded-full flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 transition-all"
+            className="absolute bottom-2 left-2 z-[3] w-11 h-11 rounded-full flex items-center justify-center shadow-lg opacity-80 group-hover:opacity-100 group-hover:scale-105 group-focus-within:opacity-100 transition"
             style={{ background: 'linear-gradient(135deg, #D4AF37, #b8952e)', color: '#1a1206' }}
             aria-hidden
           >
             {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" fill="currentColor" />}
           </span>
         </div>
-        <h3 className="mt-2.5 font-inter text-sm font-semibold text-pearl leading-snug line-clamp-2">{ep.title}</h3>
+        {/* Titre */}
+        <h3 className="mt-2.5 px-0.5 font-inter text-sm font-semibold text-pearl leading-snug line-clamp-2">{ep.title}</h3>
+        {/* Promesse CMS — masquée si vide (jamais fabriquée) */}
         {ep.description && (
-          <p className="mt-1 font-inter text-[11px] leading-snug line-clamp-2" style={{ color: 'rgba(245,230,216,0.55)' }}>
+          <p className="mt-1 px-0.5 font-inter text-[11px] leading-snug line-clamp-2" style={{ color: 'rgba(245,230,216,0.55)' }}>
             {ep.description}
           </p>
         )}
-        <div className="mt-1 flex items-center gap-2 text-[11px]" style={{ color: 'rgba(245,230,216,0.45)' }}>
-          {ep.serie && <span className="truncate text-gold/70 font-medium">{ep.serie}</span>}
-          {ep.duration && (
-            <span className="inline-flex items-center gap-1 flex-shrink-0"><Clock className="w-3 h-3" />{ep.duration}</span>
-          )}
-        </div>
+        {/* Méta : série (si présente) + accès (si pertinent) */}
+        {(ep.serie || ep.accessLevel) && (
+          <div className="mt-1.5 px-0.5 flex items-center gap-2 text-[11px] min-w-0">
+            {ep.serie && <span className="truncate text-gold/70 font-medium min-w-0">{ep.serie}</span>}
+            {premium ? (
+              <PremiumBadge className="flex-shrink-0" />
+            ) : (
+              (ep.accessLevel === 'public' || ep.accessLevel === 'member') && <AccessChip level={ep.accessLevel} />
+            )}
+          </div>
+        )}
       </button>
     </div>
   )

@@ -48,10 +48,9 @@ function PremiumCard({
       type="button"
       onClick={() => onPlay(ep)}
       aria-label={ariaLabel}
-      className="group relative flex flex-col text-left rounded-2xl overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] transition-transform"
+      className="group relative flex flex-col text-left rounded-2xl overflow-hidden border border-[rgba(212,175,55,0.28)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(212,175,55,0.4)]"
       style={{
         background: 'linear-gradient(160deg, rgba(30,24,64,0.55), rgba(10,10,18,0.65))',
-        border: '1px solid rgba(212,175,55,0.28)',
       }}
     >
       {/* Cover */}
@@ -62,7 +61,7 @@ function PremiumCard({
             alt={ep.title}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-105"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03] group-hover:brightness-110"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center" style={{ background: pickGradient(ep.serie || ep.title || 'x') }}>
@@ -86,7 +85,7 @@ function PremiumCard({
         )}
         {/* Bouton lecture flottant */}
         <span
-          className="absolute bottom-2 right-2 z-[3] w-10 h-10 rounded-full flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 transition-all"
+          className="absolute bottom-2 right-2 z-[3] w-10 h-10 rounded-full flex items-center justify-center shadow-lg opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-105 group-focus-within:opacity-100 transition-all"
           style={{ background: 'linear-gradient(135deg, #D4AF37, #b8952e)', color: '#1a1206' }}
           aria-hidden
         >

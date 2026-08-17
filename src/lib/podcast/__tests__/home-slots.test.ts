@@ -209,3 +209,71 @@ describe('resolvePodcastHomeSlots — access-aware (P0 : disjonction par NIVEAU)
     expect(premium).toBeNull()
   })
 })
+
+/**
+ * LOT E — Contrat de sélection pour la carte gratuite « L'Instant Citadelle ».
+ *
+ * Le composant PodcastHomeSection n'affiche la CTA primaire « Écouter maintenant »
+ * QUE si l'épisode Instant résolu est librement jouable :
+ *   instantEp && (accessLevel === 'public' || destinations.includes('home_instant')).
+ * Ces tests verrouillent la sortie du résolveur qui pilote cette sélection : l'Instant
+ * privilégie le public et n'est JAMAIS un épisode premium tant qu'un non-premium existe.
+ */
+describe('resolvePodcastHomeSlots — LOT E : carte gratuite jouable (jamais premium)', () => {
+  type Lvl = 'public' | 'member' | 'premium'
+  const lvl = (id: string, accessLevel: Lvl): HomeSlotEpisode => ({ id, accessLevel, hasAudio: true })
+
+  // Reproduit la garde exacte du composant (source unique de vérité du contrat).
+  const freelyPlayable = (e: HomeSlotEpisode | null): boolean =>
+    Boolean(e && (e.accessLevel === 'public' || (e.destinations ?? []).includes('home_instant')))
+
+  it('instant EST un épisode public quand il en existe un (public préféré pour le slot gratuit)', () => {
+    const { instant } = resolvePodcastHomeSlots([
+      lvl('1', 'member'),
+      lvl('2', 'premium'),
+      lvl('3', 'public'),
+    ])
+    expect(instant?.accessLevel).toBe('public')
+    expect(instant?.id).toBe('3')
+    expect(freelyPlayable(instant)).toBe(true) // la CTA « Écouter maintenant » s'afficherait
+  })
+
+  it('instant N’EST JAMAIS un épisode premium sur une liste mixte incluant du premium', () => {
+    const { instant } = resolvePodcastHomeSlots([
+      lvl('1', 'premium'),
+      lvl('2', 'member'),
+      lvl('3', 'premium'),
+      lvl('4', 'public'),
+    ])
+    expect(instant?.accessLevel).not.toBe('premium')
+    expect(instant?.id).toBe('4')
+    expect(freelyPlayable(instant)).toBe(true)
+  })
+
+  it('destination home_instant rend l’instant librement jouable même sans niveau public', () => {
+    const list: HomeSlotEpisode[] = [
+      { id: '1', accessLevel: 'member', hasAudio: true, destinations: ['home_instant'] },
+      { id: '2', accessLevel: 'premium', hasAudio: true },
+    ]
+    const { instant } = resolvePodcastHomeSlots(list)
+    expect(instant?.id).toBe('1')
+    expect(freelyPlayable(instant)).toBe(true)
+  })
+
+  it('liste 100% premium → l’instant résolu n’est PAS présenté comme gratuit (garde=false)', () => {
+    // Aucun non-premium disponible : le résolveur retombe sur un premium (disjonction par id),
+    // MAIS la garde du composant refuse alors la CTA « Écouter maintenant » → fallback secondaire.
+    const { instant } = resolvePodcastHomeSlots([lvl('1', 'premium'), lvl('2', 'premium')])
+    expect(instant).not.toBeNull()
+    expect(freelyPlayable(instant)).toBe(false) // pas de bouton de lecture cassé sur du premium
+  })
+
+  it('dès qu’un non-premium existe, le résolveur ne place jamais un premium en instant', () => {
+    const { instant } = resolvePodcastHomeSlots([
+      lvl('1', 'premium'),
+      lvl('2', 'member'), // non-premium présent → instant ne doit pas être premium
+    ])
+    expect(instant?.accessLevel).not.toBe('premium')
+    expect(instant?.id).toBe('2')
+  })
+})

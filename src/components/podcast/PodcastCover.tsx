@@ -5,6 +5,7 @@
  */
 import Image from 'next/image'
 import { useState } from 'react'
+import { AudioLines } from 'lucide-react'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #2a1a4a 0%, #0a0a12 100%)',
@@ -40,7 +41,7 @@ export function PodcastCover({
   const initiale = (label || alt || '🎙️').trim().charAt(0).toUpperCase() || '🎙️'
   return (
     <div
-      className={`relative w-full aspect-square ${rounded} overflow-hidden bg-[#0a0a12] ${className}`}
+      className={`relative w-full aspect-[1/1] ${rounded} overflow-hidden bg-[#0a0a12] ${className}`}
       style={showImage ? undefined : { background: pick(label || alt || 'x') }}
     >
       {showImage ? (
@@ -53,8 +54,20 @@ export function PodcastCover({
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-cinzel text-4xl md:text-5xl text-gold/60 select-none" aria-hidden>
+        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          {/* Motif sonore Citadelle discret (or très léger) derrière l'initiale */}
+          <AudioLines
+            className="absolute w-[130%] h-[130%] text-gold/[0.07] select-none"
+            strokeWidth={1}
+            aria-hidden
+          />
+          {/* Halo doré central très diffus */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(circle at 50% 45%, rgba(212,175,55,0.10), transparent 62%)' }}
+            aria-hidden
+          />
+          <span className="relative font-cinzel text-4xl md:text-5xl text-gold/60 select-none" aria-hidden>
             {initiale}
           </span>
         </div>
