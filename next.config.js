@@ -1,3 +1,11 @@
+// Origine Supabase RÉELLE de l'app (dérivée de l'env) — à autoriser explicitement dans
+// la CSP (connect/img/media). En prod = https://<ref>.supabase.co (déjà couvert par
+// *.supabase.co) ; en LOCAL = http://127.0.0.1:55321 (sinon la CSP bloque toutes les
+// lectures client + l'audio signé). Dérivé = zéro host en dur, valable quel que soit l'env.
+const SUPA_ORIGIN = (() => {
+  try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || '').origin } catch { return '' }
+})()
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Build portable auto-suffisant pour PlanetHoster / N0C (Passenger, sans
@@ -52,9 +60,9 @@ const nextConfig = {
               script-src 'self' 'unsafe-eval' 'unsafe-inline' *.youtube.com *.youtube-nocookie.com *.google.com js.chariowcdn.com;
               style-src 'self' 'unsafe-inline' fonts.googleapis.com js.chariowcdn.com;
               font-src 'self' fonts.gstatic.com;
-              img-src 'self' data: blob: https:;
-              media-src 'self' blob: https:;
-              connect-src 'self' *.supabase.co wss: https: *.mychariow.shop js.chariowcdn.com;
+              img-src 'self' data: blob: https: ${SUPA_ORIGIN};
+              media-src 'self' blob: https: ${SUPA_ORIGIN};
+              connect-src 'self' ${SUPA_ORIGIN} *.supabase.co wss: https: *.mychariow.shop js.chariowcdn.com;
               frame-src 'self' *.youtube.com *.youtube-nocookie.com *.vimeo.com *.mychariow.shop chapelleduroyaume.org;
             `.replace(/\s+/g, ' ').trim(),
           },

@@ -47,3 +47,30 @@ export async function resolvePlayback(podcastId: string): Promise<PlaybackResult
     return { error: 'not_found' }
   }
 }
+
+/**
+ * PODCAST — Avant-goût GRATUIT « L'Instant Citadelle » (accueil uniquement).
+ * Appelle le chemin DÉDIÉ /api/podcast/home-instant/play : le serveur n'autorise que
+ * l'épisode réellement désigné dans le slot éditorial home_instant (jamais premium,
+ * jamais un autre épisode). Le gate générique /podcast reste inchangé pour cet épisode.
+ * Ne jette jamais ; un refus renvoie une raison neutre exploitable par l'UI.
+ */
+export async function resolveHomeInstantPlayback(podcastId: string): Promise<PlaybackResult> {
+  try {
+    const res = await fetch(`/api/podcast/home-instant/play?id=${encodeURIComponent(podcastId)}`, {
+      method: 'GET',
+      headers: { accept: 'application/json' },
+      cache: 'no-store',
+      credentials: 'same-origin',
+    })
+    const body = (await res.json().catch(() => null)) as
+      | { allowed?: boolean; playbackUrl?: string; expiresAt?: string | null; source?: string }
+      | null
+    if (res.ok && body?.allowed && typeof body.playbackUrl === 'string' && body.playbackUrl) {
+      return { url: body.playbackUrl, expiresAt: body.expiresAt ?? null, source: body.source ?? 'external' }
+    }
+    return { error: 'not_found' }
+  } catch {
+    return { error: 'not_found' }
+  }
+}

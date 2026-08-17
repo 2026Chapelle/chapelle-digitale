@@ -78,6 +78,15 @@
   body.has-audio-player {
     padding-bottom: var(--audio-player-h, 76px);
   }
+  /* Route membre en mobile (< lg) : la barre audio se cale à bottom-[64px] au-dessus
+     de MobileBottomNav (lg:hidden). L'occlusion combinée (~140px) dépasse les 76px :
+     on augmente le dégagement bas UNIQUEMENT dans ce cas (classe posée par
+     AudioPlayerBar). Desktop (≥ lg) et pages publiques restent à 76px. */
+  @media (max-width: 1023.98px) {
+    body.has-audio-player.audio-over-mobile-nav {
+      padding-bottom: calc(var(--audio-player-h, 76px) + 64px);
+    }
+  }
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 8px; height: 8px; }

@@ -16,6 +16,8 @@
  * Lib pure (aucune I/O) → testable unitairement.
  */
 
+import type { PodcastAccessLevel } from './editorial'
+
 /** Forme minimale attendue d'un épisode pour la résolution des emplacements. */
 export interface HomeSlotEpisode {
   id: string
@@ -30,11 +32,43 @@ export interface HomeSlotEpisode {
    * Absentes (lignes legacy) → comportement PODCAST-0A strictement inchangé.
    */
   destinations?: string[] | null
+  /**
+   * PODCAST-MEDIA-REDESIGN (optionnel) — niveau d'accès éditorial de l'épisode.
+   * Quand renseigné (mode « access-aware »), il DURCIT le repli automatique :
+   *   • la carte « L'Instant Citadelle » (gratuite) ne retient jamais un épisode
+   *     `premium` par repli — elle privilégie le public / `home_instant` ;
+   *   • la carte « Premium » ne retient par repli QUE de vrais épisodes `premium`
+   *     (ou `home_premium`) — sinon elle reste vide (jamais un public déguisé en Premium).
+   * Absent (lignes legacy pré-0B) → comportement PODCAST-0A strictement inchangé.
+   * NB : la config explicite de l'admin (instant_ids/premium_ids) reste PRIORITAIRE
+   * et absolue — l'access_level ne contraint que le repli déterministe.
+   */
+  accessLevel?: PodcastAccessLevel | null
 }
 
 /** Vrai si l'épisode déclare explicitement la destination `dest`. */
 function targets(ep: HomeSlotEpisode, dest: string): boolean {
   return Array.isArray(ep.destinations) && ep.destinations.includes(dest)
+}
+
+/** Signal audio jouable (PODCAST-SEC : `hasAudio` prime, `audioUrl` toléré en repli). */
+function playable(ep: HomeSlotEpisode): boolean {
+  return Boolean(ep.hasAudio ?? ep.audioUrl)
+}
+
+/** Épisode réellement `premium` (métadonnée éditoriale). */
+function isPremiumLevel(ep: HomeSlotEpisode): boolean {
+  return ep.accessLevel === 'premium'
+}
+
+/** Candidat légitime pour l'emplacement Premium : `premium` OU destination `home_premium`. */
+function premiumSlotCandidate(ep: HomeSlotEpisode): boolean {
+  return isPremiumLevel(ep) || targets(ep, 'home_premium')
+}
+
+/** Candidat pour l'emplacement gratuit « L'Instant » : `public` OU destination `home_instant`. */
+function freeInstantCandidate(ep: HomeSlotEpisode): boolean {
+  return ep.accessLevel === 'public' || targets(ep, 'home_instant')
 }
 
 /** Configuration éditoriale portée par `cms_homepage_blocks.data` (bloc `podcast`). */
@@ -92,13 +126,25 @@ function firstConfigured<T extends HomeSlotEpisode>(
  * Résout les deux emplacements d'accueil de façon explicite et disjointe.
  *
  * Priorité pour CHAQUE emplacement :
- *   1. premier id configuré (bloc `podcast.data`) présent dans `episodes` ;
- *   2. repli déterministe (voir ci-dessous) ;
+ *   1. premier id configuré (bloc `podcast.data`) présent dans `episodes` — ABSOLU
+ *      (autorité éditoriale de l'admin, jamais contrainte par l'access_level) ;
+ *   2. destination éditoriale native `home_instant` / `home_premium` (PODCAST-0B) ;
+ *   3. repli déterministe (voir ci-dessous) ;
  * avec garantie stricte : `premium` n'est jamais l'épisode déjà retenu pour `instant`.
  *
- * Replis (aucune config) :
- *   • instant  = premier épisode ayant un `audioUrl` (l'écoute libre du jour), sinon le premier ;
- *   • premium  = premier épisode ≠ instant ayant un `audioUrl`, sinon le premier épisode ≠ instant.
+ * Repli — mode « access-aware » (au moins un épisode porte un `access_level`,
+ * PODCAST-MEDIA-REDESIGN) :
+ *   • instant  = premier épisode gratuit (public / `home_instant`) jouable, sinon
+ *                gratuit, sinon premier épisode NON premium jouable — jamais un
+ *                `premium` déguisé en écoute libre ;
+ *   • premium  = premier épisode réellement `premium` (ou `home_premium`) ≠ instant,
+ *                sinon `null`. On ne présente JAMAIS un contenu public sous le label
+ *                Premium (fin du défaut P0 : disjonction par NIVEAU, pas seulement par id).
+ *
+ * Repli — mode legacy (aucun `access_level` présent, lignes pré-0B) :
+ *   • instant  = premier épisode jouable, sinon le premier ;
+ *   • premium  = premier épisode ≠ instant jouable, sinon le premier ≠ instant.
+ *   → comportement PODCAST-0A strictement inchangé.
  *
  * L'ordre de `episodes` est respecté (l'appelant le trie déjà par date décroissante).
  */
@@ -114,26 +160,48 @@ export function resolvePodcastHomeSlots<T extends HomeSlotEpisode>(
 
   const cfg = config ?? EMPTY_CONFIG
 
+  // Mode « access-aware » activé dès qu'au moins un épisode porte un access_level
+  // exploitable. Sinon on reste STRICTEMENT sur le repli legacy PODCAST-0A.
+  const accessAware = list.some(
+    (e) => e.accessLevel === 'public' || e.accessLevel === 'member' || e.accessLevel === 'premium',
+  )
+
   // --- Instant ---
-  // Priorité : 1) config explicite du bloc d'accueil (admin) ; 2) destination
-  // éditoriale native `home_instant` (PODCAST-0B) ; 3) repli déterministe 0-A.
+  // 1) config admin (absolue) → 2) destination `home_instant` → 3) repli.
+  const instantFallback = (): T | null =>
+    accessAware
+      ? list.find((e) => freeInstantCandidate(e) && playable(e)) ||
+        list.find((e) => freeInstantCandidate(e)) ||
+        list.find((e) => !isPremiumLevel(e) && playable(e)) ||
+        list.find((e) => !isPremiumLevel(e)) ||
+        list[0] ||
+        null
+      : list.find((e) => playable(e)) || list[0] || null
+
   const instant =
     firstConfigured(byId, cfg.instantIds) ||
     list.find((e) => targets(e, 'home_instant')) ||
-    list.find((e) => e.hasAudio ?? e.audioUrl) ||
-    list[0] ||
-    null
+    instantFallback()
 
   const instantId = instant?.id
 
   // --- Premium (toujours distinct de instant) ---
-  // Priorité analogue : config → destination `home_premium` → repli 0-A.
+  // 1) config admin (absolue) → 2) destination `home_premium` → 3) repli.
+  const premiumFallback = (): T | null =>
+    accessAware
+      ? // access-aware : UNIQUEMENT de vrais épisodes premium, jamais un public déguisé.
+        list.find((e) => e.id !== instantId && premiumSlotCandidate(e) && playable(e)) ||
+        list.find((e) => e.id !== instantId && premiumSlotCandidate(e)) ||
+        null
+      : // legacy 0-A : premier épisode distinct (jouable en priorité).
+        list.find((e) => e.id !== instantId && playable(e)) ||
+        list.find((e) => e.id !== instantId) ||
+        null
+
   const premium =
     firstConfigured(byId, cfg.premiumIds, instantId) ||
     list.find((e) => e.id !== instantId && targets(e, 'home_premium')) ||
-    list.find((e) => e.id !== instantId && (e.hasAudio ?? e.audioUrl)) ||
-    list.find((e) => e.id !== instantId) ||
-    null
+    premiumFallback()
 
   return { instant, premium }
 }

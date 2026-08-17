@@ -9,6 +9,7 @@ import { PodcastCover } from './PodcastCover'
 import { PremiumBadge } from './PremiumBadge'
 import { PlaylistMenuButton } from './PlaylistMenuButton'
 import type { RailEpisode } from './EpisodeRail'
+import { ACCESS_LEVEL_LABELS } from '@/lib/podcast/editorial'
 
 export interface CatalogEpisode extends RailEpisode {
   description?: string
@@ -93,37 +94,54 @@ export function AllEpisodesSection({
         ))}
       </div>
 
-      {/* Grille compacte */}
+      {/* Grille compacte — 2 colonnes desktop, miniature visible */}
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {filtered.map((ep) => {
             const playing = isPlaying(ep.id)
             const premium = ep.accessLevel === 'premium'
+            // Puce d'accès discrète pour public/member (le premium a son propre badge).
+            const accessChip = ep.accessLevel === 'public' || ep.accessLevel === 'member' ? ACCESS_LEVEL_LABELS[ep.accessLevel] : null
             return (
               <div key={ep.id} className="relative">
                 <button
                   type="button"
                   onClick={() => onPlay(ep)}
-                  aria-label={`Écouter ${ep.title}`}
-                  className={`group card-cinematic p-3 flex items-center gap-3 text-left w-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] ${onAddToPlaylist ? 'pr-12' : ''}`}
+                  aria-label={`${playing ? 'Suspendre' : 'Écouter'} ${ep.title}`}
+                  className={`group card-cinematic p-3 flex items-center gap-3.5 text-left w-full transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(212,175,55,0.4)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] ${onAddToPlaylist ? 'pr-12' : ''}`}
                   style={playing ? { borderColor: 'rgba(212,175,55,0.4)' } : undefined}
                 >
-                  <div className="relative w-16 h-16 flex-shrink-0">
-                    <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="64px" rounded="rounded-lg" />
-                    <span className="absolute inset-0 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ background: 'rgba(6,6,10,0.45)' }} aria-hidden>
-                      {playing ? <Pause className="w-5 h-5 text-gold" /> : <Play className="w-5 h-5 text-gold" fill="currentColor" />}
-                    </span>
+                  {/* Miniature — zoom + brightness au survol (subtil) */}
+                  <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex-shrink-0 overflow-hidden rounded-lg [&_img]:transition-transform [&_img]:duration-500 group-hover:[&_img]:scale-[1.03] group-hover:[&_img]:brightness-110">
+                    <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="(min-width:768px) 96px, (min-width:640px) 80px, 64px" rounded="rounded-lg" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      {ep.serie && <span className="text-[10px] font-inter font-bold tracking-widest uppercase text-gold/70 truncate">{ep.serie}</span>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {ep.serie && <span className="text-[10px] font-inter font-bold tracking-widest uppercase text-gold/70 truncate max-w-full">{ep.serie}</span>}
                       {premium && <PremiumBadge className="flex-shrink-0" />}
+                      {accessChip && (
+                        <span className="flex-shrink-0 text-[9px] font-inter font-bold tracking-widest uppercase px-1.5 py-0.5 rounded"
+                          style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(245,230,216,0.55)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                          {accessChip}
+                        </span>
+                      )}
                     </div>
                     <h3 className="font-inter text-sm font-semibold text-pearl leading-snug line-clamp-2 mt-0.5">{ep.title}</h3>
-                    <div className="flex items-center gap-3 mt-1 text-[11px]" style={{ color: 'rgba(245,230,216,0.4)' }}>
-                      {ep.duration && <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{ep.duration}</span>}
-                      {ep.date && <span>{ep.date}</span>}
+                    {ep.description && (
+                      <p className="font-inter text-[11px] leading-snug line-clamp-1 mt-0.5" style={{ color: 'rgba(245,230,216,0.5)' }}>
+                        {ep.description}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between gap-2 mt-1.5">
+                      <div className="flex items-center gap-3 text-[11px] min-w-0" style={{ color: 'rgba(245,230,216,0.4)' }}>
+                        {ep.duration && <span className="inline-flex items-center gap-1 whitespace-nowrap"><Clock className="w-3 h-3 flex-shrink-0" />{ep.duration}</span>}
+                        {ep.date && <span className="truncate">{ep.date}</span>}
+                      </div>
+                      {/* Bouton Play discret — visuel (la carte entière déclenche la lecture) */}
+                      <span className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full opacity-80 group-hover:opacity-100 group-hover:scale-105 transition"
+                        style={{ background: 'rgba(212,175,55,0.14)', border: '1px solid rgba(212,175,55,0.3)' }} aria-hidden>
+                        {playing ? <Pause className="w-4 h-4 text-gold" fill="currentColor" /> : <Play className="w-4 h-4 text-gold" fill="currentColor" />}
+                      </span>
                     </div>
                   </div>
                 </button>
@@ -152,19 +170,45 @@ export function AllEpisodesSection({
 function FilterChip({
   active, onClick, label, subtle, onClear,
 }: { active: boolean; onClick: () => void; label: string; subtle?: boolean; onClear?: () => void }) {
+  const chipStyle = active
+    ? { background: 'linear-gradient(135deg, #D4AF37, #D4AF37AA)', color: '#1a1206', boxShadow: '0 4px 16px rgba(212,175,55,0.25)' }
+    : { background: 'rgba(255,255,255,0.04)', color: subtle ? 'rgba(245,230,216,0.5)' : 'rgba(245,230,216,0.65)', border: '1px solid rgba(255,255,255,0.08)' }
+
+  // Chip filtrable actif : conteneur avec deux vrais boutons (plus de <span onClick>
+  // imbriqué dans un <button>) → l'affordance « retirer » devient accessible au clavier.
+  if (active && onClear) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-inter font-semibold transition-all"
+        style={chipStyle}
+      >
+        <button
+          type="button"
+          onClick={onClick}
+          className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+        >
+          {label}
+        </button>
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label={`Retirer le filtre ${label}`}
+          className="inline-flex items-center justify-center rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+        >
+          <X className="w-3 h-3" aria-hidden />
+        </button>
+      </span>
+    )
+  }
+
   return (
     <button
       type="button"
       onClick={onClick}
       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-inter font-semibold transition-all"
-      style={active
-        ? { background: 'linear-gradient(135deg, #D4AF37, #D4AF37AA)', color: '#1a1206', boxShadow: '0 4px 16px rgba(212,175,55,0.25)' }
-        : { background: 'rgba(255,255,255,0.04)', color: subtle ? 'rgba(245,230,216,0.5)' : 'rgba(245,230,216,0.65)', border: '1px solid rgba(255,255,255,0.08)' }}
+      style={chipStyle}
     >
       {label}
-      {active && onClear && (
-        <span onClick={(e) => { e.stopPropagation(); onClear() }} aria-hidden><X className="w-3 h-3" /></span>
-      )}
     </button>
   )
 }

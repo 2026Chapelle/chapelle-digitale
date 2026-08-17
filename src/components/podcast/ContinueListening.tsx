@@ -80,7 +80,7 @@ export function ContinueListening({
                 className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37] rounded-xl"
               >
                 <div className="relative">
-                  <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="240px" />
+                  <PodcastCover src={ep.cover} alt={ep.title} label={ep.serie || ep.title} sizes="(max-width: 640px) 208px, (max-width: 768px) 224px, 240px" />
                   {ep.accessLevel === 'premium' && <PremiumBadge className="absolute top-2 left-2 z-[3]" />}
                   <span className="absolute bottom-2 right-2 z-[3] w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
                     style={{ background: 'linear-gradient(135deg, #D4AF37, #b8952e)', color: '#1a1206' }} aria-hidden>
