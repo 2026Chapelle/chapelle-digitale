@@ -21,10 +21,49 @@ export const dynamic = 'force-dynamic'
 import { isAdminRequest } from '@/lib/admin-auth'
 import { isNotifiableContent, notifyIfFirstPublish } from '@/lib/notifications/content'
 import { applyHomeInstantToggle, isHomeInstantDesignated, HOME_INSTANT_DESTINATION } from '@/lib/podcast/admin-instant'
+import {
+  checkSpineConsistency, nullifyEmpty, SPINE_ERRORS,
+  type EpisodeSpineInput,
+} from '@/lib/podcast/spine-relations'
 
 function resolveTable(resource: string): CmsTable | null {
   const name = (resource.startsWith('cms_') ? resource : `cms_${resource}`) as CmsTable
   return (CMS_TABLES as readonly string[]).includes(name) ? name : null
+}
+
+// ── PODCAST-SPINE — garde-fous de cohérence relationnelle (serveur) ──────────
+// Colonnes FK uuid par table : une chaîne vide de <select> vaut « non renseigné ».
+const SPINE_UUID_FKS: Record<string, string[]> = {
+  cms_podcasts: ['show_id', 'series_id', 'season_id'],
+  cms_podcast_series: ['show_id'],
+  cms_podcast_seasons: ['series_id'],
+}
+
+function normalizeSpineFks(table: string, obj: Record<string, any>): void {
+  for (const k of SPINE_UUID_FKS[table] ?? []) if (k in obj) obj[k] = nullifyEmpty(obj[k])
+  // episode_type vide → laisser le défaut DB ('standard') plutôt qu'un '' invalide.
+  if (table === 'cms_podcasts' && 'episode_type' in obj && (obj.episode_type === '' || obj.episode_type == null)) {
+    delete obj.episode_type
+  }
+}
+
+// Lit les lignes parentes réelles et applique le verdict pur. Renvoie un message
+// d'erreur lisible (400) ou null si cohérent.
+async function assertEpisodeSpine(effective: EpisodeSpineInput): Promise<string | null> {
+  let seriesRow: { show_id?: string | null } | null = null
+  let seasonRow: { series_id?: string | null } | null = null
+  const series = nullifyEmpty(effective.series_id)
+  const season = nullifyEmpty(effective.season_id)
+  if (series) {
+    const { data } = await supabaseAdmin.from('cms_podcast_series').select('show_id').eq('id', series).maybeSingle()
+    seriesRow = (data as { show_id?: string | null } | null) ?? null
+  }
+  if (season) {
+    const { data } = await supabaseAdmin.from('cms_podcast_seasons').select('series_id').eq('id', season).maybeSingle()
+    seasonRow = (data as { series_id?: string | null } | null) ?? null
+  }
+  const verdict = checkSpineConsistency(effective, { seriesRow, seasonRow })
+  return verdict.ok ? null : verdict.message
 }
 
 /**
@@ -94,6 +133,18 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
       body.destinations = toggle.destinations
       enforceInstantUnique = isOn
     }
+    // PODCAST-SPINE — cohérence relationnelle (serveur) avant insertion.
+    if (table === 'cms_podcasts') {
+      normalizeSpineFks(table, body)
+      const err = await assertEpisodeSpine(body)
+      if (err) return NextResponse.json({ ok: false, message: err }, { status: 400 })
+    } else if (table === 'cms_podcast_series') {
+      normalizeSpineFks(table, body)
+      if (!body.show_id) return NextResponse.json({ ok: false, message: SPINE_ERRORS.seriesShowRequired }, { status: 400 })
+    } else if (table === 'cms_podcast_seasons') {
+      normalizeSpineFks(table, body)
+      if (!body.series_id) return NextResponse.json({ ok: false, message: SPINE_ERRORS.seasonSeriesRequired }, { status: 400 })
+    }
     const { data, error } = await supabaseAdmin.from(table).insert(body).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
     // Slot unique : le nouvel Instant remplace tout ancien (best-effort).
@@ -146,6 +197,28 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
       if (!toggle.ok) return NextResponse.json({ ok: false, message: toggle.error }, { status: 400 })
       patch.destinations = toggle.destinations
       enforceInstantUnique = isOn
+    }
+    // PODCAST-SPINE — cohérence relationnelle (serveur) avant mise à jour.
+    if (table === 'cms_podcasts') {
+      normalizeSpineFks(table, patch)
+      const touchesSpine = ['show_id', 'series_id', 'season_id', 'episode_type'].some((k) => k in patch)
+      if (touchesSpine) {
+        const existing = (before ?? (await supabaseAdmin.from(table).select('show_id, series_id, season_id, episode_type').eq(keyCol, keyVal).maybeSingle()).data) as Record<string, any> | null
+        const effective: EpisodeSpineInput = {
+          show_id: 'show_id' in patch ? patch.show_id : existing?.show_id,
+          series_id: 'series_id' in patch ? patch.series_id : existing?.series_id,
+          season_id: 'season_id' in patch ? patch.season_id : existing?.season_id,
+          episode_type: 'episode_type' in patch ? patch.episode_type : existing?.episode_type,
+        }
+        const err = await assertEpisodeSpine(effective)
+        if (err) return NextResponse.json({ ok: false, message: err }, { status: 400 })
+      }
+    } else if (table === 'cms_podcast_series') {
+      normalizeSpineFks(table, patch)
+      if ('show_id' in patch && !patch.show_id) return NextResponse.json({ ok: false, message: SPINE_ERRORS.seriesShowRequired }, { status: 400 })
+    } else if (table === 'cms_podcast_seasons') {
+      normalizeSpineFks(table, patch)
+      if ('series_id' in patch && !patch.series_id) return NextResponse.json({ ok: false, message: SPINE_ERRORS.seasonSeriesRequired }, { status: 400 })
     }
     const { data, error } = await supabaseAdmin.from(table).update(patch).eq(keyCol, keyVal).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })

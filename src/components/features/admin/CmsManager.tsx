@@ -37,6 +37,18 @@ export interface FieldDef {
   refLabel?: (row: any) => string
   /** Pour type 'ref-select' : filtre optionnel des options selon la ligne en cours d'édition. */
   refFilter?: (row: any, editing: any) => boolean
+  /**
+   * Pour type 'ref-select' : noms des champs ENFANTS (chaîne dépendante) à vider
+   * quand CE champ change (cascade récursive, immédiate et déterministe). Jamais de
+   * relation incohérente conservée silencieusement.
+   */
+  clears?: string[]
+  /**
+   * Pour type 'ref-select' : nom d'un champ PARENT qui doit être renseigné pour
+   * activer ce select (chaîne dépendante). Tant que le parent est vide, le select
+   * est DÉSACTIVÉ et n'affiche que son placeholder (aucune option hors-contexte).
+   */
+  requires?: string
   /** Pour type 'ref-select' : libellé de l'option vide (ex: 'Aucun prérequis'). */
   emptyLabel?: string
   /** Pour type 'media-select' : filtre les médias proposés (ex: vidéos/youtube uniquement). */
@@ -121,6 +133,23 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
 
   const tableFields = useMemo(() => fields.filter((f) => !f.hideInTable), [fields])
 
+  // Chaîne dépendante (ref-select) : changer un parent vide IMMÉDIATEMENT ses
+  // enfants (déterministe, indépendant du chargement des listes). Cascade récursive
+  // vers les petits-enfants → jamais de relation incohérente conservée.
+  function cascadeClearChildren(f: FieldDef, state: Row): Row {
+    if (!f.clears?.length) return state
+    let out = state
+    for (const childName of f.clears) {
+      out = { ...out, [childName]: '' }
+      const cf = fields.find((x) => x.name === childName)
+      if (cf?.clears?.length) out = cascadeClearChildren(cf, out) // cascade petits-enfants
+    }
+    return out
+  }
+  function refFieldChange(f: FieldDef, value: string) {
+    setEditing((prev) => (prev ? cascadeClearChildren(f, { ...prev, [f.name]: value }) : prev))
+  }
+
   function openNew() {
     const blank: Row = {}
     for (const f of fields) blank[f.name] = f.default ?? (f.type === 'boolean' ? true : '')
@@ -143,8 +172,10 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
       if (f.type === 'tags' && typeof payload[f.name] === 'string') {
         payload[f.name] = payload[f.name].split(',').map((s: string) => s.trim()).filter(Boolean)
       }
-      if (f.type === 'number' && payload[f.name] !== '' && payload[f.name] != null) {
-        payload[f.name] = Number(payload[f.name])
+      if (f.type === 'number') {
+        // Nombre vide → null (colonne int nullable) plutôt qu'un '' invalide côté
+        // Postgres. Cohérent avec la règle datetime ci-dessous.
+        payload[f.name] = (payload[f.name] === '' || payload[f.name] == null) ? null : Number(payload[f.name])
       }
       if ((f.type === 'datetime') && payload[f.name] === '') payload[f.name] = null
       if (f.type === 'json' && typeof payload[f.name] === 'string') {
@@ -349,12 +380,21 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
                     </select>
                   ) : f.type === 'ref-select' ? (
                     (() => {
+                      // Chaîne dépendante : tant que le parent requis est vide, select DÉSACTIVÉ
+                      // + placeholder (aucune option hors-contexte n'est proposée).
+                      if (f.requires && !editing[f.requires]) {
+                        return (
+                          <select disabled value="" className="input-royal opacity-50 cursor-not-allowed">
+                            <option value="">{f.placeholder ?? f.emptyLabel ?? '—'}</option>
+                          </select>
+                        )
+                      }
                       const opts = f.refResource ? refOptions[f.refResource] : undefined
                       const failed = f.refResource ? refFailed[f.refResource] : false
                       if (opts && opts.length > 0) {
                         const list = f.refFilter ? opts.filter((o) => f.refFilter!(o, editing)) : opts
                         return (
-                          <select value={editing[f.name] ?? ''} onChange={(e) => setEditing({ ...editing, [f.name]: e.target.value })} className="input-royal">
+                          <select value={editing[f.name] ?? ''} onChange={(e) => refFieldChange(f, e.target.value)} className="input-royal">
                             <option value="">{f.emptyLabel ?? '—'}</option>
                             {list.map((o) => <option key={o.id} value={o.id}>{f.refLabel ? f.refLabel(o) : (o.titre || o.title || o.id)}</option>)}
                           </select>
@@ -364,7 +404,7 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
                       return (
                         <div className="space-y-1">
                           <input type="text" value={editing[f.name] ?? ''} placeholder={f.placeholder}
-                            onChange={(e) => setEditing({ ...editing, [f.name]: e.target.value })} className="input-royal" />
+                            onChange={(e) => refFieldChange(f, e.target.value)} className="input-royal" />
                           <p className="text-[11px] text-pearl/35 font-inter">
                             {failed ? 'Liste indisponible — saisie manuelle de l’ID possible.'
                               : opts ? 'Aucun élément disponible — saisie manuelle possible.'

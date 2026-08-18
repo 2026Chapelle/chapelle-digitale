@@ -33,7 +33,20 @@ export interface CmsPodcast extends CmsRow {
   access_level?: 'public' | 'member' | 'premium'
   destinations?: string[]
   is_featured?: boolean
+  // PODCAST-SPINE (migration 20260818120000). FK hiérarchiques nullables (legacy =
+  // NULL ⇒ fallback `serie`) + typologie + champs éditoriaux optionnels.
+  show_id?: string | null
+  series_id?: string | null
+  season_id?: string | null
+  episode_type?: 'standard' | 'special'
+  a_retenir?: string | null
+  prayer_text?: string | null
+  declaration_text?: string | null
 }
+// PODCAST-SPINE — conteneurs éditoriaux (Émission → Série → Saison).
+export interface CmsPodcastShow extends CmsRow { slug: string; title: string; short_description?: string; description?: string; cover_url?: string }
+export interface CmsPodcastSeries extends CmsRow { show_id: string; slug: string; title: string; short_description?: string; description?: string; cover_url?: string; editorial_period?: string }
+export interface CmsPodcastSeason extends CmsRow { series_id: string; season_number: number; title?: string; short_description?: string; description?: string; cover_url?: string }
 export interface CmsTeaching extends CmsRow { title: string; speaker?: string; scripture?: string }
 export interface CmsTestimony extends CmsRow { author_name: string; body: string; featured?: boolean }
 export interface CmsArticle extends CmsRow { title: string; slug?: string; excerpt?: string; body?: string; cover_url?: string; author?: string; category?: string; featured?: boolean }
@@ -44,6 +57,8 @@ export const CMS_TABLES = [
   'cms_pages', 'cms_sections', 'cms_homepage_blocks', 'cms_navigation', 'cms_media',
   'cms_events', 'cms_lives', 'cms_podcasts', 'cms_teachings', 'cms_testimonies',
   'cms_platform_content', 'cms_settings', 'cms_articles',
+  // PODCAST-SPINE (migration 20260818120000) — conteneurs éditoriaux podcast.
+  'cms_podcast_shows', 'cms_podcast_series', 'cms_podcast_seasons',
 ] as const
 export type CmsTable = typeof CMS_TABLES[number]
 
