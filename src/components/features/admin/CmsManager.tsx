@@ -21,6 +21,8 @@ export interface FieldDef {
   options?: { value: string; label: string }[]
   placeholder?: string
   required?: boolean
+  /** Petit texte d'aide affiché sous le champ dans la modale (contexte / garde-fous). */
+  help?: string
   /** Masquer dans le tableau (édité dans la modale uniquement). */
   hideInTable?: boolean
   /** Valeur par défaut à la création. */
@@ -453,6 +455,9 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
                     <input type={f.type === 'number' ? 'number' : f.type === 'datetime' ? 'datetime-local' : 'text'}
                       value={editing[f.name] ?? ''} placeholder={f.placeholder}
                       onChange={(e) => setEditing({ ...editing, [f.name]: e.target.value })} className="input-royal" />
+                  )}
+                  {f.help && (
+                    <p className="mt-1.5 text-[11px] leading-snug text-pearl/40 font-inter">{f.help}</p>
                   )}
                 </div>
               ))}

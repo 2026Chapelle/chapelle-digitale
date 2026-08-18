@@ -28,11 +28,19 @@ export default function AdminPodcastsPage() {
         { name: 'cover_url', label: 'Image', type: 'url', hideInTable: true },
         { name: 'access_level', label: 'Accès', type: 'select', options: ACCESS, default: 'member' },
         {
-          // Emplacements éditoriaux (clés techniques) : catalog = catalogue /podcast ;
-          // home_instant = Accueil « L'Instant Citadelle » ; home_premium = Accueil Premium ;
-          // featured = rail « À la une » de /podcast.
-          name: 'destinations', label: 'Destinations (emplacements)', type: 'tags', hideInTable: true,
-          placeholder: 'catalog · home_instant · home_premium · featured',
+          // Case dédiée : désigne cet épisode comme « L'Instant Citadelle » (aperçu gratuit
+          // accueil). Mappée serveur ↔ destination home_instant, garde-fou Premium + slot
+          // unique appliqués côté API. N'altère JAMAIS access_level.
+          name: 'is_home_instant', label: "L'Instant Citadelle — écoute gratuite sur l'accueil",
+          type: 'boolean', default: false, hideInTable: true,
+          help: "Cet épisode pourra être écouté gratuitement depuis la carte L'Instant Citadelle de l'accueil. Son accès normal dans /podcast reste inchangé. Emplacement UNIQUE : l'activer remplace l'épisode actuellement désigné. (Un épisode Premium ne peut pas être choisi.)",
+        },
+        {
+          // Emplacements éditoriaux avancés (clés techniques) : catalog = catalogue /podcast ;
+          // home_premium = Accueil Premium ; featured = rail « À la une » de /podcast.
+          // NB : « L'Instant Citadelle » (home_instant) se gère via la case ci-dessus.
+          name: 'destinations', label: 'Destinations (avancé)', type: 'tags', hideInTable: true,
+          placeholder: 'catalog · home_premium · featured',
         },
         { name: 'is_featured', label: 'À la une (/podcast)', type: 'boolean', default: false },
         { name: 'saison', label: 'Saison', type: 'number', hideInTable: true },
