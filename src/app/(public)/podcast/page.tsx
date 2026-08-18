@@ -235,7 +235,9 @@ export default function PodcastPage() {
   // Interception lecture (PODCAST-SEC) : visiteur non connecté → invitation (acquis 0-A) ;
   // sinon on demande au SERVEUR l'URL autorisée (le client ne connaît plus l'URL média).
   const requestPlay = async (ep: VoixEpisode, ctx: PlayContext = {}) => {
-    if (!canPlay) { setJoinFor(ep); return }
+    // Le SERVEUR décide (PODCAST-SEC) : on ne pré-bloque JAMAIS. Un épisode PUBLIC
+    // est joué même pour un visiteur (le serveur renvoie l'URL) ; un contenu réservé
+    // renvoie auth_required → invitation. Aucune URL média avant le 200 serveur.
     // Même épisode déjà actif → simple pause/reprise (pas de nouvelle résolution).
     if (track?.id === ep.id) { isPlaying(ep.id) ? pause() : resume(); return }
     const res = await resolvePlayback(ep.id)

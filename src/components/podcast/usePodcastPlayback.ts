@@ -11,7 +11,7 @@
 import { useState } from 'react'
 import { useAudioPlayer } from '@/components/providers/AudioPlayerProvider'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
+import { resolvePlayback, playbackActionFor } from '@/lib/podcast/playback-client'
 
 export interface PlayableEpisode {
   id: string
@@ -39,16 +39,17 @@ function noticeFor(reason: string): PlaybackNotice {
 
 export function usePodcastPlayback(sourceContext = 'series') {
   const { play, pause, resume, isPlaying, track } = useAudioPlayer()
-  const { user, isDemo } = useAuth()
-  const canPlay = Boolean(user) || isDemo
+  const { user } = useAuth()
   const [joinFor, setJoinFor] = useState<PlayableEpisode | null>(null)
   const [notice, setNotice] = useState<PlaybackNotice | null>(null)
 
+  // Le SERVEUR est l'autorité (/api/podcast/:id/play). Le client ne pré-bloque PAS :
+  // un épisode PUBLIC est joué même pour un visiteur (le serveur renvoie l'URL) ;
+  // un épisode réservé renvoie auth_required → invitation. Aucune URL avant 200.
   const requestPlay = async (ep: PlayableEpisode) => {
-    if (!canPlay) { setJoinFor(ep); return }
     if (track?.id === ep.id) { isPlaying(ep.id) ? pause() : resume(); return }
-    const res = await resolvePlayback(ep.id)
-    if (isResolved(res)) {
+    const action = playbackActionFor(await resolvePlayback(ep.id))
+    if (action.kind === 'play') {
       play({
         id: ep.id,
         titre: ep.title,
@@ -56,15 +57,16 @@ export function usePodcastPlayback(sourceContext = 'series') {
         duree: ep.duration || '',
         emoji: '🎙️',
         couleur: '#D4AF37',
-        audioUrl: res.url,
+        audioUrl: action.url,
         coverUrl: ep.cover || undefined,
         sourceContext,
       })
-      return
+    } else if (action.kind === 'join') {
+      setJoinFor(ep)
+    } else {
+      setNotice(noticeFor(action.reason))
     }
-    if (res.error === 'auth_required') setJoinFor(ep)
-    else setNotice(noticeFor(res.error))
   }
 
-  return { requestPlay, isPlaying, canPlay, user, joinFor, setJoinFor, notice, setNotice }
+  return { requestPlay, isPlaying, user, joinFor, setJoinFor, notice, setNotice }
 }

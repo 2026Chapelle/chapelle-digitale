@@ -24,6 +24,25 @@ export function isResolved(r: PlaybackResult): r is PlaybackResolved {
 }
 
 /**
+ * Action UI à partir du VERDICT SERVEUR (source de vérité unique). Le client ne
+ * pré-bloque JAMAIS : il tente la résolution puis agit selon la réponse.
+ *   • URL résolue (ex. épisode public, ou membre autorisé)      → 'play'
+ *   • auth_required (anonyme sur contenu réservé)               → 'join' (invitation)
+ *   • autre refus (member_only / premium_denied / no_media / …) → 'notice' (message)
+ * Épisode PUBLIC + visiteur ⇒ le serveur renvoie une URL ⇒ 'play' (aucune modal).
+ */
+export type PlaybackAction =
+  | { kind: 'play'; url: string }
+  | { kind: 'join' }
+  | { kind: 'notice'; reason: PlaybackReason }
+
+export function playbackActionFor(res: PlaybackResult): PlaybackAction {
+  if (isResolved(res)) return { kind: 'play', url: res.url }
+  if (res.error === 'auth_required') return { kind: 'join' }
+  return { kind: 'notice', reason: res.error }
+}
+
+/**
  * Demande au serveur l'URL de lecture autorisée pour un épisode.
  * Ne jette jamais : renvoie une raison exploitable par l'UI.
  */
