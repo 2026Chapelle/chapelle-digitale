@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Layers, Headphones } from 'lucide-react'
+import { ArrowLeft, Layers, Headphones, ArrowRight } from 'lucide-react'
 import { PodcastHero } from '@/components/podcast/PodcastHero'
-import { SeriesCard } from '@/components/podcast/SeriesCard'
+import { PodcastCover } from '@/components/podcast/PodcastCover'
 import { siteUrl } from '@/lib/site-url'
 import { ogImage } from '@/lib/og'
 import {
@@ -60,7 +60,7 @@ export default async function EmissionPage({ params }: { params: { slug: string 
           </Link>
         </div>
 
-        <PodcastHero hero={heroConfig} />
+        <PodcastHero hero={heroConfig} imageFit="contain" />
 
         {/* Compteurs réels */}
         <div className="px-4 md:px-0 -mt-4 mb-10 flex items-center gap-4 font-inter text-[13px]" style={{ color: 'rgba(245,230,216,0.5)' }}>
@@ -83,17 +83,34 @@ export default async function EmissionPage({ params }: { params: { slug: string 
           <p className="section-label-dark mb-1">Parcours audio</p>
           <h2 className="font-cinzel text-xl md:text-2xl font-bold text-pearl mb-5">Séries de l'émission</h2>
           {seriesList.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            // Carte éditoriale horizontale : 1 série ≈ 50 % (md+), évolue vers 2 colonnes.
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {seriesList.map((se) => (
-                <SeriesCard
+                <Link
                   key={se.id}
                   href={`/podcast/series/${se.slug}`}
-                  title={se.title}
-                  shortDescription={se.short_description}
-                  cover={se.cover_url}
-                  seasonsCount={seasonCounts[se.id] ?? 0}
-                  episodesCount={countEpisodesForSeries(episodes, se.id)}
-                />
+                  className="group flex gap-3.5 sm:gap-4 rounded-2xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(212,175,55,0.4)] hover:shadow-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+                >
+                  <div className="w-24 sm:w-32 md:w-40 flex-shrink-0 overflow-hidden rounded-xl [&_img]:transition-transform [&_img]:duration-500 group-hover:[&_img]:scale-[1.04] group-hover:[&_img]:brightness-110">
+                    <PodcastCover src={se.cover_url} alt={se.title} label={se.title} sizes="(max-width: 640px) 96px, (max-width: 768px) 128px, 160px" />
+                  </div>
+                  <div className="min-w-0 flex flex-col py-0.5">
+                    <p className="font-inter text-[10px] uppercase tracking-widest text-gold/70 mb-1">Série</p>
+                    <h3 className="font-cinzel text-base md:text-lg font-bold text-pearl leading-tight line-clamp-2 group-hover:text-cinematic-gold transition-colors">{se.title}</h3>
+                    {se.short_description && (
+                      <p className="mt-1.5 font-inter text-[11px] sm:text-xs leading-snug line-clamp-2" style={{ color: 'rgba(245,230,216,0.55)' }}>{se.short_description}</p>
+                    )}
+                    <div className="mt-auto pt-2.5 flex items-center justify-between gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-2.5 font-inter text-[11px]" style={{ color: 'rgba(245,230,216,0.45)' }}>
+                        <span className="inline-flex items-center gap-1"><Layers className="w-3 h-3 text-gold/70" aria-hidden /> {plural(seasonCounts[se.id] ?? 0, 'saison')}</span>
+                        <span className="inline-flex items-center gap-1"><Headphones className="w-3 h-3 text-gold/70" aria-hidden /> {plural(countEpisodesForSeries(episodes, se.id), 'épisode')}</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-inter font-semibold text-gold group-hover:gap-2.5 transition-all">
+                        Voir la série <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           ) : (

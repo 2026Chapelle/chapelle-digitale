@@ -9,7 +9,7 @@ import Image from 'next/image'
 import { ArrowRight, Mic } from 'lucide-react'
 import type { PodcastHeroConfig } from '@/lib/podcast/sections'
 
-export function PodcastHero({ hero }: { hero: PodcastHeroConfig | null }) {
+export function PodcastHero({ hero, imageFit = 'cover' }: { hero: PodcastHeroConfig | null; imageFit?: 'cover' | 'contain' }) {
   const eyebrow = hero?.eyebrow || 'À la une'
   const title = hero?.title || 'La Voix du Royaume'
   const description =
@@ -50,10 +50,15 @@ export function PodcastHero({ hero }: { hero: PodcastHeroConfig | null }) {
             )}
           </div>
 
-          {/* Image (ou motif de repli) */}
-          <div className="relative min-h-[200px] md:min-h-[340px] order-1 md:order-2">
+          {/* Image (ou motif de repli). `contain` : cover carrée non recadrée, centrée
+              sur un fond violet/or (aucune typo essentielle coupée). */}
+          <div className="relative min-h-[200px] md:min-h-[340px] order-1 md:order-2"
+            style={imageFit === 'contain' && image
+              ? { background: 'radial-gradient(ellipse at 60% 45%, rgba(212,175,55,0.12), transparent 62%), linear-gradient(135deg, #1e1440 0%, #0a0a12 100%)' }
+              : undefined}>
             {image ? (
-              <Image src={image} alt={title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" priority />
+              <Image src={image} alt={title} fill sizes="(max-width: 768px) 100vw, 50vw"
+                className={imageFit === 'contain' ? 'object-contain p-4 md:p-6' : 'object-cover'} priority />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center"
                 style={{ background: 'radial-gradient(ellipse at 60% 40%, rgba(212,175,55,0.16), transparent 60%), linear-gradient(135deg, #1e3a8a 0%, #0a0a12 100%)' }}>

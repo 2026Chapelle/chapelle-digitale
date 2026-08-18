@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ArrowLeft, Layers, Headphones, Radio } from 'lucide-react'
 import { PodcastHero } from '@/components/podcast/PodcastHero'
 import { SeasonExplorer, type SeasonView } from '@/components/podcast/SeasonExplorer'
+import { SeriesStartCta } from '@/components/podcast/SeriesStartCta'
 import { siteUrl } from '@/lib/site-url'
 import { ogImage } from '@/lib/og'
 import {
@@ -64,14 +65,19 @@ export default async function SeriesPage({
     ? requested
     : (seasons[0]?.season_number ?? 1)
 
+  // Hero SANS CTA lien : l'action primaire « Commencer la série » (lecture) est
+  // rendue par SeriesStartCta ci-dessous ; la navigation vers l'émission reste
+  // secondaire (fil d'Ariane + méta « Radio »).
   const heroConfig = {
     eyebrow: 'Série',
     title: series.title,
     description: series.short_description || series.description || null,
     image: resolveCover(null, series, show),
-    ctaLabel: show ? "Voir l'émission" : null,
-    ctaHref: show ? `/podcast/emissions/${show.slug}` : null,
+    ctaLabel: null,
+    ctaHref: null,
   }
+  // Premier chapitre (saison la plus basse) pour cibler « Commencer la série ».
+  const firstSeasonEpisodes = seasons.length ? (episodesBySeason[seasons[0].season_number] ?? []) : []
 
   return (
     <div className="min-h-screen pb-40 pt-24 md:pt-28">
@@ -88,10 +94,17 @@ export default async function SeriesPage({
           )}
         </div>
 
-        <PodcastHero hero={heroConfig} />
+        <PodcastHero hero={heroConfig} imageFit="contain" />
 
-        {/* Émission parente + compteurs réels */}
-        <div className="px-4 md:px-0 -mt-4 mb-8 flex flex-wrap items-center gap-4 font-inter text-[13px]" style={{ color: 'rgba(245,230,216,0.5)' }}>
+        {/* Action primaire : Commencer la série (lecture via gate serveur). */}
+        {firstSeasonEpisodes.length > 0 && (
+          <div className="px-4 md:px-0 -mt-4 mb-6">
+            <SeriesStartCta episodes={firstSeasonEpisodes} />
+          </div>
+        )}
+
+        {/* Émission parente + compteurs réels (navigation secondaire) */}
+        <div className="px-4 md:px-0 mb-8 flex flex-wrap items-center gap-4 font-inter text-[13px]" style={{ color: 'rgba(245,230,216,0.5)' }}>
           {show && (
             <Link href={`/podcast/emissions/${show.slug}`} className="inline-flex items-center gap-1.5 hover:text-gold transition-colors">
               <Radio className="w-3.5 h-3.5 text-gold/70" aria-hidden /> {show.title}
