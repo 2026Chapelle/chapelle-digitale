@@ -19,12 +19,12 @@ import { getMemberClient } from '@/lib/supabase-browser'
 import { JoinToListenModal } from '@/components/podcast/JoinToListenModal'
 import { PodcastHero } from '@/components/podcast/PodcastHero'
 import { EpisodeRail, type RailEpisode } from '@/components/podcast/EpisodeRail'
-import { EmissionsRail } from '@/components/podcast/EmissionsRail'
+import { PodcastDiscoverSections } from '@/components/podcast/PodcastDiscoverSections'
 import { AllEpisodesSection, type CatalogEpisode } from '@/components/podcast/AllEpisodesSection'
 import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
 import { normalizePodcastEditorial } from '@/lib/podcast/editorial'
 import {
-  parsePodcastHero, selectFeatured, selectNewReleases, selectPremium, buildEmissions, listSeriesFrom,
+  parsePodcastHero, selectFeatured, selectNewReleases, selectPremium, listSeriesFrom,
   type VoixEpisode, type PodcastHeroConfig,
 } from '@/lib/podcast/sections'
 import { PremiumSection } from '@/components/podcast/PremiumSection'
@@ -257,7 +257,6 @@ export default function PodcastPage() {
   // Sections dérivées (pures, 0-B).
   const featured = selectFeatured(episodes)
   const nouveautes = selectNewReleases(episodes, { excludeIds: featured.map((e) => e.id), limit: 12 })
-  const emissions = buildEmissions(episodes)
   const series = listSeriesFrom(episodes)
   // CITADELLE PREMIUM — épisodes réellement premium, dé-dupliqués vs « À la une ».
   const premiumEpisodes = selectPremium(episodes, { excludeIds: featured.map((e) => e.id) })
@@ -309,11 +308,6 @@ export default function PodcastPage() {
     list.map((e) => ({ id: e.id, title: e.title, description: e.description, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl }))
   const toCatalog = (list: VoixEpisode[]): CatalogEpisode[] =>
     list.map((e) => ({ id: e.id, title: e.title, description: e.description, cover: e.cover, serie: e.serie, duration: e.duration, accessLevel: e.accessLevel, audioUrl: e.audioUrl, date: (e.publishedAt || '').slice(0, 10) }))
-
-  const selectEmission = (serie: string) => {
-    setSelectedSerie(serie)
-    catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
 
   // PODCAST-7 : entrée « Ajouter à une playlist » (membre connecté uniquement ; visiteur = undefined).
   const onAddToPlaylist = user ? (episodeId: string) => setAddToPlaylistFor(episodeId) : undefined
@@ -378,8 +372,9 @@ export default function PodcastPage() {
           hasPremium={myPremium.active}
         />
 
-        {/* Émissions (serie dynamique) */}
-        <EmissionsRail emissions={emissions} onSelect={selectEmission} />
+        {/* Émissions & Séries — VRAIES entités relationnelles (cms_podcast_shows / _series).
+            Les épisodes legacy non rattachés (ex. « Les Mystères ») restent au catalogue ci-dessous. */}
+        <PodcastDiscoverSections />
 
         {/* EN CE MOMENT À LA CITADELLE — passerelle vers la vie de l'Église (cms_events réels).
             Ne rend rien s'il n'y a aucun événement futur publié. */}
