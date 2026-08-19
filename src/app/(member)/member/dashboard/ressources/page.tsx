@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { type RessourceMock } from '@/lib/mock/ressources'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { PdfReaderLauncher } from '@/components/pdf'
 
 const TYPES = ['Tout', 'Audio', 'Vidéo', 'PDF', 'Livre', 'Podcast', 'Dévotionnel'] as const
 type FilterType = typeof TYPES[number]
@@ -77,26 +78,29 @@ export default function RessourcesPage() {
   // Compteur de téléchargements local : incrémenté uniquement après un clic réussi.
   const [dlBoost, setDlBoost] = useState<Record<string, number>>({})
 
-  /** Ouvre / télécharge la ressource (PDF public, vidéo, audio) puis incrémente le compteur. */
+  /** Traçabilité RÉELLE : incrémente le compteur + alimente activity_logs (mêmes
+   *  moteur/route que les formations) → dashboards admin et fil d'activités.
+   *  Best-effort, non bloquant. Réutilisé par l'ouverture directe ET le lecteur PDF. */
+  const trackAccess = (r: RessourceMock) => {
+    setDlBoost((prev) => ({ ...prev, [r.id]: (prev[r.id] || 0) + 1 }))
+    try {
+      fetch('/api/activity', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({
+          action_type: 'pdf_download', resource_type: 'ressource',
+          resource_id: r.id, resource_title: r.titre, source: 'ressources',
+          metadata: { type: r.type, categorie: r.categorie },
+        }),
+      })
+    } catch { /* non bloquant */ }
+  }
+
+  /** Ouvre / télécharge la ressource NON-PDF (vidéo, audio) puis trace le compteur. */
   const access = (r: RessourceMock) => {
     if (!r.url) return
     const win = window.open(r.url, '_blank', 'noopener,noreferrer')
     // Le compteur n'augmente qu'une fois l'ouverture déclenchée avec succès.
-    if (win) {
-      setDlBoost((prev) => ({ ...prev, [r.id]: (prev[r.id] || 0) + 1 }))
-      // Traçabilité RÉELLE : alimente activity_logs (mêmes moteur/route que les formations)
-      // → compteurs, dashboards admin et fil d'activités. Best-effort, non bloquant.
-      try {
-        fetch('/api/activity', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
-          body: JSON.stringify({
-            action_type: 'pdf_download', resource_type: 'ressource',
-            resource_id: r.id, resource_title: r.titre, source: 'ressources',
-            metadata: { type: r.type, categorie: r.categorie },
-          }),
-        })
-      } catch { /* non bloquant */ }
-    }
+    if (win) trackAccess(r)
   }
   const dlCount = (r: RessourceMock) => r.nb_telechargements + (dlBoost[r.id] || 0)
   useEffect(() => {
@@ -232,10 +236,22 @@ export default function RessourcesPage() {
             </span>
           </div>
           {r.url ? (
-            <button onClick={() => access(r)} className="btn-royal text-xs px-3 py-1.5 flex items-center gap-1">
-              <Download className="w-3 h-3" />
-              Accéder
-            </button>
+            r.type === 'PDF' ? (
+              <PdfReaderLauncher
+                src={r.url}
+                title={r.titre}
+                downloadUrl={r.url}
+                onOpen={() => trackAccess(r)}
+                className="btn-gold text-xs px-3 py-1.5 inline-flex items-center gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+              >
+                <BookOpen className="w-3 h-3" aria-hidden /> Lire
+              </PdfReaderLauncher>
+            ) : (
+              <button onClick={() => access(r)} className="btn-royal text-xs px-3 py-1.5 flex items-center gap-1">
+                <Download className="w-3 h-3" />
+                Accéder
+              </button>
+            )
           ) : (
             <span className="text-[10px] text-pearl/30 font-inter px-3 py-1.5">Bientôt</span>
           )}
@@ -350,9 +366,21 @@ export default function RessourcesPage() {
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 {featured.url ? (
-                  <button onClick={() => access(featured)} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5">
-                    <Download className="w-3.5 h-3.5" /> Accéder
-                  </button>
+                  featured.type === 'PDF' ? (
+                    <PdfReaderLauncher
+                      src={featured.url}
+                      title={featured.titre}
+                      downloadUrl={featured.url}
+                      onOpen={() => trackAccess(featured)}
+                      className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+                    >
+                      <BookOpen className="w-3.5 h-3.5" aria-hidden /> Lire dans la Citadelle
+                    </PdfReaderLauncher>
+                  ) : (
+                    <button onClick={() => access(featured)} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5">
+                      <Download className="w-3.5 h-3.5" /> Accéder
+                    </button>
+                  )
                 ) : (
                   <span className="text-xs text-pearl/35 font-inter px-4 py-2">Bientôt disponible</span>
                 )}

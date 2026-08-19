@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { ModuleVideoPlayer } from '@/components/features/member/ModuleVideoPlayer'
 import { WATCH_THRESHOLD, remainingToWatch } from '@/lib/formations/video-validation'
 import { DAILY_LOCK_MESSAGE, formatRemainingUntil, isDailyUnlockParcours } from '@/lib/formations/module-daily-unlock'
+import { PdfReaderLauncher } from '@/components/pdf'
 
 interface Module {
   id: string; ordre: number; titre: string; description?: string; type: string
@@ -380,7 +381,18 @@ export default function FormationDetailPage({ params }: { params: { slug: string
 
                     {/* PDF : déverrouillé UNIQUEMENT après validation du module (≥ 90 %) */}
                     {active.pdf_url ? (
-                      <a href={active.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-gold/80 hover:text-gold text-sm font-inter mb-4"><FileText className="w-4 h-4" /> Télécharger le PDF du module</a>
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        {/* PDF-1 : lecture intégrée « Flipbook » — le téléchargement reste disponible. */}
+                        <PdfReaderLauncher
+                          src={active.pdf_url}
+                          title={`${formation.titre} — ${active.titre}`}
+                          downloadUrl={active.pdf_url}
+                          className="btn-gold text-sm px-4 py-2 inline-flex items-center gap-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+                        >
+                          <BookOpen className="w-4 h-4" aria-hidden /> Lire dans la Citadelle
+                        </PdfReaderLauncher>
+                        <a href={active.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-gold/80 hover:text-gold text-sm font-inter"><FileText className="w-4 h-4" /> Télécharger le PDF</a>
+                      </div>
                     ) : active.pdf_locked ? (
                       <div className="inline-flex items-center gap-2 text-pearl/40 text-sm font-inter mb-4"><Lock className="w-4 h-4" /> Complétez la vidéo pour débloquer cette ressource.</div>
                     ) : null}

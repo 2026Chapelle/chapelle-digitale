@@ -58,6 +58,7 @@ const nextConfig = {
             value: `
               default-src 'self';
               script-src 'self' 'unsafe-eval' 'unsafe-inline' *.youtube.com *.youtube-nocookie.com *.google.com js.chariowcdn.com;
+              worker-src 'self' blob:;
               style-src 'self' 'unsafe-inline' fonts.googleapis.com js.chariowcdn.com;
               font-src 'self' fonts.gstatic.com;
               img-src 'self' data: blob: https: ${SUPA_ORIGIN};
@@ -93,6 +94,14 @@ const nextConfig = {
   },
   poweredByHeader: false,
   compress: true,
+  webpack: (config) => {
+    // CITADELLE PDF-1 — pdf.js (pdfjs-dist) référence le module natif `canvas`
+    // (Node) qui n'est JAMAIS utilisé côté navigateur (rendu client only). On
+    // l'exclut du bundle pour éviter une résolution échouée au build standalone.
+    config.resolve = config.resolve || {}
+    config.resolve.alias = { ...(config.resolve.alias || {}), canvas: false }
+    return config
+  },
 }
 
 module.exports = nextConfig
