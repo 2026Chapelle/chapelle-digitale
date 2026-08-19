@@ -33,7 +33,11 @@ function diff(target: Date, now: Date): Countdown {
  * Aucune donnée externe — reçoit uniquement la date cible en prop.
  */
 function LiveHeroCountdown({ target }: { target: Date }) {
-  const [cd, setCd] = useState<Countdown>(() => diff(target, new Date()))
+  // Départ `null` : le calcul dépend de l'horloge locale — le faire au rendu SSR
+  // provoquerait un écart d'hydratation (secondes serveur ≠ client). On ne calcule
+  // qu'après le montage client ; le SSR et le 1er rendu client affichent le même
+  // placeholder, puis l'effet remplit les valeurs réelles.
+  const [cd, setCd] = useState<Countdown | null>(null)
 
   useEffect(() => {
     const tick = () => setCd(diff(target, new Date()))
@@ -46,14 +50,14 @@ function LiveHeroCountdown({ target }: { target: Date }) {
 
   return (
     <div className="grid grid-cols-4 gap-2 max-w-xs" aria-label="Compte à rebours avant le direct">
-      {([['J', cd.d], ['H', cd.h], ['M', cd.m], ['S', cd.s]] as const).map(([label, val]) => (
+      {([['J', cd?.d], ['H', cd?.h], ['M', cd?.m], ['S', cd?.s]] as const).map(([label, val]) => (
         <div
           key={label}
           className="text-center rounded-xl py-2.5"
           style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.18)' }}
         >
           <div className="font-cinzel font-black text-xl text-white tabular-nums">
-            {label === 'J' ? val : pad(val)}
+            {cd == null ? '—' : label === 'J' ? (val ?? 0) : pad(val ?? 0)}
           </div>
           <div className="text-[9px] font-inter uppercase tracking-wider mt-0.5" style={{ color: 'rgba(245,230,216,0.45)' }}>
             {label}

@@ -13,7 +13,7 @@
  *
  * États couverts : LIVE_NOW · UPCOMING · REPLAY · EMPTY.
  */
-import { useState, useRef, type FormEvent } from 'react'
+import { useState, useRef, useEffect, type FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Users, Heart, Send, MessageCircle, Radio, Play, Clock, X } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
@@ -42,6 +42,16 @@ export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: 
   const [reactionsVisible, setReactionsVisible] = useState(false)
   const [activeReplay, setActiveReplay] = useState<NormalizedLive | null>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
+
+  // A11y : fermeture du lecteur modal au clavier (Échap).
+  useEffect(() => {
+    if (!activeReplay) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveReplay(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [activeReplay])
 
   // Mise en avant : un direct en cours prime sur le prochain rendez-vous.
   const heroLive = liveNow ?? nextLive
@@ -74,7 +84,7 @@ export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: 
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className={`font-cinzel text-sm font-semibold transition-all px-1 pb-1 border-b-2 ${
+                className={`font-cinzel text-sm font-semibold transition-all px-2 py-2 border-b-2 ${
                   tab === t ? 'text-gold border-gold' : 'text-pearl/40 border-transparent hover:text-pearl/70'
                 }`}
               >
@@ -153,7 +163,7 @@ export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: 
             </div>
 
             {/* Chat de direct (acquis : état local, temps réel = lot ultérieur) */}
-            <div className="flex flex-col h-[600px] rounded-3xl border border-pearl/10 overflow-hidden bg-pearl/[0.02]">
+            <div className="flex flex-col h-[60vh] min-h-[360px] xl:h-[600px] rounded-3xl border border-pearl/10 overflow-hidden bg-pearl/[0.02]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-pearl/5">
                 <div className="flex items-center gap-2">
                   <MessageCircle className="w-4 h-4 text-gold" aria-hidden />
@@ -219,7 +229,7 @@ export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: 
                   <button
                     type="button"
                     onClick={() => setReactionsVisible((v) => !v)}
-                    className="w-8 h-8 rounded-lg bg-pearl/5 hover:bg-pearl/10 flex items-center justify-center text-base flex-shrink-0 transition-colors"
+                    className="w-9 h-9 rounded-lg bg-pearl/5 hover:bg-pearl/10 flex items-center justify-center text-base flex-shrink-0 transition-colors"
                     aria-label="Choisir une réaction"
                   >
                     😊
@@ -234,7 +244,7 @@ export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: 
                   />
                   <button
                     type="submit"
-                    className="w-8 h-8 rounded-lg bg-gold/20 border border-gold/30 hover:bg-gold/30 flex items-center justify-center flex-shrink-0 transition-colors"
+                    className="w-9 h-9 rounded-lg bg-gold/20 border border-gold/30 hover:bg-gold/30 flex items-center justify-center flex-shrink-0 transition-colors"
                     aria-label="Envoyer le message"
                   >
                     <Send className="w-3.5 h-3.5 text-gold" aria-hidden />
@@ -287,8 +297,9 @@ export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: 
                 <h3 className="font-cinzel text-sm md:text-base font-bold text-pearl line-clamp-1">{activeReplay.title}</h3>
                 <button
                   type="button"
+                  autoFocus
                   onClick={() => setActiveReplay(null)}
-                  className="w-9 h-9 rounded-full bg-pearl/5 hover:bg-pearl/10 flex items-center justify-center flex-shrink-0"
+                  className="w-9 h-9 rounded-full bg-pearl/5 hover:bg-pearl/10 flex items-center justify-center flex-shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                   aria-label="Fermer le lecteur"
                 >
                   <X className="w-4 h-4 text-pearl" aria-hidden />
