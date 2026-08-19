@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Activity, AlertTriangle, RefreshCw, Users } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import toast from 'react-hot-toast'
 
 type Color = 'vert' | 'jaune' | 'orange' | 'rouge'
 interface Membre { id: string; nom: string; pays: string; membre_statut: string; color: Color; label: string; score: number; classification: string; inactif_jours: number | null }
@@ -26,7 +25,6 @@ export default function AdminSantePage() {
   const [d, setD] = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
   const [demo, setDemo] = useState(false)
-  const [applying, setApplying] = useState(false)
 
   useEffect(() => { load() }, [])
   async function load() {
@@ -37,21 +35,6 @@ export default function AdminSantePage() {
       else if (j.ok) setD(j)
     } catch { /* */ }
     setLoading(false)
-  }
-
-  async function applyClassification() {
-    if (!confirm('Appliquer la classification calculée à tous les membres (hors responsables) ? Cela met à jour leur statut.')) return
-    setApplying(true)
-    try {
-      const r = await fetch('/api/admin/sante', {
-        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apply: true }),
-      })
-      const j = await r.json()
-      if (j.ok) { toast.success(`${j.applied} statut(s) mis à jour`); load() }
-      else toast.error(j.message || 'Échec')
-    } catch { toast.error('Erreur réseau') }
-    setApplying(false)
   }
 
   return (
@@ -87,9 +70,9 @@ export default function AdminSantePage() {
             <div className="card-cinematic p-5 mb-6">
               <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
                 <h2 className="font-cinzel font-bold text-pearl text-sm flex items-center gap-2"><Users className="w-4 h-4 text-gold" /> Classification automatique</h2>
-                <button onClick={applyClassification} disabled={applying}
+                <button onClick={load} disabled={loading}
                   className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 disabled:opacity-60">
-                  {applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Recalculer & appliquer les statuts
+                  {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Recalculer l&apos;analyse
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -99,6 +82,9 @@ export default function AdminSantePage() {
                   </span>
                 ))}
               </div>
+              <p className="mt-3 font-inter text-[11px] text-pearl/40">
+                L&apos;application automatique des statuts est temporairement désactivée. Les changements nécessitent une validation pastorale.
+              </p>
             </div>
 
             {/* Alertes pastorales */}

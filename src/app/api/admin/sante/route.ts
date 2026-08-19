@@ -104,21 +104,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const d = guard(req); if (d) return d
-  if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
   if (!body.apply) return NextResponse.json({ ok: false, message: 'Action non reconnue.' }, { status: 400 })
-  try {
-    const membres = await analyse()
-    let applied = 0
-    for (const m of membres) {
-      if (m.classification === 'responsable') continue
-      if (m.classification !== m.membre_statut) {
-        const { error } = await supabaseAdmin.from('profiles').update({ membre_statut: m.classification }).eq('id', m.id)
-        if (!error) applied++
-      }
-    }
-    return NextResponse.json({ ok: true, applied })
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, message: e?.message || 'Erreur' }, { status: 500 })
-  }
+  // P0 SÉCURITÉ — Application automatique des statuts DÉSACTIVÉE (réversible).
+  // On ne fait AUCUNE écriture sur profiles.membre_statut : pas d'analyse à visée
+  // d'écriture, pas de boucle sur les utilisateurs, pas de update(). Les changements
+  // de statut passent par une validation pastorale (cf. audit P0 santé apply).
+  return NextResponse.json(
+    {
+      ok: false,
+      code: 'AUTOMATIC_STATUS_APPLY_DISABLED',
+      message: "L'application automatique des statuts est temporairement désactivée. Les changements nécessitent une validation pastorale.",
+    },
+    { status: 409 },
+  )
 }
