@@ -64,6 +64,23 @@ idempotentes (`create table if not exists`). Aucune n'écrit de PII brute.
 | attribution_touchpoints | attribution | first-party (detectSource) | 18 mois | session opaque | service_role | non | oui |
 | content_destinations | diffusion multi-plateforme | Hub/CMS | permanent | non | published-read/service_role | non | non |
 
+## HUB-1 — définitions & décisions de mesure (Vue générale)
+
+Métriques réelles branchées (5) + indisponibles honnêtes (2) :
+
+| Carte | Source | Définition exacte | Note |
+|---|---|---|---|
+| Visites | `analytics_events` `type='pageview'` | comptes du jour UTC | valeur stockée = `pageview` (pas `page_view`) |
+| Sessions actives | `analytics_sessions.last_seen ≥ now-90s` | **sessions** (pas utilisateurs) | inclut l'anonyme ; 1/onglet — libellé honnête |
+| Inscriptions | `profiles.created_at` (jour UTC) | comptes | source canonique (trigger `handle_new_user`) |
+| Écoutes podcast | `audio_listening_events` `play_start`+`play_resume` | **plays** (écoutes, pas plays uniques) | cohérent avec `total_plays` de audio-analytics |
+| Progressions parcours | `module_completions.completed_at` (jour UTC) | comptes | table immuable ; PAS `video_progress` (mutable) |
+| Connexions | — | **Indisponible** | aucun event login fiable |
+| Lectures vidéo | — | **Indisponible** | proxy `type='video'` surcompte les checkpoints |
+
+- « Aujourd'hui » = **jour UTC** (00:00Z), ≈ Abidjan/GMT (public principal), indépendant du fuseau serveur.
+- Index de support HUB-1 (dans le draft, NON appliqué) : `idx_modcompl_completed (completed_at desc)` pour éviter un seq scan.
+
 ## Fraîcheur par source
 
 - `REALTIME` : présence (heartbeat) — dérivé, pas de nouvelle table.

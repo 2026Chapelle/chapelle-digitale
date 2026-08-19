@@ -158,4 +158,13 @@ begin
   end loop;
 end $$;
 
+-- -----------------------------------------------------------------------------
+-- HUB-1 — index de SUPPORT sur une table EXISTANTE (perf), additif & idempotent.
+-- Le comptage quotidien des complétions filtre module_completions.completed_at,
+-- non couvert par les index actuels ((user_id, formation_id) / (user_id)) ⇒ seq scan.
+-- Cet index le convertit en parcours d'index. NON APPLIQUÉ (revue perf HUB-1).
+-- -----------------------------------------------------------------------------
+create index if not exists idx_modcompl_completed
+  on public.module_completions (completed_at desc);
+
 -- FIN DRAFT — NE PAS APPLIQUER SANS GO EXPLICITE.

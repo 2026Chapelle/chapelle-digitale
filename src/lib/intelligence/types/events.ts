@@ -115,10 +115,10 @@ export const EVENT_CONTRACT: Readonly<Record<FirstPartyEventName, EventContractE
   login: {
     name: 'login',
     category: 'acquisition',
-    sourceOfTruth: 'analytics_events (login) / auth',
+    sourceOfTruth: 'analytics_sessions.is_auth / auth.users.last_sign_in_at (aucun event login dédié)',
     freshness: 'NEAR_REALTIME',
     availability: 'partial',
-    note: 'Signal de connexion à normaliser depuis le flux analytics.',
+    note: "Pas d'event de connexion fiable : 'sign_in_started' est réétiqueté 'custom' et n'atteste pas le succès. Dériver de is_auth / last_sign_in_at côté serveur, sans tracker intrusif.",
   },
   live_view_start: {
     name: 'live_view_start',
