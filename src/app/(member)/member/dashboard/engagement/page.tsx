@@ -245,7 +245,7 @@ export default function EngagementPage() {
               transition={{ delay: 0.25 }}
               className="card-royal"
             >
-              <h2 className="font-cinzel text-sm font-bold text-pearl mb-4">Étape actuelle</h2>
+              <h2 className="font-cinzel text-sm font-bold text-pearl mb-4">Niveau actuel</h2>
               <div className="flex items-center gap-3 p-3 rounded-2xl border"
                 style={{ borderColor: `${currentEtape.couleur}30`, background: `${currentEtape.couleur}10` }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center"

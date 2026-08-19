@@ -14,7 +14,7 @@ import toast from 'react-hot-toast'
 /** Vue de secours (mode démo, Supabase non configuré). */
 const DEMO_VIEW = {
   prenom: 'Jean', nom: 'Démo', email: 'demo@chapelleduroyaume.org', pays: 'France', ville: 'Paris',
-  telephone: '', avatar_url: '', score: 72, etape: 3, role: 'Disciple',
+  telephone: '', avatar_url: '', score: 72, etape: 3, membreStatut: 'disciple',
   since: '15 Jan 2026', plateforme: 'cier', formations: 4, badges: 3,
 }
 
@@ -36,6 +36,22 @@ const fmtDate = (iso?: string | null) => {
   catch { return '—' }
 }
 
+/**
+ * Libellé d'AFFICHAGE du statut communautaire (profiles.membre_statut).
+ * UI-only : humanise l'enum, aucune logique métier. NE PAS confondre avec le
+ * rôle/fonction (profiles.role, cf. roleLabel de @/lib/roles).
+ */
+const STATUT_LABEL: Record<string, string> = {
+  visiteur: 'Visiteur',
+  nouveau_membre: 'Nouveau membre',
+  membre_actif: 'Membre actif',
+  disciple: 'Disciple',
+  leader_cellule: 'Leader de cellule',
+  berger: 'Berger',
+  pasteur: 'Pasteur',
+}
+const statutLabel = (s?: string | null) => STATUT_LABEL[s || ''] || 'Membre'
+
 export default function ProfilPage() {
   const { user, isDemo } = useAuth()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -47,7 +63,9 @@ export default function ProfilPage() {
 
   // Données serveur (lecture seule + meta)
   const [meta, setMeta] = useState({
-    email: '', avatar_url: '', score: 0, etape: 0, role: 'Membre',
+    // membreStatut = taxonomie legacy profiles.membre_statut (visiteur…pasteur),
+    // en attente de la future séparation canonique (community_status). AFFICHAGE seul.
+    email: '', avatar_url: '', score: 0, etape: 0, membreStatut: 'visiteur',
     since: '', formations: 0, badges: 0,
   })
   // Champs éditables
@@ -76,7 +94,7 @@ export default function ProfilPage() {
     })
     setMeta({
       email: DEMO_VIEW.email, avatar_url: DEMO_VIEW.avatar_url, score: DEMO_VIEW.score,
-      etape: DEMO_VIEW.etape, role: DEMO_VIEW.role, since: DEMO_VIEW.since,
+      etape: DEMO_VIEW.etape, membreStatut: DEMO_VIEW.membreStatut, since: DEMO_VIEW.since,
       formations: DEMO_VIEW.formations, badges: DEMO_VIEW.badges,
     })
     setLoading(false)
@@ -103,7 +121,8 @@ export default function ProfilPage() {
             avatar_url: p.avatar_url ?? '',
             score: p.score_engagement ?? 0,
             etape: p.parcours_disciple_etape ?? 0,
-            role: (p.membre_statut || p.role || 'Membre') as string,
+            // Taxonomie legacy profiles.membre_statut (affichage seul, cf. statutLabel).
+            membreStatut: (p.membre_statut || 'visiteur') as string,
             since: fmtDate(p.date_inscription),
             formations: 0,
             badges: 0,
@@ -251,7 +270,7 @@ export default function ProfilPage() {
                 {form.prenom} {form.nom}
               </h1>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <span className="badge-gold capitalize">{meta.role}</span>
+                <span className="badge-gold">{statutLabel(meta.membreStatut)}</span>
                 <span className="text-pearl/45 text-sm font-inter">Membre depuis le {meta.since}</span>
                 <span className="hidden sm:inline text-pearl/20">·</span>
                 <span className="text-pearl/45 text-sm font-inter">{form.pays || '—'}</span>
@@ -456,7 +475,7 @@ export default function ProfilPage() {
                   <span className="text-sm text-pearl font-semibold">{selectedName}</span>
                 </div>
                 <div className="flex items-center justify-between py-3">
-                  <span className="text-sm text-pearl/50 font-inter">Étape actuelle</span>
+                  <span className="text-sm text-pearl/50 font-inter">Niveau actuel</span>
                   <span className="text-sm font-semibold" style={{ color: etapeActuelle.couleur }}>{etapeActuelle.nom}</span>
                 </div>
               </div>

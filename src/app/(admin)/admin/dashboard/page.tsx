@@ -159,13 +159,13 @@ export default function AdminDashboardPage() {
 
         {/* LISTS ROW 2 : tunnel + progression */}
         <div className="grid lg:grid-cols-2 gap-4 mb-6">
-          <BarCard title="Activité des tunnels" icon={Activity} subtitle="contacts par étape">
+          <BarCard title="Cheminement des personnes" icon={Activity} subtitle="contacts par étape">
             {stats.tunnelActivite.map((t) => (
               <BarRow key={t.key} label={t.nom} value={t.count} max={maxTunnel} color={t.color} />
             ))}
           </BarCard>
 
-          <BarCard title="Progression des membres" icon={TrendingUp} subtitle="répartition par étape">
+          <BarCard title="Répartition par niveau de croissance" icon={TrendingUp} subtitle="répartition par niveau">
             {stats.progressionMembres.map((p) => (
               <BarRow key={p.etape} label={p.etape} value={p.membres} max={maxProg} color={p.color} />
             ))}
