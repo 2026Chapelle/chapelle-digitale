@@ -24,7 +24,7 @@ export function ProgressionCard() {
     <div className="rounded-2xl p-6" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-cinzel text-sm font-bold flex items-center gap-2" style={{ color: '#FFFFFF' }}>
-          <Compass className="w-4 h-4" style={{ color: '#D4AF37' }} /> Mon parcours de transformation
+          <Compass className="w-4 h-4" style={{ color: '#D4AF37' }} /> Mon Parcours du Royaume
         </h2>
         <span className="font-inter text-xs font-semibold" style={{ color: '#D4AF37' }}>{pct}%</span>
       </div>

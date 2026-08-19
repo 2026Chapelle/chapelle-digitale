@@ -78,7 +78,7 @@ export default function DashboardPage() {
     { label: 'Formations', value: String(formations?.length ?? '—'), suffix: 'inscrites', icon: BookOpen, color: '#8B5CF6' },
     { label: 'Engagement', value: String(score), suffix: '/ 100', icon: TrendingUp, color: '#22C55E' },
     { label: 'Parcours', value: `${etapeIdx + 1}`, suffix: `/ ${PARCOURS_DISCIPLE.length}`, icon: GraduationCap, color: '#0EA5E9' },
-    { label: 'Étape', value: etape.nom, suffix: 'actuelle', icon: Trophy, color: '#D4AF37' },
+    { label: 'Niveau', value: etape.nom, suffix: 'actuel', icon: Trophy, color: '#D4AF37' },
   ]
 
   return (
@@ -107,7 +107,7 @@ export default function DashboardPage() {
                 {prenom ? <>Bonjour, <span className="text-cinematic-gold">{prenom}</span></> : <>Bienvenue dans votre <span className="text-cinematic-gold">espace</span></>}
               </h1>
               <p className="font-inter text-sm md:text-[15px] mb-6 leading-relaxed max-w-xl" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                Étape actuelle : <span className="font-semibold" style={{ color: etape.couleur }}>{etape.nom}</span> — continuez votre progression spirituelle.
+                Niveau actuel : <span className="font-semibold" style={{ color: etape.couleur }}>{etape.nom}</span> — continuez votre progression spirituelle.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/member/dashboard/lives" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-inter font-semibold text-sm" style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)', color: '#1A0F00', boxShadow: '0 4px 16px rgba(212,175,55,0.3)' }}>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="font-cinzel font-black text-2xl leading-none" style={{ color: '#D4AF37' }}>{score}</span>
-                    <span className="font-inter text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Score</span>
+                    <span className="font-inter text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Activité</span>
                   </div>
                 </div>
                 <p className="font-inter text-[11px] mt-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Engagement</p>
