@@ -21,6 +21,7 @@ export type Permission =
   | 'can_view_pastoral_dashboard'
   | 'can_manage_pastoral_notes'
   | 'can_respond_pastoral'
+  | 'can_validate_journey_change'
   | 'can_manage_groups'
   | 'can_view_group_members'
   | 'can_supervise_community'
@@ -30,6 +31,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'can_access_formateur_space', 'can_access_integration_space', 'can_access_national_dashboard',
   'can_manage_members', 'can_manage_roles', 'can_view_all_parcours', 'can_override_parcours_locks',
   'can_manage_certificates', 'can_view_pastoral_dashboard', 'can_manage_pastoral_notes', 'can_respond_pastoral',
+  'can_validate_journey_change',
   'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_access_admin',
 ]
 
@@ -45,6 +47,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   can_view_pastoral_dashboard: 'Tableau pastoral',
   can_manage_pastoral_notes: 'Notes pastorales',
   can_respond_pastoral: 'Répondre aux demandes pastorales',
+  can_validate_journey_change: 'Valider les changements de parcours',
   can_manage_groups: 'Gérer les groupes',
   can_view_group_members: 'Voir les membres des groupes',
   can_supervise_community: 'Superviser la communauté',
@@ -60,16 +63,21 @@ const PERM_BY_ROLE: Record<string, Permission[]> = {
   formateur: ['can_access_formateur_space'],
   responsable_integration: ['can_access_integration_space', 'can_view_group_members'],
   responsable_national: ['can_access_national_dashboard', 'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_respond_pastoral'],
-  pasteur_national: ['can_access_national_dashboard', 'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_respond_pastoral'],
-  pasteur: ['can_access_national_dashboard', 'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_respond_pastoral'],
+  // Autorité pastorale transverse : peut valider les changements de parcours de TOUT membre
+  // (aligné sur la portée « superviseur » de la RPC validate_member_canonical_axis).
+  pasteur_national: ['can_access_national_dashboard', 'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_respond_pastoral', 'can_validate_journey_change'],
+  pasteur: ['can_access_national_dashboard', 'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_respond_pastoral', 'can_validate_journey_change'],
   // membre, visiteur, disciple, leader, nouveau_membre… : aucune permission spéciale
 }
 
 /**
  * Override PÉDAGOGIQUE du berger (axe spirituel) — accès parcours total, jamais admin.
  * + capacité de réponse pastorale (soin des âmes), sans accès administratif.
+ * + validation des changements de parcours : le berger valide UNIQUEMENT son propre
+ *   troupeau (la portée « berger direct » est re-vérifiée en DB par la RPC ; l'app-perm
+ *   n'ouvre pas un accès transverse).
  */
-const BERGER_PERMS: Permission[] = ['can_view_all_parcours', 'can_override_parcours_locks', 'can_respond_pastoral']
+const BERGER_PERMS: Permission[] = ['can_view_all_parcours', 'can_override_parcours_locks', 'can_respond_pastoral', 'can_validate_journey_change']
 
 /** Permissions effectives d'un contexte (rôle fonctionnel ∪ override spirituel). */
 export function getPermissions(ctx: RoleContext): Set<Permission> {

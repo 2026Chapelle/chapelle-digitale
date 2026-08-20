@@ -1,6 +1,44 @@
 'use client'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { ShieldCheck, ChevronRight } from 'lucide-react'
 import { CmsManager } from '@/components/features/admin/CmsManager'
 import { ParcoursFormationsManager } from '@/components/features/admin/ParcoursFormationsManager'
+
+/** Bannière vers la file de validation pastorale (Phase 3C) avec compteur live. */
+function ValidationBanner() {
+  const [count, setCount] = useState<number | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/admin/journey-review-queue', { credentials: 'same-origin' })
+      .then((r) => r.json()).then((j) => { if (!cancelled && j.ok) setCount(j.data.pendingCount ?? 0) })
+      .catch(() => { /* noop */ })
+    return () => { cancelled = true }
+  }, [])
+  return (
+    <Link href="/admin/parcours/validation"
+      className="flex items-center justify-between gap-3 p-4 rounded-2xl mb-6 transition-all hover:-translate-y-0.5"
+      style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.09), rgba(75,0,130,0.09))', border: '1px solid rgba(212,175,55,0.22)' }}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(212,175,55,0.14)' }}>
+          <ShieldCheck className="w-5 h-5 text-gold" />
+        </div>
+        <div className="min-w-0">
+          <div className="font-inter text-sm font-bold text-white">Validation pastorale des parcours</div>
+          <div className="text-[11px] text-white/50 truncate">Reconnaître les changements de croissance et de statut communautaire — tracé nominativement.</div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {count !== null && count > 0 && (
+          <span className="text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(245,158,11,0.16)', color: '#F59E0B' }}>
+            {count} en attente
+          </span>
+        )}
+        <ChevronRight className="w-4 h-4 text-gold/60" />
+      </div>
+    </Link>
+  )
+}
 
 const CATEGORIES = [
   { value: 'conversion', label: 'Nouveau converti' },
@@ -26,6 +64,7 @@ const STATUS = [{ value: 'draft', label: 'Brouillon' }, { value: 'published', la
 export default function AdminParcoursPage() {
   return (
     <>
+    <ValidationBanner />
     <CmsManager
       apiBase="/api/admin/lms"
       resource="parcours"

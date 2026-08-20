@@ -120,6 +120,21 @@ export default function ParcoursPage() {
   // Mentorat réel à venir (table mentorships) — aucun mentor fictif affiché.
   const MENTOR = { nom: 'À assigner', role: 'Mentorat à venir', initials: '✦', disponible: false }
 
+  // Reconnaissance pastorale CAVIARDÉE (Phase 3C) — ce que le membre a le droit de voir.
+  const [projection, setProjection] = useState<{
+    growth: { label: string; defini: boolean }
+    community: { label: string; defini: boolean }
+    ministries: { key: string; label: string }[]
+  } | null>(null)
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+    let cancelled = false
+    fetch('/api/member/journey-projection', { credentials: 'same-origin' })
+      .then((r) => r.json()).then((j) => { if (!cancelled && j.ok) setProjection(j.data) })
+      .catch(() => { /* noop */ })
+    return () => { cancelled = true }
+  }, [])
+
   // Progression RÉELLE du Programme d'Intégration (4 parcours), source serveur.
   const [integ, setInteg] = useState<{ parcours: any[]; overall_pct: number; current_slug: string | null; next_slug: string | null; integration_complete: boolean } | null>(null)
   useEffect(() => {
@@ -219,6 +234,35 @@ export default function ParcoursPage() {
         </div>
         <TunnelProgress current={TUNNEL_STAGE} variant="horizontal" />
       </div>
+
+      {/* Reconnaissance pastorale (Phase 3C) — valeurs reconnues par les bergers */}
+      {projection && (projection.growth.defini || projection.community.defini || projection.ministries.length > 0) && (
+        <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Crown className="w-4 h-4 text-gold" />
+            <h2 className="font-cinzel text-base font-bold text-pearl">Ma reconnaissance dans la maison</h2>
+            <span className="text-[10px] text-pearl/35 ml-1">reconnue par vos bergers</span>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="text-[11px] text-pearl/45 mb-1">Croissance spirituelle</div>
+              <div className="font-cinzel text-lg font-bold" style={{ color: projection.growth.defini ? '#D4AF37' : 'rgba(255,255,255,0.4)' }}>{projection.growth.label}</div>
+            </div>
+            <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="text-[11px] text-pearl/45 mb-1">Statut communautaire</div>
+              <div className="font-cinzel text-lg font-bold" style={{ color: projection.community.defini ? '#22C55E' : 'rgba(255,255,255,0.4)' }}>{projection.community.label}</div>
+            </div>
+          </div>
+          {projection.ministries.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-pearl/45">Ministères :</span>
+              {projection.ministries.map((m) => (
+                <span key={m.key} className="text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(139,92,246,0.14)', color: '#A78BFA' }}>{m.label}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Programme d'Intégration — Niveau 1 : les 3 parcours d'entrée progressifs */}
       <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
