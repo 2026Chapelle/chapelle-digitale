@@ -15,9 +15,9 @@
  */
 import { useState, useRef, useEffect, type FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, Heart, Send, MessageCircle, Radio, Play, Clock, X } from 'lucide-react'
+import { Users, Heart, Send, MessageCircle, Radio, Play, Clock, X, CalendarClock, ListVideo } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
-import type { NormalizedLive } from '@/lib/live'
+import { scheduleLabel, type NormalizedLive, type LiveProgram } from '@/lib/live'
 import { LiveHero } from './LiveHero'
 import { UpcomingLiveCard } from './UpcomingLiveCard'
 import { ReplayCard } from './ReplayCard'
@@ -29,29 +29,32 @@ export interface LiveHubClientProps {
   upcoming: NormalizedLive[]
   replays: NormalizedLive[]
   hasAny: boolean
+  /** Programmation RÉGULIÈRE (live_programs). N'affirme jamais « EN DIRECT » — cf. cms_lives pour les états réels. */
+  programs?: LiveProgram[]
 }
 
 const REACTIONS = ['🙏', '🔥', '❤️', '✨', '🙌', '💫', '👑', '⚡']
 
 interface ChatMsg { id: number; nom: string; message: string; type: 'message' | 'reaction' }
 
-export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: LiveHubClientProps) {
+export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny, programs = [] }: LiveHubClientProps) {
   const [tab, setTab] = useState<'live' | 'replays'>('live')
   const [chatMessage, setChatMessage] = useState('')
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [reactionsVisible, setReactionsVisible] = useState(false)
   const [activeReplay, setActiveReplay] = useState<NormalizedLive | null>(null)
+  const [activePlaylist, setActivePlaylist] = useState<{ titre: string; embedUrl: string } | null>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  // A11y : fermeture du lecteur modal au clavier (Échap).
+  // A11y : fermeture des lecteurs modaux au clavier (Échap).
   useEffect(() => {
-    if (!activeReplay) return
+    if (!activeReplay && !activePlaylist) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setActiveReplay(null)
+      if (e.key === 'Escape') { setActiveReplay(null); setActivePlaylist(null) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [activeReplay])
+  }, [activeReplay, activePlaylist])
 
   // Mise en avant : un direct en cours prime sur le prochain rendez-vous.
   const heroLive = liveNow ?? nextLive
@@ -157,6 +160,43 @@ export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: 
                     {upcomingRail.map((live) => (
                       <UpcomingLiveCard key={live.id ?? live.title} live={live} />
                     ))}
+                  </div>
+                </section>
+              )}
+
+              {/* RENDEZ-VOUS RÉGULIERS — programmation permanente (live_programs).
+                  N'affirme JAMAIS « EN DIRECT » : simple repère d'horaire habituel,
+                  distinct des occurrences réelles cms_lives affichées ci-dessus. */}
+              {programs.length > 0 && (
+                <section className="mt-8">
+                  <h2 className="font-cinzel text-lg font-bold text-pearl mb-1 flex items-center gap-2">
+                    <CalendarClock className="w-4 h-4 text-gold" aria-hidden /> Rendez-vous réguliers
+                  </h2>
+                  <p className="font-inter text-xs text-pearl/40 mb-4">Programmation habituelle — les directs et replays réels apparaissent ci-dessus.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {programs.map((p) => {
+                      const label = scheduleLabel(p)
+                      return (
+                        <div key={p.slug} className="rounded-2xl border border-pearl/[0.06] bg-pearl/[0.02] p-3">
+                          <p className="font-cinzel text-sm font-bold text-pearl">{p.title}</p>
+                          {label && (
+                            <p className="mt-1 inline-flex items-center gap-1.5 font-inter text-[11px]" style={{ color: 'rgba(245,230,216,0.45)' }}>
+                              <Clock className="w-3 h-3 text-gold/70" aria-hidden /> {label}
+                            </p>
+                          )}
+                          {p.playlistEmbedUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setActivePlaylist({ titre: p.title, embedUrl: p.playlistEmbedUrl! })}
+                              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-inter font-semibold transition-all hover:-translate-y-0.5"
+                              style={{ background: 'rgba(212,175,55,0.12)', color: '#F5E6A7', border: '1px solid rgba(212,175,55,0.3)' }}
+                            >
+                              <ListVideo className="w-3.5 h-3.5" aria-hidden /> Voir la playlist
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </section>
               )}
@@ -306,6 +346,41 @@ export function LiveHubClient({ liveNow, nextLive, upcoming, replays, hasAny }: 
                 </button>
               </div>
               <VideoPlayerShell source={activeReplay.source} title={activeReplay.title} poster={activeReplay.thumbnailUrl} autoPlay />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Lecteur modal de playlist (rendez-vous réguliers) — pas d'autoplay ⇒ Échap fiable. */}
+      <AnimatePresence>
+        {activePlaylist && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+            style={{ background: 'rgba(5,3,8,0.9)' }}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Playlist : ${activePlaylist.titre}`}
+            onClick={() => setActivePlaylist(null)}
+          >
+            <div className="w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-cinzel text-sm md:text-base font-bold text-pearl line-clamp-1">{activePlaylist.titre}</h3>
+                <button
+                  type="button"
+                  autoFocus
+                  onClick={() => setActivePlaylist(null)}
+                  className="w-9 h-9 rounded-full bg-pearl/5 hover:bg-pearl/10 flex items-center justify-center flex-shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                  aria-label="Fermer le lecteur"
+                >
+                  <X className="w-4 h-4 text-pearl" aria-hidden />
+                </button>
+              </div>
+              <div className="relative w-full overflow-hidden rounded-2xl bg-[#05050a]" style={{ aspectRatio: '16/9' }}>
+                <iframe className="absolute inset-0 w-full h-full" src={activePlaylist.embedUrl} title={activePlaylist.titre} allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+              </div>
             </div>
           </motion.div>
         )}

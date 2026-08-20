@@ -24,12 +24,12 @@ import {
   Radio as RadioIcon, X, type LucideIcon,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import type { NormalizedLive } from '@/lib/live'
+import { scheduleLabel, type NormalizedLive, type LiveProgram } from '@/lib/live'
 import { youtubePlaylistEmbedUrl, type ResolvedVideoSource } from '@/lib/video'
 import { VideoPlayerShell } from '@/components/video'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import ShareButtons from '@/components/ui/ShareButtons'
-import { LEGACY_PLAYLISTS_PROGRAMMES, LEGACY_PROGRAMMES_REGULIERS } from './legacy-content'
+import { LEGACY_EXTRA_PROGRAMMES } from './legacy-content'
 
 export interface MemberLiveClientProps {
   liveNow: NormalizedLive | null
@@ -37,6 +37,8 @@ export interface MemberLiveClientProps {
   upcoming: NormalizedLive[]
   replays: NormalizedLive[]
   hasAny: boolean
+  /** Programmation régulière canonique (live_programs). */
+  programs?: LiveProgram[]
 }
 
 const REACTIONS_LIVE = ['🙌', '🔥', '❤️', '🙏', '✨', '👑']
@@ -98,7 +100,7 @@ function downloadIcs(titre: string, start: Date, durationMin = 90) {
   } catch { /* non bloquant */ }
 }
 
-export function MemberLiveClient({ liveNow, nextLive, upcoming, replays, hasAny }: MemberLiveClientProps) {
+export function MemberLiveClient({ liveNow, nextLive, upcoming, replays, hasAny, programs = [] }: MemberLiveClientProps) {
   void nextLive; void hasAny
   const [tab, setTab] = useState<'live' | 'replays' | 'programme'>('live')
   const [chatOpen, setChatOpen] = useState(true)
@@ -418,18 +420,43 @@ export function MemberLiveClient({ liveNow, nextLive, upcoming, replays, hasAny 
               )}
             </div>
 
-            {/* ⚠️ Contenu HÉRITÉ — NON canonique cms_lives (playlists + récurrence) */}
-            <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}>
-              <p className="text-[10px] font-inter text-pearl/35 uppercase tracking-wider mb-4">Repères hebdomadaires &amp; playlists (indicatif — hors programmation directe)</p>
-
-              <div className="card-royal mb-4">
+            {/* Programmes réguliers — SOURCE CANONIQUE live_programs (horaires + playlists) */}
+            {programs.length > 0 && (
+              <div className="card-royal">
                 <div className="flex items-center gap-2 mb-3">
                   <Calendar className="w-4 h-4 text-gold" />
                   <h3 className="font-cinzel text-sm font-bold text-pearl">Programmes réguliers</h3>
-                  <span className="text-[10px] text-pearl/35 font-inter ml-auto">Heure d&apos;Abidjan (GMT)</span>
+                  <span className="text-[10px] text-pearl/35 font-inter ml-auto">Rendez-vous habituels</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {LEGACY_PROGRAMMES_REGULIERS.map((p) => (
+                  {programs.map((p) => {
+                    const label = scheduleLabel(p)
+                    return (
+                      <div key={p.slug} className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-inter text-sm font-semibold text-pearl truncate">{p.title}</p>
+                          {label && <span className="font-cinzel text-xs font-bold text-gold flex-shrink-0">{label}</span>}
+                        </div>
+                        {p.playlistId && (
+                          <button type="button" onClick={() => setPlayer({ kind: 'playlist', listId: p.playlistId!, titre: p.title })}
+                            className="mt-2.5 w-full inline-flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-inter font-semibold transition-all hover:-translate-y-0.5"
+                            style={{ background: 'rgba(212,175,55,0.12)', color: '#F5E6A7', border: '1px solid rgba(212,175,55,0.3)' }}>
+                            <Play className="w-3 h-3" fill="currentColor" aria-hidden /> Regarder la playlist
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Autres repères hebdomadaires résiduels (sans programme canonique ni playlist) */}
+            {LEGACY_EXTRA_PROGRAMMES.length > 0 && (
+              <div className="rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.12)' }}>
+                <p className="text-[10px] font-inter text-pearl/35 uppercase tracking-wider mb-3">Autres repères (indicatif — heure d&apos;Abidjan/GMT)</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {LEGACY_EXTRA_PROGRAMMES.map((p) => (
                     <div key={p.titre} className="flex items-center justify-between gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                       <div className="min-w-0"><p className="font-inter text-sm font-semibold text-pearl truncate">{p.titre}</p><p className="font-inter text-[11px] text-pearl/40">{p.jour}</p></div>
                       <span className="font-cinzel text-sm font-bold text-gold flex-shrink-0">{p.heure}</span>
@@ -437,24 +464,7 @@ export function MemberLiveClient({ liveNow, nextLive, upcoming, replays, hasAny 
                   ))}
                 </div>
               </div>
-
-              <div className="card-royal">
-                <div className="flex items-center gap-2 mb-3">
-                  <Tv className="w-4 h-4 text-gold" />
-                  <h3 className="font-cinzel text-sm font-bold text-pearl">Suivre les programmes</h3>
-                  <span className="text-[10px] text-pearl/35 font-inter ml-auto">Playlists — lecture intégrée</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {LEGACY_PLAYLISTS_PROGRAMMES.map((p) => (
-                    <button key={p.titre} type="button" onClick={() => setPlayer({ kind: 'playlist', listId: p.listId, titre: p.titre })} className="flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:-translate-y-0.5" style={{ background: `${p.couleur}10`, border: `1px solid ${p.couleur}25` }}>
-                      <span className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-lg" style={{ background: `${p.couleur}18`, border: `1px solid ${p.couleur}35` }}>{p.emoji}</span>
-                      <div className="min-w-0 flex-1"><p className="font-inter text-sm font-semibold text-pearl truncate">{p.titre}</p><p className="font-inter text-[11px]" style={{ color: p.couleur }}>Regarder la playlist</p></div>
-                      <Play className="w-4 h-4 flex-shrink-0" style={{ color: p.couleur }} fill="currentColor" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
 

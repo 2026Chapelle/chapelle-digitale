@@ -11,12 +11,14 @@
  * inchangé. `force-dynamic` : reflète immédiatement la programmation admin.
  */
 import { loadLiveHubData } from '@/lib/live/load-lives'
+import { loadLivePrograms } from '@/lib/live/load-programs'
 import { MemberLiveClient } from './MemberLiveClient'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LivesPage() {
-  const data = await loadLiveHubData()
+  // cms_lives (occurrences réelles) + live_programs (programmation régulière canonique).
+  const [data, programs] = await Promise.all([loadLiveHubData(), loadLivePrograms()])
 
   return (
     <MemberLiveClient
@@ -25,6 +27,7 @@ export default async function LivesPage() {
       upcoming={data.upcoming}
       replays={data.replays}
       hasAny={data.hasAny}
+      programs={programs}
     />
   )
 }

@@ -10,12 +10,15 @@
  * l'administration canonique `/admin/lives` (qui écrit `cms_lives`).
  */
 import { loadLiveHubData } from '@/lib/live/load-lives'
+import { loadLivePrograms } from '@/lib/live/load-programs'
 import { LiveHubClient } from '@/components/live/LiveHubClient'
 
 export const dynamic = 'force-dynamic'
 
 export default async function LivePage() {
-  const data = await loadLiveHubData()
+  // Deux domaines DISTINCTS : cms_lives (occurrences réelles) + live_programs
+  // (programmation régulière). Chargés en parallèle ; jamais confondus.
+  const [data, programs] = await Promise.all([loadLiveHubData(), loadLivePrograms()])
 
   return (
     <LiveHubClient
@@ -24,6 +27,7 @@ export default async function LivePage() {
       upcoming={data.upcoming}
       replays={data.replays}
       hasAny={data.hasAny}
+      programs={programs}
     />
   )
 }
