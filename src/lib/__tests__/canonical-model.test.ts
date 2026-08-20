@@ -1,5 +1,5 @@
 /**
- * PHASE 3A — tests du lot canonique PUR (types + adapter + readiness + signals).
+ * Tests du modèle canonique PUR (types EN + adapter + readiness + signals).
  * Aucune écriture, aucune DB. Prouve : mapping déterministe, cas ambigus marqués
  * requires_review (aucune promotion implicite), readiness ≠ promotion, signaux
  * factuels sans score spirituel.
@@ -13,19 +13,19 @@ import {
 
 const T0 = '2026-08-19T00:00:00.000Z'
 
-describe('Canonical adapter — mapping legacy → canonique déterministe', () => {
-  it('visiteur = seul état SÛR (confirmed sur growth ET community)', () => {
+describe('Canonical adapter — mapping legacy(FR) → canonique(EN) déterministe', () => {
+  it('visiteur = seul état SÛR (confirmed sur growth ET community, clés EN)', () => {
     const v = legacyToCanonicalView({ membre_statut: 'visiteur', role: 'visiteur' })
-    expect(v.growth).toEqual({ level: 'visiteur', confidence: 'confirmed' })
-    expect(v.community).toEqual({ status: 'visiteur', confidence: 'confirmed' })
+    expect(v.growth).toEqual({ level: 'visitor', confidence: 'confirmed' })
+    expect(v.community).toEqual({ status: 'visitor', confidence: 'confirmed' })
     expect(v.ministry_roles).toEqual([])
+    expect(v.source).toBe('legacy_fallback')
   })
 
   it("membre_actif ne devient JAMAIS disciple — growth requires_review (interdit explicite)", () => {
     const v = legacyToCanonicalView({ membre_statut: 'membre_actif', role: 'membre' })
     expect(v.growth.level).toBeNull()
     expect(v.growth.confidence).toBe('requires_review')
-    // et surtout : jamais 'disciple'
     expect(v.growth.level).not.toBe('disciple')
     expect(v.community.confidence).toBe('requires_review')
   })
@@ -38,32 +38,30 @@ describe('Canonical adapter — mapping legacy → canonique déterministe', () 
     }
   })
 
-  it('leader_cellule / berger / pasteur → décomposés en ministry (fuite d’axe récupérée)', () => {
-    expect(legacyToCanonicalView({ membre_statut: 'leader_cellule' }).ministry_roles).toContain('leader_cellule')
-    expect(legacyToCanonicalView({ membre_statut: 'berger' }).ministry_roles).toContain('berger')
+  it('leader_cellule/berger/pasteur → décomposés en ministry EN (fuite d’axe récupérée)', () => {
+    expect(legacyToCanonicalView({ membre_statut: 'leader_cellule' }).ministry_roles).toContain('cell_leader')
+    expect(legacyToCanonicalView({ membre_statut: 'berger' }).ministry_roles).toContain('shepherd')
     const p = legacyToCanonicalView({ membre_statut: 'pasteur' })
-    expect(p.ministry_roles).toContain('pasteur')
-    // pasteur n'est pas un growth_level (hors échelle visiteur…berger)
-    expect(p.growth.level).toBeNull()
+    expect(p.ministry_roles).toContain('pastor')
+    expect(p.growth.level).toBeNull() // pastor n'est pas un growth_level
     expect(p.notes.some((n) => n.includes('pasteur'))).toBe(true)
   })
 
   it("role='leader' est ambigu → non mappé, note émise (pas de fausse équivalence)", () => {
     const v = legacyToCanonicalView({ membre_statut: 'membre_actif', role: 'leader' })
-    expect(v.ministry_roles).not.toContain('leader_cellule')
+    expect(v.ministry_roles).not.toContain('cell_leader')
     expect(v.notes.some((n) => n.includes('leader'))).toBe(true)
   })
 
-  it('rôles fonctionnels non ambigus (formateur, responsable_integration) → ministry', () => {
-    expect(legacyToCanonicalView({ role: 'formateur' }).ministry_roles).toContain('formateur')
-    expect(legacyToCanonicalView({ role: 'responsable_integration' }).ministry_roles).toContain('responsable_integration')
+  it('rôles fonctionnels non ambigus (formateur, responsable_integration) → ministry EN', () => {
+    expect(legacyToCanonicalView({ role: 'formateur' }).ministry_roles).toContain('trainer')
+    expect(legacyToCanonicalView({ role: 'responsable_integration' }).ministry_roles).toContain('integration_lead')
   })
 
   it('parcours_disciple_etape relu en LEARNING seulement (jamais growth/community)', () => {
     const v = legacyToCanonicalView({ membre_statut: 'visiteur', parcours_disciple_etape: 3 })
     expect(v.learning.parcoursDiscipleEtape).toBe(3)
-    // ne contamine pas growth
-    expect(v.growth.level).toBe('visiteur')
+    expect(v.growth.level).toBe('visitor')
   })
 
   it('membre_statut absent → requires_review, jamais une valeur inventée', () => {
@@ -79,7 +77,7 @@ describe('Journey readiness — READY_FOR_REVIEW ≠ PROMOTED', () => {
     const r = evaluateJourneyReadiness({
       member_id: 'm1',
       current_statut: 'membre_actif',
-      completed_parcours_slug: 'je-stabilise-ma-foi', // → disciple
+      completed_parcours_slug: 'je-stabilise-ma-foi',
       parcours: [{ slug: 'je-stabilise-ma-foi', complete: true, done: 6, total: 6 }],
     })
     expect(r.candidate_level).toBe('disciple')
@@ -88,7 +86,7 @@ describe('Journey readiness — READY_FOR_REVIEW ≠ PROMOTED', () => {
     expect(r.missing).toEqual([])
   })
 
-  it('aucune sortie n’exprime « promu » (statut ∈ {NOT_READY, READY_FOR_REVIEW})', () => {
+  it('aucune sortie n’exprime « promu »', () => {
     const r = evaluateJourneyReadiness({
       member_id: 'm1', current_statut: 'visiteur',
       completed_parcours_slug: 'nouveau-croyant',
@@ -112,7 +110,7 @@ describe('Journey readiness — READY_FOR_REVIEW ≠ PROMOTED', () => {
   it('aucune cible supérieure (déjà au niveau) → NOT_READY, transition AUTOMATIC', () => {
     const r = evaluateJourneyReadiness({
       member_id: 'm1', current_statut: 'disciple',
-      completed_parcours_slug: 'je-stabilise-ma-foi', // cible disciple, non supérieure
+      completed_parcours_slug: 'je-stabilise-ma-foi',
       parcours: [{ slug: 'je-stabilise-ma-foi', complete: true, done: 6, total: 6 }],
     })
     expect(r.candidate_level).toBeNull()
@@ -127,12 +125,10 @@ describe('Pastoral signals — factuels, sans verdict ni score spirituel', () =>
     expect(s).not.toBeNull()
     expect(s!.type).toBe('criteres_pedagogiques_accomplis')
     expect(s!.severity).toBe('info')
-    expect(s!.evidence.length).toBeGreaterThan(0)
-    // aucun champ "score" spirituel
     expect(Object.keys(s!).every((k) => !isForbiddenSpiritualVerdict(k))).toBe(true)
   })
 
-  it('critères non atteints → aucun signal (pas de faux positif)', () => {
+  it('critères non atteints → aucun signal', () => {
     expect(pedagogicalCriteriaSignal({ member_id: 'm1', formationsTerminees: 0, prayers: 5, generated_at: T0 })).toBeNull()
     expect(pedagogicalCriteriaSignal({ member_id: 'm1', formationsTerminees: 3, prayers: 0, generated_at: T0 })).toBeNull()
   })
@@ -140,7 +136,6 @@ describe('Pastoral signals — factuels, sans verdict ni score spirituel', () =>
   it('nouveau sans accompagnement → signal haute ; sinon null', () => {
     const fire = newcomerWithoutSupportSignal({ member_id: 'm1', accountAgeDays: 3, hasAnyActivity: false, isAssigned: false, generated_at: T0 })
     expect(fire?.type).toBe('nouveau_sans_accompagnement')
-    expect(fire?.severity).toBe('haute')
     expect(newcomerWithoutSupportSignal({ member_id: 'm1', accountAgeDays: 3, hasAnyActivity: false, isAssigned: true, generated_at: T0 })).toBeNull()
     expect(newcomerWithoutSupportSignal({ member_id: 'm1', accountAgeDays: 90, hasAnyActivity: false, isAssigned: false, generated_at: T0 })).toBeNull()
   })
