@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { parseDevice, parseBrowser, parseOS, detectSource, geoFromHeaders } from '@/lib/analytics-server'
+import { normalizeUtmBundle } from '@/lib/intelligence/attribution/utm'
 
 /**
  * Ingestion analytics interne Citadelle (écriture seule, publique).
@@ -56,6 +57,9 @@ export async function POST(req: NextRequest) {
   const referrer = str(body.referrer, 256)
   const utm = (body.utm && typeof body.utm === 'object') ? (body.utm as Record<string, unknown>) : {}
   const source = str(body.source) || detectSource(referrer, str(utm.source))
+  // HUB-3 : dimensions campagne first-touch (normalisées/bornées/sans PII). Écrites
+  // à l'INSERT uniquement (immuables comme `source`), jamais sur l'update.
+  const utmNorm = normalizeUtmBundle(utm)
   const path = str(body.path, 256)
   const dur = Math.max(0, Math.min(120, Number(body.duration) || 0)) // borne : 0–120s par tick
 
@@ -69,6 +73,8 @@ export async function POST(req: NextRequest) {
         session_key: sessionKey, user_id: userId, is_auth: !!userId,
         device: parseDevice(ua), browser: parseBrowser(ua), os: parseOS(ua),
         source, referrer, landing_path: path, pays, ville,
+        utm_medium: utmNorm.medium, utm_campaign: utmNorm.campaign,
+        utm_content: utmNorm.content, utm_term: utmNorm.term,
         page_views: type === 'pageview' ? 1 : 0,
         events_count: type === 'pageview' || type === 'heartbeat' ? 0 : 1,
         duration_sec: dur,
