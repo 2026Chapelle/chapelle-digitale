@@ -28,7 +28,6 @@ describe('Repository — fallback NO_CANONICAL_ROW & lecture ligne canonique', (
     const row: CanonicalAxesRow = {
       profile_id: 'p1', growth_level: 'disciple', growth_review_state: 'confirmed',
       community_status: 'member', community_review_state: 'confirmed',
-      provenance: 'pastoral_validation', validated_by: 'admin1', validated_at: '2026-08-19T00:00:00Z',
     }
     const v = resolveCanonicalMemberView(row, { membre_statut: 'membre_actif' })
     expect(v.source).toBe('canonical')
@@ -40,7 +39,6 @@ describe('Repository — fallback NO_CANONICAL_ROW & lecture ligne canonique', (
     const row: CanonicalAxesRow = {
       profile_id: 'p1', growth_level: 'archange', growth_review_state: 'requires_review',
       community_status: null, community_review_state: 'requires_review',
-      provenance: 'import', validated_by: null, validated_at: null,
     }
     const v = resolveCanonicalMemberView(row, {})
     expect(v.growth.level).toBeNull()

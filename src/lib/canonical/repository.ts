@@ -14,16 +14,16 @@ import type { CanonicalMemberView, GrowthLevel, CommunityStatus, CanonicalConfid
 import { legacyToCanonicalView, type LegacyProfileInput } from './legacy-adapter'
 import { isKnownMinistryRole, type MinistryAssignment } from './ministry'
 
-/** Ligne persistée public.member_canonical_axes (miroir applicatif). */
+/**
+ * Ligne persistée public.member_canonical_axes (état courant MINIMAL — miroir applicatif).
+ * C3 : pas de provenance/validated_by/validated_at ici (par-axe dans l'historique).
+ */
 export interface CanonicalAxesRow {
   profile_id: string
   growth_level: string | null
   growth_review_state: string          // 'confirmed' | 'requires_review'
   community_status: string | null
   community_review_state: string
-  provenance: string | null
-  validated_by: string | null
-  validated_at: string | null
 }
 
 const GROWTH_KEYS: GrowthLevel[] = ['visitor', 'new_believer', 'disciple', 'servant', 'leader', 'worker', 'responsible', 'shepherd']

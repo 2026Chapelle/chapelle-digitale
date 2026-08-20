@@ -34,8 +34,14 @@ revoke all on function public.is_pastoral_responsable_of(uuid) from public, anon
 grant execute on function public.is_pastoral_responsable_of(uuid) to authenticated, service_role;
 
 -- ----------------------------------------------------------------------------
--- 1) member_canonical_axes — GROWTH + COMMUNITY (1 ligne/membre)
+-- 1) member_canonical_axes — ÉTAT COURANT MINIMAL (1 ligne/membre)
 -- ----------------------------------------------------------------------------
+-- C3 : la ligne courante ne porte QUE les valeurs d'axes + leur review_state. Elle
+-- ne partage PAS de provenance/validated_by/validated_at entre les 2 axes (ce qui
+-- pourrait attribuer à tort la validation d'un axe à l'autre). La provenance / l'acteur
+-- / la justification EXACTS, PAR AXE, vivent dans member_canonical_axis_changes (col `axis`).
+-- Toute transition vers 'confirmed' passe par le flux de validation qui écrit d'abord une
+-- ligne d'audit gardée (§4 : pastoral_validation ⇒ acteur + justification non vide).
 create table if not exists public.member_canonical_axes (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   growth_level text
@@ -48,22 +54,8 @@ create table if not exists public.member_canonical_axes (
       ('visitor','contact','integrating','member')),
   community_review_state text not null default 'requires_review'
     check (community_review_state in ('confirmed','requires_review')),
-  -- provenance SANS défaut (MAJOR-3) : toute écriture doit déclarer une provenance explicite.
-  provenance text not null
-    check (provenance in ('backfill','pastoral_validation','import','self_declared')),
-  validated_by uuid references public.profiles(id) on delete set null,
-  validated_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  -- 'confirmed' exige un validateur humain, SAUF le backfill du PLANCHER exact ('visitor'),
-  -- acte système sûr et non ambigu. L'exemption est BORNÉE au plancher (MAJOR-3) : impossible
-  -- de « confirmer » un niveau supérieur sans validateur humain, même en provenance backfill.
-  constraint mca_growth_confirmed_needs_validator check (
-    growth_review_state <> 'confirmed' or validated_by is not null
-    or (provenance = 'backfill' and growth_level = 'visitor')),
-  constraint mca_community_confirmed_needs_validator check (
-    community_review_state <> 'confirmed' or validated_by is not null
-    or (provenance = 'backfill' and community_status = 'visitor'))
+  updated_at timestamptz not null default now()
 );
 create index if not exists idx_mca_growth on public.member_canonical_axes (growth_level, growth_review_state);
 create index if not exists idx_mca_community on public.member_canonical_axes (community_status, community_review_state);
@@ -137,8 +129,17 @@ create table if not exists public.member_canonical_axis_changes (
   actor_id uuid references public.profiles(id) on delete set null,
   actor_label text,
   justification text,
-  provenance text,
-  created_at timestamptz not null default now()
+  -- C2 : provenance EXPLICITE (non-null) et contrainte à un vocabulaire fermé.
+  provenance text not null
+    check (provenance in ('backfill','import','self_declared','pastoral_validation')),
+  created_at timestamptz not null default now(),
+  -- C2 : une ligne pastorale ne peut JAMAIS être anonyme. `pastoral_validation` EXIGE au
+  -- niveau DB un acteur nominatif ET une justification non vide. Les provenances techniques
+  -- (backfill/import/self_declared) n'exigent pas d'acteur.
+  constraint mcac_pastoral_requires_actor_and_reason check (
+    provenance <> 'pastoral_validation'
+    or (actor_id is not null and justification is not null and length(btrim(justification)) > 0)
+  )
 );
 create index if not exists idx_mcac_profile on public.member_canonical_axis_changes (profile_id, created_at desc);
 
@@ -158,15 +159,17 @@ create trigger trg_mcac_no_delete before delete on public.member_canonical_axis_
 -- Patron GOLD (user_entitlements / membre_statut_history) : revoke anon+authenticated,
 -- grant select authenticated, policies TO authenticated bornées, writes service_role.
 
--- 5a) member_canonical_axes
+-- 5a) member_canonical_axes — TABLE DE BASE non lisible par le membre (F1)
+-- Le membre ne SELECT PAS cette table (RLS row-level exposerait review_state, etc.).
+-- Aucune policy 'own'. Lecture = responsables (+ service_role via bypass). Le grant select
+-- to authenticated reste nécessaire pour que la policy responsable puisse s'appliquer ;
+-- un membre non-responsable de lui-même voit 0 ligne. Projection membre caviardée = 3C.
 alter table public.member_canonical_axes enable row level security;
 alter table public.member_canonical_axes force row level security;
 revoke all on public.member_canonical_axes from anon, authenticated;
 grant select on public.member_canonical_axes to authenticated;
 grant select, insert, update on public.member_canonical_axes to service_role;
 drop policy if exists mca_select_own on public.member_canonical_axes;
-create policy mca_select_own on public.member_canonical_axes for select to authenticated
-  using (profile_id = auth.uid());
 drop policy if exists mca_select_responsable on public.member_canonical_axes;
 create policy mca_select_responsable on public.member_canonical_axes for select to authenticated
   using (public.is_pastoral_responsable_of(profile_id));
@@ -180,15 +183,16 @@ grant select, insert, update on public.ministry_role_registry to service_role;
 drop policy if exists mrr_select_auth on public.ministry_role_registry;
 create policy mrr_select_auth on public.ministry_role_registry for select to authenticated using (true);
 
--- 5c) member_ministry_roles
+-- 5c) member_ministry_roles — TABLE DE BASE non lisible par le membre (F1)
+-- note / provenance / assigned_by sont des métadonnées internes. RLS row-level ne peut pas
+-- les masquer → le membre ne lit PAS la table de base (0 ligne). Lecture = responsables
+-- (+ service_role). Une projection membre (role_key/status uniquement) relèvera de 3C.
 alter table public.member_ministry_roles enable row level security;
 alter table public.member_ministry_roles force row level security;
 revoke all on public.member_ministry_roles from anon, authenticated;
 grant select on public.member_ministry_roles to authenticated;
 grant select, insert, update on public.member_ministry_roles to service_role;
 drop policy if exists mmr_select_own on public.member_ministry_roles;
-create policy mmr_select_own on public.member_ministry_roles for select to authenticated
-  using (profile_id = auth.uid());
 drop policy if exists mmr_select_responsable on public.member_ministry_roles;
 create policy mmr_select_responsable on public.member_ministry_roles for select to authenticated
   using (public.is_pastoral_responsable_of(profile_id));
