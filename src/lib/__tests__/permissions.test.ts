@@ -59,6 +59,22 @@ describe('matrice de permissions par rôle', () => {
     }
   })
 
+  it('validation parcours (can_validate_journey_change) : autorité pastorale transverse + berger, PAS un membre', () => {
+    // Superviseurs transverses (alignés sur la portée de la RPC validate_member_canonical_axis).
+    for (const role of ['super_admin', 'admin', 'pasteur', 'pasteur_national']) {
+      expect(can(role, 'can_validate_journey_change')).toBe(true)
+    }
+    // Le berger valide son troupeau (portée « berger direct » re-vérifiée en DB), via rôle ou statut.
+    expect(can('berger', 'can_validate_journey_change')).toBe(true)
+    expect(can({ role: 'membre', membre_statut: 'berger' }, 'can_validate_journey_change')).toBe(true)
+    // Aucun accès admin conféré au passage.
+    expect(can('berger', 'can_access_admin')).toBe(false)
+    // Rôles sans autorité de validation (dont responsable_national : pas transverse ici).
+    for (const role of ['membre', 'visiteur', 'disciple', 'leader', 'formateur', 'responsable_integration', 'responsable_national']) {
+      expect(can(role, 'can_validate_journey_change')).toBe(false)
+    }
+  })
+
   it('berger : accès parcours total SANS droit admin (rôle ou statut)', () => {
     expect(can('berger', 'can_view_all_parcours')).toBe(true)
     expect(can('berger', 'can_override_parcours_locks')).toBe(true)

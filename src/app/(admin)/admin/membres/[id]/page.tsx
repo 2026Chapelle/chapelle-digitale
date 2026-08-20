@@ -14,6 +14,7 @@ const alertStyle = (lvl: string) => lvl === 'alert' ? { bg: 'rgba(239,68,68,0.12
 const tlColor = (t: string) => ({ inscription: '#0EA5E9', statut: '#D4AF37', role: '#22C55E', certificat: '#8B5CF6', priere: '#EC4899', evenement: '#F59E0B', groupe: '#F97316', don: '#22C55E', note: '#94A3B8' } as Record<string, string>)[t] || '#94A3B8'
 import toast from 'react-hot-toast'
 import { getPermissions, PERMISSION_LABELS, ASSIGNABLE_ROLES } from '@/lib/permissions'
+import { PastoralRecognitionBlock } from '@/components/features/admin/JourneyValidation'
 
 const MEMBRE_STATUTS = ['visiteur', 'nouveau_membre', 'membre_actif', 'disciple', 'leader_cellule', 'berger', 'pasteur']
 const COMPTE_STATUTS = ['actif', 'inactif', 'suspendu', 'en_attente']
@@ -320,6 +321,9 @@ export default function MemberFichePage({ params }: { params: { id: string } }) 
                 </div>
               )}
             </Section>
+
+            {/* Reconnaissance pastorale — Parcours du Royaume (Phase 3C) */}
+            <PastoralRecognitionBlock memberId={params.id} />
           </div>
 
           {/* Colonne actions */}
