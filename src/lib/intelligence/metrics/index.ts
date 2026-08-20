@@ -4,3 +4,4 @@
  */
 
 export * from './overview'
+export * from './acquisition'

@@ -32,6 +32,7 @@ import { FRESHNESS_LABELS_FR, FRESHNESS_LEVELS } from '@/lib/intelligence/types/
 import { CONNECTOR_DESCRIPTORS } from '@/lib/intelligence/connectors/registry'
 import type { ConnectorId } from '@/lib/intelligence/connectors/types'
 import type { MetricAvailability, OverviewMetric, OverviewResult } from '@/lib/intelligence/metrics/overview'
+import type { AcquisitionResult } from '@/lib/intelligence/metrics/acquisition'
 
 const TABS = [
   { id: 'apercu', label: 'Vue générale', icon: Gauge },
@@ -55,6 +56,59 @@ const AVAIL_META: Record<MetricAvailability, { label: string; color: string }> =
 }
 const COV_LABEL = { available: 'Disponible', partial: 'Partiel', gap: 'À instrumenter' } as const
 const COV_COLOR = { available: '#4ade80', partial: '#fbbf24', gap: '#f87171' } as const
+
+const SOURCE_LABEL: Record<string, string> = {
+  whatsapp: 'WhatsApp',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  youtube: 'YouTube',
+  google: 'Google / recherche',
+  tiktok: 'TikTok',
+  twitter: 'X / Twitter',
+  telegram: 'Telegram',
+  email: 'E-mail',
+  chapelle: 'Chapelle',
+  referral: 'Autre site (referral)',
+  direct: 'Direct',
+  unknown: 'Inconnu',
+  other: 'Autre',
+}
+const labelSource = (s: string) => SOURCE_LABEL[s] ?? s
+
+function AcquisitionTable({ acq }: { acq: AcquisitionResult }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[640px] text-sm">
+        <thead>
+          <tr className="text-left text-xs text-pearl/45">
+            <th className="py-2 pr-4 font-medium">Source</th>
+            <th className="py-2 pr-4 font-medium text-right">Visites</th>
+            <th className="py-2 pr-4 font-medium text-right">Inscriptions</th>
+            <th className="py-2 pr-4 font-medium text-right">Écoutes podcast</th>
+            <th className="py-2 font-medium text-right">Progressions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {acq.rows.map((r) => (
+            <tr key={r.source} className="border-t border-pearl/10">
+              <td className="py-2 pr-4 text-pearl/85">{labelSource(r.source)}</td>
+              <td className="py-2 pr-4 text-right text-pearl">{r.visits.toLocaleString('fr-FR')}</td>
+              <td className="py-2 pr-4 text-right text-pearl/80">{r.signups.toLocaleString('fr-FR')}</td>
+              <td className="py-2 pr-4 text-right text-pearl/80">{r.podcastStarts.toLocaleString('fr-FR')}</td>
+              <td className="py-2 text-right text-pearl/80">{r.parcoursCompletions.toLocaleString('fr-FR')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="mt-3 text-[11px] text-pearl/40">
+        Visites = <strong className="text-pearl/60">réel</strong> (source first-touch de la session).
+        Inscriptions / écoutes / progressions = <strong className="text-pearl/60">partiel</strong> :
+        non attribué aujourd’hui — inscriptions {acq.unattributed.signups}, écoutes {acq.unattributed.podcastStarts},
+        progressions {acq.unattributed.parcoursCompletions}. Nav interne exclue : {acq.internalVisitsExcluded} visite(s).
+      </div>
+    </div>
+  )
+}
 
 function MetricCard({ m }: { m: OverviewMetric }) {
   const meta = AVAIL_META[m.availability]
@@ -90,6 +144,9 @@ export default function IntelligenceHubPage() {
   const [overview, setOverview] = useState<OverviewResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const [acq, setAcq] = useState<(AcquisitionResult & { error?: string }) | null>(null)
+  const [acqLoading, setAcqLoading] = useState(false)
+  const [acqErr, setAcqErr] = useState<string | null>(null)
   const coverage = useMemo(() => coverageSummary(), [])
   const connectorIds = Object.keys(CONNECTOR_DESCRIPTORS) as ConnectorId[]
 
@@ -107,11 +164,37 @@ export default function IntelligenceHubPage() {
     }
   }
 
+  async function loadAcq() {
+    setAcqLoading(true)
+    setAcqErr(null)
+    try {
+      const res = await fetch('/api/intelligence/acquisition', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setAcq((await res.json()) as AcquisitionResult & { error?: string })
+    } catch (e) {
+      setAcqErr(e instanceof Error ? e.message : 'Erreur de chargement')
+    } finally {
+      setAcqLoading(false)
+    }
+  }
+
   useEffect(() => {
     void load()
   }, [])
 
-  const isDemo = overview?.demoMode ?? false
+  // Chargement paresseux de l'acquisition à l'ouverture de l'onglet.
+  useEffect(() => {
+    if (tab === 'acquisition' && !acq && !acqLoading) void loadAcq()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab])
+
+  function refresh() {
+    if (tab === 'acquisition') void loadAcq()
+    else void load()
+  }
+
+  const isDemo = (tab === 'acquisition' ? acq?.demoMode : overview?.demoMode) ?? false
+  const busy = tab === 'acquisition' ? acqLoading : loading
 
   return (
     <div className="min-h-screen bg-abyss pt-24 pb-16">
@@ -136,10 +219,10 @@ export default function IntelligenceHubPage() {
               )}
               <button
                 type="button"
-                onClick={() => void load()}
+                onClick={refresh}
                 className="inline-flex items-center gap-2 rounded-lg bg-pearl/5 px-3 py-2 text-sm text-pearl/70 hover:text-pearl"
               >
-                <RefreshCw className={'h-4 w-4 ' + (loading ? 'animate-spin' : '')} /> Actualiser
+                <RefreshCw className={'h-4 w-4 ' + (busy ? 'animate-spin' : '')} /> Actualiser
               </button>
             </div>
           }
@@ -199,10 +282,39 @@ export default function IntelligenceHubPage() {
               <em>Indisponible</em> (pas de source fiable), jamais estimées.
             </div>
           </>
+        ) : tab === 'acquisition' ? (
+          <section className="mb-8">
+            <div className="section-label mb-3">
+              Acquisition par source — aujourd’hui
+              {acq?.generatedAt && (
+                <span className="ml-2 text-[11px] font-normal text-pearl/35">
+                  maj {new Date(acq.generatedAt).toLocaleTimeString('fr-FR')}
+                </span>
+              )}
+            </div>
+            {acqErr && (
+              <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-sm text-red-300">
+                {acqErr}
+              </div>
+            )}
+            <div className="card-royal p-4">
+              {!acq && !acqErr ? (
+                <div className="py-8 text-center text-sm text-pearl/40">Chargement…</div>
+              ) : acq?.demoMode ? (
+                <div className="py-8 text-center text-sm text-pearl/50">
+                  Données de démonstration — aucune donnée d’acquisition attribuée.
+                </div>
+              ) : acq && !acq.hasData ? (
+                <div className="py-8 text-center text-sm text-pearl/50">Aucune donnée attribuée aujourd’hui.</div>
+              ) : acq ? (
+                <AcquisitionTable acq={acq} />
+              ) : null}
+            </div>
+          </section>
         ) : (
           <div className="card-royal mb-8 p-6 text-sm text-pearl/50">
             Section <strong className="text-pearl/80">{TABS.find((t) => t.id === tab)?.label}</strong> — en
-            construction (HUB-1 se concentre d’abord sur la Vue générale first-party).
+            construction (HUB-2 se concentre sur l’acquisition first-party).
           </div>
         )}
 

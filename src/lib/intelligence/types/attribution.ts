@@ -24,6 +24,7 @@ export const ATTRIBUTION_SOURCES = [
   'twitter',
   'telegram',
   'email',
+  'chapelle', // site frère chapelleduroyaume.org (source d'acquisition légitime, HUB-2)
   'referral',
   'direct',
   'other', // sink pour toute valeur UTM non reconnue par detectSource() (utm_source arbitraire)

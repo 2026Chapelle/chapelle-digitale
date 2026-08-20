@@ -5,3 +5,4 @@
 
 export * from './count-specs'
 export * from './supabase-reader'
+export * from './acquisition-reader'
