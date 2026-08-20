@@ -63,6 +63,38 @@ export function scheduleLabel(p: Pick<LiveProgram, 'weekdays' | 'startTime' | 's
   return p.scheduleNote || null
 }
 
+const DAY_FULL = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'] as const
+
+/** Créneau hebdomadaire dérivé d'un programme (un par jour de récurrence). */
+export interface ProgramWeeklySlot {
+  label: string       // titre du programme
+  slug: string
+  jour: string        // « Lundi »
+  heure: string       // « 05h30 »
+  dayIndex: number    // 0=dim..6=sam
+  hour: number
+  min: number
+}
+
+/**
+ * Éclate les programmes en créneaux hebdomadaires (un par jour), triés par jour puis
+ * heure. Source de vérité UNIQUE des horaires réguliers (remplace tout SCHEDULE en dur).
+ * Les programmes irréguliers (weekdays vide) ou sans heure sont ignorés (pas de créneau).
+ */
+export function programWeeklySlots(programs: LiveProgram[]): ProgramWeeklySlot[] {
+  const slots: ProgramWeeklySlot[] = []
+  for (const p of programs) {
+    const t = formatStartTime(p.startTime)
+    if (!t) continue
+    const [hh, mm] = t.split(':').map((x) => Number.parseInt(x, 10))
+    for (const d of p.weekdays) {
+      if (!Number.isInteger(d) || d < 0 || d > 6) continue
+      slots.push({ label: p.title, slug: p.slug, jour: DAY_FULL[d], heure: `${String(hh).padStart(2, '0')}h${String(mm).padStart(2, '0')}`, dayIndex: d, hour: hh, min: mm })
+    }
+  }
+  return slots.sort((a, b) => a.dayIndex - b.dayIndex || a.hour - b.hour || a.min - b.min)
+}
+
 /** Normalise une ligne `live_programs` brute en modèle d'affichage. */
 export function normalizeProgram(row: RawLiveProgram): LiveProgram {
   const playlistId = row.youtube_playlist_id?.trim() || null

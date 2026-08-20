@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { weekdayLabels, formatStartTime, scheduleLabel, normalizeProgram } from '../programs'
+import { weekdayLabels, formatStartTime, scheduleLabel, normalizeProgram, programWeeklySlots } from '../programs'
 
 describe('weekdayLabels', () => {
   it('mappe les jours dans l’ordre fourni', () => {
@@ -57,5 +57,26 @@ describe('normalizeProgram', () => {
     expect(p.playlistId).toBeNull()
     expect(p.playlistEmbedUrl).toBeNull()
     expect(p.timezone).toBe('Africa/Abidjan')
+  })
+})
+
+describe('programWeeklySlots', () => {
+  it('éclate les programmes en créneaux/jour, triés par jour puis heure', () => {
+    const progs = [
+      normalizeProgram({ slug: 'matinale', title: 'Matinale', weekdays: [1, 3, 5], start_time: '05:30:00' }),
+      normalizeProgram({ slug: 'culte', title: 'Culte', weekdays: [0], start_time: '10:30:00' }),
+    ]
+    const s = programWeeklySlots(progs)
+    expect(s).toHaveLength(4)
+    expect(s[0]).toMatchObject({ label: 'Culte', jour: 'Dimanche', heure: '10h30', dayIndex: 0, hour: 10, min: 30 })
+    expect(s[1]).toMatchObject({ label: 'Matinale', jour: 'Lundi', heure: '05h30', dayIndex: 1 })
+    expect(s.map((x) => x.dayIndex)).toEqual([0, 1, 3, 5])
+  })
+  it('ignore les programmes sans heure ou irréguliers', () => {
+    const progs = [
+      normalizeProgram({ slug: 'a', title: 'A', weekdays: [2], start_time: null }),
+      normalizeProgram({ slug: 'b', title: 'B', weekdays: [], start_time: '09:00:00' }),
+    ]
+    expect(programWeeklySlots(progs)).toEqual([])
   })
 })
