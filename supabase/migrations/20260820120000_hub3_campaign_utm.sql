@@ -1,16 +1,18 @@
 -- =============================================================================
 -- CITADELLE INTELLIGENCE HUB — HUB-3 : dimensions de campagne durables (UTM)
--- Migration ADDITIVE. *** NON APPLIQUÉE EN DISTANT *** tant que Doxa n'a pas donné
--- le GO spécifique (aucun supabase db push / migration up / db reset distant).
+-- Migration ADDITIVE. *** APPLIQUÉE EN DISTANT le 2026-08-20 *** (supabase db push,
+-- prod nvyuyffywnuollaxguen) ; DB_SMOKE=PASS : colonnes présentes (text, nullable, sans
+-- défaut), index partiel présent, RLS activée SANS policy (service_role only), aucune
+-- exposition anon nouvelle, aucune perte de données.
 --
 -- Ajoute 4 colonnes UTM à analytics_sessions, écrites FIRST-TOUCH à l'insertion de
 -- session (comme `source`), jamais mises à jour ensuite. Nullable, sans défaut :
 -- les anciennes sessions et le trafic sans UTM restent NULL (aucun backfill).
 --
--- IMPORTANT (compatibilité) : DEPLOY_REQUIRES_MIGRATION=YES. Le code d'ingestion
--- (/api/analytics/track) qui écrit ces colonnes DOIT être déployé APRÈS l'application
--- de cette migration : sinon l'INSERT échoue (colonne inconnue) et, l'erreur étant
--- avalée, TOUTE la capture de session serait perdue.
+-- COMPATIBILITÉ : DEPLOY_REQUIRES_MIGRATION=YES — condition désormais SATISFAITE (la
+-- migration est appliquée AVANT tout déploiement de l'app). Rappel : le code d'ingestion
+-- (/api/analytics/track) écrit ces colonnes ; il ne doit jamais tourner sur une base qui
+-- ne les a pas (sinon l'INSERT échoue silencieusement → perte totale de capture de session).
 -- =============================================================================
 
 alter table public.analytics_sessions add column if not exists utm_medium   text;
