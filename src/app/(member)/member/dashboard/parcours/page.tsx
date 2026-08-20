@@ -6,7 +6,7 @@ import {
   Check, Zap, Target, Mic, Sprout, HandHeart, Trophy, Download, Sparkles, Lock, Clock,
   type LucideIcon,
 } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { TunnelProgress } from '@/components/features/tunnel/TunnelProgress'
 import { TUNNEL_BY_KEY, nextStage, type TunnelStageKey } from '@/lib/tunnel'
 import { useAuth } from '@/components/providers/AuthProvider'
@@ -119,23 +119,6 @@ export default function ParcoursPage() {
   ]
   // Mentorat réel à venir (table mentorships) — aucun mentor fictif affiché.
   const MENTOR = { nom: 'À assigner', role: 'Mentorat à venir', initials: '✦', disponible: false }
-
-  // Livret d'Accueil : URL stockée dans cms_settings (médiathèque). Aucune valeur codée en dur.
-  const [livretUrl, setLivretUrl] = useState<string | null>(null)
-  useEffect(() => {
-    if (IS_DEMO_MODE) return
-    let cancelled = false
-    ;(async () => {
-      try {
-        const { data } = await supabase.from('cms_settings').select('value').eq('key', 'livret_accueil_url').maybeSingle()
-        if (cancelled) return
-        const v = data?.value
-        const u = typeof v === 'string' ? v : (v && typeof v === 'object' && 'url' in v ? (v as any).url : null)
-        if (u) setLivretUrl(String(u).replace(/^"|"$/g, ''))
-      } catch { /* pas de livret configuré */ }
-    })()
-    return () => { cancelled = true }
-  }, [])
 
   // Progression RÉELLE du Programme d'Intégration (4 parcours), source serveur.
   const [integ, setInteg] = useState<{ parcours: any[]; overall_pct: number; current_slug: string | null; next_slug: string | null; integration_complete: boolean } | null>(null)
@@ -320,16 +303,10 @@ export default function ParcoursPage() {
           <Link href="/notre-histoire" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-inter font-semibold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
             <Globe className="w-3.5 h-3.5" /> Découvrir la vision
           </Link>
-          {livretUrl ? (
-            // Passe par /livret-accueil (redirige vers le PDF + trace le téléchargement).
-            <a href="/livret-accueil" target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-1.5 text-xs px-4 py-2">
-              <Download className="w-3.5 h-3.5" /> Télécharger le Livret d'Accueil
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-inter text-pearl/35" style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.1)' }}>
-              <Download className="w-3.5 h-3.5" /> Livret d'Accueil bientôt disponible
-            </span>
-          )}
+          {/* /livret-accueil résout le document canonique → reader gaté /lecture/pdf/[id]. */}
+          <a href="/livret-accueil" target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-1.5 text-xs px-4 py-2">
+            <BookOpen className="w-3.5 h-3.5" /> Lire le Livret d'Accueil
+          </a>
         </div>
       </div>
 

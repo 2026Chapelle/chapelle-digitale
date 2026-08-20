@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { type RessourceMock } from '@/lib/mock/ressources'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { PdfReaderLauncher } from '@/components/pdf'
+import { documentReaderHref } from '@/lib/pdf/document-model'
 
 const TYPES = ['Tout', 'Audio', 'Vidéo', 'PDF', 'Livre', 'Podcast', 'Dévotionnel'] as const
 type FilterType = typeof TYPES[number]
@@ -235,23 +235,21 @@ export default function RessourcesPage() {
               <Download className="w-3 h-3" /> {dlCount(r).toLocaleString('fr-FR')}
             </span>
           </div>
-          {r.url ? (
-            r.type === 'PDF' ? (
-              <PdfReaderLauncher
-                src={r.url}
-                title={r.titre}
-                downloadUrl={r.url}
-                onOpen={() => trackAccess(r)}
-                className="btn-gold text-xs px-3 py-1.5 inline-flex items-center gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
-              >
-                <BookOpen className="w-3 h-3" aria-hidden /> Lire
-              </PdfReaderLauncher>
-            ) : (
-              <button onClick={() => access(r)} className="btn-royal text-xs px-3 py-1.5 flex items-center gap-1">
-                <Download className="w-3 h-3" />
-                Accéder
-              </button>
-            )
+          {r.type === 'PDF' ? (
+            // PDF : identité canonique → reader sécurisé /lecture/pdf/[id] (gate + URL signée
+            // côté serveur). Reste visible même si l'URL brute est vide (document privé).
+            <a
+              href={documentReaderHref({ id: r.id })}
+              onClick={() => trackAccess(r)}
+              className="btn-gold text-xs px-3 py-1.5 inline-flex items-center gap-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+            >
+              <BookOpen className="w-3 h-3" aria-hidden /> Lire
+            </a>
+          ) : r.url ? (
+            <button onClick={() => access(r)} className="btn-royal text-xs px-3 py-1.5 flex items-center gap-1">
+              <Download className="w-3 h-3" />
+              Accéder
+            </button>
           ) : (
             <span className="text-[10px] text-pearl/30 font-inter px-3 py-1.5">Bientôt</span>
           )}
@@ -365,22 +363,18 @@ export default function RessourcesPage() {
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0">
-                {featured.url ? (
-                  featured.type === 'PDF' ? (
-                    <PdfReaderLauncher
-                      src={featured.url}
-                      title={featured.titre}
-                      downloadUrl={featured.url}
-                      onOpen={() => trackAccess(featured)}
-                      className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
-                    >
-                      <BookOpen className="w-3.5 h-3.5" aria-hidden /> Lire dans la Citadelle
-                    </PdfReaderLauncher>
-                  ) : (
-                    <button onClick={() => access(featured)} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5">
-                      <Download className="w-3.5 h-3.5" /> Accéder
-                    </button>
-                  )
+                {featured.type === 'PDF' ? (
+                  <a
+                    href={documentReaderHref({ id: featured.id })}
+                    onClick={() => trackAccess(featured)}
+                    className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D4AF37]"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" aria-hidden /> Lire dans la Citadelle
+                  </a>
+                ) : featured.url ? (
+                  <button onClick={() => access(featured)} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5">
+                    <Download className="w-3.5 h-3.5" /> Accéder
+                  </button>
                 ) : (
                   <span className="text-xs text-pearl/35 font-inter px-4 py-2">Bientôt disponible</span>
                 )}
