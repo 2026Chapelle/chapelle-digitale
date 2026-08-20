@@ -33,6 +33,7 @@ import { CONNECTOR_DESCRIPTORS } from '@/lib/intelligence/connectors/registry'
 import type { ConnectorId } from '@/lib/intelligence/connectors/types'
 import type { MetricAvailability, OverviewMetric, OverviewResult } from '@/lib/intelligence/metrics/overview'
 import type { AcquisitionResult } from '@/lib/intelligence/metrics/acquisition'
+import type { CampaignResult } from '@/lib/intelligence/metrics/campaigns'
 
 const TABS = [
   { id: 'apercu', label: 'Vue générale', icon: Gauge },
@@ -110,6 +111,61 @@ function AcquisitionTable({ acq }: { acq: AcquisitionResult }) {
   )
 }
 
+function CampaignTable({ camp }: { camp: CampaignResult }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[720px] text-sm">
+        <thead>
+          <tr className="text-left text-xs text-pearl/45">
+            <th className="py-2 pr-4 font-medium">Campagne</th>
+            <th className="py-2 pr-4 font-medium">Source</th>
+            <th className="py-2 pr-4 font-medium text-right">Visites</th>
+            <th className="py-2 pr-4 font-medium text-right">Inscriptions</th>
+            <th className="py-2 pr-4 font-medium text-right">Écoutes podcast</th>
+            <th className="py-2 font-medium text-right">Progressions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {camp.rows.map((r) => (
+            <tr key={`${r.source}:${r.campaign ?? ''}`} className="border-t border-pearl/10 align-top">
+              <td className="py-2 pr-4">
+                <div className={r.campaign ? 'text-pearl/85' : 'italic text-pearl/45'}>
+                  {r.campaign ?? '— (sans campagne)'}
+                </div>
+                {r.medium && <div className="text-[11px] text-pearl/40">{r.medium}</div>}
+                {r.contents.length > 1 && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-[11px] text-pearl/40">{r.contents.length} contenus</summary>
+                    <div className="mt-1 space-y-0.5">
+                      {r.contents.map((c) => (
+                        <div key={c.content ?? '∅'} className="flex justify-between gap-4 text-[11px] text-pearl/45">
+                          <span>{c.content ?? '(sans contenu)'}</span>
+                          <span>{c.visits} v · {c.signups} insc.</span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </td>
+              <td className="py-2 pr-4 text-pearl/70">{labelSource(r.source)}</td>
+              <td className="py-2 pr-4 text-right text-pearl">{r.visits.toLocaleString('fr-FR')}</td>
+              <td className="py-2 pr-4 text-right text-pearl/80">{r.signups.toLocaleString('fr-FR')}</td>
+              <td className="py-2 pr-4 text-right text-pearl/80">{r.podcastStarts.toLocaleString('fr-FR')}</td>
+              <td className="py-2 text-right text-pearl/80">{r.parcoursCompletions.toLocaleString('fr-FR')}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="mt-3 text-[11px] text-pearl/40">
+        Visites = <strong className="text-pearl/60">réel</strong> (source+campagne first-touch). Conversions =
+        <strong className="text-pearl/60"> partiel</strong> : non attribué — inscriptions {camp.unattributed.signups},
+        écoutes {camp.unattributed.podcastStarts}, progressions {camp.unattributed.parcoursCompletions}. Nav interne
+        exclue : {camp.internalVisitsExcluded}. Pas de taux (cohortes différentes).
+      </div>
+    </div>
+  )
+}
+
 function MetricCard({ m }: { m: OverviewMetric }) {
   const meta = AVAIL_META[m.availability]
   return (
@@ -147,6 +203,10 @@ export default function IntelligenceHubPage() {
   const [acq, setAcq] = useState<(AcquisitionResult & { error?: string }) | null>(null)
   const [acqLoading, setAcqLoading] = useState(false)
   const [acqErr, setAcqErr] = useState<string | null>(null)
+  const [acqView, setAcqView] = useState<'source' | 'campaign'>('source')
+  const [camp, setCamp] = useState<(CampaignResult & { error?: string }) | null>(null)
+  const [campLoading, setCampLoading] = useState(false)
+  const [campErr, setCampErr] = useState<string | null>(null)
   const coverage = useMemo(() => coverageSummary(), [])
   const connectorIds = Object.keys(CONNECTOR_DESCRIPTORS) as ConnectorId[]
 
@@ -178,6 +238,20 @@ export default function IntelligenceHubPage() {
     }
   }
 
+  async function loadCampaigns() {
+    setCampLoading(true)
+    setCampErr(null)
+    try {
+      const res = await fetch('/api/intelligence/campaigns', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setCamp((await res.json()) as CampaignResult & { error?: string })
+    } catch (e) {
+      setCampErr(e instanceof Error ? e.message : 'Erreur de chargement')
+    } finally {
+      setCampLoading(false)
+    }
+  }
+
   useEffect(() => {
     void load()
   }, [])
@@ -188,13 +262,22 @@ export default function IntelligenceHubPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
 
+  // Chargement paresseux des campagnes à l'ouverture de la sous-vue.
+  useEffect(() => {
+    if (tab === 'acquisition' && acqView === 'campaign' && !camp && !campLoading) void loadCampaigns()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, acqView])
+
   function refresh() {
-    if (tab === 'acquisition') void loadAcq()
-    else void load()
+    if (tab === 'acquisition') {
+      if (acqView === 'campaign') void loadCampaigns()
+      else void loadAcq()
+    } else void load()
   }
 
-  const isDemo = (tab === 'acquisition' ? acq?.demoMode : overview?.demoMode) ?? false
-  const busy = tab === 'acquisition' ? acqLoading : loading
+  const acqDemo = acqView === 'campaign' ? camp?.demoMode : acq?.demoMode
+  const isDemo = (tab === 'acquisition' ? acqDemo : overview?.demoMode) ?? false
+  const busy = tab === 'acquisition' ? (acqView === 'campaign' ? campLoading : acqLoading) : loading
 
   return (
     <div className="min-h-screen bg-abyss pt-24 pb-16">
@@ -284,32 +367,52 @@ export default function IntelligenceHubPage() {
           </>
         ) : tab === 'acquisition' ? (
           <section className="mb-8">
-            <div className="section-label mb-3">
-              Acquisition par source — aujourd’hui
-              {acq?.generatedAt && (
-                <span className="ml-2 text-[11px] font-normal text-pearl/35">
-                  maj {new Date(acq.generatedAt).toLocaleTimeString('fr-FR')}
-                </span>
-              )}
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <div className="section-label">Acquisition — aujourd’hui</div>
+              <div className="inline-flex rounded-lg bg-pearl/5 p-0.5 text-xs">
+                {(['source', 'campaign'] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setAcqView(v)}
+                    className={
+                      'rounded-md px-3 py-1 font-medium transition ' +
+                      (acqView === v ? 'bg-cinematic-gold/15 text-cinematic-gold' : 'text-pearl/55 hover:text-pearl')
+                    }
+                  >
+                    {v === 'source' ? 'Par source' : 'Par campagne'}
+                  </button>
+                ))}
+              </div>
             </div>
-            {acqErr && (
-              <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-sm text-red-300">
-                {acqErr}
+
+            {acqView === 'source' ? (
+              <div className="card-royal p-4">
+                {acqErr && <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-sm text-red-300">{acqErr}</div>}
+                {!acq && !acqErr ? (
+                  <div className="py-8 text-center text-sm text-pearl/40">Chargement…</div>
+                ) : acq?.demoMode ? (
+                  <div className="py-8 text-center text-sm text-pearl/50">Données de démonstration — aucune donnée d’acquisition attribuée.</div>
+                ) : acq && !acq.hasData ? (
+                  <div className="py-8 text-center text-sm text-pearl/50">Aucune donnée attribuée aujourd’hui.</div>
+                ) : acq ? (
+                  <AcquisitionTable acq={acq} />
+                ) : null}
+              </div>
+            ) : (
+              <div className="card-royal p-4">
+                {campErr && <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-sm text-red-300">{campErr}</div>}
+                {!camp && !campErr ? (
+                  <div className="py-8 text-center text-sm text-pearl/40">Chargement…</div>
+                ) : camp?.demoMode ? (
+                  <div className="py-8 text-center text-sm text-pearl/50">Données de démonstration — aucune campagne attribuée.</div>
+                ) : camp && !camp.hasData ? (
+                  <div className="py-8 text-center text-sm text-pearl/50">Aucune donnée de campagne disponible.</div>
+                ) : camp ? (
+                  <CampaignTable camp={camp} />
+                ) : null}
               </div>
             )}
-            <div className="card-royal p-4">
-              {!acq && !acqErr ? (
-                <div className="py-8 text-center text-sm text-pearl/40">Chargement…</div>
-              ) : acq?.demoMode ? (
-                <div className="py-8 text-center text-sm text-pearl/50">
-                  Données de démonstration — aucune donnée d’acquisition attribuée.
-                </div>
-              ) : acq && !acq.hasData ? (
-                <div className="py-8 text-center text-sm text-pearl/50">Aucune donnée attribuée aujourd’hui.</div>
-              ) : acq ? (
-                <AcquisitionTable acq={acq} />
-              ) : null}
-            </div>
           </section>
         ) : (
           <div className="card-royal mb-8 p-6 text-sm text-pearl/50">

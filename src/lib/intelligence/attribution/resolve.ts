@@ -17,13 +17,20 @@ export interface RawVisitSession {
   referrer: string | null
 }
 
-/** Ligne de session minimale nécessaire à la résolution (jamais de PII exposée). */
+/**
+ * Ligne de session minimale nécessaire à la résolution (jamais de PII exposée).
+ * Les champs UTM (HUB-3) sont optionnels : les lecteurs HUB-2 ne les sélectionnent
+ * pas (⇒ undefined), ce qui garde HUB-2 inchangé.
+ */
 export interface SessionSourceRow {
   session_key: string
   user_id: string | null
   source: string | null
   referrer: string | null
   first_seen: string // ISO
+  utm_campaign?: string | null
+  utm_medium?: string | null
+  utm_content?: string | null
 }
 
 /** Clés d'une conversion à attribuer. */
@@ -88,4 +95,29 @@ export function resolveConversions(
   opts?: NormalizeOptions,
 ): Array<NormalizedSource | null> {
   return conversions.map((c) => resolveConversionSource(c, index, opts))
+}
+
+/**
+ * Résout une conversion vers sa SESSION first-touch complète (pour l'attribution
+ * campagne, qui a besoin de source + campaign + medium + content de la même session).
+ * Même priorité : session_key exact → session la plus ancienne de l'utilisateur → null.
+ */
+export function resolveConversionRow(conv: ConversionKey, index: SessionIndex): SessionSourceRow | null {
+  if (conv.sessionKey) {
+    const s = index.byKey.get(conv.sessionKey)
+    if (s) return s
+  }
+  if (conv.userId) {
+    const s = index.earliestByUser.get(conv.userId)
+    if (s) return s
+  }
+  return null
+}
+
+/** Résout un lot de conversions vers leurs sessions first-touch (ou null). PURE. */
+export function resolveConversionRows(
+  conversions: ReadonlyArray<ConversionKey>,
+  index: SessionIndex,
+): Array<SessionSourceRow | null> {
+  return conversions.map((c) => resolveConversionRow(c, index))
 }

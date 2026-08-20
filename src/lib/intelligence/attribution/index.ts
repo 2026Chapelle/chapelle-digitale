@@ -6,3 +6,5 @@
 export * from './normalize'
 export * from './resolve'
 export * from './aggregate'
+export * from './utm'
+export * from './campaign-url'

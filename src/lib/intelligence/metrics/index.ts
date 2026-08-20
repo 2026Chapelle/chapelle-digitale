@@ -5,3 +5,4 @@
 
 export * from './overview'
 export * from './acquisition'
+export * from './campaigns'
