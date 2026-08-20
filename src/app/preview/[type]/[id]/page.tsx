@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import Image from 'next/image'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { isValidAdminToken } from '@/lib/admin-auth'
+import { getDocumentDelivery } from '@/lib/documents/document-delivery-server'
 
 /**
  * Aperçu admin sécurisé d'un contenu (publié OU brouillon).
@@ -53,6 +54,15 @@ export default async function PreviewPage({ params, searchParams }: { params: { 
   const yt = youtubeId(row.youtube_url || row.video_url || row.youtube_id)
   const pdfUrl = row.pdf_url || null
   const isPdf = table === 'cms_media' && (row.type === 'pdf' || /\.pdf($|\?)/i.test(row.url || ''))
+  // LB-SEC-2 : PDF (potentiellement privé) → identité canonique + livraison GATÉE (admin autorisé,
+  // déjà validé par isValidAdminToken). Ne dépend plus de cms_media.url brut ; signe l'objet privé.
+  let pdfHref: string | null = null
+  if (isPdf) {
+    const del = await getDocumentDelivery(String(row.id), {
+      authenticated: true, isMember: true, isAdmin: true, hasPremiumEntitlement: true,
+    })
+    pdfHref = del.allowed && del.url ? del.url : (typeof row.url === 'string' && row.url.trim() ? row.url : null)
+  }
   const audio = row.audio_url || (table === 'cms_media' && row.type === 'audio' ? row.url : null)
   const dateStr = fmt(row.published_at || row.starts_at || row.scheduled_at)
   const published = ['published', 'live', 'approved', 'scheduled', 'ended'].includes(row.status) || row.statut === 'publie' || row.is_active === true
@@ -90,8 +100,8 @@ export default async function PreviewPage({ params, searchParams }: { params: { 
         {row.excerpt && <p className="text-pearl/70 text-lg font-inter leading-relaxed mb-6">{row.excerpt}</p>}
         {body && <div className="prose prose-invert max-w-none font-inter text-pearl/75 leading-relaxed whitespace-pre-wrap mb-8">{body}</div>}
 
-        {isPdf && (
-          <a href={row.url} target="_blank" rel="noreferrer" className="btn-gold-cinematic px-5 py-2.5 text-sm inline-flex">📄 Ouvrir le PDF</a>
+        {isPdf && pdfHref && (
+          <a href={pdfHref} target="_blank" rel="noreferrer" className="btn-gold-cinematic px-5 py-2.5 text-sm inline-flex">📄 Ouvrir le PDF</a>
         )}
         {pdfUrl && (
           <a href={pdfUrl} target="_blank" rel="noreferrer" className="btn-gold-cinematic px-5 py-2.5 text-sm inline-flex mt-4">📄 Document PDF du module</a>
