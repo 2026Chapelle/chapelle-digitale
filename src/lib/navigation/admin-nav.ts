@@ -97,6 +97,7 @@ export const NAV_SECTIONS: AdminNavSection[] = [
       { label: 'Articles', href: '/admin/articles', icon: Newspaper, color: '#34D399' },
       { label: 'Médias', href: '/admin/medias', icon: Film, color: '#EF4444' },
       { label: 'Lives & Cultes', href: '/admin/lives', icon: Radio, color: '#F43F5E' },
+      { label: 'Programmes Live', href: '/admin/live-programs', icon: CalendarCheck, color: '#FB7185' },
       { label: 'Podcasts', href: '/admin/podcasts', icon: Mic, color: '#A855F7' },
       { label: 'Émissions', href: '/admin/podcast-shows', icon: Mic, color: '#C084FC' },
       { label: 'Séries', href: '/admin/podcast-series', icon: Layers, color: '#C084FC' },
