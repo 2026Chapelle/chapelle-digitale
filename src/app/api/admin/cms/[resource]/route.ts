@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { CMS_TABLES, type CmsTable } from '@/lib/cms'
+import { extractYouTubePlaylistId } from '@/lib/video'
+import { coerceWeekdays } from '@/lib/live'
 
 /**
  * CRUD générique du CMS (back-office) — schéma public, tables cms_*.
@@ -26,8 +28,17 @@ import {
   type EpisodeSpineInput,
 } from '@/lib/podcast/spine-relations'
 
+// Alias de ressources hors convention `cms_*` (mapping explicite, additif).
+// LIVE-VIDEO : la table s'appelle `live_programs` (sans préfixe cms_), l'admin la
+// désigne par « live-programs » / « live_programs ».
+const RESOURCE_ALIAS: Record<string, string> = {
+  'live-programs': 'live_programs',
+  'live_programs': 'live_programs',
+}
+
 function resolveTable(resource: string): CmsTable | null {
-  const name = (resource.startsWith('cms_') ? resource : `cms_${resource}`) as CmsTable
+  const name = (RESOURCE_ALIAS[resource]
+    ?? (resource.startsWith('cms_') ? resource : `cms_${resource}`)) as CmsTable
   return (CMS_TABLES as readonly string[]).includes(name) ? name : null
 }
 
@@ -45,6 +56,21 @@ function normalizeSpineFks(table: string, obj: Record<string, any>): void {
   if (table === 'cms_podcasts' && 'episode_type' in obj && (obj.episode_type === '' || obj.episode_type == null)) {
     delete obj.episode_type
   }
+}
+
+// ── LIVE-VIDEO — normalisation avant écriture de `live_programs` (serveur) ────
+// Le champ admin « Jours » (type tags) produit des CHAÎNES → colonne SQL smallint[].
+// On coerce en entiers 0..6 valides (dédupliqués ; invalides ignorés). start_time ''
+// → NULL (colonne `time`). youtube_playlist_id : URL → ID via le helper canonique
+// (@/lib/video, aucun nouveau parser). Textes optionnels vides → NULL.
+function normalizeLiveProgram(obj: Record<string, any>): void {
+  if ('weekdays' in obj) obj.weekdays = coerceWeekdays(obj.weekdays)
+  if ('start_time' in obj) obj.start_time = nullifyEmpty(obj.start_time)
+  if ('youtube_playlist_id' in obj) {
+    const v = nullifyEmpty(obj.youtube_playlist_id)
+    obj.youtube_playlist_id = v ? extractYouTubePlaylistId(v) ?? v : null
+  }
+  for (const k of ['description', 'image_url', 'schedule_note']) if (k in obj) obj[k] = nullifyEmpty(obj[k])
 }
 
 // Lit les lignes parentes réelles et applique le verdict pur. Renvoie un message
@@ -145,6 +171,9 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
       normalizeSpineFks(table, body)
       if (!body.series_id) return NextResponse.json({ ok: false, message: SPINE_ERRORS.seasonSeriesRequired }, { status: 400 })
     }
+    if (table === 'live_programs') normalizeLiveProgram(body)
+    // LIVE-VIDEO — rattachement facultatif : « — Aucun — » (chaîne vide) ⇒ NULL (colonne uuid).
+    if (table === 'cms_lives' && 'program_id' in body) body.program_id = nullifyEmpty(body.program_id)
     const { data, error } = await supabaseAdmin.from(table).insert(body).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
     // Slot unique : le nouvel Instant remplace tout ancien (best-effort).
@@ -220,6 +249,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
       normalizeSpineFks(table, patch)
       if ('series_id' in patch && !patch.series_id) return NextResponse.json({ ok: false, message: SPINE_ERRORS.seasonSeriesRequired }, { status: 400 })
     }
+    if (table === 'live_programs') normalizeLiveProgram(patch)
+    if (table === 'cms_lives' && 'program_id' in patch) patch.program_id = nullifyEmpty(patch.program_id)
     const { data, error } = await supabaseAdmin.from(table).update(patch).eq(keyCol, keyVal).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
     if (enforceInstantUnique && (data as { id?: string })?.id) {
