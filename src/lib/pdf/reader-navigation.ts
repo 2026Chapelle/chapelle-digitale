@@ -16,6 +16,28 @@
 
 export type SpreadMode = 'single' | 'double'
 
+/**
+ * Mode de lecture (LB-1) :
+ *  - `livre`   → feuilletage (double page desktop / tourne-page) ;
+ *  - `lecture` → lecture rapide, une page centrée, sans animation de tourne-page.
+ * Indépendant de `spread` : `lecture` force le simple ; `livre` autorise le double.
+ */
+export type ViewMode = 'livre' | 'lecture'
+
+/**
+ * Analyse une saisie « aller à la page » (champ texte). Renvoie un numéro de page
+ * borné [1,total], ou null si la saisie n'est pas un entier valide. Tolère les
+ * espaces et un « / total » collé par erreur (« 74 / 190 » → 74).
+ */
+export function parsePageInput(raw: string, total: number): number | null {
+  if (typeof raw !== 'string') return null
+  const first = raw.trim().split(/[^0-9]/).filter(Boolean)[0]
+  if (first === undefined) return null
+  const n = Number.parseInt(first, 10)
+  if (!Number.isFinite(n)) return null
+  return clampPage(n, total)
+}
+
 export interface ReaderState {
   /** Page courante (1-indexée). En mode double = page de GAUCHE (impaire). */
   page: number

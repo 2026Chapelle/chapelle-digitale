@@ -110,5 +110,5 @@ export default async function LecturePdfByIdPage({ params }: { params: { id: str
     }
   }
 
-  return <PdfDocumentReader src={delivery.url} title={delivery.title} downloadUrl={delivery.url} />
+  return <PdfDocumentReader src={delivery.url} title={delivery.title} downloadUrl={delivery.url} storageId={params.id} />
 }

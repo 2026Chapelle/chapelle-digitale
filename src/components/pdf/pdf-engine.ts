@@ -22,6 +22,16 @@ export interface PdfRenderTask {
   promise: Promise<void>
   cancel: () => void
 }
+export interface PdfTextItem {
+  str: string
+  transform: number[]
+  width: number
+  height: number
+}
+export interface PdfTextContent {
+  items: PdfTextItem[]
+  styles: Record<string, unknown>
+}
 export interface PdfPageProxy {
   getViewport: (params: { scale: number }) => PdfPageViewport
   render: (params: {
@@ -29,11 +39,43 @@ export interface PdfPageProxy {
     viewport: PdfPageViewport
     transform?: number[]
   }) => PdfRenderTask
+  /** Contenu texte de la page (couche texte sélectionnable + recherche). */
+  getTextContent: () => Promise<PdfTextContent>
   cleanup: () => void
+}
+
+/** Tâche de rendu de la couche texte (renderTextLayer, pdfjs v3.11). */
+export interface PdfTextLayerTask {
+  promise: Promise<void>
+  cancel: () => void
+}
+
+/**
+ * Rend la couche texte SÉLECTIONNABLE d'une page dans `container`, alignée sur le
+ * `viewport` (même échelle que le canvas). API officielle pdfjs-dist 3.11 :
+ * `renderTextLayer({ textContentSource, container, viewport })`.
+ */
+export async function renderPdfTextLayer(params: {
+  textContentSource: PdfTextContent
+  container: HTMLElement
+  viewport: PdfPageViewport
+}): Promise<PdfTextLayerTask> {
+  const pdfjs = await getPdfEngine()
+  return pdfjs.renderTextLayer({
+    textContentSource: params.textContentSource,
+    container: params.container,
+    viewport: params.viewport,
+  }) as PdfTextLayerTask
 }
 export interface PdfDocumentProxy {
   numPages: number
   getPage: (pageNumber: number) => Promise<PdfPageProxy>
+  /** Signets / table des matières (null si le PDF n'en a pas). */
+  getOutline: () => Promise<unknown[] | null>
+  /** Résout une destination NOMMÉE en destination explicite. */
+  getDestination: (id: string) => Promise<unknown[] | null>
+  /** Index 0-based d'une page depuis sa référence {num,gen}. */
+  getPageIndex: (ref: { num: number; gen: number }) => Promise<number>
   cleanup: () => Promise<void> | void
   destroy: () => Promise<void> | void
 }
