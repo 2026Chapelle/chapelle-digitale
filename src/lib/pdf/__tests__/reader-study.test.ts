@@ -97,4 +97,8 @@ describe('Garde de sécurité — migration Study (RLS owner-only)', () => {
   it('user_id par défaut auth.uid() (le client ne choisit pas le propriétaire)', () => {
     expect(sql).toMatch(/user_id\s+uuid\s+not null\s+default\s+auth\.uid\(\)/)
   })
+  it('privilèges : grant à authenticated, revoke d’anon (défense en profondeur)', () => {
+    expect(sql).toMatch(/grant[\s\S]*to authenticated/)
+    expect(sql).toMatch(/revoke all[\s\S]*from anon/)
+  })
 })

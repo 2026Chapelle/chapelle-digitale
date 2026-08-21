@@ -92,6 +92,17 @@ drop trigger if exists document_progress_touch on public.document_progress;
 create trigger document_progress_touch before update on public.document_progress
   for each row execute function public.study_touch_updated_at();
 
+-- ── Privilèges : authenticated seulement (anon N'A AUCUN accès de base) ──────
+-- Sans GRANT, `authenticated` reçoit « permission denied » avant même la RLS.
+-- On accorde le CRUD à authenticated ; la RLS le restreint ensuite au propriétaire.
+-- `anon` n'est JAMAIS granté → refus dès le niveau privilège (défense en profondeur).
+grant select, insert, update, delete on
+  public.study_annotations, public.document_bookmarks, public.reading_journal, public.document_progress
+  to authenticated;
+revoke all on
+  public.study_annotations, public.document_bookmarks, public.reading_journal, public.document_progress
+  from anon;
+
 -- ── RLS : owner-only, aucun accès anon ──────────────────────────────
 alter table public.study_annotations enable row level security;
 alter table public.document_bookmarks enable row level security;

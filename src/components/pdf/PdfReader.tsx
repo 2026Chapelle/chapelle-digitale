@@ -227,6 +227,18 @@ export function PdfReader({
     clearSelection(); setNoteFor(null); setNoteText('')
   }, [noteFor, noteText, study])
 
+  // Signet de PAGE (toolbar) : bascule création/suppression pour la page courante.
+  const togglePageBookmark = useCallback(() => {
+    setReader((r) => {
+      if (r) {
+        const existing = study.bookmarks.find((b) => b.kind === 'page' && b.page_number === r.page)
+        if (existing) void study.removeBookmark(existing.id)
+        else void study.addBookmark({ page: r.page, kind: 'page' })
+      }
+      return r
+    })
+  }, [study])
+
   // Reprise SERVEUR (multi-device) : au premier chargement, fusionne avec le local
   // et applique la plus récente. Dégradation silencieuse si Study indisponible.
   useEffect(() => {
@@ -339,6 +351,8 @@ export function PdfReader({
           isFullscreen={isFullscreen}
           mode={mode}
           activePanel={activePanel}
+          isPageBookmarked={Boolean(reader && study.bookmarks.some((b) => b.kind === 'page' && b.page_number === reader.page))}
+          onTogglePageBookmark={togglePageBookmark}
           downloadUrl={downloadUrl}
           onPrev={doPrev}
           onNext={doNext}
