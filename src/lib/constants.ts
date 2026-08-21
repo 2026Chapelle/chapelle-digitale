@@ -228,16 +228,12 @@ export const BADGES: Badge[] = [
   },
 ]
 
-// PARCOURS DISCIPLE ÉTAPES
-export const PARCOURS_DISCIPLE = [
-  { etape: 0, nom: 'Visiteur', description: 'Découverte de la Chapelle', couleur: '#6B7280' },
-  { etape: 1, nom: 'Nouvel Arrivant', description: 'Intégration en cours', couleur: '#818CF8' },
-  { etape: 2, nom: 'Membre', description: 'Membre de la famille', couleur: '#22C55E' },
-  { etape: 3, nom: 'Disciple', description: 'En formation active', couleur: '#D4AF37' },
-  { etape: 4, nom: 'Leader de Cellule', description: 'Guide ses frères', couleur: '#F59E0B' },
-  { etape: 5, nom: 'Berger', description: 'Responsable de familles', couleur: '#8B5CF6' },
-  { etape: 6, nom: 'Pasteur', description: 'Consacré au ministère', couleur: '#D4AF37' },
-]
+// PARCOURS_DISCIPLE (échelle mixte Visiteur→Pasteur) SUPPRIMÉ : il fondait dans une
+// seule frise l'appartenance (Membre), la croissance (Disciple) et le ministère
+// (Leader de cellule / Berger / Pasteur). Le modèle « Parcours du Royaume » sépare
+// strictement ces axes. Sources canoniques d'affichage : GROWTH_LADDER_FR /
+// COMMUNITY_LADDER_FR (@/lib/canonical/validation-service), rendues par le composant
+// KingdomRecognition. La formation relève du learning journey, jamais d'un niveau.
 
 // PAYS PRIORITAIRES
 export const PAYS_AFRICAINS = [

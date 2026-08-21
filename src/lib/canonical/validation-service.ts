@@ -47,6 +47,42 @@ export const AXIS_LABELS_FR: Record<ValidatableAxis, string> = {
   community_status: 'Statut communautaire',
 }
 
+/**
+ * ÉCHELLES DE PRÉSENTATION (dérivées des vocabulaires canoniques, ordre canonique).
+ * Ce sont les DEUX seules frises autorisées côté UI — chacune sur SON axe, jamais
+ * fondues en une échelle unique. `pastor` / `cell_leader` n'y figurent PAS : ce sont
+ * des ministères (AXE 4), jamais des niveaux de croissance.
+ */
+export const GROWTH_LADDER_FR: { key: GrowthLevel; label: string }[] = GROWTH_VALUES.map(
+  (v) => ({ key: v, label: GROWTH_LABELS_FR[v] }),
+)
+
+export const COMMUNITY_LADDER_FR: { key: CommunityStatus; label: string }[] = COMMUNITY_VALUES.map(
+  (v) => ({ key: v, label: COMMUNITY_LABELS_FR[v] }),
+)
+
+/**
+ * Libellé affiché quand un axe n'est pas encore reconnu (valeur absente OU
+ * `requires_review`) : neutre, jamais un ancien niveau legacy (Leader/Pasteur/…).
+ */
+export const RECOGNITION_PENDING_LABEL = 'En cours de reconnaissance'
+
+/** Étape de croissance suivante recommandée (borne : jamais au-delà de `shepherd`). */
+export function nextGrowthLabel(current: string | null | undefined): string | null {
+  if (!current) return GROWTH_LADDER_FR[1]?.label ?? null // visiteur → nouveau croyant
+  const i = GROWTH_VALUES.indexOf(current as GrowthLevel)
+  if (i < 0 || i >= GROWTH_VALUES.length - 1) return null
+  return GROWTH_LABELS_FR[GROWTH_VALUES[i + 1]]
+}
+
+/** Étape communautaire suivante recommandée (borne : jamais au-delà de `member`). */
+export function nextCommunityLabel(current: string | null | undefined): string | null {
+  if (!current) return COMMUNITY_LADDER_FR[1]?.label ?? null // visiteur → contact
+  const i = COMMUNITY_VALUES.indexOf(current as CommunityStatus)
+  if (i < 0 || i >= COMMUNITY_VALUES.length - 1) return null
+  return COMMUNITY_LABELS_FR[COMMUNITY_VALUES[i + 1]]
+}
+
 /** Longueur maximale de justification (borne UI/serveur ; la DB accepte du texte libre). */
 export const JUSTIFICATION_MAX = 1000
 
