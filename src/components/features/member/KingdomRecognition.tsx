@@ -30,6 +30,8 @@ type Projection = {
   growth: AxisProjection
   community: AxisProjection
   ministries: { key: string; label: string }[]
+  // CAVIARDÉ : uniquement « en attente de reconnaissance » — jamais la valeur cible.
+  readiness?: { pending: boolean }
 }
 
 function Ladder({
@@ -118,6 +120,22 @@ export function KingdomRecognition({ className = '' }: { className?: string }) {
         <h2 className="font-cinzel text-base font-bold text-pearl">Ma reconnaissance dans la maison</h2>
         <span className="text-[10px] text-pearl/35 ml-1">reconnue par vos bergers</span>
       </div>
+
+      {/* COMPLÉTION → READY_FOR_REVIEW (caviardé) : le membre sait qu'une étape est
+          accomplie et attend la reconnaissance HUMAINE. Jamais « promu », jamais la cible. */}
+      {proj?.readiness?.pending && (
+        <div
+          className="mb-4 flex items-start gap-2 p-3 rounded-2xl"
+          style={{ background: 'rgba(212,175,55,0.10)', border: '1px solid rgba(212,175,55,0.25)' }}
+        >
+          <Sprout className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#D4AF37' }} />
+          <p className="text-[12px] leading-relaxed text-pearl/80">
+            Tu as accompli une étape importante de ton parcours.{' '}
+            <span className="font-semibold text-gold">Tes bergers seront invités à confirmer ta reconnaissance</span>{' '}
+            — cette étape passe toujours par un regard humain, jamais par un automatisme.
+          </p>
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-3">
         <Ladder

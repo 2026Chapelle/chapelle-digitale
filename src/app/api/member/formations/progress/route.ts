@@ -4,12 +4,12 @@ import { randomUUID } from 'crypto'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { getSessionProfile } from '@/lib/member-auth'
 import { parcoursGate } from '@/lib/formations/parcours-gate-server'
-import { computeStatutUpgrade } from '@/lib/formations/statut-progression'
+import { computeCommunityIntegration } from '@/lib/formations/statut-progression'
 import { ensureIntegrationCertificate } from '@/lib/formations/integration-progress-server'
 import { WATCH_THRESHOLD, hasPlayableVideo } from '@/lib/formations/video-validation'
 import { evaluateDailyLock } from '@/lib/formations/module-daily-unlock'
 import { can } from '@/lib/permissions'
-import { notifyModuleCompleted, notifyParcoursCompleted, notifyStatusReached, notifyCertificate, notifyAcademieUnlocked } from '@/lib/notifications/events'
+import { notifyModuleCompleted, notifyParcoursCompleted, notifyCertificate, notifyAcademieUnlocked } from '@/lib/notifications/events'
 
 /**
  * Progression RÉELLE : marque un module terminé (ou l'annule) et recalcule la
@@ -110,17 +110,25 @@ export async function POST(req: NextRequest) {
     if (res.progression >= 100) {
       try { await notifyParcoursCompleted(sp.uid, { formationTitre: f?.titre, slug: f?.slug }) } catch { /* */ }
 
-      // Montée AUTOMATIQUE du statut membre (parcours d'intégration), monotone + historisée + notifiée.
+      // ── SEULE transition automatique : INTÉGRATION COMMUNAUTAIRE (appartenance) ──
+      // Terminer le parcours d'accueil requis fait passer un PUR `visiteur` à
+      // `nouveau_membre` — « a rejoint l'espace communautaire, accès aux contenus
+      // membres ». Ce N'EST PAS une promotion spirituelle : aucun growth_level, aucun
+      // passage à Disciple/membre_actif, aucun MinistryRole, aucun RBAC pastoral.
+      // La reconnaissance de CROISSANCE passe EXCLUSIVEMENT par la validation HUMAINE
+      // auditée (RPC validate_member_canonical_axis). La readiness (COMPLÉTION →
+      // READY_FOR_REVIEW) est calculée EN LECTURE seule (member-readiness.ts) et
+      // proposée au pastorat. INVARIANT : accès communautaire auto ≠ promotion
+      // spirituelle auto ; READY_FOR_REVIEW ≠ PROMOTED.
       try {
-        const cible = computeStatutUpgrade(sp.profile?.membre_statut, f?.slug)
-        if (cible) {
-          const ancien = sp.profile?.membre_statut ?? null
-          const { error: upErr } = await supabaseAdmin.from('profiles').update({ membre_statut: cible }).eq('id', sp.uid)
+        const communaute = computeCommunityIntegration(sp.profile?.membre_statut, f?.slug)
+        if (communaute) {
+          const { error: upErr } = await supabaseAdmin.from('profiles')
+            .update({ membre_statut: communaute }).eq('id', sp.uid)
           if (!upErr) {
             await supabaseAdmin.from('membre_statut_history').insert({
-              user_id: sp.uid, ancien_statut: ancien, nouveau_statut: cible, source: `parcours:${f?.slug}`,
+              user_id: sp.uid, ancien_statut: 'visiteur', nouveau_statut: communaute, source: `integration:${f?.slug}`,
             })
-            try { await notifyStatusReached(sp.uid, { statut: cible }) } catch { /* */ }
           }
         }
       } catch { /* non bloquant */ }
