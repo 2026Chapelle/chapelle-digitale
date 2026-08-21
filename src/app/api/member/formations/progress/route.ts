@@ -4,12 +4,11 @@ import { randomUUID } from 'crypto'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { getSessionProfile } from '@/lib/member-auth'
 import { parcoursGate } from '@/lib/formations/parcours-gate-server'
-import { computeStatutUpgrade } from '@/lib/formations/statut-progression'
 import { ensureIntegrationCertificate } from '@/lib/formations/integration-progress-server'
 import { WATCH_THRESHOLD, hasPlayableVideo } from '@/lib/formations/video-validation'
 import { evaluateDailyLock } from '@/lib/formations/module-daily-unlock'
 import { can } from '@/lib/permissions'
-import { notifyModuleCompleted, notifyParcoursCompleted, notifyStatusReached, notifyCertificate, notifyAcademieUnlocked } from '@/lib/notifications/events'
+import { notifyModuleCompleted, notifyParcoursCompleted, notifyCertificate, notifyAcademieUnlocked } from '@/lib/notifications/events'
 
 /**
  * Progression RÉELLE : marque un module terminé (ou l'annule) et recalcule la
@@ -110,20 +109,15 @@ export async function POST(req: NextRequest) {
     if (res.progression >= 100) {
       try { await notifyParcoursCompleted(sp.uid, { formationTitre: f?.titre, slug: f?.slug }) } catch { /* */ }
 
-      // Montée AUTOMATIQUE du statut membre (parcours d'intégration), monotone + historisée + notifiée.
-      try {
-        const cible = computeStatutUpgrade(sp.profile?.membre_statut, f?.slug)
-        if (cible) {
-          const ancien = sp.profile?.membre_statut ?? null
-          const { error: upErr } = await supabaseAdmin.from('profiles').update({ membre_statut: cible }).eq('id', sp.uid)
-          if (!upErr) {
-            await supabaseAdmin.from('membre_statut_history').insert({
-              user_id: sp.uid, ancien_statut: ancien, nouveau_statut: cible, source: `parcours:${f?.slug}`,
-            })
-            try { await notifyStatusReached(sp.uid, { statut: cible }) } catch { /* */ }
-          }
-        }
-      } catch { /* non bloquant */ }
+      // ── AUCUNE montée AUTOMATIQUE de statut spirituel (règle canonique) ──────────
+      // La complétion d'un parcours est un FAIT PÉDAGOGIQUE (module_completions +
+      // parcours_disciple_etape via recompute), jamais une promotion de croissance.
+      // Un membre n'est JAMAIS étiqueté « disciple » du seul fait d'avoir terminé un
+      // cours : la reconnaissance de croissance passe EXCLUSIVEMENT par la validation
+      // HUMAINE auditée (RPC validate_member_canonical_axis, écran admin Parcours).
+      // La readiness (COMPLÉTION → READY_FOR_REVIEW) est calculée EN LECTURE, sans
+      // aucune écriture (src/lib/canonical/member-readiness.ts) et proposée au pastorat.
+      // INVARIANT : READY_FOR_REVIEW ≠ PROMOTED.
 
       if (f?.certifiant) {
         const { data: existing } = await supabaseAdmin.from('certificats')
