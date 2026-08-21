@@ -49,6 +49,12 @@ export interface ReaderState {
   spread: SpreadMode
   /** Sens de la dernière navigation (pour l'animation). */
   direction: 1 | -1 | 0
+  /**
+   * Pagination « couverture » (recto/verso, LB-1B) : page 1 seule (couverture),
+   * puis planches (2,3), (4,5)… (page de gauche PAIRE). Défaut false = pagination
+   * LB-1 historique (planches (1,2),(3,4)…, page de gauche impaire).
+   */
+  cover?: boolean
 }
 
 /** Bornes de zoom. */
@@ -86,9 +92,19 @@ export function pageStep(spread: SpreadMode): number {
  * En mode double, la page de gauche doit être impaire (1,3,5…).
  * En mode simple, la page est laissée telle quelle (bornée).
  */
-export function normalizeForSpread(page: number, spread: SpreadMode, total: number): number {
+export function normalizeForSpread(
+  page: number,
+  spread: SpreadMode,
+  total: number,
+  cover = false,
+): number {
   const p = clampPage(page, total)
   if (spread !== 'double') return p
+  if (cover) {
+    // Couverture seule (1), puis planches à gauche PAIRE : 2→2, 3→2, 4→4, 5→4…
+    if (p <= 1) return 1
+    return p % 2 === 0 ? p : p - 1
+  }
   // Ramène au rang impair inférieur ou égal (1→1, 2→1, 3→3, 4→3…).
   return p % 2 === 0 ? p - 1 : p
 }
@@ -105,7 +121,7 @@ export function canGoNext(state: ReaderState): boolean {
 
 /** Va à une page précise (bornée + normalisée), en calculant la direction. */
 export function goToPage(state: ReaderState, target: number): ReaderState {
-  const next = normalizeForSpread(target, state.spread, state.total)
+  const next = normalizeForSpread(target, state.spread, state.total, state.cover)
   const direction: ReaderState['direction'] = next > state.page ? 1 : next < state.page ? -1 : 0
   return { ...state, page: next, direction }
 }
@@ -152,14 +168,17 @@ export function resolveSpread(viewportWidth: number, allowDouble = true): Spread
  */
 export function setSpread(state: ReaderState, spread: SpreadMode): ReaderState {
   if (spread === state.spread) return state
-  const page = normalizeForSpread(state.page, spread, state.total)
+  const page = normalizeForSpread(state.page, spread, state.total, state.cover)
   return { ...state, spread, page, direction: 0 }
 }
 
 /** Les deux numéros de page réellement rendus dans l'état courant. */
 export function visiblePages(state: ReaderState): number[] {
   if (state.spread !== 'double') return [state.page]
+  // Couverture (page 1) : affichée SEULE en pagination recto/verso.
+  if (state.cover && state.page <= 1) return [1]
   const right = state.page + 1
+  // Dernière page impaire : affichée seule (pas de verso).
   return right <= state.total ? [state.page, right] : [state.page]
 }
 
@@ -177,6 +196,8 @@ export interface InitReaderOptions {
   initialPage?: number
   viewportWidth?: number
   allowDouble?: boolean
+  /** Pagination recto/verso (couverture seule). */
+  cover?: boolean
 }
 
 /** Construit l'état initial du lecteur (borné, normalisé). */
@@ -185,9 +206,10 @@ export function initReaderState({
   initialPage = 1,
   viewportWidth = 0,
   allowDouble = true,
+  cover = false,
 }: InitReaderOptions): ReaderState {
   const safeTotal = total > 0 ? total : 1
   const spread = resolveSpread(viewportWidth, allowDouble && safeTotal > 1)
-  const page = normalizeForSpread(initialPage, spread, safeTotal)
-  return { page, total: safeTotal, scale: 1, spread, direction: 0 }
+  const page = normalizeForSpread(initialPage, spread, safeTotal, cover)
+  return { page, total: safeTotal, scale: 1, spread, direction: 0, cover }
 }
