@@ -2,68 +2,37 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  Globe, Crown, ChevronRight, BookOpen,
-  Check, Zap, Target, Mic, Sprout, HandHeart, Trophy, Download, Sparkles, Lock, Clock,
+  Globe, ChevronRight, BookOpen,
+  Check, Zap, Target, Mic, Sprout, HandHeart, Sparkles, Lock, Clock, TrendingUp,
   type LucideIcon,
 } from 'lucide-react'
 import { IS_DEMO_MODE } from '@/lib/supabase'
-import { TunnelProgress } from '@/components/features/tunnel/TunnelProgress'
-import { TUNNEL_BY_KEY, nextStage, type TunnelStageKey } from '@/lib/tunnel'
+import { KingdomRecognition } from '@/components/features/member/KingdomRecognition'
 import { useAuth } from '@/components/providers/AuthProvider'
 
-/** Position RÉELLE dans le Tunnel Royal, dérivée du statut du membre (profil Supabase). */
-function statutToStage(membre_statut?: string): TunnelStageKey {
-  switch (membre_statut) {
-    case 'visiteur': return 'visiteur'
-    case 'nouveau_membre': return 'integration'
-    case 'membre_actif': return 'membre'
-    case 'disciple': return 'disciple'
-    case 'leader_cellule': return 'serviteur'
-    case 'berger':
-    case 'pasteur': return 'leader'
-    default: return 'visiteur'
-  }
-}
+/**
+ * MON PARCOURS DU ROYAUME — page membre.
+ *
+ * Les QUATRE axes du Parcours du Royaume ne sont JAMAIS fondus en une seule
+ * échelle « magique » :
+ *   • Croissance + Appartenance → reconnaissance CANONIQUE (KingdomRecognition).
+ *   • Formation (learning journey) → « Programme d'Intégration » ci-dessous.
+ *   • Fonction / ministère → affiché dans la reconnaissance, jamais comme un niveau.
+ * Aucune séquence mixte (Visiteur → Membre → Disciple → Leader de cellule → Pasteur).
+ */
 
-/** Actions recommandées concrètes selon l'étape (guide de croissance). */
-const ACTIONS_PAR_ETAPE: Record<TunnelStageKey, { label: string; href: string }[]> = {
-  visiteur: [
-    { label: 'Déposer une demande de prière', href: '/member/dashboard/prieres' },
-    { label: 'Découvrir les cultes en direct', href: '/member/dashboard/lives' },
-    { label: 'Compléter mon profil', href: '/member/dashboard/profil' },
-  ],
-  contact: [
-    { label: 'Rejoindre un groupe', href: '/member/dashboard/groupes' },
-    { label: 'Commencer une formation', href: '/member/dashboard/formations' },
-  ],
-  integration: [
-    { label: 'Suivre le parcours Nouveau Converti', href: '/member/dashboard/formations' },
-    { label: 'Rejoindre une cellule', href: '/member/dashboard/groupes' },
-    { label: "S'inscrire à un événement", href: '/member/dashboard/evenements' },
-  ],
-  membre: [
-    { label: 'Avancer dans mes formations', href: '/member/dashboard/formations' },
-    { label: 'Participer au mur de prière', href: '/member/dashboard/prieres' },
-  ],
-  disciple: [
-    { label: 'Terminer un parcours certifiant', href: '/member/dashboard/formations' },
-    { label: 'Servir dans un groupe', href: '/member/dashboard/groupes' },
-  ],
-  serviteur: [
-    { label: 'Formation Leadership', href: '/member/dashboard/formations' },
-    { label: 'Encadrer une cellule', href: '/member/dashboard/groupes' },
-  ],
-  leader: [
-    { label: 'Accompagner de nouveaux disciples', href: '/member/dashboard/groupes' },
-    { label: 'Partager un témoignage', href: '/priere' },
-  ],
-}
+/** Actions recommandées, orientées intégration/formation — jamais un « niveau » spirituel. */
+const RECOMMENDED_ACTIONS: { label: string; href: string }[] = [
+  { label: 'Avancer dans mes formations', href: '/member/dashboard/formations' },
+  { label: 'Rejoindre un groupe / une cellule', href: '/member/dashboard/groupes' },
+  { label: 'Participer au mur de prière', href: '/member/dashboard/prieres' },
+  { label: "S'inscrire à un événement", href: '/member/dashboard/evenements' },
+  { label: 'Compléter mon profil', href: '/member/dashboard/profil' },
+]
 
 /**
- * PROGRAMME D'INTÉGRATION — NIVEAU 1
- * Les 3 parcours d'entrée, progressifs, qui mènent au parcours de discipulat.
- * Logique d'ensemble : Entrer → S'enraciner → Être formé → Être envoyé.
- * La formation de disciple proprement dite vit dans « Mes Formations » / Académie.
+ * PROGRAMME D'INTÉGRATION — NIVEAU 1 (FORMATION, jamais un niveau de croissance).
+ * Logique : Entrer → S'enraciner → Être formé → Être envoyé.
  */
 const PROGRAMME_INTEGRATION: {
   num: number; titre: string; phase: string; desc: string
@@ -103,39 +72,12 @@ const PROGRAMME_INTEGRATION: {
 
 export default function ParcoursPage() {
   const { profile } = useAuth()
-  const TUNNEL_STAGE = statutToStage(profile?.membre_statut)
-  // Position dans le programme d'intégration (0,1,2) dérivée du statut réel.
-  const integEtape = TUNNEL_STAGE === 'visiteur' || TUNNEL_STAGE === 'contact' ? 0 : TUNNEL_STAGE === 'integration' ? 1 : 2
-  const etapeNom = TUNNEL_BY_KEY[TUNNEL_STAGE]?.nom ?? 'Visiteur'
-  const suivante = nextStage(TUNNEL_STAGE)
   const score = Number(profile?.score_engagement ?? 0)
-  const recommandations = ACTIONS_PAR_ETAPE[TUNNEL_STAGE] ?? []
 
-  // Stats RÉELLES dérivées du profil (aucun chiffre inventé).
-  const STATS = [
-    { icon: Zap, label: 'Score engagement', value: String(score), color: '#D4AF37' },
-    { icon: Target, label: 'Étape actuelle', value: etapeNom, color: '#22C55E' },
-    { icon: Trophy, label: 'Prochaine étape', value: suivante?.nom ?? 'Envoyé', color: '#8B5CF6' },
-  ]
   // Mentorat réel à venir (table mentorships) — aucun mentor fictif affiché.
   const MENTOR = { nom: 'À assigner', role: 'Mentorat à venir', initials: '✦', disponible: false }
 
-  // Reconnaissance pastorale CAVIARDÉE (Phase 3C) — ce que le membre a le droit de voir.
-  const [projection, setProjection] = useState<{
-    growth: { label: string; defini: boolean }
-    community: { label: string; defini: boolean }
-    ministries: { key: string; label: string }[]
-  } | null>(null)
-  useEffect(() => {
-    if (IS_DEMO_MODE) return
-    let cancelled = false
-    fetch('/api/member/journey-projection', { credentials: 'same-origin' })
-      .then((r) => r.json()).then((j) => { if (!cancelled && j.ok) setProjection(j.data) })
-      .catch(() => { /* noop */ })
-    return () => { cancelled = true }
-  }, [])
-
-  // Progression RÉELLE du Programme d'Intégration (4 parcours), source serveur.
+  // Progression RÉELLE du Programme d'Intégration (FORMATION), source serveur.
   const [integ, setInteg] = useState<{ parcours: any[]; overall_pct: number; current_slug: string | null; next_slug: string | null; integration_complete: boolean } | null>(null)
   useEffect(() => {
     if (IS_DEMO_MODE) return
@@ -148,7 +90,6 @@ export default function ParcoursPage() {
       } catch { /* noop */ }
     }
     load()
-    // Mise à jour « temps réel » : on recharge au retour sur l'onglet/la fenêtre.
     const onFocus = () => load()
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onFocus)
@@ -158,6 +99,18 @@ export default function ParcoursPage() {
       document.removeEventListener('visibilitychange', onFocus)
     }
   }, [])
+
+  // Position d'intégration (0,1,2) dérivée de la FORMATION réelle (jamais d'un niveau).
+  const integEtape = integ?.current_slug
+    ? Math.max(0, integ.parcours.findIndex((p: any) => p.slug === integ.current_slug))
+    : 0
+
+  // Stats RÉELLES — chacune sur SA nature (aucune « étape » mixte).
+  const STATS = [
+    { icon: Zap, label: 'Score engagement', value: String(score), color: '#D4AF37' },
+    { icon: TrendingUp, label: 'Progression intégration', value: `${integ?.overall_pct ?? 0}%`, color: '#22C55E' },
+    { icon: Target, label: 'Parcours de formation', value: `${integEtape + 1}/${integ?.parcours?.length ?? PROGRAMME_INTEGRATION.length}`, color: '#8B5CF6' },
+  ]
 
   const PALETTE = ['#0EA5E9', '#22C55E', '#D4AF37', '#A855F7']
   const displayCards = (integ?.parcours?.length)
@@ -183,10 +136,10 @@ export default function ParcoursPage() {
             className="font-cinzel font-black text-pearl mb-1.5 text-balance"
             style={{ fontSize: 'clamp(1.75rem, 3.4vw, 2.5rem)', lineHeight: 1.05, letterSpacing: '-0.02em' }}
           >
-            Parcours de Discipolat
+            Mon Parcours du Royaume
           </h1>
           <p className="font-inter text-sm md:text-[15px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Grandissez étape par étape dans votre marche avec Dieu.
+            Grandis, apprends et avance dans ta marche avec Dieu, accompagné par la Citadelle.
           </p>
         </div>
         {/* Mentor card */}
@@ -203,77 +156,32 @@ export default function ParcoursPage() {
             >
               {MENTOR.initials}
             </div>
-            {MENTOR.disponible && (
-              <div
-                className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full"
-                style={{ background: '#22C55E', boxShadow: '0 0 0 2px #050505, 0 0 8px rgba(34,197,94,0.55)' }}
-                title="Disponible"
-              />
-            )}
           </div>
           <div className="min-w-0">
             <div className="font-inter text-xs font-semibold text-white truncate">{MENTOR.nom}</div>
             <div className="font-inter text-[10px]" style={{ color: 'rgba(212,175,55,0.7)' }}>{MENTOR.role}</div>
           </div>
-          <span data-tunnel-stage={TUNNEL_STAGE} className="ml-2 text-[10px] font-inter font-semibold px-3 py-1.5 rounded-lg"
+          <span className="ml-2 text-[10px] font-inter font-semibold px-3 py-1.5 rounded-lg"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(212,175,55,0.25)', color: 'rgba(212,175,55,0.6)' }}>
             <Mic className="w-3 h-3 inline mr-1" />Bientôt
           </span>
         </div>
       </div>
 
-      {/* Tunnel Royal — position globale dans le parcours d'intégration */}
-      <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.06), rgba(75,0,130,0.06))', border: '1px solid rgba(212,175,55,0.15)' }}>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-inter text-sm font-bold text-white flex items-center gap-2">
-            <Crown className="w-4 h-4 text-gold" /> Votre place dans le Royaume
-          </h2>
-          <span className="font-inter text-xs text-pearl/45">
-            Étape : <span className="text-gold font-semibold">{TUNNEL_BY_KEY[TUNNEL_STAGE].nom}</span>
-          </span>
-        </div>
-        <TunnelProgress current={TUNNEL_STAGE} variant="horizontal" />
-      </div>
+      {/* MA RECONNAISSANCE DANS LA MAISON — croissance + appartenance + ministère (axes séparés). */}
+      <KingdomRecognition />
 
-      {/* Reconnaissance pastorale (Phase 3C) — valeurs reconnues par les bergers */}
-      {projection && (projection.growth.defini || projection.community.defini || projection.ministries.length > 0) && (
-        <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Crown className="w-4 h-4 text-gold" />
-            <h2 className="font-cinzel text-base font-bold text-pearl">Ma reconnaissance dans la maison</h2>
-            <span className="text-[10px] text-pearl/35 ml-1">reconnue par vos bergers</span>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div className="text-[11px] text-pearl/45 mb-1">Croissance spirituelle</div>
-              <div className="font-cinzel text-lg font-bold" style={{ color: projection.growth.defini ? '#D4AF37' : 'rgba(255,255,255,0.4)' }}>{projection.growth.label}</div>
-            </div>
-            <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <div className="text-[11px] text-pearl/45 mb-1">Statut communautaire</div>
-              <div className="font-cinzel text-lg font-bold" style={{ color: projection.community.defini ? '#22C55E' : 'rgba(255,255,255,0.4)' }}>{projection.community.label}</div>
-            </div>
-          </div>
-          {projection.ministries.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-pearl/45">Ministères :</span>
-              {projection.ministries.map((m) => (
-                <span key={m.key} className="text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(139,92,246,0.14)', color: '#A78BFA' }}>{m.label}</span>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Programme d'Intégration — Niveau 1 : les 3 parcours d'entrée progressifs */}
+      {/* Programme d'Intégration — Niveau 1 : les parcours d'entrée (FORMATION). */}
       <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
           <h2 className="font-cinzel text-base font-bold text-pearl flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-gold" /> Programme d'Intégration — Niveau 1
+            <Sparkles className="w-4 h-4 text-gold" /> Ma formation — Programme d'Intégration
           </h2>
           <span className="font-inter text-[11px] text-pearl/45">Progression globale : <span className="text-gold font-semibold">{integ?.overall_pct ?? 0}%</span></span>
         </div>
         <p className="font-inter text-sm text-pearl/55 mb-5 max-w-2xl">
-          Quatre parcours progressifs, à suivre dans l&apos;ordre. Chaque parcours se débloque une fois le précédent terminé à 100 %.
+          Parcours pédagogiques progressifs, à suivre dans l&apos;ordre. C&apos;est ta progression de
+          <span className="text-pearl/80 font-semibold"> formation</span> — distincte de ton niveau de croissance et de ton statut communautaire.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -329,12 +237,12 @@ export default function ParcoursPage() {
         <div className="mt-5 pt-4 border-t border-white/5 flex items-center gap-2">
           <Target className="w-3.5 h-3.5 text-gold/70 flex-shrink-0" />
           <p className="font-inter text-[11px] text-pearl/45">
-            Une fois ces parcours franchis, vous poursuivez votre croissance dans le <span className="text-gold font-semibold">parcours de discipulat</span> ci-dessous.
+            Ces parcours nourrissent ta croissance, mais ne la <span className="text-pearl/70 font-semibold">déterminent pas automatiquement</span> : ta reconnaissance est confirmée par tes bergers.
           </p>
         </div>
       </div>
 
-      {/* Livret d'Accueil — Bienvenue → Vision → Téléchargement → Étape suivante */}
+      {/* Livret d'Accueil */}
       <div className="rounded-2xl p-5 mb-6" style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.10) 0%, rgba(75,0,130,0.12) 100%)', border: '1px solid rgba(212,175,55,0.25)' }}>
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="w-4 h-4 text-gold" />
@@ -347,25 +255,23 @@ export default function ParcoursPage() {
           <Link href="/notre-histoire" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-inter font-semibold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
             <Globe className="w-3.5 h-3.5" /> Découvrir la vision
           </Link>
-          {/* /livret-accueil résout le document canonique → reader gaté /lecture/pdf/[id]. */}
           <a href="/livret-accueil" target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-1.5 text-xs px-4 py-2">
             <BookOpen className="w-3.5 h-3.5" /> Lire le Livret d'Accueil
           </a>
         </div>
       </div>
 
-      {/* Moteur de progression : prochaine étape + actions recommandées */}
+      {/* Prochaines actions recommandées (concrètes, non hiérarchiques). */}
       <div className="rounded-2xl p-5 mb-6" style={{ background: 'linear-gradient(135deg, rgba(75,0,130,0.18) 0%, rgba(212,175,55,0.06) 100%)', border: '1px solid rgba(212,175,55,0.2)' }}>
         <div className="flex items-center gap-2 mb-1">
           <Target className="w-4 h-4 text-gold" />
-          <h2 className="font-cinzel text-sm font-bold text-pearl">Votre prochaine étape</h2>
+          <h2 className="font-cinzel text-sm font-bold text-pearl">Mes prochaines actions</h2>
         </div>
         <p className="font-inter text-sm text-pearl/60 mb-4">
-          Vous êtes <span className="text-gold font-semibold">{etapeNom}</span>
-          {suivante ? <> — prochaine étape : <span className="font-semibold" style={{ color: '#D4AF37' }}>{suivante.nom}</span>.</> : <> — vous êtes envoyé pour multiplier. 🌍</>}
+          Des pas concrets pour avancer — chacun nourrit un axe différent (formation, communauté, prière).
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {recommandations.map((a) => (
+          {RECOMMENDED_ACTIONS.map((a) => (
             <Link key={a.href + a.label} href={a.href}
               className="flex items-center justify-between gap-2 p-3 rounded-xl transition-all hover:-translate-y-0.5"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -377,7 +283,7 @@ export default function ParcoursPage() {
       </div>
 
       {/* KPI stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {STATS.map(s => (
           <div key={s.label} className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
             <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3" style={{ background: `${s.color}15` }}>
@@ -389,15 +295,15 @@ export default function ParcoursPage() {
         ))}
       </div>
 
-      {/* Poursuite de la formation — renvoi vers le parcours réel (Mes Formations / Académie) */}
+      {/* Poursuite de la formation */}
       <div className="p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="flex items-center gap-2 mb-2">
           <BookOpen className="w-4 h-4 text-gold" />
-          <h2 className="font-cinzel text-base font-bold text-pearl">Votre formation de disciple</h2>
+          <h2 className="font-cinzel text-base font-bold text-pearl">Ma formation de disciple</h2>
         </div>
         <p className="font-inter text-sm text-pearl/55 mb-5 max-w-2xl">
-          Votre croissance se poursuit dans vos formations. Le cursus de l&apos;Académie des Élus s&apos;y débloque
-          progressivement, une fois votre intégration franchie.
+          Ta formation se poursuit dans tes cours. Le cursus de l&apos;Académie des Élus s&apos;y débloque
+          progressivement, une fois ton intégration franchie.
         </p>
         <div className="flex flex-wrap gap-2.5">
           <Link href="/member/dashboard/formations"

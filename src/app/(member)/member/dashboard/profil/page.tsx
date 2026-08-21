@@ -6,7 +6,8 @@ import {
   Save, Lock, Check, Camera, Loader2, Church, Flame, Crown, Users, Heart, BookOpen, Home, HandHeart, Bell,
   type LucideIcon,
 } from 'lucide-react'
-import { PARCOURS_DISCIPLE, BADGES } from '@/lib/constants'
+import { BADGES } from '@/lib/constants'
+import { KingdomRecognition } from '@/components/features/member/KingdomRecognition'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import toast from 'react-hot-toast'
@@ -41,14 +42,19 @@ const fmtDate = (iso?: string | null) => {
  * UI-only : humanise l'enum, aucune logique métier. NE PAS confondre avec le
  * rôle/fonction (profiles.role, cf. roleLabel de @/lib/roles).
  */
+// UNIQUEMENT l'axe APPARTENANCE (statut communautaire). Les valeurs legacy qui
+// relèvent en réalité de la croissance (disciple) ou du ministère (leader_cellule,
+// berger, pasteur) ne sont JAMAIS affichées ici comme un « statut » : elles sont
+// ramenées à leur appartenance réelle (Membre). Croissance & ministère canoniques
+// sont montrés séparément par KingdomRecognition.
 const STATUT_LABEL: Record<string, string> = {
   visiteur: 'Visiteur',
-  nouveau_membre: 'Nouveau membre',
-  membre_actif: 'Membre actif',
-  disciple: 'Disciple',
-  leader_cellule: 'Leader de cellule',
-  berger: 'Berger',
-  pasteur: 'Pasteur',
+  nouveau_membre: 'En intégration',
+  membre_actif: 'Membre',
+  disciple: 'Membre',
+  leader_cellule: 'Membre',
+  berger: 'Membre',
+  pasteur: 'Membre',
 }
 const statutLabel = (s?: string | null) => STATUT_LABEL[s || ''] || 'Membre'
 
@@ -200,8 +206,6 @@ export default function ProfilPage() {
     setPwdSaving(false)
   }
 
-  const etapeIdx = Math.min(Math.max(meta.etape, 0), PARCOURS_DISCIPLE.length - 1)
-  const etapeActuelle = PARCOURS_DISCIPLE[etapeIdx]
   const initials = `${(form.prenom[0] || '').toUpperCase()}${(form.nom[0] || '').toUpperCase()}` || '✦'
   const selectedName = PLATEFORMES.find((p) => p.id === form.plateforme_principale)?.name ?? '—'
 
@@ -434,33 +438,8 @@ export default function ProfilPage() {
             transition={{ delay: 0.2 }}
             className="space-y-6"
           >
-            {/* Parcours disciple */}
-            <div className="card-royal">
-              <h2 className="font-cinzel text-base font-bold text-pearl mb-5">Parcours Disciple</h2>
-              <div className="space-y-3">
-                {PARCOURS_DISCIPLE.map((p, i) => {
-                  const isCurrent = i === etapeIdx
-                  const isCompleted = i < etapeIdx
-                  return (
-                  <div key={p.etape} className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                      style={{
-                        background: i <= etapeIdx ? p.couleur : 'rgba(255,255,255,0.05)',
-                        color: i <= etapeIdx ? '#050505' : 'rgba(255,255,255,0.2)',
-                        boxShadow: isCurrent ? `0 0 12px ${p.couleur}55` : 'none',
-                      }}>
-                      {isCompleted ? <Check className="w-3.5 h-3.5" /> : isCurrent ? <span className="block w-1.5 h-1.5 rounded-full bg-current" /> : i + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-sm font-semibold font-inter ${isCurrent ? 'text-pearl' : isCompleted ? 'text-pearl/60' : 'text-pearl/25'}`}>{p.nom}</p>
-                      <p className={`text-xs font-inter ${isCurrent ? 'text-pearl/50' : 'text-pearl/20'}`}>{p.description}</p>
-                    </div>
-                    {isCurrent && <span className="badge-gold text-[9px]">Actuel</span>}
-                  </div>
-                  )
-                })}
-              </div>
-            </div>
+            {/* Reconnaissance canonique — croissance + appartenance + ministère (axes séparés). */}
+            <KingdomRecognition />
 
             {/* Stats */}
             <div className="card-royal">
@@ -473,10 +452,6 @@ export default function ProfilPage() {
                 <div className="flex items-center justify-between py-3 border-b border-pearl/5">
                   <span className="text-sm text-pearl/50 font-inter">Plateforme</span>
                   <span className="text-sm text-pearl font-semibold">{selectedName}</span>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <span className="text-sm text-pearl/50 font-inter">Niveau actuel</span>
-                  <span className="text-sm font-semibold" style={{ color: etapeActuelle.couleur }}>{etapeActuelle.nom}</span>
                 </div>
               </div>
             </div>

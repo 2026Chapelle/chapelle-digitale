@@ -1,9 +1,54 @@
 'use client'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { ArrowRight, Sparkles } from 'lucide-react'
-import { TUNNEL_STAGES } from '@/lib/tunnel'
-import { TunnelProgress } from '@/components/features/tunnel/TunnelProgress'
+import { ArrowRight, Sparkles, Eye, Sprout, Users, Send, type LucideIcon } from 'lucide-react'
+import { GROWTH_LADDER_FR } from '@/lib/canonical/validation-service'
+
+/**
+ * LE PARCOURS DU ROYAUME (page publique).
+ *
+ * On ne présente PAS une échelle canonique unique « Du Visiteur au Leader » : ce
+ * serait fondre appartenance, croissance, pédagogie et ministère. La vision est
+ * exprimée en QUATRE MOUVEMENTS, puis — si utile — une frise de CROISSANCE seule.
+ * `Pasteur` relève du ministère, jamais de la dernière marche de croissance.
+ */
+
+const MOUVEMENTS: {
+  cle: string; titre: string; sous: string; desc: string; icon: LucideIcon; color: string
+}[] = [
+  {
+    cle: 'accueillir',
+    titre: 'Accueillir',
+    sous: 'Visiteur · Contact',
+    desc: 'Être touché dès le premier regard et accueilli personnellement — jamais comme un numéro.',
+    icon: Eye,
+    color: '#0EA5E9',
+  },
+  {
+    cle: 'faire-grandir',
+    titre: 'Faire grandir',
+    sous: 'Nouveau croyant · Disciple + formations',
+    desc: 'Être affermi par la Parole et la formation, poser des fondations solides et porter du fruit.',
+    icon: Sprout,
+    color: '#D4AF37',
+  },
+  {
+    cle: 'accompagner',
+    titre: 'Accompagner',
+    sous: 'Intégration · Membre + suivi pastoral',
+    desc: 'Trouver sa place, être rattaché à une cellule et cheminer entouré, jamais seul.',
+    icon: Users,
+    color: '#22C55E',
+  },
+  {
+    cle: 'envoyer',
+    titre: 'Envoyer',
+    sous: 'Service · responsabilité · ministères',
+    desc: 'Mettre ses dons au service du Royaume et être envoyé pour élever les autres à son tour.',
+    icon: Send,
+    color: '#8B5CF6',
+  },
+]
 
 export default function ParcoursPage() {
   return (
@@ -26,77 +71,72 @@ export default function ParcoursPage() {
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
             <div className="section-label-dark justify-center">Le Parcours du Royaume</div>
             <h1 className="heading-cinematic-lg mb-5">
-              Du Visiteur au <span className="text-cinematic-gold">Leader</span>
+              Grandir, s&apos;intégrer, servir et <span className="text-cinematic-gold">être envoyé</span>
             </h1>
             <p className="font-inter text-pearl/55 text-base md:text-lg max-w-2xl mx-auto leading-relaxed mb-10">
-              Sept étapes pour passer du premier regard à une vie qui élève les autres. Personne n&apos;est
-              laissé seul : à chaque étape, la Chapelle vous accompagne.
+              Un chemin pour grandir dans le Royaume. Pas une échelle unique à gravir, mais quatre
+              mouvements dans lesquels la Chapelle vous accompagne — personne n&apos;est laissé seul.
             </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            className="max-w-4xl mx-auto card-cinematic p-6 md:p-8"
-          >
-            <TunnelProgress current="visiteur" variant="horizontal" linked />
           </motion.div>
         </div>
       </section>
 
-      {/* LES 7 ÉTAPES */}
-      <section className="py-16">
+      {/* LES 4 MOUVEMENTS */}
+      <section className="py-8">
         <div className="container-royal">
-          <div className="grid gap-5 md:gap-6">
-            {TUNNEL_STAGES.map((stage, i) => (
+          <div className="grid gap-5 md:gap-6 md:grid-cols-2">
+            {MOUVEMENTS.map((m, i) => (
               <motion.div
-                key={stage.key}
+                key={m.cle}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-80px' }}
-                transition={{ duration: 0.5, delay: (i % 3) * 0.05 }}
-                className="card-cinematic p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-6"
+                transition={{ duration: 0.5, delay: (i % 2) * 0.06 }}
+                className="card-cinematic p-6 md:p-8 flex items-start gap-5"
               >
-                {/* Numéro + icône */}
-                <div className="flex items-center gap-5 md:w-72 flex-shrink-0">
-                  <div
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 relative"
-                    style={{ background: `${stage.color}1A`, border: `1px solid ${stage.color}40` }}
-                  >
-                    <stage.icon className="w-7 h-7" style={{ color: stage.color }} />
-                    <span
-                      className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center font-cinzel text-[11px] font-black"
-                      style={{ background: 'linear-gradient(135deg,#F5E6A7,#D4AF37)', color: '#1A0F00' }}
-                    >
-                      {stage.index + 1}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-cinzel font-bold text-pearl text-lg">{stage.nom}</h3>
-                    <p className="font-inter text-xs text-pearl/40">{stage.role}</p>
-                  </div>
-                </div>
-
-                {/* Contenu */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-cormorant italic text-lg" style={{ color: stage.color }}>
-                    « {stage.promesse} »
-                  </p>
-                  <p className="font-inter text-sm text-pearl/55 mt-1.5 leading-relaxed">{stage.declencheur}</p>
-                </div>
-
-                {/* CTA */}
-                <Link
-                  href={stage.href}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full font-inter text-sm font-semibold flex-shrink-0 transition-all hover:-translate-y-px self-start md:self-center"
-                  style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', color: '#F5E6A7' }}
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${m.color}1A`, border: `1px solid ${m.color}40` }}
                 >
-                  {stage.cta}
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                  <m.icon className="w-6 h-6" style={{ color: m.color }} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-cinzel font-bold text-pearl text-xl">{m.titre}</h3>
+                  <p className="font-inter text-xs font-semibold mb-2" style={{ color: m.color }}>{m.sous}</p>
+                  <p className="font-inter text-sm text-pearl/55 leading-relaxed">{m.desc}</p>
+                </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FRISE DE CROISSANCE (axe unique — jamais mêlée à l'appartenance ou au ministère) */}
+      <section className="py-12">
+        <div className="container-royal">
+          <div className="card-cinematic p-6 md:p-8">
+            <div className="section-label-dark mb-4">Un seul axe : la croissance spirituelle</div>
+            <p className="font-inter text-sm text-pearl/50 mb-6 max-w-2xl">
+              La croissance se reconnaît, elle ne s&apos;achète pas et ne se déduit pas automatiquement de
+              l&apos;activité. Elle est confirmée par les bergers. Le statut communautaire, la formation et
+              les ministères sont des axes <span className="text-pearl/75 font-semibold">distincts</span>.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {GROWTH_LADDER_FR.map((g, i) => (
+                <div key={g.key} className="flex items-center gap-2">
+                  <span
+                    className="font-inter text-xs font-semibold px-3 py-1.5 rounded-full"
+                    style={{ background: 'rgba(212,175,55,0.10)', border: '1px solid rgba(212,175,55,0.25)', color: '#F5E6A7' }}
+                  >
+                    {g.label}
+                  </span>
+                  {i < GROWTH_LADDER_FR.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-pearl/25" />}
+                </div>
+              ))}
+            </div>
+            <p className="font-inter text-[11px] text-pearl/35 mt-5">
+              « Pasteur », « leader de cellule » et « formateur » sont des <span className="text-pearl/60 font-semibold">fonctions / ministères</span>, pas des niveaux de croissance.
+            </p>
           </div>
         </div>
       </section>

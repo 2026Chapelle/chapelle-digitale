@@ -4,8 +4,9 @@ import {
   Lock, Plus, ChevronRight, Trophy, BookOpen, Heart, Church, UserPlus, PenLine, Sparkles,
   type LucideIcon,
 } from 'lucide-react'
-import { PARCOURS_DISCIPLE, BADGES } from '@/lib/constants'
+import { BADGES } from '@/lib/constants'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { KingdomRecognition } from '@/components/features/member/KingdomRecognition'
 import { useAuth } from '@/components/providers/AuthProvider'
 
 type ActionItem = { label: string; points: string; icon: LucideIcon; color: string }
@@ -21,30 +22,18 @@ const ACTIONS: ActionItem[] = [
   { label: 'Soumettre une prière',     points: '+2 pts',  icon: Heart,    color: '#EC4899' },
 ]
 
-/** Étape du parcours disciple (0..6) dérivée du statut réel du membre. */
-function statutToEtapeIdx(statut?: string): number {
-  switch (statut) {
-    case 'nouveau_membre': return 1
-    case 'membre_actif': return 2
-    case 'disciple': return 3
-    case 'leader_cellule': return 4
-    case 'berger': return 5
-    case 'pasteur': return 6
-    default: return 0 // visiteur
-  }
-}
-
 export default function EngagementPage() {
   const { profile } = useAuth()
   // Données RÉELLES (profil Supabase). Aucune valeur de démonstration.
   const score = Math.max(0, Math.min(100, Number(profile?.score_engagement ?? 0)))
-  const etapeIdx = Math.max(0, Math.min(PARCOURS_DISCIPLE.length - 1,
-    Number(profile?.parcours_disciple_etape ?? statutToEtapeIdx(profile?.membre_statut))))
   // Aucun badge débloqué tant que le moteur d'attribution réel n'est pas connecté.
   const unlockedCount = 0
 
-  const currentEtape = PARCOURS_DISCIPLE[etapeIdx]
-  const nextEtape = PARCOURS_DISCIPLE[etapeIdx + 1]
+  // PALIER D'ENGAGEMENT : pure gamification du score (0..5). N'a AUCUN rapport avec
+  // le niveau de croissance spirituelle, le statut communautaire ou un ministère.
+  const tier = Math.floor(score / 20)
+  const tierLabel = `Palier ${tier + 1}`
+  const nextTierLabel = tier < 5 ? `Palier ${tier + 2}` : null
   const levelProgress = (score % 20) / 20 * 100
 
   const circumference = 2 * Math.PI * 58
@@ -55,8 +44,8 @@ export default function EngagementPage() {
 
         <PageHeader
           eyebrow="Espace Membre"
-          title={<>Engagement &amp; <span className="text-cinematic-gold">Parcours</span></>}
-          description="Score, badges et progression dans votre parcours de discipolat."
+          title={<>Engagement &amp; <span className="text-cinematic-gold">Progression</span></>}
+          description="Votre score d'engagement, vos badges et votre reconnaissance dans la maison."
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -99,8 +88,8 @@ export default function EngagementPage() {
               {/* Level bar */}
               <div className="mt-6 max-w-xs mx-auto">
                 <div className="flex justify-between text-xs text-pearl/40 mb-2 font-inter">
-                  <span style={{ color: currentEtape.couleur }}>{currentEtape.nom}</span>
-                  {nextEtape && <span className="text-pearl/25">{nextEtape.nom}</span>}
+                  <span className="text-gold">{tierLabel}</span>
+                  {nextTierLabel && <span className="text-pearl/25">{nextTierLabel}</span>}
                 </div>
                 <div className="progress-royal">
                   <div className="progress-fill" style={{ width: `${levelProgress}%` }} />
@@ -111,45 +100,14 @@ export default function EngagementPage() {
               </div>
             </motion.div>
 
-            {/* Parcours stepper */}
+            {/* Reconnaissance canonique — croissance + appartenance + ministère (axes séparés,
+                jamais dérivés du score d'engagement). */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="card-royal"
             >
-              <h2 className="font-cinzel text-base font-bold text-pearl mb-6">Parcours Disciple</h2>
-              <div className="flex items-start gap-0 overflow-x-auto pb-2">
-                {PARCOURS_DISCIPLE.map((p, i) => (
-                  <div key={p.etape} className="flex flex-col items-center flex-1 min-w-[80px] relative">
-                    {/* Connector line */}
-                    {i < PARCOURS_DISCIPLE.length - 1 && (
-                      <div
-                        className="absolute top-5 left-1/2 w-full h-0.5"
-                        style={{
-                          background: i < etapeIdx ? currentEtape.couleur : 'rgba(255,255,255,0.05)',
-                          zIndex: 0,
-                        }}
-                      />
-                    )}
-                    {/* Step circle */}
-                    <div
-                      className="relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold mb-2 transition-all"
-                      style={{
-                        background: i <= etapeIdx ? p.couleur : 'rgba(255,255,255,0.05)',
-                        color: i <= etapeIdx ? '#050505' : 'rgba(255,255,255,0.2)',
-                        boxShadow: i === etapeIdx ? `0 0 20px ${p.couleur}60` : 'none',
-                        transform: i === etapeIdx ? 'scale(1.15)' : 'scale(1)',
-                      }}
-                    >
-                      {i < etapeIdx ? '✓' : i + 1}
-                    </div>
-                    <p className={`text-[10px] text-center font-inter leading-tight ${
-                      i === etapeIdx ? 'text-pearl font-semibold' : i < etapeIdx ? 'text-pearl/40' : 'text-pearl/20'
-                    }`}>{p.nom}</p>
-                  </div>
-                ))}
-              </div>
+              <KingdomRecognition />
             </motion.div>
 
             {/* Actions */}
@@ -245,25 +203,22 @@ export default function EngagementPage() {
               transition={{ delay: 0.25 }}
               className="card-royal"
             >
-              <h2 className="font-cinzel text-sm font-bold text-pearl mb-4">Niveau actuel</h2>
+              <h2 className="font-cinzel text-sm font-bold text-pearl mb-4">Palier d&apos;engagement</h2>
               <div className="flex items-center gap-3 p-3 rounded-2xl border"
-                style={{ borderColor: `${currentEtape.couleur}30`, background: `${currentEtape.couleur}10` }}>
+                style={{ borderColor: 'rgba(212,175,55,0.3)', background: 'rgba(212,175,55,0.08)' }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: `${currentEtape.couleur}20`, border: `1px solid ${currentEtape.couleur}40` }}>
-                  <Sparkles className="w-[18px] h-[18px]" style={{ color: currentEtape.couleur }} />
+                  style={{ background: 'rgba(212,175,55,0.14)', border: '1px solid rgba(212,175,55,0.4)' }}>
+                  <Sparkles className="w-[18px] h-[18px] text-gold" />
                 </div>
                 <div>
-                  <p className="font-cinzel font-bold text-pearl text-sm" style={{ color: currentEtape.couleur }}>
-                    {currentEtape.nom}
-                  </p>
-                  <p className="text-xs text-pearl/40 font-inter">{currentEtape.description}</p>
+                  <p className="font-cinzel font-bold text-gold text-sm">{tierLabel}</p>
+                  <p className="text-xs text-pearl/40 font-inter">Basé sur ton score — distinct de ta croissance spirituelle.</p>
                 </div>
               </div>
-              {nextEtape && (
+              {nextTierLabel && (
                 <div className="mt-3 p-3 rounded-2xl bg-pearl/[0.02] border border-pearl/5">
-                  <p className="text-xs text-pearl/30 font-inter mb-1">Prochain niveau</p>
-                  <p className="text-sm font-semibold text-pearl/50 font-inter">{nextEtape.nom}</p>
-                  <p className="text-xs text-pearl/25 font-inter">{nextEtape.description}</p>
+                  <p className="text-xs text-pearl/30 font-inter mb-1">Prochain palier</p>
+                  <p className="text-sm font-semibold text-pearl/50 font-inter">{nextTierLabel}</p>
                 </div>
               )}
             </motion.div>

@@ -5,9 +5,9 @@ import Link from 'next/link'
 import {
   BookOpen, Heart, Calendar, Bell, ChevronRight,
   Trophy, Play, TrendingUp, Zap, Radio,
-  Star, Shield, Users, Sparkles, GraduationCap, type LucideIcon,
+  Star, Shield, Users, Sparkles, type LucideIcon,
 } from 'lucide-react'
-import { BADGES, PARCOURS_DISCIPLE } from '@/lib/constants'
+import { BADGES } from '@/lib/constants'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { roleLabel } from '@/lib/roles'
 import { AnnouncementBanner } from '@/components/features/member/AnnouncementBanner'
@@ -53,8 +53,6 @@ export default function DashboardPage() {
   const statut = roleLabel(profile?.membre_statut || profile?.role)
   // Données RÉELLES uniquement : aucune valeur de démonstration (défaut 0 / Visiteur).
   const score = Number(profile?.score_engagement ?? 0)
-  const etapeIdx = Math.min(Math.max(Number(profile?.parcours_disciple_etape ?? 0), 0), PARCOURS_DISCIPLE.length - 1)
-  const etape = PARCOURS_DISCIPLE[etapeIdx]
 
   useEffect(() => {
     if (isDemo) { setFormations([]); return }
@@ -77,8 +75,6 @@ export default function DashboardPage() {
   const quickStats = [
     { label: 'Formations', value: String(formations?.length ?? '—'), suffix: 'inscrites', icon: BookOpen, color: '#8B5CF6' },
     { label: 'Engagement', value: String(score), suffix: '/ 100', icon: TrendingUp, color: '#22C55E' },
-    { label: 'Parcours', value: `${etapeIdx + 1}`, suffix: `/ ${PARCOURS_DISCIPLE.length}`, icon: GraduationCap, color: '#0EA5E9' },
-    { label: 'Niveau', value: etape.nom, suffix: 'actuel', icon: Trophy, color: '#D4AF37' },
   ]
 
   return (
@@ -107,7 +103,7 @@ export default function DashboardPage() {
                 {prenom ? <>Bonjour, <span className="text-cinematic-gold">{prenom}</span></> : <>Bienvenue dans votre <span className="text-cinematic-gold">espace</span></>}
               </h1>
               <p className="font-inter text-sm md:text-[15px] mb-6 leading-relaxed max-w-xl" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                Niveau actuel : <span className="font-semibold" style={{ color: etape.couleur }}>{etape.nom}</span> — continuez votre progression spirituelle.
+                Avancez à votre rythme : votre croissance, votre intégration et vos formations progressent chacune sur leur propre axe.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link href="/member/dashboard/lives" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-inter font-semibold text-sm" style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)', color: '#1A0F00', boxShadow: '0 4px 16px rgba(212,175,55,0.3)' }}>
@@ -136,16 +132,12 @@ export default function DashboardPage() {
                 <p className="font-inter text-[11px] mt-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Engagement</p>
               </div>
               <div className="hidden md:block">
-                <p className="font-inter text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>Parcours Disciple</p>
-                <div className="flex items-center gap-1.5">
-                  {PARCOURS_DISCIPLE.map((p, i) => (
-                    <div key={p.etape} title={p.nom} className="w-7 h-7 rounded-lg flex items-center justify-center font-cinzel font-black text-[10px]"
-                      style={{ background: i <= etapeIdx ? `${p.couleur}CC` : 'rgba(255,255,255,0.05)', color: i <= etapeIdx ? '#1A0F00' : 'rgba(255,255,255,0.2)', boxShadow: i === etapeIdx ? `0 0 12px ${p.couleur}60` : 'none' }}>
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-                <p className="font-inter text-[11px] mt-2 font-semibold" style={{ color: etape.couleur }}>{etape.nom}</p>
+                <p className="font-inter text-[11px] mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>Mon parcours</p>
+                <Link href="/member/dashboard/parcours"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-inter text-xs font-semibold"
+                  style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.25)', color: '#F5E6A7' }}>
+                  <Sparkles className="w-3.5 h-3.5" /> Voir ma reconnaissance
+                </Link>
               </div>
             </div>
           </div>
