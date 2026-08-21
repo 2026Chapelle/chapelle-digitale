@@ -26,6 +26,8 @@ export interface PdfPageProps {
   zoom?: number
   /** Requête de recherche active : surligne les occurrences sur cette page. */
   highlightQuery?: string | null
+  /** Surlignages Study PERSISTANTS de l'utilisateur pour cette page (couleur + texte). */
+  studyHighlights?: { color: string; selectedText: string }[]
   className?: string
   ariaLabel?: string
 }
@@ -36,6 +38,7 @@ export function PdfPage({
   fitWidth,
   zoom = 1,
   highlightQuery,
+  studyHighlights,
   className,
   ariaLabel,
 }: PdfPageProps) {
@@ -118,7 +121,7 @@ export function PdfPage({
     }
   }, [pdf, pageNumber, fitWidth, zoom])
 
-  // Surbrillance des occurrences de recherche sur les spans de la couche texte.
+  // Surbrillance TEMPORAIRE des occurrences de recherche (distincte des surlignages Study).
   useEffect(() => {
     const layer = textLayerRef.current
     if (!layer || !textReady) return
@@ -130,8 +133,26 @@ export function PdfPage({
     })
   }, [highlightQuery, textReady, pageNumber])
 
+  // Surlignages Study PERSISTANTS (couleur par annotation) — best-effort par span.
+  useEffect(() => {
+    const layer = textLayerRef.current
+    if (!layer || !textReady) return
+    const spans = layer.querySelectorAll<HTMLElement>('span')
+    spans.forEach((s) => { s.style.background = ''; delete s.dataset.study })
+    for (const hl of studyHighlights ?? []) {
+      const needle = foldText(hl.selectedText.trim())
+      if (needle.length < 2) continue
+      spans.forEach((s) => {
+        if (!s.dataset.study && foldText(s.textContent ?? '').includes(needle)) {
+          s.style.background = `${hl.color}66` // ~0.4 alpha (hex 8 digits)
+          s.dataset.study = '1'
+        }
+      })
+    }
+  }, [studyHighlights, textReady, pageNumber])
+
   return (
-    <div className={className} style={{ position: 'relative', lineHeight: 0 }}>
+    <div className={className} data-page={pageNumber} style={{ position: 'relative', lineHeight: 0 }}>
       <canvas
         ref={canvasRef}
         role="img"

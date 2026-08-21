@@ -10,11 +10,12 @@
 import { useEffect, useState } from 'react'
 import {
   ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, Minimize2, Download, X,
-  PanelsTopLeft, ListTree, Search, BookOpen, ScrollText, ArrowLeft,
+  PanelsTopLeft, ListTree, Search, BookOpen, ScrollText, ArrowLeft, GraduationCap,
+  Bookmark, BookmarkCheck,
 } from 'lucide-react'
 import { MAX_SCALE, MIN_SCALE, type ViewMode } from '@/lib/pdf/reader-navigation'
 
-export type PanelKind = 'pages' | 'sommaire' | 'recherche'
+export type PanelKind = 'pages' | 'sommaire' | 'recherche' | 'etude'
 
 export interface PdfToolbarProps {
   title?: string
@@ -27,6 +28,8 @@ export interface PdfToolbarProps {
   isFullscreen: boolean
   mode: ViewMode
   activePanel: PanelKind | null
+  isPageBookmarked: boolean
+  onTogglePageBookmark: () => void
   downloadUrl?: string | null
   onPrev: () => void
   onNext: () => void
@@ -48,7 +51,7 @@ const activeBg = { background: 'rgba(212,175,55,0.16)', border: '1px solid rgba(
 export function PdfToolbar(props: PdfToolbarProps) {
   const {
     title, currentPage, total, pageLabel, scale, canPrev, canNext, isFullscreen, mode,
-    activePanel, downloadUrl, onPrev, onNext, onGoToPage, onZoomIn, onZoomOut, onFitWidth,
+    activePanel, isPageBookmarked, onTogglePageBookmark, downloadUrl, onPrev, onNext, onGoToPage, onZoomIn, onZoomOut, onFitWidth,
     onTogglePanel, onToggleMode, onToggleFullscreen, onClose,
   } = props
 
@@ -128,6 +131,17 @@ export function PdfToolbar(props: PdfToolbarProps) {
         {panelBtn('pages', 'Pages', PanelsTopLeft)}
         {panelBtn('sommaire', 'Sommaire', ListTree)}
         {panelBtn('recherche', 'Rechercher', Search)}
+        {panelBtn('etude', 'Étude', GraduationCap)}
+        <button
+          className={iconBtn}
+          style={isPageBookmarked ? activeBg : btnBg}
+          onClick={onTogglePageBookmark}
+          aria-label={isPageBookmarked ? 'Retirer le signet de cette page' : 'Ajouter un signet à cette page'}
+          aria-pressed={isPageBookmarked}
+          title={isPageBookmarked ? 'Signet posé' : 'Signet de page'}
+        >
+          {isPageBookmarked ? <BookmarkCheck className="w-4 h-4" style={{ color: '#F5E6A7' }} /> : <Bookmark className="w-4 h-4" />}
+        </button>
 
         <div className="hidden sm:flex items-center gap-1.5 pl-1.5 ml-0.5" style={{ borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
           <button className={iconBtn} style={btnBg} onClick={onZoomOut} disabled={scale <= MIN_SCALE} aria-label="Zoom arrière">
