@@ -34,6 +34,9 @@ export async function GET(_req: NextRequest) {
       const ip = await getIntegrationProgress(sp.uid)
       const r = computeMemberReadiness({
         current_statut: sp.profile?.membre_statut ?? null,
+        // Source de vérité de la croissance RECONNUE : l'axe canonique (déjà projeté).
+        // Une validation pastorale confirmée fait retomber `pending` à false.
+        current_growth_canonical: projection.growth.key,
         parcours: ip.parcours.map((p) => ({ slug: p.slug, complete: p.complete, done: p.done, total: p.total })),
       })
       readiness = { pending: r.pending }

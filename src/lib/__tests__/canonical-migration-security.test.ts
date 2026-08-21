@@ -44,8 +44,9 @@ describe('Migration canonique — RLS deny-by-default', () => {
     // La seule SELECT policy sur les tables privées est bornée par is_pastoral_responsable_of.
     expect(persistence).toContain('mca_select_responsable on public.member_canonical_axes for select to authenticated')
     expect(persistence).toContain('is_pastoral_responsable_of(profile_id)')
-    // Pas de self-read direct type auth.uid() = profile_id sur les axes de base.
+    // Pas de self-read direct sur les axes de base — quel que soit l'ordre des opérandes.
     expect(persistence).not.toMatch(/member_canonical_axes[\s\S]{0,120}using\s*\(\s*auth\.uid\(\)\s*=\s*profile_id/i)
+    expect(persistence).not.toMatch(/member_canonical_axes[\s\S]{0,120}using\s*\(\s*profile_id\s*=\s*auth\.uid\(\)/i)
   })
 })
 

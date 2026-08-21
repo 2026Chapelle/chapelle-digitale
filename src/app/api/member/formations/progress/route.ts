@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { getSessionProfile } from '@/lib/member-auth'
 import { parcoursGate } from '@/lib/formations/parcours-gate-server'
+import { computeCommunityIntegration } from '@/lib/formations/statut-progression'
 import { ensureIntegrationCertificate } from '@/lib/formations/integration-progress-server'
 import { WATCH_THRESHOLD, hasPlayableVideo } from '@/lib/formations/video-validation'
 import { evaluateDailyLock } from '@/lib/formations/module-daily-unlock'
@@ -109,15 +110,28 @@ export async function POST(req: NextRequest) {
     if (res.progression >= 100) {
       try { await notifyParcoursCompleted(sp.uid, { formationTitre: f?.titre, slug: f?.slug }) } catch { /* */ }
 
-      // ── AUCUNE montée AUTOMATIQUE de statut spirituel (règle canonique) ──────────
-      // La complétion d'un parcours est un FAIT PÉDAGOGIQUE (module_completions +
-      // parcours_disciple_etape via recompute), jamais une promotion de croissance.
-      // Un membre n'est JAMAIS étiqueté « disciple » du seul fait d'avoir terminé un
-      // cours : la reconnaissance de croissance passe EXCLUSIVEMENT par la validation
-      // HUMAINE auditée (RPC validate_member_canonical_axis, écran admin Parcours).
-      // La readiness (COMPLÉTION → READY_FOR_REVIEW) est calculée EN LECTURE, sans
-      // aucune écriture (src/lib/canonical/member-readiness.ts) et proposée au pastorat.
-      // INVARIANT : READY_FOR_REVIEW ≠ PROMOTED.
+      // ── SEULE transition automatique : INTÉGRATION COMMUNAUTAIRE (appartenance) ──
+      // Terminer le parcours d'accueil requis fait passer un PUR `visiteur` à
+      // `nouveau_membre` — « a rejoint l'espace communautaire, accès aux contenus
+      // membres ». Ce N'EST PAS une promotion spirituelle : aucun growth_level, aucun
+      // passage à Disciple/membre_actif, aucun MinistryRole, aucun RBAC pastoral.
+      // La reconnaissance de CROISSANCE passe EXCLUSIVEMENT par la validation HUMAINE
+      // auditée (RPC validate_member_canonical_axis). La readiness (COMPLÉTION →
+      // READY_FOR_REVIEW) est calculée EN LECTURE seule (member-readiness.ts) et
+      // proposée au pastorat. INVARIANT : accès communautaire auto ≠ promotion
+      // spirituelle auto ; READY_FOR_REVIEW ≠ PROMOTED.
+      try {
+        const communaute = computeCommunityIntegration(sp.profile?.membre_statut, f?.slug)
+        if (communaute) {
+          const { error: upErr } = await supabaseAdmin.from('profiles')
+            .update({ membre_statut: communaute }).eq('id', sp.uid)
+          if (!upErr) {
+            await supabaseAdmin.from('membre_statut_history').insert({
+              user_id: sp.uid, ancien_statut: 'visiteur', nouveau_statut: communaute, source: `integration:${f?.slug}`,
+            })
+          }
+        }
+      } catch { /* non bloquant */ }
 
       if (f?.certifiant) {
         const { data: existing } = await supabaseAdmin.from('certificats')

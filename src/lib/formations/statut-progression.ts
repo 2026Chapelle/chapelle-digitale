@@ -54,3 +54,27 @@ export function computeStatutUpgrade(currentStatut: string | null | undefined, p
   if (!cible) return null
   return rankOf(cible) > rankOf(currentStatut) ? cible : null
 }
+
+/**
+ * INTÉGRATION COMMUNAUTAIRE (appartenance) — SEULE transition de statut automatique.
+ *
+ * Terminer le parcours d'accueil requis fait passer un PUR `visiteur` à `nouveau_membre`.
+ * Signification EXCLUSIVE : « cette personne a rejoint l'espace communautaire et peut
+ * accéder aux contenus membres ». Ce n'est PAS une promotion spirituelle.
+ *
+ * Garanties (invariant : accès communautaire auto ≠ promotion spirituelle auto) :
+ *   • n'agit QUE depuis `visiteur` (ou statut nul) et QUE vers `nouveau_membre` ;
+ *   • ne produit AUCUN growth_level, AUCUN passage à Disciple/membre_actif, AUCUN
+ *     MinistryRole, AUCUN RBAC pastoral, AUCUNE reconnaissance canonique.
+ * Les transitions suivantes (nouveau_membre → membre_actif, croissance…) restent HUMAINES.
+ *
+ * Dette assumée : à terme, faire porter l'accès par community_status canonique ou une
+ * permission dédiée plutôt que par membre_statut — sans casser l'accès existant ici.
+ */
+export function computeCommunityIntegration(
+  currentStatut: string | null | undefined,
+  parcoursSlug: string | null | undefined,
+): 'nouveau_membre' | null {
+  if ((currentStatut ?? 'visiteur') !== 'visiteur') return null
+  return statutCibleForParcours(parcoursSlug) === 'nouveau_membre' ? 'nouveau_membre' : null
+}

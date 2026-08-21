@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeMemberReadiness } from '@/lib/canonical/member-readiness'
+import { computeMemberReadiness, effectiveCurrentStatut } from '@/lib/canonical/member-readiness'
 
 /**
  * PARCOURS DU ROYAUME — chaîne COMPLÉTION → READY_FOR_REVIEW en lecture seule.
@@ -47,6 +47,33 @@ describe('computeMemberReadiness (lecture seule, borné ≤ disciple)', () => {
       parcours: [{ slug: 'je-decouvre-la-maison', complete: true, done: 6, total: 6 }],
     })
     expect(r.pending).toBe(true)
+  })
+
+  it('la reconnaissance canonique confirmée fait RETOMBER pending (anti-bannière collante)', () => {
+    // membre_statut legacy resté « visiteur », mais un berger a reconnu la croissance
+    // canonique « disciple » → plus aucune readiness en attente.
+    const r = computeMemberReadiness({
+      current_statut: 'visiteur',
+      current_growth_canonical: 'disciple',
+      parcours: [{ slug: 'je-stabilise-ma-foi', complete: true, done: 5, total: 5 }],
+    })
+    expect(r.pending).toBe(false)
+  })
+
+  it('reconnaissance canonique intermédiaire : encore en attente si une cible reste au-dessus', () => {
+    const r = computeMemberReadiness({
+      current_statut: 'visiteur',
+      current_growth_canonical: 'new_believer', // rang legacy nouveau_membre (1)
+      parcours: [{ slug: 'je-stabilise-ma-foi', complete: true, done: 5, total: 5 }], // cible disciple (3)
+    })
+    expect(r.pending).toBe(true)
+  })
+
+  it('effectiveCurrentStatut prend le rang le plus élevé (legacy ∨ canonique)', () => {
+    expect(effectiveCurrentStatut('visiteur', 'disciple')).toBe('disciple')
+    expect(effectiveCurrentStatut('disciple', 'new_believer')).toBe('disciple') // legacy plus haut conservé
+    expect(effectiveCurrentStatut('visiteur', null)).toBe('visiteur')
+    expect(effectiveCurrentStatut(null, null)).toBeNull()
   })
 
   it('la vue caviardée n’expose QUE pending/status — aucune valeur cible', () => {
