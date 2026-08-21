@@ -24,6 +24,7 @@ import { progressStorageKey, serializeProgress, parseProgress } from '@/lib/pdf/
 import { usePdfDocument } from './usePdfDocument'
 import { usePdfText } from './usePdfText'
 import { PdfPage } from './PdfPage'
+import { PageTurnStage } from './PageTurnStage'
 import { PdfToolbar, type PanelKind } from './PdfToolbar'
 import { PdfThumbnails } from './PdfThumbnails'
 import { PdfOutline } from './PdfOutline'
@@ -102,7 +103,7 @@ export function PdfReader({
       }
       setMode(startMode)
       const allowDouble = startMode === 'livre' && numPages > 1
-      const base = initReaderState({ total: numPages, initialPage: startPage, viewportWidth: vw, allowDouble })
+      const base = initReaderState({ total: numPages, initialPage: startPage, viewportWidth: vw, allowDouble, cover: true })
       setReader({ ...base, scale: clampScale(startScale) })
       resumeApplied.current = true
     } else if (status !== 'ready') {
@@ -329,62 +330,59 @@ export function PdfReader({
         {/* Zone de lecture */}
         <div
           className="relative flex-1 min-w-0 overflow-auto overscroll-contain"
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
+          onTouchStart={mode === 'lecture' ? onTouchStart : undefined}
+          onTouchEnd={mode === 'lecture' ? onTouchEnd : undefined}
           onDoubleClick={onDoubleClick}
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           <div
             ref={contentRef}
             className="min-h-full w-full flex items-center justify-center px-3 sm:px-8 py-5 sm:py-10"
-            style={{ perspective: isFlip ? 2200 : undefined }}
+            style={{ perspective: mode === 'livre' ? 2200 : undefined }}
           >
             {status === 'loading' && <PdfLoadingState title={title} />}
             {status === 'error' && <PdfErrorState onRetry={reload} fallbackUrl={downloadUrl ?? src} detail={error} />}
             {status === 'ready' && reader && pdf && pageFitWidth > 0 && (
-              <AnimatePresence mode="wait" custom={direction} initial={false}>
-                <motion.div
-                  key={`${reader.page}-${reader.spread}`}
-                  custom={direction}
-                  variants={variants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={transition}
-                  className="relative flex items-stretch justify-center"
-                  style={{
-                    gap: reader.spread === 'double' ? 0 : PAGE_GAP,
-                    transformStyle: isFlip ? 'preserve-3d' : undefined,
-                    filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.55))',
-                  }}
-                >
-                  {pages.map((p, i) => (
-                    <div key={p} className="relative" style={{ boxShadow: '0 2px 30px rgba(0,0,0,0.4)' }}>
-                      <PdfPage
-                        pdf={pdf}
-                        pageNumber={p}
-                        fitWidth={pageFitWidth}
-                        zoom={reader.scale}
-                        highlightQuery={highlightQuery}
-                        ariaLabel={`${title ? `${title} — ` : ''}page ${p} sur ${reader.total}`}
-                      />
-                      {/* Reliure centrale subtile (mode double) */}
-                      {reader.spread === 'double' && pages.length === 2 && (
-                        <span
-                          aria-hidden
-                          className="absolute top-0 bottom-0 w-6 pointer-events-none"
-                          style={{
-                            [i === 0 ? 'right' : 'left']: 0,
-                            background: i === 0
-                              ? 'linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.22) 100%)'
-                              : 'linear-gradient(90deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0) 100%)',
-                          } as React.CSSProperties}
+              mode === 'livre' ? (
+                /* MODE LIVRE — vrai tourne-page corner-drag (fallback gracieux si zoom/reduced-motion). */
+                <PageTurnStage
+                  pdf={pdf}
+                  reader={reader}
+                  pageFitWidth={pageFitWidth}
+                  highlightQuery={highlightQuery}
+                  title={title}
+                  reduceMotion={Boolean(reduceMotion)}
+                  onTurn={(d) => (d === 1 ? doNext() : doPrev())}
+                />
+              ) : (
+                /* MODE LECTURE — transition minimale (glissé), priorité texte/zoom/recherche. */
+                <AnimatePresence mode="wait" custom={direction} initial={false}>
+                  <motion.div
+                    key={`${reader.page}-${reader.spread}`}
+                    custom={direction}
+                    variants={variants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={transition}
+                    className="relative flex items-stretch justify-center"
+                    style={{ gap: PAGE_GAP, filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.55))' }}
+                  >
+                    {pages.map((p) => (
+                      <div key={p} className="relative" style={{ boxShadow: '0 2px 30px rgba(0,0,0,0.4)' }}>
+                        <PdfPage
+                          pdf={pdf}
+                          pageNumber={p}
+                          fitWidth={pageFitWidth}
+                          zoom={reader.scale}
+                          highlightQuery={highlightQuery}
+                          ariaLabel={`${title ? `${title} — ` : ''}page ${p} sur ${reader.total}`}
                         />
-                      )}
-                    </div>
-                  ))}
-                </motion.div>
-              </AnimatePresence>
+                      </div>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
+              )
             )}
           </div>
 
@@ -398,8 +396,9 @@ export function PdfReader({
             </div>
           )}
 
-          {/* Zones de clic gauche/droite (desktop, mode livre) */}
-          {status === 'ready' && reader && mode === 'livre' && (
+          {/* Zones de clic gauche/droite (desktop, mode LECTURE — en mode LIVRE, le
+              tourne-page PageTurnStage gère lui-même clic + drag sur les bords). */}
+          {status === 'ready' && reader && mode === 'lecture' && (
             <>
               <button aria-label="Page précédente" onClick={doPrev} disabled={!canGoPrev(reader)}
                 className="hidden sm:block absolute left-0 top-0 bottom-0 w-[12%] cursor-w-resize disabled:cursor-default focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]" style={{ background: 'transparent' }} />
