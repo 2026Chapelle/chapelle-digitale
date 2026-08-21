@@ -11,8 +11,6 @@ import { ProofStripSection } from '@/components/sections/ProofStripSection'
 import { VisionSection } from '@/components/sections/VisionSection'
 import { StartHereSection } from '@/components/sections/StartHereSection'
 import { LifeExperiencesSection } from '@/components/sections/LifeExperiencesSection'
-import { LiveSection } from '@/components/sections/LiveSection'
-import { loadLivePrograms } from '@/lib/live/load-programs'
 import { PodcastHomeSection } from '@/components/home/PodcastHomeSection'
 import { CommunitySection } from '@/components/sections/CommunitySection'
 import { JoinSection } from '@/components/sections/JoinSection'
@@ -31,12 +29,7 @@ type Block = CmsHomepageBlock & {
 }
 
 export async function HomeSections() {
-  // Blocs éditables + programmation régulière canonique (live_programs), en parallèle.
-  const [rowsRaw, livePrograms] = await Promise.all([
-    cmsList<Block>('cms_homepage_blocks'),
-    loadLivePrograms(),
-  ])
-  const rows = rowsRaw ?? []
+  const rows = (await cmsList<Block>('cms_homepage_blocks')) ?? []
   const byKey: Record<string, Block> = {}
   for (const b of rows) byKey[b.block_key] = b
 
@@ -82,12 +75,6 @@ export async function HomeSections() {
       <div className="scene-joy">
         <SectionGlow />
         <LifeExperiencesSection />
-      </div>
-
-      {/* 5a — Live & Cultes (aperçu : statut live depuis cms_lives + rendez-vous réguliers depuis live_programs) */}
-      <div className="scene-joy">
-        <SectionGlow />
-        <LiveSection programs={livePrograms} />
       </div>
 
       {/* 5b — Podcast */}

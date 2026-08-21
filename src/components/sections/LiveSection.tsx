@@ -1,14 +1,16 @@
 'use client'
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
 import Link from 'next/link'
-import { Play, Calendar, ChevronDown, ArrowRight, Radio } from 'lucide-react'
+import {
+  Play, Clock, Calendar, ChevronDown, ArrowRight, Radio,
+  Church, BookOpen, Sunrise, Flame,
+  type LucideIcon,
+} from 'lucide-react'
 import { PremiumImage } from '@/components/ui/PremiumImage'
 import { HERO_IMAGES } from '@/lib/images'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { events } from '@/lib/analytics'
-import { programWeeklySlots, type LiveProgram, type ProgramWeeklySlot } from '@/lib/live'
-import { extractYouTubeId } from '@/lib/video'
 
 /* ============================================================
    BLOC 2 — PROCHAIN RENDEZ-VOUS (Live & Cultes)
@@ -17,23 +19,29 @@ import { extractYouTubeId } from '@/lib/video'
    Palette tenue : or × charbon, rouge réservé au direct.
    ============================================================ */
 
+type ScheduleItem = { jour: string; heure: string; type: string; icon: LucideIcon; dayIndex: number; hour: number; min: number }
+const SCHEDULE: ScheduleItem[] = [
+  { jour: 'Lundi',    heure: '05h30', type: 'Matinale de Prière',          icon: Sunrise, dayIndex: 1, hour: 5,  min: 30 },
+  { jour: 'Mercredi', heure: '05h30', type: 'Matinale de Prière',          icon: Sunrise, dayIndex: 3, hour: 5,  min: 30 },
+  { jour: 'Mercredi', heure: '19h30', type: 'École du Royaume',            icon: BookOpen, dayIndex: 3, hour: 19, min: 30 },
+  { jour: 'Vendredi', heure: '05h30', type: 'Matinale de Prière',          icon: Sunrise, dayIndex: 5, hour: 5,  min: 30 },
+  { jour: 'Vendredi', heure: '19h30', type: 'Vendredi de Puissance',       icon: Flame,   dayIndex: 5, hour: 19, min: 30 },
+  { jour: 'Dimanche', heure: '10h30', type: 'Culte de Célébration Royale', icon: Church,  dayIndex: 0, hour: 10, min: 30 },
+]
+
 type NextService = { label: string; jour: string; heure: string; at: Date }
 
-/**
- * Prochaine occurrence (à venir) des créneaux réguliers — dérivés de `live_programs`
- * (SOURCE CANONIQUE unique ; plus aucun SCHEDULE codé en dur). Calcul client-only
- * (pas de mismatch SSR). Ne préjuge JAMAIS d'un « EN DIRECT » (cf. cms_lives).
- */
-function computeNextService(now: Date, slots: ProgramWeeklySlot[]): NextService | null {
+/** Prochaine occurrence (à venir) du programme hebdomadaire. */
+function computeNextService(now: Date): NextService | null {
   let best: NextService | null = null
-  for (const s of slots) {
+  for (const s of SCHEDULE) {
     const d = new Date(now)
     let delta = (s.dayIndex - now.getDay() + 7) % 7
     d.setHours(s.hour, s.min, 0, 0)
     if (delta === 0 && d.getTime() <= now.getTime()) delta = 7
     d.setDate(d.getDate() + delta)
     if (!best || d.getTime() < best.at.getTime()) {
-      best = { label: s.label, jour: s.jour, heure: s.heure, at: d }
+      best = { label: s.type, jour: s.jour, heure: s.heure, at: d }
     }
   }
   return best
@@ -49,17 +57,28 @@ function diff(target: Date, now: Date): Countdown {
   return { d, h, m, s }
 }
 
-
-export interface LiveSectionProps {
-  /** Programmation régulière canonique (live_programs) — remplace l'ancien SCHEDULE en dur. */
-  programs?: LiveProgram[]
+/** Extraction robuste de l'ID YouTube (11 caractères) depuis les formats courants. */
+function youtubeId(url: string): string | null {
+  if (!url) return null
+  const patterns = [
+    /youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})/,
+    /youtu\.be\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/live\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
+  ]
+  for (const re of patterns) {
+    const m = url.match(re)
+    if (m) return m[1]
+  }
+  const raw = url.trim()
+  if (/^[A-Za-z0-9_-]{11}$/.test(raw)) return raw
+  return null
 }
 
-export function LiveSection({ programs = [] }: LiveSectionProps) {
+export function LiveSection() {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
-  // Créneaux hebdomadaires dérivés des programmes canoniques (source unique).
-  const slots = useMemo(() => programWeeklySlots(programs), [programs])
 
   // Direct réel (cms_lives) — même source que /live. Aucun faux contenu.
   // V2.7-A.1 : on capte l'URL réelle (youtube_url/video_url) pour rendre la vidéo
@@ -81,7 +100,7 @@ export function LiveSection({ programs = [] }: LiveSectionProps) {
         if (cancelled || !data) return
         const row: any = data.find((d: any) => (d.status === 'live' || d.is_live) && (d.youtube_url || d.video_url))
         if (row) {
-          const yt = extractYouTubeId(row.youtube_url || '')
+          const yt = youtubeId(String(row.youtube_url || ''))
           // Priorité : cover_url réelle → vignette YouTube → (vide = fallback générique côté rendu).
           const thumbnail = row.cover_url
             ? String(row.cover_url)
@@ -104,7 +123,7 @@ export function LiveSection({ programs = [] }: LiveSectionProps) {
   useEffect(() => {
     const tick = () => {
       const now = new Date()
-      const ns = computeNextService(now, slots)
+      const ns = computeNextService(now)
       setNext(ns)
       setCd(ns ? diff(ns.at, now) : null)
     }
@@ -114,7 +133,7 @@ export function LiveSection({ programs = [] }: LiveSectionProps) {
     if (!inView) return
     const t = setInterval(tick, 1000)
     return () => clearInterval(t)
-  }, [inView, slots])
+  }, [inView])
 
   const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -162,7 +181,7 @@ export function LiveSection({ programs = [] }: LiveSectionProps) {
                     <p className="font-inter text-xs" style={{ color: 'rgba(245,230,216,0.5)' }}>Le culte est en cours maintenant</p>
                   </div>
                 </div>
-              ) : next ? (
+              ) : (
                 <>
                   <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <span className="font-cinzel text-[11px] font-bold tracking-[0.2em] uppercase flex items-center gap-2"
@@ -191,17 +210,12 @@ export function LiveSection({ programs = [] }: LiveSectionProps) {
                     ))}
                   </div>
                 </>
-              ) : (
-                <p className="font-inter text-sm" style={{ color: 'rgba(245,230,216,0.55)' }}>
-                  Les prochains cultes seront annoncés ici — retrouvez la diffusion sur la page Live.
-                </p>
               )}
             </div>
 
             {/* Programme hebdomadaire — accordéon natif <details>, FERMÉ par défaut (V2.7-A.4).
                 Aucune modale, aucun backdrop, aucun JS : compact au repos, accessible clavier
                 (focus visible sur le summary, chevron pivotant via group-open). */}
-            {slots.length > 0 && (
             <details className="group card-cinematic mb-8 overflow-hidden">
               <summary className="flex items-center justify-between gap-3 p-4 md:p-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37]/60">
                 <span className="font-cinzel text-[11px] font-bold tracking-[0.2em] uppercase flex items-center gap-2"
@@ -213,14 +227,14 @@ export function LiveSection({ programs = [] }: LiveSectionProps) {
                   style={{ color: 'rgba(245,230,216,0.6)' }} />
               </summary>
               <div className="px-4 md:px-5 pb-4 md:pb-5 -mt-1 space-y-1.5">
-                {slots.map((item) => (
-                  <div key={`${item.slug}-${item.dayIndex}`}
+                {SCHEDULE.map((item) => (
+                  <div key={`${item.jour}-${item.heure}`}
                     className="flex items-center justify-between gap-2 py-1 border-b last:border-0"
                     style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ background: 'rgba(212,175,55,0.10)', border: '1px solid rgba(212,175,55,0.22)' }}>
-                        <Calendar className="w-3 h-3" style={{ color: '#D4AF37' }} />
+                        <item.icon className="w-3 h-3" style={{ color: '#D4AF37' }} />
                       </div>
                       <div className="min-w-0">
                         <span className="font-inter text-xs font-semibold text-white">{item.jour}</span>
@@ -229,13 +243,12 @@ export function LiveSection({ programs = [] }: LiveSectionProps) {
                     </div>
                     <span className="text-[10px] font-medium font-inter px-2 py-0.5 rounded-full truncate max-w-[46%] text-right"
                       style={{ background: 'rgba(212,175,55,0.10)', color: 'rgba(245,230,216,0.75)', border: '1px solid rgba(212,175,55,0.20)' }}>
-                      {item.label}
+                      {item.type}
                     </span>
                   </div>
                 ))}
               </div>
             </details>
-            )}
 
             <div className="flex flex-wrap gap-3">
               <Link href={watchHref} onClick={() => events.ctaClick('live_section')} className="btn-gold-cinematic">
