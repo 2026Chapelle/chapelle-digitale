@@ -31,6 +31,12 @@ import { PdfOutline } from './PdfOutline'
 import { PdfSearchPanel } from './PdfSearchPanel'
 import { PdfLoadingState } from './PdfLoadingState'
 import { PdfErrorState } from './PdfErrorState'
+import { useStudy } from './useStudy'
+import { StudySelectionMenu } from './StudySelectionMenu'
+import { StudyPanel } from './StudyPanel'
+import { captureSelection, clearSelection, type CapturedSelection } from './study-selection'
+import { HIGHLIGHT_HEX, getServerProgress, upsertServerProgress, type HighlightColor } from '@/lib/study/study-service'
+import { mergeProgress, type ProgressRecord } from '@/lib/pdf/study-progress'
 
 export interface PdfReaderProps {
   src: string
@@ -60,6 +66,27 @@ export function PdfReader({
   const [highlightQuery, setHighlightQuery] = useState<string | null>(null)
   const [resumeNotice, setResumeNotice] = useState<number | null>(null)
   const reduceMotion = useReducedMotion()
+
+  // ── LB-2 Study : annotations/signets + menu de sélection + éditeur de note ──
+  const study = useStudy(storageId)
+  const [selMenu, setSelMenu] = useState<CapturedSelection | null>(null)
+  const [noteFor, setNoteFor] = useState<CapturedSelection | null>(null)
+  const [noteText, setNoteText] = useState('')
+  const serverProgressApplied = useRef(false)
+
+  const highlightsForPage = useCallback(
+    (page: number) => study.annotations
+      .filter((a) => a.color && a.page_number === page)
+      .map((a) => ({ color: HIGHLIGHT_HEX[a.color as HighlightColor] ?? '#D4AF37', selectedText: a.selected_text })),
+    [study.annotations],
+  )
+
+  const onSelectionEnd = useCallback(() => {
+    window.setTimeout(() => {
+      const cap = captureSelection()
+      setSelMenu(cap) // null si la sélection ne cible pas un passage
+    }, 0)
+  }, [])
 
   const close = useCallback(() => onClose?.(), [onClose])
   const panelRef = useFocusTrap<HTMLDivElement>(true, { onEscape: close })
@@ -131,6 +158,8 @@ export function PdfReader({
           serializeProgress({ page: reader.page, scale: reader.scale, mode }),
         )
       } catch { /* quota / privé : silencieux */ }
+      // Source canonique serveur (LB-2) — fire-and-forget, dégrade si indisponible.
+      void upsertServerProgress({ documentId: storageId, page: reader.page, zoom: reader.scale, mode }).catch(() => {})
     }, 400)
     return () => clearTimeout(t)
   }, [reader, mode, storageId])
@@ -180,6 +209,43 @@ export function PdfReader({
     setHighlightQuery(query)
     setReader((r) => (r ? goToPage(r, page) : r))
   }, [])
+
+  // Actions du menu de sélection Study.
+  const dismissMenu = useCallback(() => { setSelMenu(null) }, [])
+  const doHighlight = useCallback((c: HighlightColor) => {
+    if (selMenu) void study.addHighlight({ page: selMenu.page, color: c, selectedText: selMenu.selectedText, anchor: selMenu.anchor })
+    clearSelection(); setSelMenu(null)
+  }, [selMenu, study])
+  const doOpenNote = useCallback(() => { if (selMenu) { setNoteFor(selMenu); setNoteText(''); setSelMenu(null) } }, [selMenu])
+  const doBookmarkPassage = useCallback(() => {
+    if (selMenu) void study.addBookmark({ page: selMenu.page, kind: 'passage', selectedText: selMenu.selectedText, anchor: selMenu.anchor })
+    clearSelection(); setSelMenu(null)
+  }, [selMenu, study])
+  const doCopy = useCallback(() => { try { void navigator.clipboard?.writeText(selMenu?.selectedText ?? '') } catch { /* ignore */ } clearSelection() }, [selMenu])
+  const saveNote = useCallback(() => {
+    if (noteFor && noteText.trim()) void study.addNote({ page: noteFor.page, note: noteText.trim(), selectedText: noteFor.selectedText, anchor: noteFor.anchor })
+    clearSelection(); setNoteFor(null); setNoteText('')
+  }, [noteFor, noteText, study])
+
+  // Reprise SERVEUR (multi-device) : au premier chargement, fusionne avec le local
+  // et applique la plus récente. Dégradation silencieuse si Study indisponible.
+  useEffect(() => {
+    if (!storageId || !reader || serverProgressApplied.current || typeof window === 'undefined') return
+    serverProgressApplied.current = true
+    ;(async () => {
+      try {
+        const sp = await getServerProgress(storageId)
+        if (!sp) return
+        const server: ProgressRecord = { page: sp.page_number, scale: sp.zoom, mode: sp.view_mode, updatedAt: Date.parse(sp.updated_at) }
+        const merged = mergeProgress(null, server, reader.total)
+        if (merged.record && merged.source === 'server') {
+          setMode(merged.record.mode)
+          setReader((r) => (r ? { ...goToPage(r, merged.record!.page), scale: clampScale(merged.record!.scale) } : r))
+          if (merged.record.page > 1) setResumeNotice(merged.record.page)
+        }
+      } catch { /* Study indisponible → local uniquement */ }
+    })()
+  }, [storageId, reader])
 
   // Double-clic : bascule zoom 1× / 2× (ajustement rapide « premium »).
   const onDoubleClick = useCallback(() => {
@@ -306,7 +372,7 @@ export function PdfReader({
             >
               <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
                 <span className="font-cinzel text-sm text-pearl">
-                  {activePanel === 'pages' ? 'Pages' : activePanel === 'sommaire' ? 'Sommaire' : 'Rechercher'}
+                  {activePanel === 'pages' ? 'Pages' : activePanel === 'sommaire' ? 'Sommaire' : activePanel === 'etude' ? 'Étude' : 'Rechercher'}
                 </span>
                 <button onClick={() => setActivePanel(null)} aria-label="Fermer le panneau" className="text-pearl/50 hover:text-pearl">
                   <X className="w-4 h-4" />
@@ -322,6 +388,18 @@ export function PdfReader({
                 {activePanel === 'recherche' && (
                   <PdfSearchPanel pages={text.pages} loading={text.loading} onExtract={text.extract} onNavigate={onNavigateToMatch} onClose={() => setActivePanel(null)} />
                 )}
+                {activePanel === 'etude' && (
+                  <StudyPanel
+                    documentId={storageId ?? ''}
+                    available={study.available && Boolean(storageId)}
+                    annotations={study.annotations}
+                    bookmarks={study.bookmarks}
+                    currentPage={reader.page}
+                    onNavigate={(p) => { doGoTo(p); if (typeof window !== 'undefined' && window.innerWidth < 640) setActivePanel(null) }}
+                    onRemoveAnnotation={(id) => void study.removeAnnotation(id)}
+                    onRemoveBookmark={(id) => void study.removeBookmark(id)}
+                  />
+                )}
               </div>
             </aside>
           </>
@@ -331,7 +409,8 @@ export function PdfReader({
         <div
           className="relative flex-1 min-w-0 overflow-auto overscroll-contain"
           onTouchStart={mode === 'lecture' ? onTouchStart : undefined}
-          onTouchEnd={mode === 'lecture' ? onTouchEnd : undefined}
+          onTouchEnd={(e) => { if (mode === 'lecture') onTouchEnd(e); onSelectionEnd() }}
+          onMouseUp={onSelectionEnd}
           onDoubleClick={onDoubleClick}
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
@@ -350,6 +429,7 @@ export function PdfReader({
                   reader={reader}
                   pageFitWidth={pageFitWidth}
                   highlightQuery={highlightQuery}
+                  highlightsForPage={highlightsForPage}
                   title={title}
                   reduceMotion={Boolean(reduceMotion)}
                   onTurn={(d) => (d === 1 ? doNext() : doPrev())}
@@ -376,6 +456,7 @@ export function PdfReader({
                           fitWidth={pageFitWidth}
                           zoom={reader.scale}
                           highlightQuery={highlightQuery}
+                          studyHighlights={highlightsForPage(p)}
                           ariaLabel={`${title ? `${title} — ` : ''}page ${p} sur ${reader.total}`}
                         />
                       </div>
@@ -428,6 +509,43 @@ export function PdfReader({
           )}
         </div>
       </div>
+
+      {/* Menu de sélection Study (surligner / note / signet / copier). */}
+      {selMenu && (
+        <StudySelectionMenu
+          x={selMenu.rect.x}
+          y={selMenu.rect.y}
+          onHighlight={doHighlight}
+          onNote={doOpenNote}
+          onBookmark={doBookmarkPassage}
+          onCopy={doCopy}
+          onDismiss={dismissMenu}
+        />
+      )}
+
+      {/* Éditeur de note sur un passage. */}
+      {noteFor && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.5)' }} onClick={() => { setNoteFor(null); clearSelection() }}>
+          <div className="w-full max-w-md rounded-2xl p-4" style={{ background: 'rgba(14,10,22,0.99)', border: '1px solid rgba(212,175,55,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-cinzel text-sm text-pearl mb-2">Ma note</h3>
+            <p className="font-inter text-[12px] text-pearl/50 italic mb-2">« {noteFor.selectedText.length > 140 ? `${noteFor.selectedText.slice(0, 140)}…` : noteFor.selectedText} »</p>
+            <textarea autoFocus value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={4}
+              className="w-full rounded-xl p-3 bg-transparent outline-none font-inter text-sm text-pearl" style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+              placeholder="Écris ta note sur ce passage…" aria-label="Note sur le passage" />
+            <div className="flex justify-end gap-2 mt-3">
+              <button onClick={() => { setNoteFor(null); clearSelection() }} className="px-3 py-1.5 rounded-lg text-xs font-inter text-pearl/70 hover:text-pearl">Annuler</button>
+              <button onClick={saveNote} disabled={!noteText.trim()} className="px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#D4AF37,#C49A20)', color: '#1A0F00' }}>Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Erreur Study — jamais silencieuse (le texte n'est pas perdu). */}
+      {study.error && study.available && (
+        <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[91] px-3 py-2 rounded-lg font-inter text-xs text-white" style={{ background: 'rgba(180,50,50,0.95)' }}>
+          {study.error}
+        </div>
+      )}
     </div>
   )
 }

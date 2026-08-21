@@ -30,12 +30,13 @@ import {
 interface TurnState { edge: FlipEdge; progress: number; settling: boolean; target: number }
 
 export function PageTurnStage({
-  pdf, reader, pageFitWidth, highlightQuery, title, reduceMotion, onTurn,
+  pdf, reader, pageFitWidth, highlightQuery, highlightsForPage, title, reduceMotion, onTurn,
 }: {
   pdf: PdfDocumentProxy
   reader: ReaderState
   pageFitWidth: number
   highlightQuery?: string | null
+  highlightsForPage?: (page: number) => { color: string; selectedText: string }[]
   title?: string
   reduceMotion: boolean
   onTurn: (dir: 1 | -1) => void
@@ -124,7 +125,7 @@ export function PageTurnStage({
         <div aria-hidden className="absolute inset-0 flex items-stretch justify-center" style={{ zIndex: 0, gap }}>
           {destPages.map((p) => (
             <div key={`dest-${p}`} className="relative" style={{ boxShadow: '0 2px 30px rgba(0,0,0,0.4)' }}>
-              <PdfPage pdf={pdf} pageNumber={p} fitWidth={pageFitWidth} zoom={reader.scale} ariaLabel={`page ${p}`} />
+              <PdfPage pdf={pdf} pageNumber={p} fitWidth={pageFitWidth} zoom={reader.scale} studyHighlights={highlightsForPage?.(p)} ariaLabel={`page ${p}`} />
             </div>
           ))}
         </div>
@@ -155,6 +156,7 @@ export function PageTurnStage({
               fitWidth={pageFitWidth}
               zoom={reader.scale}
               highlightQuery={highlightQuery}
+              studyHighlights={highlightsForPage?.(p)}
               ariaLabel={`${title ? `${title} — ` : ''}page ${p} sur ${reader.total}`}
             />
             {/* Ombre dynamique du pli (assombrit la reliure pendant le tournage). */}

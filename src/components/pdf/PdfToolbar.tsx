@@ -10,11 +10,11 @@
 import { useEffect, useState } from 'react'
 import {
   ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, Minimize2, Download, X,
-  PanelsTopLeft, ListTree, Search, BookOpen, ScrollText, ArrowLeft,
+  PanelsTopLeft, ListTree, Search, BookOpen, ScrollText, ArrowLeft, GraduationCap,
 } from 'lucide-react'
 import { MAX_SCALE, MIN_SCALE, type ViewMode } from '@/lib/pdf/reader-navigation'
 
-export type PanelKind = 'pages' | 'sommaire' | 'recherche'
+export type PanelKind = 'pages' | 'sommaire' | 'recherche' | 'etude'
 
 export interface PdfToolbarProps {
   title?: string
@@ -128,6 +128,7 @@ export function PdfToolbar(props: PdfToolbarProps) {
         {panelBtn('pages', 'Pages', PanelsTopLeft)}
         {panelBtn('sommaire', 'Sommaire', ListTree)}
         {panelBtn('recherche', 'Rechercher', Search)}
+        {panelBtn('etude', 'Étude', GraduationCap)}
 
         <div className="hidden sm:flex items-center gap-1.5 pl-1.5 ml-0.5" style={{ borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
           <button className={iconBtn} style={btnBg} onClick={onZoomOut} disabled={scale <= MIN_SCALE} aria-label="Zoom arrière">
