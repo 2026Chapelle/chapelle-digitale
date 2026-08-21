@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 export const metadata = {
   title: 'Enseignements — Citadelle du Royaume',
   description: 'Prédications et enseignements de la Citadelle : vidéo, audio et texte.',
+  alternates: { canonical: '/enseignements' },
 }
 
 const fmt = (iso?: string) => {
