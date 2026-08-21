@@ -39,6 +39,8 @@ export interface PdfDocumentReaderProps {
   src: string
   title?: string
   downloadUrl?: string | null
+  /** Identifiant STABLE du document (≠ URL signée) pour la reprise locale LB-1. */
+  storageId?: string
   /** Route de repli si l'historique est vide. */
   backHref?: string
 }
@@ -47,6 +49,7 @@ export function PdfDocumentReader({
   src,
   title,
   downloadUrl,
+  storageId,
   backHref = '/member/dashboard/ressources',
 }: PdfDocumentReaderProps) {
   const router = useRouter()
@@ -55,7 +58,7 @@ export function PdfDocumentReader({
     else router.push(backHref)
   }
   return (
-    <PdfReader src={src} title={title} downloadUrl={downloadUrl} variant="overlay" onClose={goBack} />
+    <PdfReader src={src} title={title} downloadUrl={downloadUrl} storageId={storageId} variant="overlay" onClose={goBack} />
   )
 }
 
