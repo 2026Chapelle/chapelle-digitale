@@ -4,6 +4,7 @@ import { Crown, Shield, Check } from 'lucide-react'
 export const metadata = {
   title: 'Partenariat — Citadelle du Royaume',
   description: 'Devenez partenaire bâtisseur du Royaume.',
+  alternates: { canonical: '/partenariat' },
 }
 
 const AVANTAGES = [

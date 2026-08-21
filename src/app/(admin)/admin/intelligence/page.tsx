@@ -26,6 +26,7 @@ import {
   Youtube,
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
+import SeoTab from '@/components/admin/intelligence/seo/SeoTab'
 import { coverageSummary, eventsByAvailability } from '@/lib/intelligence/core/event-contract'
 import { DEMO_BADGE_FR } from '@/lib/intelligence/core/demo'
 import { FRESHNESS_LABELS_FR, FRESHNESS_LEVELS } from '@/lib/intelligence/types/freshness'
@@ -414,6 +415,8 @@ export default function IntelligenceHubPage() {
               </div>
             )}
           </section>
+        ) : tab === 'seo' ? (
+          <SeoTab />
         ) : (
           <div className="card-royal mb-8 p-6 text-sm text-pearl/50">
             Section <strong className="text-pearl/80">{TABS.find((t) => t.id === tab)?.label}</strong> — en

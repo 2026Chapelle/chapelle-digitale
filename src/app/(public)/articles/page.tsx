@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 export const metadata = {
   title: 'Articles — Citadelle du Royaume',
   description: 'Articles, enseignements écrits et actualités de la Citadelle du Royaume.',
+  alternates: { canonical: '/articles' },
 }
 
 const fmt = (iso?: string) => {
