@@ -26,16 +26,6 @@ export default function AdminLivesPage() {
         { name: 'scheduled_at', label: 'Date / heure', type: 'datetime' },
         { name: 'is_live', label: 'En direct maintenant', type: 'boolean', hideInTable: true, default: false },
         { name: 'platform', label: 'Plateforme', hideInTable: true },
-        // LIVE-VIDEO 1F-B — rattachement FACULTATIF à un programme récurrent (live_programs).
-        // Vide = Live spécial / événement ponctuel (program_id reste NULL). Liste alimentée
-        // par la table live_programs (jamais par des constantes JS).
-        {
-          name: 'program_id', label: 'Programme / émission', type: 'ref-select', refResource: 'live-programs',
-          emptyLabel: '— Aucun (Live spécial / ponctuel) —', hideInTable: true,
-          refLabel: (r) => `${r.title || 'Sans titre'}${r.status === 'published' ? '' : ' · brouillon'}`,
-          placeholder: 'UUID du programme (repli si liste indisponible)',
-          help: 'Facultatif. Rattache ce direct/replay à un programme récurrent (ex. Matinale). Vide = événement spécial sans programme.',
-        },
         { name: 'status', label: 'Statut', type: 'select', options: STATUS, default: 'scheduled' },
         { name: 'sort_order', label: 'Ordre', type: 'number', hideInTable: true, default: 0 },
       ]}

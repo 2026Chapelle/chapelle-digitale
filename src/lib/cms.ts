@@ -47,20 +47,6 @@ export interface CmsPodcast extends CmsRow {
 export interface CmsPodcastShow extends CmsRow { slug: string; title: string; short_description?: string; description?: string; cover_url?: string }
 export interface CmsPodcastSeries extends CmsRow { show_id: string; slug: string; title: string; short_description?: string; description?: string; cover_url?: string; editorial_period?: string }
 export interface CmsPodcastSeason extends CmsRow { series_id: string; season_number: number; title?: string; short_description?: string; description?: string; cover_url?: string }
-// LIVE-VIDEO (migration 20260819150000) — définition permanente d'un programme/émission
-// récurrent. Les occurrences réelles vivent dans cms_lives (cms_lives.program_id).
-export interface CmsLiveProgram extends CmsRow {
-  slug: string
-  title: string
-  description?: string | null
-  image_url?: string | null
-  weekdays?: number[]            // 0=dim..6=sam ; [] = irrégulier
-  start_time?: string | null     // heure locale "HH:MM[:SS]" (colonne SQL `time`)
-  timezone?: string              // IANA (défaut Africa/Abidjan)
-  schedule_note?: string | null
-  youtube_playlist_id?: string | null
-  is_active?: boolean
-}
 export interface CmsTeaching extends CmsRow { title: string; speaker?: string; scripture?: string }
 export interface CmsTestimony extends CmsRow { author_name: string; body: string; featured?: boolean }
 export interface CmsArticle extends CmsRow { title: string; slug?: string; excerpt?: string; body?: string; cover_url?: string; author?: string; category?: string; featured?: boolean }
@@ -73,10 +59,6 @@ export const CMS_TABLES = [
   'cms_platform_content', 'cms_settings', 'cms_articles',
   // PODCAST-SPINE (migration 20260818120000) — conteneurs éditoriaux podcast.
   'cms_podcast_shows', 'cms_podcast_series', 'cms_podcast_seasons',
-  // LIVE-VIDEO (migration 20260819150000) — définition des programmes/émissions.
-  // NB : hors préfixe cms_ ; l'admin y accède via l'alias de ressource « live-programs »
-  // (voir resolveTable dans /api/admin/cms/[resource]).
-  'live_programs',
 ] as const
 export type CmsTable = typeof CMS_TABLES[number]
 
