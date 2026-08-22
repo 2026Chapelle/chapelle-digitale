@@ -3,8 +3,11 @@ import { PLATEFORMES } from '@/lib/constants'
 import { cmsList, type CmsArticle } from '@/lib/cms'
 import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
 import { listPublishedShows, listPublishedSeries } from '@/lib/podcast/spine-public'
+import { SITE_URL } from '@/lib/site-url'
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://citadelle.chapelleduroyaume.org'
+// Base canonique NORMALISÉE (sans slash final) : évite les doubles slashs
+// (…org//formations) quand NEXT_PUBLIC_APP_URL porte un slash final.
+const BASE = SITE_URL
 
 /**
  * Exécute une lecture serveur en la RENDANT résiliente : toute erreur (Supabase
