@@ -6,9 +6,10 @@ import type { AdminNavItem } from '@/lib/navigation/admin-nav'
 // Liste EXACTE des liens de navigation admin (référence anti-régression).
 // 48 liens historiques + V2.9-B : /admin/contenus-en-vedette + PODCAST-4 : /admin/podcast-analytics
 // + PODCAST-5C : /admin/podcast-premium + PODCAST-SPINE : /admin/podcast-shows, -series, -seasons.
+// + HUB-4 : /admin/intelligence (Intelligence & Acquisition — distinct de Intelligence Pastorale).
 const LEGACY_HREFS = [
   '/admin/command-center', '/admin/global-command', '/admin/dashboard', '/admin/pastoral',
-  '/admin/nouveaux-venus', '/admin/intelligence-pastorale', '/admin/gouvernement', '/admin/gouvernance',
+  '/admin/nouveaux-venus', '/admin/intelligence-pastorale', '/admin/intelligence', '/admin/gouvernement', '/admin/gouvernance',
   '/admin/international', '/admin/nation-dashboard', '/admin/sante-spirituelle', '/admin/activites',
   '/admin/cartographie', '/admin/membres', '/admin/roles', '/admin/communication', '/admin/tunnel-integration',
   '/admin/homepage-blocks', '/admin/chapelle-home', '/admin/contenus-en-vedette', '/admin/pages', '/admin/articles', '/admin/medias', '/admin/lives', '/admin/podcasts', '/admin/podcast-shows', '/admin/podcast-series', '/admin/podcast-seasons', '/admin/playlists', '/admin/podcast-analytics', '/admin/podcast-premium',

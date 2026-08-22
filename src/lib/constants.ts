@@ -250,12 +250,15 @@ export const PAYS_DIASPORA = [
 ]
 
 // RÉSEAUX SOCIAUX
+// Actifs canoniques confirmés (Doxa 2026-08-22). tiktok/telegram/twitter restent
+// des placeholders historiques (@cier) : aucun canal canonique fourni → laissés en
+// l'état (jamais d'URL inventée), à réviser dès qu'un canal officiel existe.
 export const SOCIAL_LINKS = {
-  youtube: 'https://youtube.com/@cier',
-  facebook: 'https://facebook.com/cier',
-  instagram: 'https://instagram.com/cier',
+  youtube: 'https://www.youtube.com/@ChapelleRoyaleTV',
+  facebook: 'https://www.facebook.com/Chapelleduroyaume/',
+  instagram: 'https://www.instagram.com/chapelleduroyaume.media/',
   tiktok: 'https://tiktok.com/@cier',
-  whatsapp: 'https://wa.me/message/cier',
+  whatsapp: 'https://whatsapp.com/channel/0029VbCGBmkH5JLuUSYkax3B',
   telegram: 'https://t.me/cier',
   twitter: 'https://twitter.com/cier',
 }

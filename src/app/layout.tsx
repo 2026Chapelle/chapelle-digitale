@@ -157,9 +157,10 @@ export default function RootLayout({
               url: process.env.NEXT_PUBLIC_APP_URL,
               logo: `${process.env.NEXT_PUBLIC_APP_URL}/icon-512.png`,
               sameAs: [
-                'https://youtube.com/@cier',
-                'https://facebook.com/cier',
-                'https://instagram.com/cier',
+                'https://www.youtube.com/@ChapelleRoyaleTV',
+                'https://www.facebook.com/Chapelleduroyaume/',
+                'https://www.instagram.com/chapelleduroyaume.media/',
+                'https://whatsapp.com/channel/0029VbCGBmkH5JLuUSYkax3B',
               ],
               contactPoint: {
                 '@type': 'ContactPoint',

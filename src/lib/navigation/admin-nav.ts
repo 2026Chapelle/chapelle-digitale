@@ -17,6 +17,7 @@ import {
   MessageSquare, HandCoins, Newspaper, Mail, AtSign,
   GraduationCap, Layers, Route, Sparkles, Globe, Activity, Crown, ShoppingBag,
   Command, Globe2, HeartHandshake, ShieldCheck, Megaphone, CalendarCheck, LifeBuoy, UserPlus, Star, Headphones,
+  BarChart3,
 } from 'lucide-react'
 
 export type AdminScopeHint = 'global' | 'national' | 'antenne' | 'local' | 'plateforme'
@@ -54,6 +55,7 @@ export const NAV_SECTIONS: AdminNavSection[] = [
       { label: 'Centre de Commandement', href: '/admin/command-center', icon: Command, color: '#F5E6A7', sensitive: true, scopeHint: 'global' },
       { label: 'Commandement Global', href: '/admin/global-command', icon: Globe2, color: '#F5E6A7', sensitive: true, scopeHint: 'global' },
       { label: 'Gouvernement pastoral', href: '/admin/gouvernement', icon: Crown, color: '#F5E6A7', scopeHint: 'national' },
+      { label: 'Intelligence & Acquisition', href: '/admin/intelligence', icon: BarChart3, color: '#F5E6A7', sensitive: true, scopeHint: 'global' },
       { label: 'Gouvernance', href: '/admin/gouvernance', icon: Sparkles, color: '#D4AF37' },
       { label: 'Activités (traçabilité)', href: '/admin/activites', icon: Activity, color: '#D4AF37', sensitive: true },
     ],
