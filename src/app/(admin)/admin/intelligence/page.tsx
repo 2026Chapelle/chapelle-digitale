@@ -13,11 +13,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Activity,
   BarChart3,
+  BookOpen,
   Facebook,
   Gauge,
-  Layers,
   MessageCircle,
   MousePointerClick,
   Radio,
@@ -27,21 +26,24 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import SeoTab from '@/components/admin/intelligence/seo/SeoTab'
-import { coverageSummary, eventsByAvailability } from '@/lib/intelligence/core/event-contract'
+import SourcesStatus from '@/components/admin/intelligence/SourcesStatus'
+import FreshnessLegend from '@/components/admin/intelligence/FreshnessLegend'
+import GuideDrawer from '@/components/admin/intelligence/GuideDrawer'
+import YouTubeTab from '@/components/admin/intelligence/YouTubeTab'
+import MetaTab from '@/components/admin/intelligence/MetaTab'
+import WhatsAppTab from '@/components/admin/intelligence/WhatsAppTab'
+import ConversionsTab from '@/components/admin/intelligence/ConversionsTab'
+import { coverageSummary } from '@/lib/intelligence/core/event-contract'
 import { DEMO_BADGE_FR } from '@/lib/intelligence/core/demo'
-import { FRESHNESS_LABELS_FR, FRESHNESS_LEVELS } from '@/lib/intelligence/types/freshness'
-import { CONNECTOR_DESCRIPTORS } from '@/lib/intelligence/connectors/registry'
-import type { ConnectorId } from '@/lib/intelligence/connectors/types'
+import { FRESHNESS_LABELS_FR } from '@/lib/intelligence/types/freshness'
 import type { MetricAvailability, OverviewMetric, OverviewResult } from '@/lib/intelligence/metrics/overview'
 import type { AcquisitionResult } from '@/lib/intelligence/metrics/acquisition'
 import type { CampaignResult } from '@/lib/intelligence/metrics/campaigns'
 
 const TABS = [
   { id: 'apercu', label: 'Vue générale', icon: Gauge },
-  { id: 'temps-reel', label: 'Temps réel', icon: Activity },
   { id: 'acquisition', label: 'Acquisition', icon: MousePointerClick },
   { id: 'seo', label: 'SEO', icon: Search },
-  { id: 'contenus', label: 'Contenus', icon: Layers },
   { id: 'youtube', label: 'YouTube', icon: Youtube },
   { id: 'facebook', label: 'Facebook', icon: Facebook },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
@@ -198,6 +200,7 @@ function MetricCard({ m }: { m: OverviewMetric }) {
 
 export default function IntelligenceHubPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('apercu')
+  const [guideOpen, setGuideOpen] = useState(false)
   const [overview, setOverview] = useState<OverviewResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -209,7 +212,6 @@ export default function IntelligenceHubPage() {
   const [campLoading, setCampLoading] = useState(false)
   const [campErr, setCampErr] = useState<string | null>(null)
   const coverage = useMemo(() => coverageSummary(), [])
-  const connectorIds = Object.keys(CONNECTOR_DESCRIPTORS) as ConnectorId[]
 
   async function load() {
     setLoading(true)
@@ -301,6 +303,13 @@ export default function IntelligenceHubPage() {
                   <Radio className="h-3.5 w-3.5" /> {DEMO_BADGE_FR}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setGuideOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg bg-pearl/5 px-3 py-2 text-sm text-pearl/70 hover:text-pearl"
+              >
+                <BookOpen className="h-4 w-4" /> Comprendre ces données
+              </button>
               <button
                 type="button"
                 onClick={refresh}
@@ -417,12 +426,15 @@ export default function IntelligenceHubPage() {
           </section>
         ) : tab === 'seo' ? (
           <SeoTab />
-        ) : (
-          <div className="card-royal mb-8 p-6 text-sm text-pearl/50">
-            Section <strong className="text-pearl/80">{TABS.find((t) => t.id === tab)?.label}</strong> — en
-            construction (HUB-2 se concentre sur l’acquisition first-party).
-          </div>
-        )}
+        ) : tab === 'youtube' ? (
+          <YouTubeTab />
+        ) : tab === 'facebook' ? (
+          <MetaTab />
+        ) : tab === 'whatsapp' ? (
+          <WhatsAppTab />
+        ) : tab === 'conversions' ? (
+          <ConversionsTab />
+        ) : null}
 
         {/* ---- État de la fondation (contrat Phase 0) ---- */}
         <section className="mb-8">
@@ -443,39 +455,20 @@ export default function IntelligenceHubPage() {
           </div>
         </section>
 
+        {/* ---- Sources de données & connexions (état réel dynamique) ---- */}
         <section className="mb-8">
-          <div className="section-label mb-3">Niveaux de fraîcheur</div>
-          <div className="flex flex-wrap gap-2">
-            {FRESHNESS_LEVELS.map((f) => (
-              <span key={f} className="rounded-full border border-pearl/15 px-3 py-1 text-xs text-pearl/70">
-                {FRESHNESS_LABELS_FR[f]}
-              </span>
-            ))}
-          </div>
+          <div className="section-label mb-3">Sources de données &amp; connexions</div>
+          <SourcesStatus />
         </section>
 
+        {/* ---- Fraîcheur des données ---- */}
         <section>
-          <div className="section-label mb-3">Connecteurs externes (Phase ultérieure — non branchés)</div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {connectorIds.map((id) => {
-              const d = CONNECTOR_DESCRIPTORS[id]
-              return (
-                <div key={id} className="card-royal p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-pearl">{d.displayName}</span>
-                    <span className="rounded-full border border-pearl/20 px-2 py-0.5 text-[11px] text-pearl/50">
-                      Non connecté
-                    </span>
-                  </div>
-                  <div className="mt-2 text-xs text-pearl/45">
-                    Fraîcheur : {FRESHNESS_LABELS_FR[d.freshness]} · Lecture seule
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <div className="section-label mb-3">Fraîcheur des données</div>
+          <FreshnessLegend />
         </section>
       </div>
+
+      <GuideDrawer open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   )
 }
