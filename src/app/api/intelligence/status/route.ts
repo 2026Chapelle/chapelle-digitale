@@ -17,12 +17,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminRequest } from '@/lib/admin-auth'
 import type {
   ChannelId,
-  ChannelState,
   ChannelStatus,
   ChannelStatusReport,
 } from '@/lib/intelligence/channels/types'
-import type { SeoConnectorStatus } from '@/lib/intelligence/seo/types'
 import type { Freshness } from '@/lib/intelligence/types/freshness'
+import {
+  firstPartyStatus,
+  mapSeoStatusToChannel,
+} from '@/lib/intelligence/channels/status-mappers'
 import { getSearchConsoleSeo } from '@/lib/intelligence/connectors/google-search-console'
 import { getGa4OrganicSeo } from '@/lib/intelligence/connectors/google-analytics'
 import { getYouTubeStatus } from '@/lib/intelligence/connectors/youtube'
@@ -34,60 +36,6 @@ import { getWhatsAppStatus } from '@/lib/intelligence/connectors/whatsapp'
 import { buildSeoPeriod, parsePeriodKey } from '@/lib/intelligence/seo/period'
 
 export const dynamic = 'force-dynamic'
-
-/**
- * Mapper PUR (testable, sans I/O) : statut connecteur Google → statut canal
- * normalisé. PASS→CONNECTED, NOT_CONFIGURED→NOT_CONFIGURED, ERROR→ERROR.
- * Ne fabrique jamais de `lastSync` : renseigné uniquement quand des données
- * réelles sont servies (CONNECTED).
- */
-export function mapSeoStateToChannelState(state: SeoConnectorStatus['state']): ChannelState {
-  switch (state) {
-    case 'PASS':
-      return 'CONNECTED'
-    case 'NOT_CONFIGURED':
-      return 'NOT_CONFIGURED'
-    default:
-      return 'ERROR'
-  }
-}
-
-export function mapSeoStatusToChannel(
-  seo: SeoConnectorStatus,
-  channel: Extract<ChannelId, 'google_search_console' | 'google_analytics'>,
-  displayName: string,
-  freshness: Freshness,
-  nowIso: string,
-): ChannelStatus {
-  const state = mapSeoStateToChannelState(seo.state)
-  const checkedAt = seo.checkedAt || nowIso
-  const status: ChannelStatus = {
-    channel,
-    displayName,
-    state,
-    freshness,
-    // Une synchro réelle n'existe que si des données réelles sont servies.
-    lastSync: state === 'CONNECTED' ? checkedAt : null,
-    setupRequired: state === 'NOT_CONFIGURED',
-    checkedAt,
-  }
-  if (seo.reason) status.reason = seo.reason
-  if (seo.property) status.property = seo.property
-  return status
-}
-
-/** Canal first-party : analytics propriétaire Citadelle, actif par nature. */
-export function firstPartyStatus(nowIso: string): ChannelStatus {
-  return {
-    channel: 'first_party',
-    displayName: 'Analytics interne (first-party)',
-    state: 'ACTIVE',
-    freshness: 'REALTIME',
-    lastSync: nowIso,
-    reason: 'Analytics propriétaire Citadelle (sessions, événements, attribution).',
-    checkedAt: nowIso,
-  }
-}
 
 /**
  * Enveloppe honnête : une exception d'une source ne casse jamais la route ;

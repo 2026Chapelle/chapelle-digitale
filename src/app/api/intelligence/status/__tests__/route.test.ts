@@ -33,12 +33,12 @@ vi.mock('@/lib/intelligence/connectors/whatsapp', () => ({
   getWhatsAppStatus: (...a: unknown[]) => getWhatsAppStatus(...a),
 }))
 
+import { GET } from '@/app/api/intelligence/status/route'
 import {
-  GET,
   mapSeoStateToChannelState,
   mapSeoStatusToChannel,
   firstPartyStatus,
-} from '@/app/api/intelligence/status/route'
+} from '@/lib/intelligence/channels/status-mappers'
 
 const NOW = '2026-08-22T10:00:00.000Z'
 
