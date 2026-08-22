@@ -78,6 +78,8 @@ const availLabel: Record<SeoAvailability, string> = {
   real: 'Réel',
   demo: 'Démo',
   unavailable: 'Indisponible',
+  no_data: 'Aucune donnée',
+  not_applicable: 'Non applicable',
 }
 
 /* --------------------------- Petits composants --------------------------- */

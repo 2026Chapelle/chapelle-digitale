@@ -15,6 +15,7 @@
 
 import type { Freshness } from '../types/freshness'
 import type { MetricSource, MetricUnit } from '../types/metrics'
+import type { SeoScope } from './scope'
 
 /* ------------------------------------------------------------------ */
 /* Statut de connecteur (honnêteté des connexions réelles)            */
@@ -149,6 +150,10 @@ export interface SitemapInfo {
   isSitemapsIndex?: boolean
   errors?: number
   warnings?: number
+  /** Hôte du sitemap (5A) — ex. citadelle.chapelleduroyaume.org vs chapelleduroyaume.org. */
+  host?: string
+  /** Portée classée (5A) — citadelle | institutional | global | external_or_unknown. */
+  scope?: SeoScope
 }
 
 /* ------------------------------------------------------------------ */
@@ -239,10 +244,19 @@ export type SeoOpportunityKind =
 export interface SeoOpportunity {
   kind: SeoOpportunityKind
   severity: SeoSeverity
-  /** Sujet concret : une requête, une page ou une route. */
+  /** Sujet concret : une requête, une page ou une route. (contrat: WHAT) */
   subject: string
+  /** Source réelle ayant détecté le fait (ex. 'google_search_console'). */
+  source?: string
+  /** Hôte concerné le cas échéant (ex. chapelleduroyaume.org). */
+  host?: string
+  /** Portée : citadelle | institutional | global | external_or_unknown. */
+  scope?: SeoScope
+  /** Ce que la preuve suggère raisonnablement. (contrat: INTERPRETATION) */
   why: string
+  /** Fait mesurable chiffré qui soutient. (contrat: EVIDENCE) */
   evidence: string
+  /** Ce qui peut être investigué/fait. (contrat: ACTION) */
   action: string
 }
 
@@ -250,7 +264,9 @@ export interface SeoOpportunity {
 /* Cartes de synthèse + payload agrégé (chantier 4)                    */
 /* ------------------------------------------------------------------ */
 
-export type SeoAvailability = 'real' | 'unavailable' | 'demo'
+// 5A : vocabulaire enrichi — no_data (connecté sans observation) et not_applicable
+// (métrique sans sens ici) sont distincts d'un 0 réel et d'« indisponible ».
+export type SeoAvailability = 'real' | 'no_data' | 'unavailable' | 'not_applicable' | 'demo'
 
 export interface SeoOverviewCard {
   key: string
