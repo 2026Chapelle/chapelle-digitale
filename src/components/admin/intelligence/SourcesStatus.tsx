@@ -6,17 +6,32 @@
  * d'état et de fraîcheur viennent des contrats partagés (jamais inventés ici).
  */
 import { useEffect, useState } from 'react'
-import { RefreshCw, AlertTriangle, Settings2, CheckCircle2, Radio } from 'lucide-react'
+import { RefreshCw, AlertTriangle, Settings2, CheckCircle2, Radio, Target } from 'lucide-react'
 import {
   CHANNEL_STATE_LABEL_FR,
   CHANNEL_STATE_COLOR,
   isLiveState,
+  type ChannelId,
   type ChannelStatus,
   type ChannelStatusReport,
 } from '@/lib/intelligence/channels/types'
 import { FRESHNESS_LABELS_FR } from '@/lib/intelligence/types/freshness'
 
 type LoadState = 'loading' | 'ready' | 'error'
+
+/**
+ * CE QUE MESURE chaque source (langage produit, non technique). Descriptif éditorial
+ * — ne dépend d'aucune donnée mesurée et ne préjuge d'aucun état de connexion.
+ */
+const CHANNEL_MEASURES_FR: Record<ChannelId, string> = {
+  first_party: 'Événements Citadelle · visites · inscriptions · progressions',
+  google_search_console: 'Recherche Google · impressions · clics · position',
+  google_analytics: 'Trafic · acquisition · comportement',
+  youtube: 'Audience · vues · watch time · abonnés',
+  meta_facebook: 'Portée · impressions · interactions · abonnés',
+  meta_instagram: 'Portée · impressions · interactions · abonnés',
+  whatsapp: 'Attribution · visites · conversions (canal)',
+}
 
 /** Formatage relatif honnête (jamais « maintenant » si null). */
 function relativeSince(iso: string | null, now: number): string {
@@ -45,15 +60,12 @@ function absolute(iso: string | null): string {
 function StatusCard({ ch, now }: { ch: ChannelStatus; now: number }) {
   const color = CHANNEL_STATE_COLOR[ch.state]
   const live = isLiveState(ch.state)
+  const measures = CHANNEL_MEASURES_FR[ch.channel]
   return (
     <div className="card-royal p-4 flex flex-col gap-2.5">
+      {/* SOURCE (nom) · STATUT — l'essentiel de la carte quotidienne */}
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-sm font-medium text-pearl truncate">{ch.displayName}</div>
-          {ch.property && (
-            <div className="text-[11px] text-pearl/40 truncate mt-0.5">{ch.property}</div>
-          )}
-        </div>
+        <div className="min-w-0 text-sm font-medium text-pearl truncate">{ch.displayName}</div>
         <span
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium flex-shrink-0"
           style={{ color, backgroundColor: `${color}1a`, border: `1px solid ${color}40` }}
@@ -71,6 +83,15 @@ function StatusCard({ ch, now }: { ch: ChannelStatus; now: number }) {
         </span>
       </div>
 
+      {/* CE QUE ÇA MESURE — langage produit */}
+      {measures && (
+        <div className="flex items-start gap-2 text-[11px] text-pearl/60">
+          <Target className="w-3 h-3 mt-0.5 flex-shrink-0" aria-hidden />
+          <span className="leading-snug">{measures}</span>
+        </div>
+      )}
+
+      {/* FRAÎCHEUR */}
       <div className="flex items-center gap-2 text-[11px] text-pearl/50">
         <Radio className="w-3 h-3" aria-hidden />
         <span>Fraîcheur : {FRESHNESS_LABELS_FR[ch.freshness]}</span>
@@ -87,6 +108,27 @@ function StatusCard({ ch, now }: { ch: ChannelStatus; now: number }) {
           <Settings2 className="w-3 h-3" aria-hidden />
           <span>Configuration requise</span>
         </div>
+      )}
+
+      {/* DÉTAILS TECHNIQUES — identifiants auditables, repliés par défaut (non dominants) */}
+      {(ch.property || ch.checkedAt) && (
+        <details className="mt-0.5 group">
+          <summary className="cursor-pointer text-[11px] text-pearl/40 hover:text-pearl/60 select-none">
+            Détails techniques
+          </summary>
+          <div className="mt-1 space-y-0.5">
+            {ch.property && (
+              <div className="text-[11px] text-pearl/45 break-all">
+                Propriété : <span className="text-pearl/60">{ch.property}</span>
+              </div>
+            )}
+            {ch.checkedAt && (
+              <div className="text-[11px] text-pearl/40" title={absolute(ch.checkedAt)}>
+                Vérifié : {absolute(ch.checkedAt)}
+              </div>
+            )}
+          </div>
+        </details>
       )}
     </div>
   )

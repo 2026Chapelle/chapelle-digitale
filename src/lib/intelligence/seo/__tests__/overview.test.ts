@@ -176,3 +176,53 @@ describe('buildSeoOverview', () => {
     expect(ga4.delta).toBeCloseTo(0.5, 5)
   })
 })
+
+describe('buildSeoOverview — NO_DATA vs 0 réel (5A)', () => {
+  const emptyTotals: GscTotals = {
+    clicks: 0,
+    impressions: 0,
+    ctr: 0,
+    position: 0,
+    activeQueries: 0,
+    visiblePages: 0,
+  }
+
+  it('PASS sans dénominateur (impressions=0) : CTR & position = no_data, value null (jamais 0)', () => {
+    const cards = buildSeoOverview({ gsc: gscReal(emptyTotals), ga4: ga4Off(), nowIso: NOW })
+    for (const key of ['ctr', 'position']) {
+      const c = cards.find((x) => x.key === key)!
+      expect(c.availability).toBe('no_data')
+      expect(c.value).toBeNull()
+      expect(c.trend).toBe('unknown')
+    }
+  })
+
+  it('PASS sans dénominateur : clics & impressions restent RÉELS à 0 (la source prouve 0)', () => {
+    const cards = buildSeoOverview({ gsc: gscReal(emptyTotals), ga4: ga4Off(), nowIso: NOW })
+    for (const key of ['clicks', 'impressions']) {
+      const c = cards.find((x) => x.key === key)!
+      expect(c.availability).toBe('real')
+      expect(c.value).toBe(0)
+    }
+  })
+
+  it('0 réel préservé : clics=0 mais impressions>0 ⇒ clics réel 0, CTR réel 0 (pas no_data)', () => {
+    const t: GscTotals = { ...emptyTotals, clicks: 0, impressions: 500, ctr: 0, position: 12 }
+    const cards = buildSeoOverview({ gsc: gscReal(t), ga4: ga4Off(), nowIso: NOW })
+    const clicks = cards.find((c) => c.key === 'clicks')!
+    expect(clicks.availability).toBe('real')
+    expect(clicks.value).toBe(0)
+    const ctr = cards.find((c) => c.key === 'ctr')!
+    expect(ctr.availability).toBe('real')
+    expect(ctr.value).toBe(0)
+    const position = cards.find((c) => c.key === 'position')!
+    expect(position.availability).toBe('real')
+    expect(position.value).toBe(12)
+  })
+
+  it('NOT_CONFIGURED reste unavailable (pas no_data) pour CTR & position', () => {
+    const cards = buildSeoOverview({ gsc: gscOff(), ga4: ga4Off(), nowIso: NOW })
+    expect(cards.find((c) => c.key === 'ctr')!.availability).toBe('unavailable')
+    expect(cards.find((c) => c.key === 'position')!.availability).toBe('unavailable')
+  })
+})

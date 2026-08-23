@@ -24,6 +24,7 @@ import { buildSeoPeriod, parsePeriodKey } from '@/lib/intelligence/seo/period'
 import { PUBLIC_BASE_URL } from '@/lib/intelligence/seo/important-routes'
 import { buildSeoOverview } from '@/lib/intelligence/seo/overview'
 import { detectOpportunities } from '@/lib/intelligence/seo/opportunities'
+import { parseSeoScope, annotatePagesScope, annotateOpportunitiesScope } from '@/lib/intelligence/seo/scope-aggregate'
 import type {
   SeoConnectorStatus,
   SeoIntelligencePayload,
@@ -62,6 +63,10 @@ export async function GET(req: NextRequest) {
   const nowIso = new Date().toISOString()
   const key = parsePeriodKey(req.nextUrl.searchParams.get('period'))
   const period = buildSeoPeriod(key, Date.now())
+  // Portée sélectionnée (défaut = citadelle). Présentation uniquement : ne
+  // change NI la propriété GSC, NI les appels externes. La donnée reste classée
+  // par hôte réel et n'est jamais tronquée du signal institutionnel.
+  const selectedScope = parseSeoScope(req.nextUrl.searchParams.get('scope'))
 
   try {
     const dayBucket = nowIso.slice(0, 13) // AAAA-MM-JJTHH → clé stable dans le TTL
@@ -87,13 +92,21 @@ export async function GET(req: NextRequest) {
           prevOrganic: ga4Prev.status.state === 'PASS' ? ga4Prev.organic : null,
         })
 
-        const opportunities = detectOpportunities({
-          queries: gsc.queries,
-          pages: gsc.pages,
-          indexation: gsc.indexation,
-          sitemaps: gsc.sitemaps,
-          technical,
-        })
+        // 5A : pages annotées par hôte/portée (les sitemaps le sont déjà via la
+        // normalisation GSC). L'annotation est INDÉPENDANTE de la portée
+        // sélectionnée (chaque objet porte SA propre portée) → cache réutilisable.
+        const pages = annotatePagesScope(gsc.pages)
+        const sitemaps = gsc.sitemaps
+        const opportunities = annotateOpportunitiesScope(
+          detectOpportunities({
+            queries: gsc.queries,
+            pages: gsc.pages,
+            indexation: gsc.indexation,
+            sitemaps,
+            technical,
+          }),
+          sitemaps,
+        )
 
         return {
           generatedAt: nowIso,
@@ -102,9 +115,9 @@ export async function GET(req: NextRequest) {
           ga4: ga4.status,
           overview,
           queries: gsc.queries,
-          pages: gsc.pages,
+          pages,
           indexation: gsc.indexation,
-          sitemaps: gsc.sitemaps,
+          sitemaps,
           technical,
           organic: ga4.organic,
           opportunities,
@@ -112,7 +125,9 @@ export async function GET(req: NextRequest) {
       },
     )
 
-    return NextResponse.json(payload)
+    // La portée sélectionnée est ajoutée HORS cache (le payload caché reste
+    // indépendant de la portée : filtrage/étiquetage se font côté présentation).
+    return NextResponse.json({ ...payload, scope: selectedScope })
   } catch {
     // Fail-safe honnête : payload vide + connecteurs NOT_CONFIGURED, jamais de faux réel.
     const gsc = notConfigured('google_search_console', nowIso, 'Lecture SEO indisponible.')
@@ -135,6 +150,6 @@ export async function GET(req: NextRequest) {
       organic: null,
       opportunities: [],
     }
-    return NextResponse.json({ ...empty, error: 'read_failed' }, { status: 200 })
+    return NextResponse.json({ ...empty, error: 'read_failed', scope: selectedScope }, { status: 200 })
   }
 }

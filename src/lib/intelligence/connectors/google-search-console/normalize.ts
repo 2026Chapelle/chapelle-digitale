@@ -19,6 +19,29 @@ import type {
   IndexVerdict,
   SeoTrend,
 } from '../../seo/types'
+import { classifyUrl, extractHost, type SeoScope } from '../../seo/scope'
+
+/* ------------------------------------------------------------------ */
+/* Vérité d'HÔTE & de PORTÉE (5A)                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Ligne « page » enrichie de sa vérité d'hôte/portée (5A). La portée n'est
+ * JAMAIS supposée « citadelle » depuis la propriété de domaine : elle est
+ * classée depuis l'hôte réel de l'URL de la page. `host` = null si l'URL n'est
+ * pas déterminable (ex. chemin relatif) → portée `external_or_unknown`.
+ * Extension additive : reste assignable à `GscPageRow` (contrat gelé).
+ */
+export interface ScopedGscPageRow extends GscPageRow {
+  host: string | null
+  scope: SeoScope
+}
+
+/** Résultat d'inspection enrichi de la vérité d'hôte/portée (5A). Additif. */
+export interface ScopedUrlInspectionResult extends UrlInspectionResult {
+  host: string | null
+  scope: SeoScope
+}
 
 /* ------------------------------------------------------------------ */
 /* Types bruts (sous-ensemble utilisé) des réponses REST GSC           */
@@ -250,7 +273,7 @@ export function toPageRows(
   cur: ReadonlyArray<RawSearchAnalyticsRow>,
   prev: ReadonlyArray<RawSearchAnalyticsRow>,
   topN: number,
-): GscPageRow[] {
+): ScopedGscPageRow[] {
   const prevMap = prevClicksIndex(prev)
   return cur
     .map((r) => ({ r, page: keyAt(r, 0) }))
@@ -258,6 +281,8 @@ export function toPageRows(
     .map(({ r, page }) => {
       const clicks = num(r.clicks)
       const { trend, delta } = computeTrend(clicks, prevMap.get(page))
+      // 5A : portée classée depuis l'HÔTE RÉEL de la page (jamais depuis la
+      // propriété de domaine) ; hôte inconnu ⇒ external_or_unknown.
       return {
         page,
         clicks,
@@ -265,6 +290,8 @@ export function toPageRows(
         ctr: clamp01(num(r.ctr)),
         position: num(r.position),
         trend,
+        host: extractHost(page),
+        scope: classifyUrl(page),
         ...(delta === undefined ? {} : { delta }),
       }
     })
@@ -299,13 +326,16 @@ export function mapVerdict(raw: string | undefined): IndexVerdict {
   }
 }
 
-/** Normalise une réponse index:inspect en `UrlInspectionResult`. */
-export function toInspection(url: string, raw: RawInspectionResponse): UrlInspectionResult {
+/** Normalise une réponse index:inspect en `UrlInspectionResult` scopé (5A). */
+export function toInspection(url: string, raw: RawInspectionResponse): ScopedUrlInspectionResult {
   const idx = raw.inspectionResult?.indexStatusResult
   const rich = raw.inspectionResult?.richResultsResult
-  const out: UrlInspectionResult = {
+  // 5A : hôte/portée classés depuis l'URL inspectée (jamais depuis la propriété).
+  const out: ScopedUrlInspectionResult = {
     url,
     verdict: mapVerdict(idx?.verdict),
+    host: extractHost(url),
+    scope: classifyUrl(url),
   }
   if (idx?.coverageState) out.coverageState = idx.coverageState
   if (idx?.robotsTxtState) out.robotsTxtState = idx.robotsTxtState
@@ -337,7 +367,12 @@ export function toSitemaps(raw: RawSitemapsList): SitemapInfo[] {
   return list
     .filter((s): s is RawSitemap & { path: string } => typeof s.path === 'string')
     .map((s) => {
-      const info: SitemapInfo = { path: s.path }
+      // 5A : portée classée depuis l'hôte RÉEL du sitemap. Le sitemap
+      // institutionnel (chapelleduroyaume.org) reste `institutional` — jamais
+      // rangé sous « citadelle ». Hôte non déterminable ⇒ external_or_unknown.
+      const info: SitemapInfo = { path: s.path, scope: classifyUrl(s.path) }
+      const host = extractHost(s.path)
+      if (host) info.host = host
       if (s.lastSubmitted) info.lastSubmitted = s.lastSubmitted
       if (s.lastDownloaded) info.lastDownloaded = s.lastDownloaded
       if (typeof s.isPending === 'boolean') info.isPending = s.isPending

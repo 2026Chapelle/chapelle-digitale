@@ -10,6 +10,20 @@
  * et l'ACTION (`action`). Les seuils sont des constantes nommées et justifiées.
  * Une entrée vide/partielle (connecteur non configuré) ne produit QUE des
  * opportunités dérivables des sources présentes — jamais de donnée inventée.
+ *
+ * MODÈLE DE PREUVE (5A) — chaque opportunité porte en plus :
+ *  - SOURCE : la source réelle qui a DÉTECTÉ le fait (`google_search_console`
+ *    ou `technical_audit`). Aucune opportunité « hors-sol ».
+ *  - HÔTE + PORTÉE : quand le sujet est (ou dérive d')une URL, l'hôte réel est
+ *    classé via `scope.ts`. Un problème sur un hôte institutionnel est étiqueté
+ *    `scope:'institutional'`, JAMAIS `'citadelle'` (pas de repli par domaine).
+ *    Un sujet « requête » n'a pas d'hôte fiable → host/scope absents (honnête).
+ *
+ * PROHIBITIONS appliquées ici — une opportunité n'est JAMAIS générée du seul
+ * fait qu'une donnée manque, qu'un connecteur est indisponible, que la période
+ * n'a renvoyé aucune ligne, qu'une métrique vaut 0 sans dénominateur, ou qu'une
+ * URL partage la même racine de domaine. La spéculation n'est jamais présentée
+ * comme une preuve.
  */
 
 import type {
@@ -21,7 +35,21 @@ import type {
   SeoOpportunity,
   SeoSeverity,
 } from './types'
-import { IMPORTANT_ROUTES } from './important-routes'
+import type { SeoScope } from './scope'
+import { classifyUrl, extractHost, SEO_SCOPE_LABEL_FR } from './scope'
+import { IMPORTANT_ROUTES, absoluteUrl } from './important-routes'
+
+/* ------------------------------------------------------------------ */
+/* Sources réelles (5A — modèle de PREUVE)                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Identifiants de SOURCE réelle ayant DÉTECTÉ le fait. Chaque opportunité en
+ * porte une : aucune opportunité n'est « hors-sol ». Valeurs alignées sur le
+ * vocabulaire des connecteurs (cf. SeoConnectorStatus.connector).
+ */
+export const SOURCE_GSC = 'google_search_console'
+export const SOURCE_TECHNICAL = 'technical_audit'
 
 /* ------------------------------------------------------------------ */
 /* Seuils justifiés                                                    */
@@ -122,6 +150,19 @@ function looksNotIndexed(r: UrlInspectionResult): boolean {
   )
 }
 
+/**
+ * Attache HÔTE + PORTÉE à partir d'une URL réelle (déterministe via `scope.ts`).
+ * Renvoie `{}` si l'hôte n'est pas déterminable — JAMAIS d'invention, et JAMAIS
+ * un repli « citadelle » par défaut (le module scope classe un hôte inconnu en
+ * `external_or_unknown`). Un problème sur un hôte institutionnel reçoit donc
+ * `scope:'institutional'`, jamais `'citadelle'`.
+ */
+function urlScope(u: string | null | undefined): { host?: string; scope?: SeoScope } {
+  const host = extractHost(u)
+  if (!host) return {}
+  return { host, scope: classifyUrl(u) }
+}
+
 const SEVERITY_RANK: Record<SeoSeverity, number> = {
   critical: 0,
   high: 1,
@@ -160,6 +201,9 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
         kind: 'HIGH_IMPRESSIONS_LOW_CTR',
         severity: q.impressions >= HIGH_IMPRESSIONS_MIN * 5 ? 'high' : 'medium',
         subject: q.query,
+        // Sujet = requête (pas une URL) : la propriété de domaine ne permet PAS
+        // d'attribuer un hôte fiable → host/scope volontairement absents.
+        source: SOURCE_GSC,
         why: 'Beaucoup d’impressions mais très peu de clics : le titre et la méta-description n’incitent pas au clic.',
         evidence: `${num(q.impressions)} impressions · CTR ${pct(q.ctr)} · position ${q.position.toFixed(1)}`,
         action: 'Réécrire le title et la meta description de la page cible pour cette requête (bénéfice/promesse claire).',
@@ -183,6 +227,7 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
         kind: 'POSITION_4_TO_15',
         severity: 'medium',
         subject: q.query,
+        source: SOURCE_GSC,
         why: 'Position en « striking distance » (4→15) : un petit gain peut faire basculer la requête en page 1 / top 3.',
         evidence: `Position ${q.position.toFixed(1)} · ${num(q.impressions)} impressions · ${num(q.clicks)} clics`,
         action: 'Renforcer le contenu et le maillage interne de la page cible sur cette requête.',
@@ -208,6 +253,8 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
         kind: 'DECLINING_PAGE',
         severity: delta <= -0.4 ? 'high' : 'medium',
         subject: p.page,
+        source: SOURCE_GSC,
+        ...urlScope(p.page),
         why: 'Performance en baisse nette par rapport à la période précédente : perte de visibilité à surveiller.',
         evidence: `Variation ${signedPct(delta)} · ${num(p.clicks)} clics · ${num(p.impressions)} impressions · position ${p.position.toFixed(1)}`,
         action: 'Auditer la page (contenu obsolète, cannibalisation, perte de liens) et rafraîchir/mettre à jour.',
@@ -219,9 +266,13 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
   {
     const hits = queries
       .filter(
+        // PROHIBITION : jamais d'opportunité sans observation. Une requête
+        // « nouvelle » ou « montante » à 0 impression n'est pas une preuve —
+        // c'est une absence de donnée. On exige un volume observé (> 0).
         (q) =>
-          q.trend === 'new' ||
-          (q.trend === 'up' && typeof q.delta === 'number' && q.delta >= RISING_DELTA),
+          q.impressions > 0 &&
+          (q.trend === 'new' ||
+            (q.trend === 'up' && typeof q.delta === 'number' && q.delta >= RISING_DELTA)),
       )
       .sort((a, b) => b.impressions - a.impressions)
       .slice(0, MAX_PER_KIND)
@@ -231,6 +282,7 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
         kind: 'RISING_QUERY',
         severity: 'info',
         subject: q.query,
+        source: SOURCE_GSC,
         why: isNew
           ? 'Nouvelle requête émergente : opportunité de capter une demande naissante.'
           : 'Requête en forte progression : momentum à amplifier.',
@@ -255,6 +307,8 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
         kind: 'UNINDEXED_IMPORTANT_PAGE',
         severity: route.importance === 'primary' ? 'critical' : 'high',
         subject: pathOf(r.url),
+        source: SOURCE_GSC,
+        ...urlScope(r.url),
         why: 'Page importante non indexée par Google : elle est invisible dans la recherche.',
         evidence: `Verdict ${r.verdict}${r.coverageState ? ` · ${r.coverageState}` : ''}${r.robotsTxtState ? ` · robots ${r.robotsTxtState}` : ''}`,
         action: 'Vérifier robots/noindex/canonical, corriger le blocage puis demander une (ré)indexation dans Search Console.',
@@ -274,6 +328,8 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
         kind: 'CANONICAL_MISMATCH',
         severity: 'high',
         subject: pathOf(r.url),
+        source: SOURCE_GSC,
+        ...urlScope(r.url),
         why: 'Google a choisi une canonique différente de celle déclarée par la page : signaux d’indexation ambigus.',
         evidence: `Déclarée ${r.userCanonical} · retenue par Google ${r.googleCanonical}`,
         action: 'Aligner la balise canonique déclarée sur l’URL cible réelle (ou corriger le contenu dupliqué).',
@@ -281,25 +337,38 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
     }
   }
 
-  /* 7. SITEMAP_ISSUE — sitemap en erreur ou en attente. */
+  /* 7. SITEMAP_ISSUE — sitemap en erreur ou en attente.
+   *    PORTÉE : le sitemap est classé par SON hôte réel. Un sitemap
+   *    institutionnel (ex. chapelleduroyaume.org/sitemap_index.xml) reçoit
+   *    scope:'institutional' — JAMAIS 'citadelle'. La preuve est rattachée à cet
+   *    hôte ; aucun impact Citadelle n'est asserté s'il n'est pas démontrable. */
   {
     const hits = sitemaps
       .filter((s) => (s.errors ?? 0) > 0 || s.isPending)
       .slice(0, MAX_PER_KIND)
     for (const s of hits) {
       const errors = s.errors ?? 0
+      // Priorité aux champs déjà classés par la normalisation (5A), sinon on
+      // classe déterministiquement à partir de l'URL/path du sitemap lui-même.
+      const derived = urlScope(s.path)
+      const host = s.host ?? derived.host
+      const scope = s.scope ?? derived.scope
+      const scopeLabel = scope ? SEO_SCOPE_LABEL_FR[scope] : undefined
       push({
         kind: 'SITEMAP_ISSUE',
         severity: errors > 0 ? 'high' : 'low',
         subject: s.path,
+        source: SOURCE_GSC,
+        ...(host ? { host } : {}),
+        ...(scope ? { scope } : {}),
         why:
           errors > 0
-            ? 'Le sitemap remonte des erreurs : des URLs peuvent ne pas être découvertes/indexées.'
-            : 'Sitemap en attente de traitement par Google.',
-        evidence: `${errors} erreur(s) · ${num(s.warnings ?? 0)} avertissement(s)${s.isPending ? ' · en attente' : ''}`,
+            ? `Le sitemap de ${host ?? 'cet hôte'} remonte des erreurs : des URLs de ${scopeLabel ?? 'cet hôte'} peuvent ne pas être découvertes/indexées.`
+            : `Sitemap de ${host ?? 'cet hôte'} en attente de traitement par Google.`,
+        evidence: `Hôte ${host ?? 'inconnu'}${scopeLabel ? ` · ${scopeLabel}` : ''} · ${errors} erreur(s) · ${num(s.warnings ?? 0)} avertissement(s)${s.isPending ? ' · en attente' : ''}`,
         action:
           errors > 0
-            ? 'Corriger les URLs invalides du sitemap puis le re-soumettre dans Search Console.'
+            ? `Corriger les URLs invalides du sitemap de ${host ?? 'cet hôte'} puis le re-soumettre dans Search Console.`
             : 'Vérifier la soumission du sitemap et attendre le traitement Google.',
       })
     }
@@ -311,6 +380,10 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
     let sdCount = 0
     for (const route of technical.routes) {
       if (!route.indexable) continue
+      // L'audit technique porte sur les routes PUBLIQUES de Citadelle
+      // (cf. important-routes / PUBLIC_BASE_URL) : la portée est donc classée à
+      // partir de l'URL absolue réelle de la route, pas supposée.
+      const routeScope = urlScope(absoluteUrl(route.route))
       const missingTitle = route.title === 'FAIL'
       const missingDesc = route.description === 'FAIL'
       if ((missingTitle || missingDesc) && metaCount < MAX_PER_KIND) {
@@ -322,6 +395,8 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
           kind: 'MISSING_METADATA',
           severity: 'high',
           subject: route.route,
+          source: SOURCE_TECHNICAL,
+          ...routeScope,
           why: 'Métadonnées incomplètes : Google génère un snippet de secours, moins performant.',
           evidence: `Manquant : ${parts}`,
           action: 'Ajouter un title unique et une meta description incitative à cette route.',
@@ -333,6 +408,8 @@ export function detectOpportunities(input: OpportunityInput): SeoOpportunity[] {
           kind: 'MISSING_STRUCTURED_DATA',
           severity: 'low',
           subject: route.route,
+          source: SOURCE_TECHNICAL,
+          ...routeScope,
           why: 'Données structurées (JSON-LD) absentes : pas d’éligibilité aux résultats enrichis.',
           evidence: 'JSON-LD non détecté sur une route indexable.',
           action: 'Ajouter le balisage schema.org adapté (Organization, Article, Event, FAQ…).',

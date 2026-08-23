@@ -36,6 +36,7 @@ import ConversionsTab from '@/components/admin/intelligence/ConversionsTab'
 import { coverageSummary } from '@/lib/intelligence/core/event-contract'
 import { DEMO_BADGE_FR } from '@/lib/intelligence/core/demo'
 import { FRESHNESS_LABELS_FR } from '@/lib/intelligence/types/freshness'
+import { formatMetric } from '@/lib/intelligence/format'
 import type { MetricAvailability, OverviewMetric, OverviewResult } from '@/lib/intelligence/metrics/overview'
 import type { AcquisitionResult } from '@/lib/intelligence/metrics/acquisition'
 import type { CampaignResult } from '@/lib/intelligence/metrics/campaigns'
@@ -186,9 +187,16 @@ function MetricCard({ m }: { m: OverviewMetric }) {
         <div className="mt-1 font-cinzel text-lg font-black text-pearl/40" title={m.reason}>
           Indisponible
         </div>
-      ) : (
-        <div className="font-cinzel text-2xl font-black" style={{ color: m.availability === 'demo' ? '#fbbf24' : '#fff' }}>
+      ) : m.availability === 'demo' ? (
+        // Démo : valeur d'exemple explicitement badgée (jamais confondue avec du réel).
+        <div className="font-cinzel text-2xl font-black" style={{ color: '#fbbf24' }}>
           {(m.envelope?.value ?? 0).toLocaleString('fr-FR')}
+        </div>
+      ) : (
+        // Réel : formatMetric garantit « 0 » pour un 0 réel et « — » si la valeur manque
+        // (jamais un 0 fabriqué à partir d'une valeur absente).
+        <div className="font-cinzel text-2xl font-black text-white">
+          {formatMetric(m.envelope?.value ?? null, 'real', 'count')}
         </div>
       )}
       {m.envelope && (
@@ -289,10 +297,13 @@ export default function IntelligenceHubPage() {
           eyebrow="Administration"
           title={
             <>
-              Intelligence <span className="text-cinematic-gold">&amp; Acquisition</span>
+              Cockpit{' '}
+              <span className="text-cinematic-gold">
+                SEO · Audience · Acquisition · Contenu · Conversion
+              </span>
             </>
           }
-          description="Cockpit SEO · Audience · Acquisition · Contenu · Conversion. HUB-1 : premières métriques first-party réelles."
+          description="Comprendre d'où vient l'audience, ce qu'elle fait et ce qui la conduit à progresser dans Citadelle."
           actions={
             <div className="flex items-center gap-2">
               {isDemo && (
