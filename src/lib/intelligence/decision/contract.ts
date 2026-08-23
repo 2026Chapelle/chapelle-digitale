@@ -328,6 +328,14 @@ export interface ChannelPlatformContext {
   availability: DecisionAvailability
   /** Métriques de portée plateforme (libellées, unités explicites). */
   metrics: Array<{ key: string; label: string; value: MeasuredValue; unit: string }>
+  /**
+   * Fenêtre RÉELLE des métriques de plateforme (ex. « 28 derniers jours »), quand
+   * elle diffère de la période Citadelle « aujourd'hui ». OBLIGATOIRE à l'affichage
+   * dès que des nombres de plateforme réels sont présents, pour ne jamais laisser un
+   * admin lire une donnée 28 j comme « aujourd'hui ». Absent si sans objet (métriques
+   * vides / indisponible).
+   */
+  periodLabel?: string
   /** Raison si UNAVAILABLE (ex. Meta bloqué côté propriétaire). */
   reason?: string
 }

@@ -63,6 +63,13 @@ export interface SignalsBuildInput {
   dataQuality: DataQualityContext
   period: DecisionPeriod
   scope: DecisionScope
+  /**
+   * Période RÉELLE des données de PLATEFORME (ex. « 28 derniers jours »), distincte
+   * de `period` (« aujourd'hui »). Portée par les signaux dérivés de la plateforme
+   * (tendance YouTube, contenu YouTube) pour ne jamais étiqueter du 28 j « aujourd'hui ».
+   * À défaut, on retombe honnêtement sur `period`.
+   */
+  platformPeriod?: DecisionPeriod
   /** Tendance native du connecteur — SEULE source autorisée de GROWTH/DECLINE. */
   youtubeTrends?: YouTubeTrends | null
   /** Search Console encore trop peu de données pour conclure. */
@@ -84,9 +91,12 @@ const nf = new Intl.NumberFormat('fr-FR')
 function num(n: number): string {
   return nf.format(n)
 }
-/** Ratio 0..1 → « 20 % ». */
+/** Ratio 0..1 → « 20 % ». Un taux réel strictement positif ne s'arrondit jamais
+ *  à « 0 % » (on montre « <1 % » pour rester honnête sous 0,5 %). */
 function pct(rate: number): string {
-  return `${Math.round(rate * 100)} %`
+  const rounded = Math.round(rate * 100)
+  if (rate > 0 && rounded === 0) return '<1 %'
+  return `${rounded} %`
 }
 /** Delta signé 0..1 → « +18 % » / « -22 % ». */
 function signedPct(delta: number): string {
@@ -411,6 +421,8 @@ export function ruleYouTubeTrend(input: SignalsBuildInput): DecisionSignal | nul
   const confidence: ConfidenceState = 'MEDIUM'
   // La portée est celle de la plateforme externe, pas du périmètre Citadelle.
   const scope: DecisionScope = 'external_or_unknown'
+  // La donnée est une fenêtre de PLATEFORME (28 j), jamais « aujourd'hui ».
+  const period = input.platformPeriod ?? input.period
 
   if (isGrowth) {
     return {
@@ -423,7 +435,7 @@ export function ruleYouTubeTrend(input: SignalsBuildInput): DecisionSignal | nul
       whyItMatters:
         "La progression d'audience est une métrique de plateforme ; elle ne se traduit pas directement en résultat Citadelle.",
       source: 'youtube_analytics',
-      period: input.period,
+      period,
       scope,
       evidence,
       confidence,
@@ -440,7 +452,7 @@ export function ruleYouTubeTrend(input: SignalsBuildInput): DecisionSignal | nul
     whyItMatters:
       "Le recul d'audience est une métrique de plateforme ; il n'implique pas mécaniquement un effet Citadelle.",
     source: 'youtube_analytics',
-    period: input.period,
+    period,
     scope,
     evidence,
     confidence,
@@ -561,7 +573,8 @@ export function ruleContentSignal(input: SignalsBuildInput): DecisionSignal | nu
       whyItMatters:
         "Fait d'audience observé ; aucune préférence de sujet ni recommandation éditoriale n'en est déduite.",
       source: yt.source,
-      period: input.period,
+      // Donnée de PLATEFORME (28 j) : jamais étiquetée « aujourd'hui ».
+      period: input.platformPeriod ?? input.period,
       scope: 'external_or_unknown',
       evidence: [evValue('Vues', yt.views, yt.source)],
       confidence: 'LOW',

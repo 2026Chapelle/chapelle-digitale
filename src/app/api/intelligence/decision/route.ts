@@ -153,6 +153,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const period = todayPeriod(nowIso)
     const seoPeriod = buildSeoPeriod(parsePeriodKey('28d'), Date.now())
+    // Fenêtre RÉELLE des données de plateforme (28 j), distincte d'« aujourd'hui » :
+    // portée explicitement partout où un nombre de plateforme est affiché.
+    const platformPeriod: DecisionPeriod = {
+      label: PLATFORM_WINDOW_LABEL,
+      sinceIso: seoPeriod.from,
+      untilIso: seoPeriod.to,
+    }
 
     // 1) Lectures first-party (bornées, agrégées) — mises en cache court.
     const hourBucket = nowIso.slice(0, 13)
@@ -194,6 +201,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       metaFacebook: metaInput(metaFb, 'Facebook'),
       metaInstagram: metaInput(metaIg, 'Instagram'),
       period,
+      platformWindowLabel: PLATFORM_WINDOW_LABEL,
       nowIso,
       demo: false,
     })
@@ -224,6 +232,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       channels,
       dataQuality,
       period,
+      platformPeriod,
       scope: 'citadelle',
       youtubeTrends: youtube?.trends ?? null,
       seoInsufficient,

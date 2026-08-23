@@ -358,6 +358,24 @@ describe('ruleYouTubeTrend', () => {
   it('retourne null sans tendance native fournie', () => {
     expect(ruleYouTubeTrend(baseInput({ youtubeTrends: null }))).toBeNull()
   })
+
+  it('PORTE la fenêtre de PLATEFORME (28 j), jamais « aujourd\'hui » — garde anti-mislabel', () => {
+    const platformPeriod: DecisionPeriod = {
+      label: '28 derniers jours',
+      sinceIso: '2026-07-26T00:00:00Z',
+      untilIso: '2026-08-23T00:00:00Z',
+    }
+    const s = ruleYouTubeTrend(baseInput({ youtubeTrends: trends(500, 400, 0.25), platformPeriod }))
+    expect(s).not.toBeNull()
+    // La période affichée doit être la fenêtre 28 j, pas la période Citadelle du jour.
+    expect(s!.period.label).toBe('28 derniers jours')
+    expect(s!.period.label).not.toBe(PERIOD.label)
+  })
+
+  it('retombe honnêtement sur la période du jour si aucune fenêtre plateforme fournie', () => {
+    const s = ruleYouTubeTrend(baseInput({ youtubeTrends: trends(500, 400, 0.25) }))
+    expect(s!.period.label).toBe(PERIOD.label)
+  })
 })
 
 /* ── SEO insuffisant ──────────────────────────────────────────────────── */
@@ -442,6 +460,21 @@ describe('ruleContentSignal', () => {
     expect(s!.fact.toLowerCase()).not.toContain('préfèrent')
     expect(s!.whyItMatters.toLowerCase()).not.toContain('il faut')
     expectWellFormed(s!)
+  })
+
+  it('contenu YouTube PORTE la fenêtre de PLATEFORME (28 j), pas « aujourd\'hui »', () => {
+    const platformPeriod: DecisionPeriod = {
+      label: '28 derniers jours',
+      sinceIso: '2026-07-26T00:00:00Z',
+      untilIso: '2026-08-23T00:00:00Z',
+    }
+    const s = ruleContentSignal(
+      baseInput({
+        platformPeriod,
+        content: { mostViewedYouTube: { title: 'Culte', views: 1200, source: 'youtube_analytics' } },
+      }),
+    )
+    expect(s!.period.label).toBe('28 derniers jours')
   })
 
   it('retourne null sans faits de contenu', () => {

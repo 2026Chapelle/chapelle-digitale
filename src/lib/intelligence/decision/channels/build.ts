@@ -79,6 +79,12 @@ export interface ChannelsBuildInput {
   /** État Meta Instagram honnête (jamais d'appel API). */
   metaInstagram?: MetaChannelInput | null
   period: DecisionPeriod
+  /**
+   * Libellé de la FENÊTRE des métriques de plateforme (ex. « 28 derniers jours »),
+   * distincte de la période Citadelle « aujourd'hui ». Rendu sur le contexte
+   * YouTube pour qu'aucun nombre 28 j ne soit lu comme « aujourd'hui ».
+   */
+  platformWindowLabel?: string
   nowIso: string
   demo?: boolean
 }
@@ -131,7 +137,10 @@ function citadelleRowFromAcquisition(row: AcquisitionResult['rows'][number]): Ch
  * YouTube : portée de plateforme (vues, temps de visionnage, variation d'abonnés).
  * REAL uniquement si la chaîne est vivante ET des totaux existent sur la période.
  */
-function youtubePlatformContext(yt: YouTubeData | null | undefined): ChannelPlatformContext {
+function youtubePlatformContext(
+  yt: YouTubeData | null | undefined,
+  windowLabel?: string,
+): ChannelPlatformContext {
   const label = 'YouTube'
   if (!yt) {
     return {
@@ -180,7 +189,17 @@ function youtubePlatformContext(yt: YouTubeData | null | undefined): ChannelPlat
     },
   ]
 
-  return { channel: 'youtube', label, availability, metrics, ...(reason ? { reason } : {}) }
+  // La fenêtre de plateforme (28 j) est portée EXPLICITEMENT dès qu'un nombre réel
+  // est affichable, pour ne jamais la laisser lire comme « aujourd'hui ».
+  const periodLabel = availability === 'REAL' && windowLabel ? windowLabel : undefined
+  return {
+    channel: 'youtube',
+    label,
+    availability,
+    metrics,
+    ...(periodLabel ? { periodLabel } : {}),
+    ...(reason ? { reason } : {}),
+  }
 }
 
 /**
@@ -251,7 +270,7 @@ export function buildChannelValue(input: ChannelsBuildInput): DecisionChannelsPa
 
   // Contexte plateforme : ordre déterministe, Meta toujours présent.
   const platformContext: ChannelPlatformContext[] = [
-    youtubePlatformContext(input.youtube),
+    youtubePlatformContext(input.youtube, input.platformWindowLabel),
     whatsappPlatformContext(input.whatsapp),
     metaPlatformContext('meta_facebook', 'Facebook', input.metaFacebook),
     metaPlatformContext('meta_instagram', 'Instagram', input.metaInstagram),

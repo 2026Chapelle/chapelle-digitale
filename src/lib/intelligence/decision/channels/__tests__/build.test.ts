@@ -180,6 +180,20 @@ describe('buildChannelValue — PLATFORM_VS_CITADELLE', () => {
     expect(yt.reason).toBeTruthy()
   })
 
+  it('YouTube REAL PORTE la fenêtre plateforme (periodLabel) — jamais lue « aujourd\'hui »', () => {
+    const out = buildChannelValue(baseInput({ youtube: YT_LIVE, platformWindowLabel: 'Fenêtre 28 j' }))
+    const yt = out.platformContext.find((p) => p.channel === 'youtube')!
+    expect(yt.availability).toBe('REAL')
+    // La fenêtre réelle de plateforme est portée explicitement sur le contexte.
+    expect(yt.periodLabel).toBe('Fenêtre 28 j')
+  })
+
+  it('sans libellé de fenêtre plateforme, aucun periodLabel fabriqué', () => {
+    const out = buildChannelValue(baseInput({ youtube: YT_LIVE }))
+    const yt = out.platformContext.find((p) => p.channel === 'youtube')!
+    expect(yt.periodLabel).toBeUndefined()
+  })
+
   it('WhatsApp : présence honnête NOT_APPLICABLE (pas de portée plateforme mesurable)', () => {
     const out = buildChannelValue(baseInput())
     const wa = out.platformContext.find((p) => p.channel === 'whatsapp')!

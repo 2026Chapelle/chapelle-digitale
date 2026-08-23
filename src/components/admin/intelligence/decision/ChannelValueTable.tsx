@@ -119,6 +119,12 @@ function PlatformCard({ ctx }: { ctx: ChannelPlatformContext }) {
         <span className="text-sm font-medium text-pearl/85">{ctx.label}</span>
         <DecisionAvailBadge availability={ctx.availability} />
       </div>
+      {/* Fenêtre réelle de la plateforme (ex. 28 j) : jamais lue comme « aujourd'hui ». */}
+      {ctx.periodLabel && (
+        <div className="mb-2 inline-flex rounded bg-pearl/5 px-1.5 py-0.5 text-[10px] font-medium text-pearl/45">
+          {ctx.periodLabel}
+        </div>
+      )}
       {unavailable ? (
         <div className="text-[12px] text-pearl/45">{ctx.reason ?? 'Connexion en attente — portée non mesurable.'}</div>
       ) : ctx.metrics.length === 0 ? (
