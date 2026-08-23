@@ -471,11 +471,12 @@ export function ruleSeoInsufficient(input: SignalsBuildInput): DecisionSignal | 
     category: 'DATA_QUALITY',
     title: 'Search Console : échantillon insuffisant',
     fact:
-      "Search Console ne fournit pas encore assez de données sur la période pour conclure.",
+      "Search Console ne fournit pas encore assez de données sur la fenêtre analysée pour conclure.",
     whyItMatters:
       "Sur un échantillon aussi faible, toute lecture SEO serait non concluante.",
     source: 'google_search_console',
-    period: input.period,
+    // Le diagnostic SEO porte sur la fenêtre GSC (≈ 28 j), pas sur « aujourd'hui ».
+    period: input.platformPeriod ?? input.period,
     scope: input.scope,
     evidence: [
       evMissing(
