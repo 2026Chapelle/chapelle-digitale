@@ -13,6 +13,7 @@
 import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import InfoTip from '@/components/admin/intelligence/InfoTip'
+import { formatMetric } from '@/lib/intelligence/format'
 import { FRESHNESS_LABELS_FR } from '@/lib/intelligence/types/freshness'
 import type {
   ConversionAvailability,
@@ -63,7 +64,10 @@ function CategoryCard({ c }: { c: ConversionCategory }) {
         <AvailBadge availability={c.availability} />
       </div>
       {c.availability === 'REAL' ? (
-        <div className="mt-1 font-cinzel text-2xl font-black text-pearl">{nf.format(c.value ?? 0)}</div>
+        // REAL : formatMetric affiche « 0 » pour un 0 réel, « — » si la valeur manque (jamais un 0 fabriqué).
+        <div className="mt-1 font-cinzel text-2xl font-black text-pearl">
+          {formatMetric(c.value ?? null, 'real', 'count')}
+        </div>
       ) : (
         <div
           className="mt-1 font-cinzel text-lg font-black text-pearl/40"
@@ -116,7 +120,9 @@ function FunnelView({ funnel }: { funnel: Funnel }) {
               </div>
               <div className="flex items-center gap-3">
                 {s.availability === 'REAL' ? (
-                  <span className="font-cinzel text-xl font-black text-pearl">{nf.format(s.value ?? 0)}</span>
+                  <span className="font-cinzel text-xl font-black text-pearl">
+                    {formatMetric(s.value ?? null, 'real', 'count')}
+                  </span>
                 ) : (
                   <span
                     className="text-sm font-semibold"

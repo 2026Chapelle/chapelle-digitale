@@ -9,6 +9,11 @@
  *  - Une carte n'affiche une valeur RÉELLE (`availability:'real'`) que si le
  *    connecteur est en état `PASS` ET fournit la donnée. Sinon `availability:
  *    'unavailable'` avec `value:null` — JAMAIS un 0 déguisé en réel.
+ *  - NO_DATA (5A) : quand le connecteur est CONNECTÉ (PASS) mais que la période
+ *    ne renvoie aucun dénominateur (impressions = 0), la POSITION MOYENNE et le
+ *    CTR n'ont pas de sens → `availability:'no_data'`, `value:null` (jamais
+ *    0,0 / 0,00 %). Les clics/impressions à 0 restent RÉELS (la source prouve
+ *    réellement 0). Un 0 réel n'est donc jamais confondu avec « aucune donnée ».
  *  - Fraîcheur : Search Console = `SEO_DELAYED` (« Différé (SEO) »), GA4 =
  *    `SYNCED`. Aucune donnée Google n'est présentée comme « temps réel ».
  *  - Le CTR reste en ratio 0..1 dans la donnée (le formatage % est côté UI).
@@ -58,14 +63,22 @@ export function buildSeoOverview(input: SeoOverviewInput): SeoOverviewCard[] {
   const gscReal = input.gsc.status.state === 'PASS' && input.gsc.totals !== null
   const t: GscTotals | null = gscReal ? input.gsc.totals : null
   const prev = input.prevTotals ?? null
+  // 5A : « a un dénominateur » = connecté ET impressions réellement > 0.
+  // Sans dénominateur, CTR et position moyenne sont NO_DATA (pas un 0 trompeur).
+  const hasDenominator = gscReal && t !== null && t.impressions > 0
 
-  /** Fabrique une carte Search Console (réel/indisponible + tendance). */
+  /**
+   * Fabrique une carte Search Console.
+   * - `isDenominatorMetric` (CTR, position) : sans dénominateur → NO_DATA/null.
+   * - sinon : réel (0 réel inclus) quand connecté, indisponible sinon.
+   */
   const gscCard = (
     key: string,
     label: string,
     unit: SeoOverviewCard['unit'],
     curVal: number | undefined,
     prevVal: number | undefined,
+    isDenominatorMetric = false,
   ): SeoOverviewCard => {
     if (!gscReal || curVal === undefined) {
       return {
@@ -74,6 +87,19 @@ export function buildSeoOverview(input: SeoOverviewInput): SeoOverviewCard[] {
         value: null,
         unit,
         availability: 'unavailable',
+        source: 'google_search_console',
+        freshness: 'SEO_DELAYED',
+        trend: 'unknown',
+      }
+    }
+    if (isDenominatorMetric && !hasDenominator) {
+      // Connecté, mais aucune observation exploitable sur la période : NO_DATA.
+      return {
+        key,
+        label,
+        value: null,
+        unit,
+        availability: 'no_data',
         source: 'google_search_console',
         freshness: 'SEO_DELAYED',
         trend: 'unknown',
@@ -97,9 +123,10 @@ export function buildSeoOverview(input: SeoOverviewInput): SeoOverviewCard[] {
   const cards: SeoOverviewCard[] = [
     gscCard('clicks', 'Clics Google', 'count', t?.clicks, prev?.clicks),
     gscCard('impressions', 'Impressions', 'count', t?.impressions, prev?.impressions),
-    gscCard('ctr', 'CTR', 'ratio', t?.ctr, prev?.ctr),
+    // CTR & position : métriques à DÉNOMINATEUR → NO_DATA si impressions = 0.
+    gscCard('ctr', 'CTR', 'ratio', t?.ctr, prev?.ctr, true),
     // Position : valeur décimale (>=1). Plus BAS = meilleur (documenté côté UI).
-    gscCard('position', 'Position moyenne', 'count', t?.position, prev?.position),
+    gscCard('position', 'Position moyenne', 'count', t?.position, prev?.position, true),
     gscCard('visible_pages', 'Pages visibles', 'count', t?.visiblePages, prev?.visiblePages),
     gscCard('active_queries', 'Requêtes actives', 'count', t?.activeQueries, prev?.activeQueries),
   ]

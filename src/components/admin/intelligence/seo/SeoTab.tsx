@@ -28,6 +28,17 @@ import {
   XCircle,
 } from 'lucide-react'
 import { FRESHNESS_LABELS_FR } from '@/lib/intelligence/types/freshness'
+import {
+  classifyUrl,
+  DEFAULT_SEO_SCOPE,
+  extractHost,
+  matchesScope,
+  SEO_SCOPE_LABEL_FR,
+  SEO_SCOPE_OPTIONS,
+  type SeoScope,
+} from '@/lib/intelligence/seo/scope'
+import { AVAILABILITY_HINT_FR, rendersRealNumber } from '@/lib/intelligence/availability'
+import { formatMetric, type MetricUnitFmt } from '@/lib/intelligence/format'
 import type {
   GscPageRow,
   GscQueryRow,
@@ -39,10 +50,11 @@ import type {
   SeoPeriodKey,
   SeoSeverity,
   SeoTrend,
+  SitemapInfo,
   UrlInspectionResult,
 } from '@/lib/intelligence/seo/types'
 
-type Payload = SeoIntelligencePayload & { error?: string }
+type Payload = SeoIntelligencePayload & { error?: string; scope?: SeoScope }
 
 const PERIODS: ReadonlyArray<{ key: SeoPeriodKey; label: string }> = [
   { key: '7d', label: '7 j' },
@@ -66,12 +78,16 @@ const SEVERITY_META: Record<SeoSeverity, { label: string; color: string }> = {
 /* --------------------------- Formatage pur --------------------------- */
 
 const nf = new Intl.NumberFormat('fr-FR')
-function fmtCard(card: SeoOverviewCard): string {
-  if (card.value === null) return '—'
-  if (card.unit === 'ratio') return `${(card.value * 100).toFixed(2)} %`
-  if (card.key === 'position') return card.value.toFixed(1)
-  return nf.format(card.value)
+
+/** Unité de formatage (format.ts) déduite d'une carte de vue d'ensemble. */
+function cardUnitFmt(card: SeoOverviewCard): MetricUnitFmt {
+  if (card.key === 'position') return 'position'
+  if (card.unit === 'ratio') return 'percent01'
+  return 'count'
 }
+/** Valeur d'une carte via format.ts : « — » dès que la dispo n'est pas `real`. */
+const fmtCard = (card: SeoOverviewCard): string =>
+  formatMetric(card.value, card.availability, cardUnitFmt(card))
 const fmtPct = (ratio: number) => `${(ratio * 100).toFixed(2)} %`
 const fmtPos = (pos: number) => pos.toFixed(1)
 const availLabel: Record<SeoAvailability, string> = {
@@ -80,6 +96,53 @@ const availLabel: Record<SeoAvailability, string> = {
   unavailable: 'Indisponible',
   no_data: 'Aucune donnée',
   not_applicable: 'Non applicable',
+}
+/** Sous-texte affiché sous une carte quand la valeur n'est pas réelle. */
+const NON_REAL_LABEL: Record<SeoAvailability, string> = {
+  real: '',
+  demo: 'Donnée de démonstration',
+  unavailable: 'Non configuré',
+  no_data: 'Aucune donnée sur cette période',
+  not_applicable: 'Non applicable',
+}
+
+/* --------------------------- Portée (host/scope) --------------------------- */
+
+/** Libellés courts pour les puces de portée (le libellé long sert ailleurs). */
+const SCOPE_SHORT: Record<SeoScope, string> = {
+  citadelle: 'Citadelle',
+  institutional: 'Institutionnel',
+  global: 'Global',
+  external_or_unknown: 'Externe',
+}
+const SCOPE_COLOR: Record<SeoScope, string> = {
+  citadelle: '#4ade80',
+  institutional: '#fbbf24',
+  global: '#60a5fa',
+  external_or_unknown: '#9ca3af',
+}
+
+/**
+ * Un objet de cette portée doit-il rester visible sous le filtre sélectionné ?
+ * Le signal INSTITUTIONNEL n'est JAMAIS masqué (il est seulement étiqueté) :
+ * on ne cache jamais qu'un problème appartient au site de La Chapelle.
+ */
+function keepForScope(objectScope: SeoScope, selected: SeoScope): boolean {
+  if (selected === 'global') return true
+  return matchesScope(objectScope, selected) || objectScope === 'institutional'
+}
+
+function ScopeChip({ scope, title }: { scope: SeoScope; title?: string }) {
+  const color = SCOPE_COLOR[scope]
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+      style={{ color, borderColor: `${color}55` }}
+      title={title ?? SEO_SCOPE_LABEL_FR[scope]}
+    >
+      {SCOPE_SHORT[scope]}
+    </span>
+  )
 }
 
 /* --------------------------- Petits composants --------------------------- */
@@ -131,7 +194,7 @@ function ConnectorChip({ status }: { status: SeoConnectorStatus }) {
 }
 
 function OverviewCard({ card }: { card: SeoOverviewCard }) {
-  const real = card.availability === 'real'
+  const real = rendersRealNumber(card.availability)
   return (
     <div className="card-cinematic p-4">
       <div className="flex items-center justify-between gap-2">
@@ -141,8 +204,12 @@ function OverviewCard({ card }: { card: SeoOverviewCard }) {
       {real ? (
         <div className="mt-1 font-cinzel text-2xl font-black text-pearl">{fmtCard(card)}</div>
       ) : (
-        <div className="mt-1 font-cinzel text-lg font-black text-pearl/40" title={availLabel[card.availability]}>
-          {card.availability === 'unavailable' ? 'Non configuré' : availLabel[card.availability]}
+        <div title={AVAILABILITY_HINT_FR[card.availability]}>
+          {/* Jamais un 0 trompeur : « — » + explication (aucune donnée / non configuré). */}
+          <div className="mt-1 font-cinzel text-2xl font-black text-pearl/30">{fmtCard(card)}</div>
+          <div className="text-[11px] text-pearl/40">
+            {NON_REAL_LABEL[card.availability] || availLabel[card.availability]}
+          </div>
         </div>
       )}
       <div className="mt-1 flex items-center justify-between">
@@ -155,17 +222,27 @@ function OverviewCard({ card }: { card: SeoOverviewCard }) {
 
 function OpportunityItem({ o }: { o: SeoOpportunity }) {
   const meta = SEVERITY_META[o.severity]
+  const scope: SeoScope = o.scope ?? classifyUrl(o.subject)
+  const isInstitutional = scope === 'institutional'
   return (
     <div className="card-royal border-l-2 p-4" style={{ borderLeftColor: meta.color }}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="font-medium text-pearl">{o.subject}</div>
-        <span
-          className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-          style={{ color: meta.color, border: `1px solid ${meta.color}55` }}
-        >
-          {meta.label}
-        </span>
+        <div className="min-w-0 font-medium text-pearl">{o.subject}</div>
+        <div className="flex items-center gap-2">
+          <ScopeChip scope={scope} />
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+            style={{ color: meta.color, border: `1px solid ${meta.color}55` }}
+          >
+            {meta.label}
+          </span>
+        </div>
       </div>
+      {isInstitutional && (
+        <div className="mt-2 rounded-md border border-amber-500/25 bg-amber-500/5 px-2 py-1 text-[11px] text-amber-200/90">
+          {SEO_SCOPE_LABEL_FR.institutional} — impact Citadelle : non démontré.
+        </div>
+      )}
       <dl className="mt-2 space-y-1 text-xs">
         <div className="flex gap-2">
           <dt className="w-16 shrink-0 font-semibold text-pearl/45">POURQUOI</dt>
@@ -300,10 +377,11 @@ function PagesTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] text-sm">
+      <table className="w-full min-w-[860px] text-sm">
         <thead>
           <tr className="text-left text-xs text-pearl/45">
             <th className="py-2 pr-4 font-medium">Page</th>
+            <th className="py-2 pr-4 font-medium">Portée</th>
             <th className="py-2 pr-4 font-medium text-right">Clics</th>
             <th className="py-2 pr-4 font-medium text-right">Impr.</th>
             <th className="py-2 pr-4 font-medium text-right">CTR</th>
@@ -315,9 +393,16 @@ function PagesTable({
         <tbody>
           {rows.map((r) => {
             const badge = verdictBadge(byPath.get(pathOf(r.page)))
+            const host = extractHost(r.page)
+            const scope = classifyUrl(r.page)
             return (
               <tr key={r.page} className="border-t border-pearl/10">
-                <td className="py-2 pr-4 text-pearl/85">{pathOf(r.page)}</td>
+                <td className="py-2 pr-4 text-pearl/85" title={host ?? undefined}>
+                  {pathOf(r.page)}
+                </td>
+                <td className="py-2 pr-4">
+                  <ScopeChip scope={scope} title={host ?? SEO_SCOPE_LABEL_FR[scope]} />
+                </td>
                 <td className="py-2 pr-4 text-right text-pearl">{nf.format(r.clicks)}</td>
                 <td className="py-2 pr-4 text-right text-pearl/80">{nf.format(r.impressions)}</td>
                 <td className="py-2 pr-4 text-right text-pearl/80">{fmtPct(r.ctr)}</td>
@@ -353,19 +438,47 @@ function CheckBadge({ status }: { status: string }) {
   )
 }
 
+function SitemapRow({ s }: { s: SitemapInfo }) {
+  const scope: SeoScope = s.scope ?? classifyUrl(s.path)
+  const host = s.host ?? extractHost(s.path) ?? undefined
+  const errors = s.errors ?? 0
+  const hasIssue = errors > 0 || Boolean(s.isPending)
+  const isInstitutional = scope === 'institutional'
+  return (
+    <div className="rounded-md border border-pearl/10 p-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <ScopeChip scope={scope} title={host ?? SEO_SCOPE_LABEL_FR[scope]} />
+        <span className="break-all text-pearl/85">{s.path}</span>
+        <span className="text-[11px] text-pearl/40">
+          {errors} erreur(s) · {s.warnings ?? 0} avert.
+          {s.isPending ? ' · en attente' : ''}
+        </span>
+      </div>
+      {isInstitutional && (
+        <div className="mt-1 text-[11px] text-amber-200/80">
+          {SEO_SCOPE_LABEL_FR.institutional}
+          {hasIssue ? ' — impact Citadelle : non démontré.' : '.'}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* --------------------------- Onglet principal --------------------------- */
 
 export default function SeoTab() {
   const [period, setPeriod] = useState<SeoPeriodKey>('28d')
+  // Portée par défaut : Citadelle (destination numérique prioritaire).
+  const [scope, setScope] = useState<SeoScope>(DEFAULT_SEO_SCOPE)
   const [data, setData] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
-  const load = useCallback(async (key: SeoPeriodKey) => {
+  const load = useCallback(async (key: SeoPeriodKey, sc: SeoScope) => {
     setLoading(true)
     setErr(null)
     try {
-      const res = await fetch(`/api/intelligence/seo?period=${key}`, { cache: 'no-store' })
+      const res = await fetch(`/api/intelligence/seo?period=${key}&scope=${sc}`, { cache: 'no-store' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setData((await res.json()) as Payload)
     } catch (e) {
@@ -376,12 +489,26 @@ export default function SeoTab() {
   }, [])
 
   useEffect(() => {
-    void load(period)
-  }, [period, load])
+    void load(period, scope)
+  }, [period, scope, load])
 
   const gscConfigured = data?.gsc.state === 'PASS'
   const ga4Configured = data?.ga4.state === 'PASS'
   const bothOff = data && !gscConfigured && !ga4Configured
+
+  // Filtrage présentation par portée. Le signal INSTITUTIONNEL n'est jamais
+  // masqué : il reste affiché et clairement étiqueté (jamais rangé « Citadelle »).
+  const visiblePages = useMemo(
+    () => (data ? data.pages.filter((p) => keepForScope(classifyUrl(p.page), scope)) : []),
+    [data, scope],
+  )
+  const visibleOpportunities = useMemo(
+    () =>
+      data
+        ? data.opportunities.filter((o) => keepForScope(o.scope ?? classifyUrl(o.subject), scope))
+        : [],
+    [data, scope],
+  )
 
   return (
     <div className="mb-8">
@@ -403,9 +530,27 @@ export default function SeoTab() {
             </button>
           ))}
         </div>
+        {/* Sélecteur de PORTÉE : la propriété GSC est un domaine multi-hôtes ;
+            on classe par hôte réel. Défaut = Citadelle. */}
+        <div className="inline-flex rounded-lg bg-pearl/5 p-0.5 text-xs">
+          {SEO_SCOPE_OPTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setScope(s)}
+              title={SEO_SCOPE_LABEL_FR[s]}
+              className={
+                'rounded-md px-3 py-1 font-medium transition ' +
+                (scope === s ? 'bg-cinematic-gold/15 text-cinematic-gold' : 'text-pearl/55 hover:text-pearl')
+              }
+            >
+              {SCOPE_SHORT[s]}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
-          onClick={() => void load(period)}
+          onClick={() => void load(period, scope)}
           className="inline-flex items-center gap-2 rounded-lg bg-pearl/5 px-3 py-1.5 text-sm text-pearl/70 hover:text-pearl"
         >
           <RefreshCw className={'h-4 w-4 ' + (loading ? 'animate-spin' : '')} /> Actualiser
@@ -423,6 +568,13 @@ export default function SeoTab() {
           </span>
         )}
       </div>
+
+      <p className="mb-4 text-[11px] text-pearl/35">
+        Portée « {SEO_SCOPE_LABEL_FR[scope]} ». La propriété Search Console est un domaine couvrant
+        plusieurs hôtes : chaque signal est classé par <strong className="text-pearl/55">hôte réel</strong>,
+        jamais supposé « Citadelle ». Les signaux institutionnels (site de La Chapelle) restent affichés et
+        clairement étiquetés.
+      </p>
 
       {err && (
         <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-sm text-red-300">
@@ -477,17 +629,17 @@ export default function SeoTab() {
           <section>
             <div className="section-label mb-3 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-cinematic-gold" /> Opportunités
-              <span className="text-[11px] font-normal text-pearl/35">({data.opportunities.length})</span>
+              <span className="text-[11px] font-normal text-pearl/35">({visibleOpportunities.length})</span>
             </div>
-            {data.opportunities.length === 0 ? (
+            {visibleOpportunities.length === 0 ? (
               <div className="card-royal p-6 text-center text-sm text-pearl/40">
                 {gscConfigured || data.technical
-                  ? 'Aucune opportunité détectée sur cette période.'
+                  ? 'Aucune opportunité détectée pour cette portée sur cette période.'
                   : 'Opportunités indisponibles tant que les connecteurs ne sont pas configurés.'}
               </div>
             ) : (
               <div className="grid gap-3 lg:grid-cols-2">
-                {data.opportunities.map((o, i) => (
+                {visibleOpportunities.map((o, i) => (
                   <OpportunityItem key={`${o.kind}:${o.subject}:${i}`} o={o} />
                 ))}
               </div>
@@ -520,10 +672,12 @@ export default function SeoTab() {
                 <div className="py-6 text-center text-sm text-pearl/40">
                   Search Console non configuré — aucune page à afficher.
                 </div>
-              ) : data.pages.length === 0 ? (
-                <div className="py-6 text-center text-sm text-pearl/40">Aucune page sur cette période.</div>
+              ) : visiblePages.length === 0 ? (
+                <div className="py-6 text-center text-sm text-pearl/40">
+                  Aucune page pour cette portée sur cette période.
+                </div>
               ) : (
-                <PagesTable rows={data.pages} indexation={data.indexation} />
+                <PagesTable rows={visiblePages} indexation={data.indexation} />
               )}
             </div>
           </section>
@@ -622,16 +776,15 @@ export default function SeoTab() {
 
                 {data.sitemaps.length > 0 && (
                   <div className="card-royal mb-3 p-4">
-                    <div className="mb-2 text-xs text-pearl/55">Sitemaps</div>
-                    <div className="space-y-1 text-sm">
+                    <div className="mb-2 text-xs text-pearl/55">
+                      Sitemaps
+                      <span className="ml-2 font-normal text-pearl/35">
+                        (classés par hôte réel — jamais tous « Citadelle »)
+                      </span>
+                    </div>
+                    <div className="space-y-2 text-sm">
                       {data.sitemaps.map((s) => (
-                        <div key={s.path} className="flex flex-wrap items-center gap-2 text-pearl/70">
-                          <span className="text-pearl/85">{s.path}</span>
-                          <span className="text-[11px] text-pearl/40">
-                            {(s.errors ?? 0)} erreur(s) · {(s.warnings ?? 0)} avert.
-                            {s.isPending ? ' · en attente' : ''}
-                          </span>
-                        </div>
+                        <SitemapRow key={s.path} s={s} />
                       ))}
                     </div>
                   </div>
