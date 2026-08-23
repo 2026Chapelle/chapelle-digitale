@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   BarChart3,
   BookOpen,
+  Compass,
   Facebook,
   Gauge,
   MessageCircle,
@@ -33,6 +34,7 @@ import YouTubeTab from '@/components/admin/intelligence/YouTubeTab'
 import MetaTab from '@/components/admin/intelligence/MetaTab'
 import WhatsAppTab from '@/components/admin/intelligence/WhatsAppTab'
 import ConversionsTab from '@/components/admin/intelligence/ConversionsTab'
+import DecisionTab from '@/components/admin/intelligence/decision/DecisionTab'
 import { coverageSummary } from '@/lib/intelligence/core/event-contract'
 import { DEMO_BADGE_FR } from '@/lib/intelligence/core/demo'
 import { FRESHNESS_LABELS_FR } from '@/lib/intelligence/types/freshness'
@@ -42,6 +44,7 @@ import type { AcquisitionResult } from '@/lib/intelligence/metrics/acquisition'
 import type { CampaignResult } from '@/lib/intelligence/metrics/campaigns'
 
 const TABS = [
+  { id: 'decision', label: 'Décision', icon: Compass },
   { id: 'apercu', label: 'Vue générale', icon: Gauge },
   { id: 'acquisition', label: 'Acquisition', icon: MousePointerClick },
   { id: 'seo', label: 'SEO', icon: Search },
@@ -207,7 +210,7 @@ function MetricCard({ m }: { m: OverviewMetric }) {
 }
 
 export default function IntelligenceHubPage() {
-  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('apercu')
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('decision')
   const [guideOpen, setGuideOpen] = useState(false)
   const [overview, setOverview] = useState<OverviewResponse | null>(null)
   const [loading, setLoading] = useState(false)
@@ -354,7 +357,9 @@ export default function IntelligenceHubPage() {
           })}
         </div>
 
-        {tab === 'apercu' ? (
+        {tab === 'decision' ? (
+          <DecisionTab />
+        ) : tab === 'apercu' ? (
           <>
             <section className="mb-4">
               <div className="section-label mb-3">
