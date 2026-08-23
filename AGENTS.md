@@ -63,11 +63,3 @@ This repository follows these permanent rules.
 19. Prefer concise investigation and prompts. Do not reread the whole repository unnecessarily.
 
 20. Use parallel agents only when tasks are genuinely independent and the benefit justifies the additional token usage.
-
-Additional operating constraints for this phase:
-
-- Do not modify application source.
-- Do not create worktrees yet.
-- Do not commit yet.
-- Do not deploy.
-- Do not mutate DB.
