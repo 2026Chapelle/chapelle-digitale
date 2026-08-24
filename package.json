@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.cjs",
-    "test:watch": "vitest --config vitest.config.cjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "supabase gen types typescript --local > src/types/supabase.ts",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset"

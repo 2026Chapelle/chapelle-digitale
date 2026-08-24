@@ -339,6 +339,46 @@ export function evaluateGoalTrajectory(input: {
   const progress = observedValue / input.goal.targetValue
   const remainingGap = Math.max(input.goal.targetValue - observedValue, 0)
   const pace = currentElapsedRatio >= 1 ? null : remainingDays(input.nowIso, goalEndExclusive) > 0 ? remainingGap / remainingDays(input.nowIso, goalEndExclusive) : null
+  if (observedValue >= input.goal.targetValue) {
+    return {
+      goalId: input.goal.id,
+      organizationId: input.goal.organizationId,
+      metricKey,
+      goalStatus: input.goal.status,
+      state: 'ACHIEVED',
+      targetValue: input.goal.targetValue,
+      periodStart: input.goal.periodStart,
+      periodEnd: input.goal.periodEnd,
+      goalPeriod: { sinceIso: goalStart, untilIso: goalEndExclusive },
+      observedPeriod: { sinceIso: goalStart, untilIso: observedPeriodUntil },
+      observedValue,
+      observedAvailability,
+      availability: observedAvailability,
+      freshness,
+      source,
+      remainingGap: 0,
+      elapsedRatio: currentElapsedRatio,
+      progressRatio: progress,
+      paceRequired: 0,
+      evidence: [
+        {
+          metric: spec.label,
+          source,
+          freshness,
+          availability: observedAvailability,
+          current: { value: observedValue, availability: observedAvailability, freshness, source },
+          targetValue: input.goal.targetValue,
+          remainingGap: 0,
+          elapsedRatio: currentElapsedRatio,
+          progressRatio: progress,
+          paceRequired: 0,
+          goalPeriod: { sinceIso: goalStart, untilIso: goalEndExclusive },
+          observedPeriod: { sinceIso: goalStart, untilIso: observedPeriodUntil },
+          trajectoryState: 'ACHIEVED',
+        },
+      ],
+    }
+  }
 
   if (isExpired) {
     const state = observedValue >= input.goal.targetValue ? 'ACHIEVED' : 'MISSED'

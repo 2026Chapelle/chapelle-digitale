@@ -126,7 +126,7 @@ export async function GET(req: NextRequest) {
       data: {
         organizationId: guarded.organizationId,
         supportedMetrics: [...SUPPORTED_GOAL_METRICS],
-        goals: goals.map((goal) => toGoalResponse(goal)),
+        goals: goals.map((goal) => toPublicGoal(toGoalResponse(goal))),
       },
     })
   } catch (e: unknown) {

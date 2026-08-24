@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { evaluateGoalTrajectory, GOAL_TRAJECTORY_STATES, SUPPORTED_GOAL_METRICS } from '../trajectory'
 
 const NOW = '2026-08-24T12:00:00.000Z'
+const ACTIVE_NOW = '2026-08-06T00:00:00.000Z'
 
 const baseGoal = {
   id: 'goal-1',
@@ -43,22 +44,40 @@ describe('goal trajectory evaluator', () => {
     expect(trajectory.paceRequired).toBeNull()
   })
 
-  it('exact and over target => ACHIEVED', () => {
-    const exact = evaluateGoalTrajectory({
-      nowIso: NOW,
+  it('active period, observed == target => ACHIEVED', () => {
+    const trajectory = evaluateGoalTrajectory({
+      nowIso: ACTIVE_NOW,
       goal: baseGoal,
       observed: { value: 100, availability: 'REAL', freshness: 'SYNCED', source: 'analytics_events' },
     })
-    const over = evaluateGoalTrajectory({
-      nowIso: NOW,
+
+    expect(trajectory.state).toBe('ACHIEVED')
+    expect(trajectory.remainingGap).toBe(0)
+    expect(trajectory.paceRequired).toBe(0)
+  })
+
+  it('active period, observed > target => ACHIEVED', () => {
+    const trajectory = evaluateGoalTrajectory({
+      nowIso: ACTIVE_NOW,
       goal: baseGoal,
       observed: { value: 123, availability: 'REAL', freshness: 'SYNCED', source: 'analytics_events' },
     })
 
-    expect(exact.state).toBe('ACHIEVED')
-    expect(over.state).toBe('ACHIEVED')
-    expect(exact.remainingGap).toBe(0)
-    expect(over.remainingGap).toBe(0)
+    expect(trajectory.state).toBe('ACHIEVED')
+    expect(trajectory.remainingGap).toBe(0)
+    expect(trajectory.paceRequired).toBe(0)
+  })
+
+  it('expired period, observed >= target => ACHIEVED', () => {
+    const trajectory = evaluateGoalTrajectory({
+      nowIso: '2026-09-15T12:00:00.000Z',
+      goal: baseGoal,
+      observed: { value: 100, availability: 'REAL', freshness: 'SYNCED', source: 'analytics_events' },
+    })
+
+    expect(trajectory.state).toBe('ACHIEVED')
+    expect(trajectory.remainingGap).toBe(0)
+    expect(trajectory.paceRequired).toBe(0)
   })
 
   it('expired below target => MISSED', () => {
@@ -73,9 +92,9 @@ describe('goal trajectory evaluator', () => {
     expect(trajectory.paceRequired).toBeNull()
   })
 
-  it('active progress >= elapsed => ON_TRACK', () => {
+  it('active below target but progressRatio >= elapsedRatio => ON_TRACK', () => {
     const trajectory = evaluateGoalTrajectory({
-      nowIso: '2026-08-06T00:00:00.000Z',
+      nowIso: ACTIVE_NOW,
       goal: baseGoal,
       observed: { value: 60, availability: 'REAL', freshness: 'SYNCED', source: 'analytics_events' },
     })
@@ -87,9 +106,9 @@ describe('goal trajectory evaluator', () => {
     expect(trajectory.paceRequired).toBeCloseTo(40 / 6, 6)
   })
 
-  it('active progress < elapsed => OFF_TRACK', () => {
+  it('active below target and progressRatio < elapsedRatio => OFF_TRACK', () => {
     const trajectory = evaluateGoalTrajectory({
-      nowIso: '2026-08-06T00:00:00.000Z',
+      nowIso: ACTIVE_NOW,
       goal: baseGoal,
       observed: { value: 20, availability: 'REAL', freshness: 'SYNCED', source: 'analytics_events' },
     })
@@ -136,7 +155,7 @@ describe('goal trajectory evaluator', () => {
 
   it('trajectory exposes the arithmetic fields', () => {
     const trajectory = evaluateGoalTrajectory({
-      nowIso: '2026-08-06T00:00:00.000Z',
+      nowIso: ACTIVE_NOW,
       goal: baseGoal,
       observed: { value: 60, availability: 'REAL', freshness: 'SYNCED', source: 'analytics_events' },
     })
