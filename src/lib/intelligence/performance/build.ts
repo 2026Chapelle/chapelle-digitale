@@ -4,7 +4,7 @@
 
 import type { DecisionAvailability, DecisionPeriod } from '../decision/contract'
 import type { ChannelStatus } from '../channels/types'
-import type { Ga4Data, SearchConsoleData } from '../seo/types'
+import type { Ga4Data, SearchConsoleData, SeoPeriod } from '../seo/types'
 import type { YouTubeData as YouTubeConnectorData } from '../connectors/youtube/types'
 import type { Freshness } from '../types/freshness'
 import type {
@@ -24,10 +24,10 @@ import { toPerformanceMetric } from './evolution'
 export { toPerformanceMetric } from './evolution'
 
 export interface RangeCounts {
-  visits: number
-  signups: number
-  podcastStarts: number
-  progressions: number
+  visits: number | null
+  signups: number | null
+  podcastStarts: number | null
+  progressions: number | null
 }
 
 export interface SeriesHistorySample {
@@ -49,11 +49,13 @@ export interface PerformanceReadModel {
   currentWindow: PerformanceWindow
   previousWindow: PerformanceWindow
   baselineWindows: PerformanceWindow[]
+  platformPeriod: SeoPeriod
   current: RangeCounts
   previous: RangeCounts
   baselineHistory: ReadonlyArray<SeriesHistorySample>
   sources: PerformanceSourceSnapshot
   demoMode: boolean
+  missingCountAvailability: DecisionAvailability
 }
 
 export interface MetricDef {
@@ -100,8 +102,8 @@ const CITADELLE_METRICS: ReadonlyArray<MetricDef> = [
   },
 ]
 
-function metricValue(counts: RangeCounts, key: keyof RangeCounts): number {
-  return Number(counts[key] ?? 0)
+function metricValue(counts: RangeCounts, key: keyof RangeCounts): number | null {
+  return counts[key]
 }
 
 const LIVE_STATES = new Set(['CONNECTED', 'ACTIVE'])
@@ -118,6 +120,16 @@ function toWindowFromSeoPeriod(label: string, from: string, to: string, offsetDa
   }
 }
 
+function measureFromCount(
+  value: number | null,
+  missingAvailability: DecisionAvailability,
+): PerformanceMeasure {
+  if (value === null) {
+    return { value: null, availability: missingAvailability }
+  }
+  return { value, availability: 'REAL' }
+}
+
 function buildCountMetric(
   def: MetricDef,
   counts: RangeCounts,
@@ -126,16 +138,13 @@ function buildCountMetric(
   currentWindow: PerformanceWindow,
   previousWindow: PerformanceWindow,
   baselineWindow: PerformanceWindow,
+  missingAvailability: DecisionAvailability,
 ): PerformanceMetric {
-  const baselineValues = baselineHistory.map((sample) => metricValue(sample.counts, def.key))
-  const current = {
-    value: metricValue(counts, def.key),
-    availability: 'REAL' as DecisionAvailability,
-  }
-  const prev = {
-    value: metricValue(previous, def.key),
-    availability: 'REAL' as DecisionAvailability,
-  }
+  const baselineValues = baselineHistory
+    .map((sample) => metricValue(sample.counts, def.key))
+    .filter((value): value is number => value !== null)
+  const current = measureFromCount(metricValue(counts, def.key), missingAvailability)
+  const prev = measureFromCount(metricValue(previous, def.key), missingAvailability)
   return toPerformanceMetric({
     key: def.key,
     label: def.label,
@@ -205,23 +214,35 @@ function connectorAlert(
   }
 }
 
-function buildPlatformMetrics(input: PerformanceSourceSnapshot, currentWindow: PerformanceWindow): PerformanceMetric[] {
+function buildPlatformMetrics(input: PerformanceSourceSnapshot, platformPeriod: SeoPeriod): PerformanceMetric[] {
   const out: PerformanceMetric[] = []
+  const currentWindow = toWindowFromSeoPeriod('Plateforme 28 jours (UTC)', platformPeriod.from, platformPeriod.to, 0)
+  const previousWindow = toWindowFromSeoPeriod(
+    'Plateforme 28 jours précédents (UTC)',
+    platformPeriod.prevFrom,
+    platformPeriod.prevTo,
+    1,
+  )
 
   const yt = input.youtube as YouTubeConnectorData | null
   if (yt) {
     const views = yt.trends?.views
     const current = metricMeasure(
       views?.current ?? null,
-      (yt.status.state === 'CONNECTED' && views ? 'REAL' : 'NO_DATA') as DecisionAvailability,
+      yt.status.state === 'CONNECTED' ? (views ? 'REAL' : 'NO_DATA') : 'UNAVAILABLE',
     )
     const previous = metricMeasure(
       views?.previous ?? null,
-      (views?.previous === null ? 'NO_DATA' : 'REAL') as DecisionAvailability,
+      yt.status.state === 'CONNECTED'
+        ? (views?.previous === null ? 'NO_DATA' : 'REAL')
+        : 'UNAVAILABLE',
     )
-    const baselineWindow = yt.period
+    const ytCurrentWindow = yt.period
       ? toWindowFromSeoPeriod('YouTube 28 derniers jours', yt.period.from, yt.period.to, 0)
       : currentWindow
+    const ytPreviousWindow = yt.period
+      ? toWindowFromSeoPeriod('YouTube 28 jours précédents', yt.period.prevFrom, yt.period.prevTo, 1)
+      : previousWindow
     out.push(
       toPerformanceMetric({
         key: 'youtube_views',
@@ -234,9 +255,9 @@ function buildPlatformMetrics(input: PerformanceSourceSnapshot, currentWindow: P
         current,
         previous,
         baselineHistory: views && views.previous !== null ? [views.previous] : [],
-        currentWindow,
-        previousWindow: currentWindow,
-        baselineWindow,
+        currentWindow: ytCurrentWindow,
+        previousWindow: ytPreviousWindow,
+        baselineWindow: ytPreviousWindow,
         note: 'Les données YouTube restent distinctes des résultats Citadelle.',
       }),
     )
@@ -251,12 +272,15 @@ function buildPlatformMetrics(input: PerformanceSourceSnapshot, currentWindow: P
           freshness: 'SEO_DELAYED',
           destination: '/admin/intelligence/performance#platform',
           destinationLabel: 'Relire la vue performance',
-          current: metricMeasure(watch.current, 'REAL'),
-          previous: metricMeasure(watch.previous, (watch.previous === null ? 'NO_DATA' : 'REAL') as DecisionAvailability),
+          current: metricMeasure(watch.current, yt.status.state === 'CONNECTED' ? 'REAL' : 'UNAVAILABLE'),
+          previous: metricMeasure(
+            watch.previous,
+            yt.status.state === 'CONNECTED' ? (watch.previous === null ? 'NO_DATA' : 'REAL') : 'UNAVAILABLE',
+          ),
           baselineHistory: watch.previous !== null ? [watch.previous] : [],
-          currentWindow,
-          previousWindow: currentWindow,
-          baselineWindow,
+          currentWindow: ytCurrentWindow,
+          previousWindow: ytPreviousWindow,
+          baselineWindow: ytPreviousWindow,
         }),
       )
     }
@@ -275,11 +299,11 @@ function buildPlatformMetrics(input: PerformanceSourceSnapshot, currentWindow: P
         destinationLabel: 'Relire la vue performance',
         current: metricMeasure(
           gsc.totals?.clicks ?? null,
-          (gsc.status.state === 'PASS' && gsc.totals ? 'REAL' : 'UNAVAILABLE') as DecisionAvailability,
+          gsc.status.state === 'PASS' ? (gsc.totals ? 'REAL' : 'NO_DATA') : 'UNAVAILABLE',
         ),
         baselineHistory: [],
         currentWindow,
-        baselineWindow: currentWindow,
+        baselineWindow: previousWindow,
         note: 'Le contexte Search Console est suivi à part des résultats Citadelle.',
       }),
     )
@@ -294,11 +318,11 @@ function buildPlatformMetrics(input: PerformanceSourceSnapshot, currentWindow: P
         destinationLabel: 'Relire la vue performance',
         current: metricMeasure(
           gsc.totals?.impressions ?? null,
-          (gsc.status.state === 'PASS' && gsc.totals ? 'REAL' : 'UNAVAILABLE') as DecisionAvailability,
+          gsc.status.state === 'PASS' ? (gsc.totals ? 'REAL' : 'NO_DATA') : 'UNAVAILABLE',
         ),
         baselineHistory: [],
         currentWindow,
-        baselineWindow: currentWindow,
+        baselineWindow: previousWindow,
       }),
     )
   }
@@ -316,11 +340,11 @@ function buildPlatformMetrics(input: PerformanceSourceSnapshot, currentWindow: P
         destinationLabel: 'Relire la vue performance',
         current: metricMeasure(
           ga4.organic?.sessions ?? null,
-          (ga4.status.state === 'PASS' && ga4.organic ? 'REAL' : 'UNAVAILABLE') as DecisionAvailability,
+          ga4.status.state === 'PASS' ? (ga4.organic ? 'REAL' : 'NO_DATA') : 'UNAVAILABLE',
         ),
         baselineHistory: [],
         currentWindow,
-        baselineWindow: currentWindow,
+        baselineWindow: previousWindow,
       }),
     )
     out.push(
@@ -334,11 +358,11 @@ function buildPlatformMetrics(input: PerformanceSourceSnapshot, currentWindow: P
         destinationLabel: 'Relire la vue performance',
         current: metricMeasure(
           ga4.organic?.users ?? null,
-          (ga4.status.state === 'PASS' && ga4.organic ? 'REAL' : 'UNAVAILABLE') as DecisionAvailability,
+          ga4.status.state === 'PASS' ? (ga4.organic ? 'REAL' : 'NO_DATA') : 'UNAVAILABLE',
         ),
         baselineHistory: [],
         currentWindow,
-        baselineWindow: currentWindow,
+        baselineWindow: previousWindow,
       }),
     )
   }
@@ -357,10 +381,11 @@ export function buildPerformanceSurface(input: PerformanceReadModel): Performanc
       input.currentWindow,
       input.previousWindow,
       baselineWindow,
+      input.missingCountAvailability,
     ),
   )
 
-  const platform = buildPlatformMetrics(input.sources, input.currentWindow)
+  const platform = buildPlatformMetrics(input.sources, input.platformPeriod)
   const connectorAlerts = [
     connectorAlert(
       'connector:youtube',
@@ -410,6 +435,8 @@ export function buildPerformanceReadModel(
   history: ReadonlyArray<SeriesHistorySample>,
   sources: PerformanceSourceSnapshot,
   demoMode: boolean,
+  missingCountAvailability: DecisionAvailability = 'NO_DATA',
+  platformPeriod?: SeoPeriod,
 ): PerformanceReadModel {
   const windows = buildComparableWindows(nowIso, PERFORMANCE_BASELINE_DAYS)
   return {
@@ -421,10 +448,18 @@ export function buildPerformanceReadModel(
     currentWindow: windows.current,
     previousWindow: windows.previous,
     baselineWindows: windows.baseline,
+    platformPeriod: platformPeriod ?? {
+      key: '28d',
+      from: nowIso.slice(0, 10),
+      to: nowIso.slice(0, 10),
+      prevFrom: nowIso.slice(0, 10),
+      prevTo: nowIso.slice(0, 10),
+    },
     current: counts,
     previous,
     baselineHistory: history,
     sources,
     demoMode,
+    missingCountAvailability,
   }
 }
