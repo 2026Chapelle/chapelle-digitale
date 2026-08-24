@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowUpRight, RefreshCw, Radio, Sparkles } from 'lucide-
 import { PageHeader } from '@/components/ui/PageHeader'
 import { FRESHNESS_LABELS_FR } from '@/lib/intelligence/types/freshness'
 import { formatMetric } from '@/lib/intelligence/format'
+import type { GoalTrajectory } from '@/lib/intelligence/goals'
 import type {
   PerformanceAlert,
   PerformanceCommandCard,
@@ -13,7 +14,7 @@ import type {
   PerformanceSurfacePayload,
 } from '@/lib/intelligence/performance'
 
-type Payload = PerformanceSurfacePayload & { error?: string }
+type Payload = PerformanceSurfacePayload & { error?: string; goalTrajectories?: GoalTrajectory[] }
 
 const ALERT_TONE: Record<PerformanceAlert['severity'], string> = {
   critical: '#ef4444',
@@ -29,6 +30,17 @@ const CONFIDENCE_TONE = {
   LOW: '#94a3b8',
   INSUFFICIENT_DATA: '#94a3b8',
 } as const
+
+const GOAL_TONE: Record<GoalTrajectory['state'], string> = {
+  NO_GOAL: '#64748b',
+  NOT_STARTED: '#94a3b8',
+  ON_TRACK: '#4ade80',
+  OFF_TRACK: '#f59e0b',
+  ACHIEVED: '#22c55e',
+  MISSED: '#ef4444',
+  INSUFFICIENT_DATA: '#94a3b8',
+  UNAVAILABLE: '#94a3b8',
+}
 
 function valueText(metric: PerformanceMetric) {
   return metric.current.availability === 'REAL'
@@ -148,6 +160,55 @@ function CommandCard({ card }: { card: PerformanceCommandCard }) {
   )
 }
 
+function GoalCard({ trajectory }: { trajectory: GoalTrajectory }) {
+  const sourceValue =
+    trajectory.observedAvailability === 'REAL' && trajectory.observedValue !== null
+      ? formatMetric(trajectory.observedValue, 'real', 'count')
+      : '—'
+  const targetValue = trajectory.targetValue !== null ? formatMetric(trajectory.targetValue, 'real', 'count') : '—'
+  const remainingGap = trajectory.remainingGap !== null ? formatMetric(trajectory.remainingGap, 'real', 'count') : '—'
+  const elapsedPct = trajectory.elapsedRatio !== null ? `${(trajectory.elapsedRatio * 100).toFixed(1)} %` : '—'
+  const progressPct = trajectory.progressRatio !== null ? `${(trajectory.progressRatio * 100).toFixed(1)} %` : '—'
+  const pace = trajectory.paceRequired !== null ? `${trajectory.paceRequired.toFixed(2)} / jour UTC` : '—'
+
+  return (
+    <div className="card-cinematic p-4" style={{ borderLeft: `2px solid ${GOAL_TONE[trajectory.state]}` }}>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="text-xs text-pearl/45">{trajectory.metricKey}</div>
+          <div className="font-medium text-pearl/85">
+            {trajectory.goalStatus ?? 'Aucun objectif'}
+          </div>
+        </div>
+        <span
+          className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+          style={{ border: `1px solid ${GOAL_TONE[trajectory.state]}55`, color: GOAL_TONE[trajectory.state] }}
+        >
+          {trajectory.state}
+        </span>
+      </div>
+      <div className="mt-2 text-sm text-pearl/70">
+        Cible: {targetValue} | Observé: {sourceValue}
+      </div>
+      <div className="mt-1 text-xs text-pearl/45">
+        Période: {trajectory.periodStart ?? '—'} → {trajectory.periodEnd ?? '—'}
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-pearl/55 sm:grid-cols-3">
+        <div>Gap: {remainingGap}</div>
+        <div>Elapsed: {elapsedPct}</div>
+        <div>Progression: {progressPct}</div>
+        <div>Pace requise: {pace}</div>
+        <div>Source: {trajectory.source}</div>
+        <div>Fraîcheur: {FRESHNESS_LABELS_FR[trajectory.freshness]}</div>
+      </div>
+      <div className="mt-3 flex items-center justify-between text-[11px] text-pearl/45">
+        <span>{trajectory.availability}</span>
+        <span>{trajectory.goalId ?? 'NO_GOAL'}</span>
+      </div>
+    </div>
+  )
+}
+
 export default function PerformanceIntelligencePage() {
   const [payload, setPayload] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(false)
@@ -190,6 +251,9 @@ export default function PerformanceIntelligencePage() {
           description="Évolution déterministe, baselines mobiles, alertes conservatrices et cartes de commande actionnables."
           actions={
             <div className="flex items-center gap-2">
+              <Link href="/admin/intelligence/goals" className="inline-flex items-center gap-2 rounded-lg border border-pearl/10 bg-pearl/5 px-3 py-2 text-sm text-pearl/75 hover:text-pearl">
+                Objectifs
+              </Link>
               {payload?.demoMode && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 px-3 py-1.5 text-xs font-semibold text-amber-300">
                   <Radio className="h-3.5 w-3.5" /> Démo
@@ -221,6 +285,21 @@ export default function PerformanceIntelligencePage() {
           <div className="card-royal p-10 text-center text-sm text-pearl/40">Chargement de la performance…</div>
         ) : (
           <div className="space-y-10">
+            <section>
+              <div className="section-label mb-3">Objectifs & trajectoires</div>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                {(payload?.goalTrajectories?.length ?? 0) > 0 ? (
+                  payload!.goalTrajectories!.map((trajectory) => (
+                    <GoalCard key={trajectory.goalId ?? trajectory.metricKey} trajectory={trajectory} />
+                  ))
+                ) : (
+                  <div className="card-royal p-6 text-sm text-pearl/45">
+                    Aucun objectif déclaré. Le lien ci-dessus ouvre l&apos;éditeur d&apos;objectifs.
+                  </div>
+                )}
+              </div>
+            </section>
+
             <section>
               <div className="section-label mb-3">Citadelle</div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

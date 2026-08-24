@@ -5,6 +5,7 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminRequest } from '@/lib/admin-auth'
+import { resolveAdminOrganizationForRequest } from '@/lib/erp/admin-profiles-scope'
 import { IS_DEMO_MODE, supabaseAdmin } from '@/lib/supabase'
 import { cached } from '@/lib/cache'
 import type { ChannelStatus } from '@/lib/intelligence/channels/types'
@@ -16,71 +17,20 @@ import { getWhatsAppStatus } from '@/lib/intelligence/connectors/whatsapp'
 import { buildSeoPeriod, parsePeriodKey } from '@/lib/intelligence/seo/period'
 import type { DecisionAvailability, DecisionPeriod } from '@/lib/intelligence/decision/contract'
 import { buildComparableWindows } from '@/lib/intelligence/performance/windows'
+import { buildGoalTrajectoriesForOrganization } from '@/lib/intelligence/goals'
+import type { GoalTrajectory } from '@/lib/intelligence/goals'
 import {
   buildPerformanceReadModel,
   buildPerformanceSurface,
   type PerformanceSourceSnapshot,
-  type RangeCounts,
   type SeriesHistorySample,
 } from '@/lib/intelligence/performance'
+import { nullCounts, readCounts, zeroCounts } from '@/lib/intelligence/performance/count-sources'
 
 export const dynamic = 'force-dynamic'
 
 const TTL_MS = 60_000
 const BASELINE_DAYS = 7
-
-type CountSpec = {
-  table: string
-  timeColumn: string
-  filters?: Array<{ kind: 'eq'; col: string; val: string } | { kind: 'in'; col: string; vals: string[] }>
-}
-
-const COUNT_SPECS: Record<keyof RangeCounts, CountSpec> = {
-  visits: { table: 'analytics_events', timeColumn: 'created_at', filters: [{ kind: 'eq', col: 'type', val: 'pageview' }] },
-  signups: { table: 'profiles', timeColumn: 'created_at' },
-  podcastStarts: {
-    table: 'audio_listening_events',
-    timeColumn: 'occurred_at',
-    filters: [{ kind: 'in', col: 'event_type', vals: ['play_start', 'play_resume'] }],
-  },
-  progressions: { table: 'module_completions', timeColumn: 'completed_at' },
-}
-
-function applyFilters(q: any, filters: CountSpec['filters'] | undefined): any {
-  let out = q
-  for (const f of filters ?? []) {
-    if (f.kind === 'eq') out = out.eq(f.col, f.val)
-    else out = out.in(f.col, f.vals)
-  }
-  return out
-}
-
-async function countRange(spec: CountSpec, sinceIso: string, untilIso: string): Promise<number | null> {
-  let q: any = supabaseAdmin.from(spec.table).select('*', { count: 'exact', head: true })
-  q = applyFilters(q, spec.filters)
-  q = q.gte(spec.timeColumn, sinceIso).lt(spec.timeColumn, untilIso)
-  const { count, error } = await q
-  if (error) throw new Error(error.message)
-  return count ?? null
-}
-
-async function readCounts(window: { sinceIso: string; untilIso: string }): Promise<RangeCounts> {
-  const [visits, signups, podcastStarts, progressions] = await Promise.all([
-    countRange(COUNT_SPECS.visits, window.sinceIso, window.untilIso),
-    countRange(COUNT_SPECS.signups, window.sinceIso, window.untilIso),
-    countRange(COUNT_SPECS.podcastStarts, window.sinceIso, window.untilIso),
-    countRange(COUNT_SPECS.progressions, window.sinceIso, window.untilIso),
-  ])
-  return { visits, signups, podcastStarts, progressions }
-}
-
-function zeroCounts(): RangeCounts {
-  return { visits: 0, signups: 0, podcastStarts: 0, progressions: 0 }
-}
-
-function nullCounts(): RangeCounts {
-  return { visits: null, signups: null, podcastStarts: null, progressions: null }
-}
 
 function emptySources(): PerformanceSourceSnapshot {
   return {
@@ -103,6 +53,7 @@ function demoModel(nowIso: string) {
     zero,
     history,
     emptySources(),
+    [],
     true,
     'NO_DATA',
     buildSeoPeriod(parsePeriodKey('28d'), Date.now()),
@@ -194,21 +145,29 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    const organizationId = await resolveAdminOrganizationForRequest(true)
     const snapshot = await cached(`intelligence:performance:${nowIso.slice(0, 13)}`, TTL_MS, async () => {
       const windows = buildComparableWindows(nowIso, BASELINE_DAYS)
       let current = nullCounts()
       let previous = nullCounts()
       let baselineHistory: SeriesHistorySample[] = windows.baseline.map((window) => ({ window, counts: nullCounts() }))
       let missingCountAvailability: DecisionAvailability = 'NO_DATA'
+      let goalTrajectories: GoalTrajectory[] = []
 
       try {
-        current = await readCounts(windows.current)
-        previous = await readCounts(windows.previous)
+        current = await readCounts(supabaseAdmin, windows.current)
+        previous = await readCounts(supabaseAdmin, windows.previous)
         baselineHistory = await Promise.all(
-          windows.baseline.map(async (window) => ({ window, counts: await readCounts(window) })),
+          windows.baseline.map(async (window) => ({ window, counts: await readCounts(supabaseAdmin, window) })),
         )
       } catch {
         missingCountAvailability = 'UNAVAILABLE'
+      }
+
+      try {
+        goalTrajectories = await buildGoalTrajectoriesForOrganization(organizationId, nowIso)
+      } catch {
+        goalTrajectories = []
       }
 
       const [youtube, gsc, ga4, metaFacebook, metaInstagram, whatsapp] = await Promise.allSettled([
@@ -236,6 +195,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         previous,
         baselineHistory,
         sources,
+        goalTrajectories,
         false,
         missingCountAvailability,
         seoPeriod,
@@ -253,6 +213,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
           nullCounts(),
           fallbackWindows.baseline.map((window) => ({ window, counts: nullCounts() })),
           unavailableConnectorSources(nowIso),
+          [],
           false,
           'UNAVAILABLE',
           seoPeriod,

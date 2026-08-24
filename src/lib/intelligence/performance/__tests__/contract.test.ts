@@ -89,7 +89,7 @@ function sampleReadModel() {
   const previous = { visits: 90, signups: 15, podcastStarts: 12, progressions: 9 }
   const history = windows.baseline.map((window) => ({ window, counts: { visits: 30, signups: 6, podcastStarts: 5, progressions: 4 } }))
   const platformPeriod = buildSeoPeriod('28d', Date.parse(NOW))
-  return buildPerformanceReadModel(NOW, current, previous, history, sampleSource(), false, 'NO_DATA', platformPeriod)
+  return buildPerformanceReadModel(NOW, current, previous, history, sampleSource(), [], false, 'NO_DATA', platformPeriod)
 }
 
 function zeroReadModel() {
@@ -98,7 +98,7 @@ function zeroReadModel() {
   const previous = { visits: 0, signups: 0, podcastStarts: 0, progressions: 0 }
   const history = windows.baseline.map((window) => ({ window, counts: { visits: 0, signups: 0, podcastStarts: 0, progressions: 0 } }))
   const platformPeriod = buildSeoPeriod('28d', Date.parse(NOW))
-  return buildPerformanceReadModel(NOW, current, previous, history, sampleSource(), false, 'NO_DATA', platformPeriod)
+  return buildPerformanceReadModel(NOW, current, previous, history, sampleSource(), [], false, 'NO_DATA', platformPeriod)
 }
 
 function unavailableReadModel() {
@@ -106,7 +106,7 @@ function unavailableReadModel() {
   const missing = { visits: null, signups: null, podcastStarts: null, progressions: null }
   const history = windows.baseline.map((window) => ({ window, counts: missing }))
   const platformPeriod = buildSeoPeriod('28d', Date.parse(NOW))
-  return buildPerformanceReadModel(NOW, missing, missing, history, sampleSource(), false, 'UNAVAILABLE', platformPeriod)
+  return buildPerformanceReadModel(NOW, missing, missing, history, sampleSource(), [], false, 'UNAVAILABLE', platformPeriod)
 }
 
 function makeChannelStatus(state: 'CONNECTED' | 'ACTIVE' | 'ERROR' | 'NOT_CONFIGURED') {
