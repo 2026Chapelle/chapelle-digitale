@@ -1,8 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { can } from '@/lib/permissions'
 import { getVerifiedRouteProfile } from '@/lib/member-auth'
-import { requireGuardedAdminUnit } from '@/lib/erp/admin-unit-guard'
-import { canManageWorldSettings, type ActorUnitContext } from '@/lib/erp/unit-access'
+import {
+  canManageWorldSettings,
+  resolveActorUnitContext,
+  type ActorUnitContext,
+} from '@/lib/erp/unit-access'
+import { resolveAdminOrganizationForRequest } from '@/lib/erp/admin-profiles-scope'
 
 export type EditorialAccessMode = 'read' | 'write'
 
@@ -40,18 +44,18 @@ export async function resolveEditorialWorkspaceAccess(
   req: NextRequest,
   mode: EditorialAccessMode,
 ): Promise<EditorialRouteAccess | NextResponse> {
-  const guarded = await requireGuardedAdminUnit(req)
-  if (guarded instanceof NextResponse) return guarded
-
   const profile = await getVerifiedRouteProfile()
   if (!profile) {
     return NextResponse.json({ ok: false, message: 'Identité requise.' }, { status: 401 })
   }
 
+  const organizationId = await resolveAdminOrganizationForRequest(true)
+  const actor = await resolveActorUnitContext(organizationId, profile.uid)
+
   const canAccess =
     mode === 'write'
-      ? canWriteEditorialIntelligence(guarded.actor, profile.role)
-      : canReadEditorialIntelligence(guarded.actor, profile.role)
+      ? canWriteEditorialIntelligence(actor, profile.role)
+      : canReadEditorialIntelligence(actor, profile.role)
 
   if (!canAccess) {
     return NextResponse.json(
@@ -61,10 +65,10 @@ export async function resolveEditorialWorkspaceAccess(
   }
 
   return {
-    actor: guarded.actor,
+    actor,
     profileRole: profile.role ?? null,
-    organizationId: guarded.organizationId,
-    userId: guarded.userId,
-    email: guarded.email,
+    organizationId,
+    userId: profile.uid,
+    email: profile.email,
   }
 }

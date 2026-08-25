@@ -1,17 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const select = vi.fn()
-const eq = vi.fn()
-const order = vi.fn()
-const insert = vi.fn()
-const update = vi.fn()
-const maybeSingle = vi.fn()
-const limit = vi.fn()
-const neq = vi.fn()
-const from = vi.fn()
+const mocks = vi.hoisted(() => ({
+  select: vi.fn(),
+  eq: vi.fn(),
+  order: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  maybeSingle: vi.fn(),
+  limit: vi.fn(),
+  neq: vi.fn(),
+  from: vi.fn(),
+}))
+
+const { select, eq, order, insert, update, maybeSingle, limit, neq } = mocks
 
 vi.mock('@/lib/supabase', () => ({
-  supabaseAdmin: { from },
+  supabaseAdmin: { from: mocks.from },
 }))
 
 import {
@@ -31,10 +35,10 @@ function buildQuery(result: unknown) {
   query.order = order.mockImplementation(() => query)
   query.insert = insert.mockImplementation(() => query)
   query.update = update.mockImplementation(() => query)
-  query.maybeSingle = maybeSingle.mockImplementation(async () => result)
+  query.maybeSingle = maybeSingle.mockImplementation(async () => ({ data: result, error: null }))
   query.limit = limit.mockImplementation(() => query)
   query.neq = neq.mockImplementation(() => query)
-  query.then = (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve)
+  query.then = (resolve: (value: unknown) => unknown) => Promise.resolve({ data: result, error: null }).then(resolve)
   return query
 }
 
@@ -137,7 +141,7 @@ describe('editorial store', () => {
     }
 
     const query = buildQuery(row)
-    from.mockReturnValue(query)
+    mocks.from.mockReturnValue(query)
 
     const created = await createEditorialRecommendation({
       organizationId: 'org_01',

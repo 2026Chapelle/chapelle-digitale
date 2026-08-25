@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const resolveEditorialWorkspaceAccess = vi.fn()
-const listEditorialRecommendations = vi.fn()
-const getEditorialSettings = vi.fn()
-const getEditorialRecommendation = vi.fn()
-const patchEditorialRecommendation = vi.fn()
-const appendEditorialRecommendationEvent = vi.fn()
-const upsertEditorialSettings = vi.fn()
+const mocks = vi.hoisted(() => ({
+  resolveEditorialWorkspaceAccess: vi.fn(),
+  listEditorialRecommendations: vi.fn(),
+  getEditorialSettings: vi.fn(),
+  getEditorialRecommendation: vi.fn(),
+  patchEditorialRecommendation: vi.fn(),
+  appendEditorialRecommendationEvent: vi.fn(),
+  upsertEditorialSettings: vi.fn(),
+}))
+
+const {
+  resolveEditorialWorkspaceAccess,
+  listEditorialRecommendations,
+  getEditorialSettings,
+  getEditorialRecommendation,
+  patchEditorialRecommendation,
+  appendEditorialRecommendationEvent,
+  upsertEditorialSettings,
+} = mocks
 
 vi.mock('@/lib/intelligence/editorial/permissions', () => ({
   resolveEditorialWorkspaceAccess: (...args: unknown[]) => resolveEditorialWorkspaceAccess(...args),

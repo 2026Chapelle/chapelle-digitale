@@ -128,4 +128,3 @@ create trigger editorial_settings_updated_at
 alter table public.editorial_recommendations enable row level security;
 alter table public.editorial_recommendation_events enable row level security;
 alter table public.editorial_settings enable row level security;
-

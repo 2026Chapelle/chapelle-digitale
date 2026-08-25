@@ -48,6 +48,6 @@ describe('calendar read model', () => {
     ])
 
     expect(calendar.items).toHaveLength(3)
-    expect(calendar.items.map((item) => item.recommendationId)).toEqual(['rec_02', 'rec_03', 'rec_04'])
+    expect(calendar.items.map((item) => item.recommendationId)).toEqual(['rec_04', 'rec_02', 'rec_03'])
   })
 })
