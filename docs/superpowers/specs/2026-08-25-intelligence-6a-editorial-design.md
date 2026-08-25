@@ -164,8 +164,11 @@ Decision finale: **3 tables physiques** + 1 read model calendrier.
 
 ### A. `editorial_recommendations`
 
-Table principale. Une ligne = une recommandation editoriale vivante ou archivee.
-Elle sert aussi de source pour la vue Calendrier.
+Table principale. Une ligne = **une seule unite editoriale planifiable**:
+une action editoriale, un `content_kind`, un `channel` cible, et une fenetre /
+date de planification. Elle sert aussi de source pour la vue Calendrier.
+Un meme contenu source peut produire plusieurs recommandations distinctes,
+y compris multi-canal. `batch_id` sert seulement a les grouper.
 
 Champs minimum:
 
@@ -182,6 +185,7 @@ Champs minimum:
 - `dedupe_key`
 - `source_content_type` nullable
 - `source_content_id` nullable
+- `parent_recommendation_id` nullable
 - `source_snapshot_jsonb`
 - `signals_jsonb`
 - `why_jsonb`
@@ -205,12 +209,15 @@ Champs minimum:
 Contraintes:
 
 - `organization_id` reference `organizations(id)`.
+- `parent_recommendation_id` self-FK nullable vers `editorial_recommendations(id)`.
 - `status` strict enum.
 - `family` strict enum.
 - `priority_band` strict enum.
 - index unique sur `organization_id + dedupe_key`.
 - index sur `organization_id + status + planned_for`.
 - aucun DELETE physique pour la vie normale.
+- la deduplication reste au niveau de chaque unite editoriale, jamais au niveau
+  du contenu source global.
 
 ### B. `editorial_recommendation_events`
 
@@ -316,6 +323,7 @@ Il doit suivre le meme esprit que `IntelligenceConnector`:
 
 Chaque recommandation doit conserver:
 
+- le fait qu une ligne = une seule unite schedulable;
 - la famille: `CREATE|REPURPOSE|PROMOTE`;
 - le contenu source si reutilisation ou promotion;
 - le canal cible;
@@ -432,13 +440,25 @@ Deux declencheurs:
 
 Decision de mise en oeuvre:
 
-- utiliser un endpoint HTTP idempotent `POST /api/admin/intelligence/editorial/refresh`;
-- l orchestration horaire doit venir du host / cron existant, pas d un timer
-  in-app;
-- la route doit etre compatible avec l hebergement actuel et le pattern deja
-  utilise par les snapshots admin;
-- si le host n a pas de scheduler natif, utiliser la solution cron externe la
-  plus simple qui appelle cette route.
+- un unique orchestrateur metier `refreshEditorialIntelligence(...)` porte toute
+  la logique de generation / actualisation;
+- les endpoints HTTP ou jobs planifies ne font que l authentification, la
+  resolution de portee et l invocation de cet orchestrateur;
+- aucun endpoint cron public non authentifie;
+- aucun cookie / session humaine ne doit etre stocke dans cron;
+- aucun secret `NEXT_PUBLIC`;
+- aucune duplication de la logique moteur dans l endpoint;
+- le contrat est independant de HTTP et appelable depuis du serveur pur.
+
+Adaptateurs d entree:
+
+- Manual refresh: utilisateur authentifie + portee organisationnelle +
+  `can_manage_editorial_intelligence`.
+- Daily scheduled refresh: scheduler serveur + authentification machine-to-
+  machine server-only.
+
+Le mecanisme concret N0C/cron sera choisi apres verification de l hebergement
+reel, mais le contrat de securite est fige ici.
 
 Idempotence:
 
@@ -478,8 +498,8 @@ Regle absolue:
 
 Lecture:
 
-- accessible aux admins deja autorises a l Intelligence Hub via les conventions
-  existantes.
+- accessible selon les permissions existantes de l Intelligence Hub, toujours
+  organisation-scoped.
 
 Ecriture editoriale:
 
@@ -491,15 +511,23 @@ Ecriture editoriale:
 
 Decision:
 
-- `world_admin` et `world_super_admin` doivent pouvoir l avoir;
-- les roles pastoraux ne doivent pas l heriter automatiquement;
-- un futur responsable communication/editorial doit pouvoir l obtenir sans
-  obtenir tous les pouvoirs admin.
+- `world_super_admin`: READ + WRITE.
+- `world_admin`: READ + WRITE.
+- utilisateur deja autorise Intelligence Hub: READ selon permissions existantes.
+- responsable communication/editorial avec `can_manage_editorial_intelligence`:
+  READ 6A + WRITE 6A sans obtenir les autres privileges `world_admin`.
+- pasteur sans permission editoriale: NO WRITE.
+- les roles pastoraux ne doivent pas l heriter automatiquement.
 
-Routes serveur:
+Guardes serveur:
 
-- garder le guard de portee existant style `requireGuardedAdminUnit`;
-- ajouter la verification de permission pour les ecritures.
+- ne pas imposer `requireGuardedAdminUnit` si son comportement bloque cette
+  delegation;
+- la phase d implementation doit inspecter les helpers existants et recomposer
+  la garde minimale correcte;
+- toute lecture/ecriture reste organisation-scoped;
+- la verification de permission pour les ecritures doit rester distincte de la
+  verification de portee.
 
 ## 19. API boundaries
 
@@ -841,6 +869,12 @@ Mitigation:
 
 The implementation plan for this spec must preserve:
 
+- one recommendation = one schedulable unit;
+- multi-channel derivation is unambiguous;
+- refresh machine auth is explicit;
+- no human cookie in scheduler;
+- delegated editor access is actually possible;
+- no extra admin privilege required;
 - no auto-publication;
 - no overwrite of human decisions;
 - missing data never shown as zero;
@@ -848,4 +882,3 @@ The implementation plan for this spec must preserve:
 - no ambiguous permissions;
 - no hidden second dashboard;
 - scope small enough for incremental delivery.
-
