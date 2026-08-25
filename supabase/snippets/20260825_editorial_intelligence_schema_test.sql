@@ -9,13 +9,13 @@ begin;
 
 do $$
 declare
-  table_name text;
+  tbl text;
 begin
   if not exists (
     select 1
-    from information_schema.tables
-    where table_schema = 'public'
-      and table_name = 'editorial_recommendations'
+    from information_schema.tables it
+    where it.table_schema = 'public'
+      and it.table_name = 'editorial_recommendations'
   ) then
     raise exception 'FAIL: editorial_recommendations table missing';
   end if;
@@ -89,47 +89,131 @@ begin
     raise exception 'FAIL: unauthorized table grants remain for PUBLIC/anon/authenticated';
   end if;
 
-  for table_name in
+  for tbl in
     select unnest(array[
       'editorial_recommendations',
       'editorial_recommendation_events',
       'editorial_settings'
     ])
   loop
-    if not (
-      has_table_privilege('service_role', format('public.%I', table_name), 'SELECT')
-      and has_table_privilege('service_role', format('public.%I', table_name), 'INSERT')
-      and (
-        table_name = 'editorial_recommendation_events'
-        or has_table_privilege('service_role', format('public.%I', table_name), 'UPDATE')
-      )
-    ) then
-      raise exception 'FAIL: required service_role table privileges missing for %', table_name;
+    if not has_table_privilege('service_role', format('public.%I', tbl), 'SELECT') then
+      raise exception 'FAIL: required service_role SELECT missing for %', tbl;
     end if;
 
-    if has_table_privilege('public', format('public.%I', table_name), 'SELECT')
-      or has_table_privilege('public', format('public.%I', table_name), 'INSERT')
-      or has_table_privilege('public', format('public.%I', table_name), 'UPDATE')
-      or has_table_privilege('public', format('public.%I', table_name), 'DELETE')
-      or has_table_privilege('public', format('public.%I', table_name), 'TRUNCATE')
-      or has_table_privilege('public', format('public.%I', table_name), 'REFERENCES')
-      or has_table_privilege('public', format('public.%I', table_name), 'TRIGGER')
-      or has_table_privilege('anon', format('public.%I', table_name), 'SELECT')
-      or has_table_privilege('anon', format('public.%I', table_name), 'INSERT')
-      or has_table_privilege('anon', format('public.%I', table_name), 'UPDATE')
-      or has_table_privilege('anon', format('public.%I', table_name), 'DELETE')
-      or has_table_privilege('anon', format('public.%I', table_name), 'TRUNCATE')
-      or has_table_privilege('anon', format('public.%I', table_name), 'REFERENCES')
-      or has_table_privilege('anon', format('public.%I', table_name), 'TRIGGER')
-      or has_table_privilege('authenticated', format('public.%I', table_name), 'SELECT')
-      or has_table_privilege('authenticated', format('public.%I', table_name), 'INSERT')
-      or has_table_privilege('authenticated', format('public.%I', table_name), 'UPDATE')
-      or has_table_privilege('authenticated', format('public.%I', table_name), 'DELETE')
-      or has_table_privilege('authenticated', format('public.%I', table_name), 'TRUNCATE')
-      or has_table_privilege('authenticated', format('public.%I', table_name), 'REFERENCES')
-      or has_table_privilege('authenticated', format('public.%I', table_name), 'TRIGGER')
-    ) then
-      raise exception 'FAIL: unexpected client-side table privilege detected for %', table_name;
+    if not has_table_privilege('service_role', format('public.%I', tbl), 'INSERT') then
+      raise exception 'FAIL: required service_role INSERT missing for %', tbl;
+    end if;
+
+    if tbl <> 'editorial_recommendation_events'
+      and not has_table_privilege('service_role', format('public.%I', tbl), 'UPDATE')
+    then
+      raise exception 'FAIL: required service_role UPDATE missing for %', tbl;
+    end if;
+
+    if tbl = 'editorial_recommendation_events'
+      and has_table_privilege('service_role', format('public.%I', tbl), 'UPDATE')
+    then
+      raise exception 'FAIL: service_role UPDATE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('service_role', format('public.%I', tbl), 'DELETE') then
+      raise exception 'FAIL: service_role DELETE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('service_role', format('public.%I', tbl), 'TRUNCATE') then
+      raise exception 'FAIL: service_role TRUNCATE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('service_role', format('public.%I', tbl), 'REFERENCES') then
+      raise exception 'FAIL: service_role REFERENCES must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('service_role', format('public.%I', tbl), 'TRIGGER') then
+      raise exception 'FAIL: service_role TRIGGER must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('public', format('public.%I', tbl), 'SELECT') then
+      raise exception 'FAIL: PUBLIC SELECT must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('public', format('public.%I', tbl), 'INSERT') then
+      raise exception 'FAIL: PUBLIC INSERT must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('public', format('public.%I', tbl), 'UPDATE') then
+      raise exception 'FAIL: PUBLIC UPDATE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('public', format('public.%I', tbl), 'DELETE') then
+      raise exception 'FAIL: PUBLIC DELETE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('public', format('public.%I', tbl), 'TRUNCATE') then
+      raise exception 'FAIL: PUBLIC TRUNCATE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('public', format('public.%I', tbl), 'REFERENCES') then
+      raise exception 'FAIL: PUBLIC REFERENCES must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('public', format('public.%I', tbl), 'TRIGGER') then
+      raise exception 'FAIL: PUBLIC TRIGGER must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('anon', format('public.%I', tbl), 'SELECT') then
+      raise exception 'FAIL: anon SELECT must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('anon', format('public.%I', tbl), 'INSERT') then
+      raise exception 'FAIL: anon INSERT must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('anon', format('public.%I', tbl), 'UPDATE') then
+      raise exception 'FAIL: anon UPDATE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('anon', format('public.%I', tbl), 'DELETE') then
+      raise exception 'FAIL: anon DELETE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('anon', format('public.%I', tbl), 'TRUNCATE') then
+      raise exception 'FAIL: anon TRUNCATE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('anon', format('public.%I', tbl), 'REFERENCES') then
+      raise exception 'FAIL: anon REFERENCES must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('anon', format('public.%I', tbl), 'TRIGGER') then
+      raise exception 'FAIL: anon TRIGGER must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('authenticated', format('public.%I', tbl), 'SELECT') then
+      raise exception 'FAIL: authenticated SELECT must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('authenticated', format('public.%I', tbl), 'INSERT') then
+      raise exception 'FAIL: authenticated INSERT must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('authenticated', format('public.%I', tbl), 'UPDATE') then
+      raise exception 'FAIL: authenticated UPDATE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('authenticated', format('public.%I', tbl), 'DELETE') then
+      raise exception 'FAIL: authenticated DELETE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('authenticated', format('public.%I', tbl), 'TRUNCATE') then
+      raise exception 'FAIL: authenticated TRUNCATE must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('authenticated', format('public.%I', tbl), 'REFERENCES') then
+      raise exception 'FAIL: authenticated REFERENCES must not remain on %', tbl;
+    end if;
+
+    if has_table_privilege('authenticated', format('public.%I', tbl), 'TRIGGER') then
+      raise exception 'FAIL: authenticated TRIGGER must not remain on %', tbl;
     end if;
   end loop;
 end $$;
