@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { buildEditorialCalendarReadModel } from '@/lib/intelligence/editorial/calendar-read-model'
-import { resolveEditorialWorkspaceAccess } from '@/lib/intelligence/editorial/permissions'
+import { canWriteEditorialIntelligence, resolveEditorialWorkspaceAccess } from '@/lib/intelligence/editorial/permissions'
 import { getEditorialSettings, listEditorialRecommendations } from '@/lib/intelligence/editorial/store'
 import { toPublicEditorialRecommendation, toPublicEditorialSettings } from '@/lib/intelligence/editorial/dto'
 
@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
     ok: true,
     data: {
       organizationId: access.organizationId,
+      canWrite: canWriteEditorialIntelligence(access.actor, access.profileRole),
       recommendations: recommendations.map(toPublicEditorialRecommendation),
       calendar,
       settings: toPublicEditorialSettings(settings),
