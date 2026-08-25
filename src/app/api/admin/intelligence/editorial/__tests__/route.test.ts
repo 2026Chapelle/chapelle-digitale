@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   resolveEditorialWorkspaceAccess: vi.fn(),
+  canWriteEditorialIntelligence: vi.fn(),
   listEditorialRecommendations: vi.fn(),
   getEditorialSettings: vi.fn(),
   getEditorialRecommendation: vi.fn(),
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 
 const {
   resolveEditorialWorkspaceAccess,
+  canWriteEditorialIntelligence,
   listEditorialRecommendations,
   getEditorialSettings,
   getEditorialRecommendation,
@@ -23,6 +25,7 @@ const {
 
 vi.mock('@/lib/intelligence/editorial/permissions', () => ({
   resolveEditorialWorkspaceAccess: (...args: unknown[]) => resolveEditorialWorkspaceAccess(...args),
+  canWriteEditorialIntelligence: (...args: unknown[]) => canWriteEditorialIntelligence(...args),
 }))
 
 vi.mock('@/lib/intelligence/editorial/store', () => ({
@@ -55,6 +58,7 @@ beforeEach(() => {
     userId: 'user_01',
     email: 'editor@example.com',
   })
+  canWriteEditorialIntelligence.mockReturnValue(true)
   listEditorialRecommendations.mockResolvedValue([
     {
       id: 'rec_01',
