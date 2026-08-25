@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import {
   BarChart3,
   BookOpen,
@@ -324,6 +325,12 @@ export default function IntelligenceHubPage() {
               >
                 <BookOpen className="h-4 w-4" /> Comprendre ces données
               </button>
+              <Link
+                href="/admin/intelligence/editorial"
+                className="inline-flex items-center gap-2 rounded-lg bg-cinematic-gold px-3 py-2 text-sm font-semibold text-black hover:bg-cinematic-gold/90"
+              >
+                Copilote éditorial
+              </Link>
               <button
                 type="button"
                 onClick={refresh}
