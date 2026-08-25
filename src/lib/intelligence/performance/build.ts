@@ -7,6 +7,7 @@ import type { ChannelStatus } from '../channels/types'
 import type { Ga4Data, SearchConsoleData, SeoPeriod } from '../seo/types'
 import type { YouTubeData as YouTubeConnectorData } from '../connectors/youtube/types'
 import type { Freshness } from '../types/freshness'
+import type { GoalTrajectory } from '../goals'
 import type {
   PerformanceAlert,
   PerformanceCommandCard,
@@ -16,19 +17,13 @@ import type {
   PerformanceSurfacePayload,
   PerformanceWindow,
 } from './contract'
+import type { RangeCounts } from './count-sources'
 import { buildCommandCards, rankAlerts } from './alerts'
 import { detectAnomalies } from './anomalies'
 import { buildComparableWindows } from './windows'
 import { confidenceFromHistory, PERFORMANCE_BASELINE_DAYS } from './thresholds'
 import { toPerformanceMetric } from './evolution'
 export { toPerformanceMetric } from './evolution'
-
-export interface RangeCounts {
-  visits: number | null
-  signups: number | null
-  podcastStarts: number | null
-  progressions: number | null
-}
 
 export interface SeriesHistorySample {
   window: PerformanceWindow
@@ -54,6 +49,7 @@ export interface PerformanceReadModel {
   previous: RangeCounts
   baselineHistory: ReadonlyArray<SeriesHistorySample>
   sources: PerformanceSourceSnapshot
+  goalTrajectories: GoalTrajectory[]
   demoMode: boolean
   missingCountAvailability: DecisionAvailability
 }
@@ -423,9 +419,10 @@ export function buildPerformanceSurface(input: PerformanceReadModel): Performanc
     demoMode: input.demoMode,
     citadelle,
     platform,
+    goalTrajectories: input.goalTrajectories,
     alerts,
     commandCards,
-  }
+  } as PerformanceSurfacePayload
 }
 
 export function buildPerformanceReadModel(
@@ -434,6 +431,7 @@ export function buildPerformanceReadModel(
   previous: RangeCounts,
   history: ReadonlyArray<SeriesHistorySample>,
   sources: PerformanceSourceSnapshot,
+  goalTrajectories: GoalTrajectory[] = [],
   demoMode: boolean,
   missingCountAvailability: DecisionAvailability = 'NO_DATA',
   platformPeriod?: SeoPeriod,
@@ -459,6 +457,7 @@ export function buildPerformanceReadModel(
     previous,
     baselineHistory: history,
     sources,
+    goalTrajectories,
     demoMode,
     missingCountAvailability,
   }
