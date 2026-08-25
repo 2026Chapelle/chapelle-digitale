@@ -13,7 +13,7 @@ export type TodayRecommendation = {
   contentKind?: string
   targetChannel?: string
   scheduledFor?: string | null
-  why?: string[]
+  why?: ReadonlyArray<string>
   evidence?: EditorialEvidence[]
   signals?: ReadonlyArray<Record<string, unknown>>
 }

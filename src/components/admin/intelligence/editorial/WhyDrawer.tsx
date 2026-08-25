@@ -10,7 +10,7 @@ export type EditorialEvidence = {
   priorityReason?: string | null
 }
 
-type Props = { evidence?: EditorialEvidence[]; why?: string[] }
+type Props = { evidence?: ReadonlyArray<EditorialEvidence>; why?: ReadonlyArray<string> }
 
 export function WhyDrawer({ evidence = [], why = [] }: Props) {
   return (
