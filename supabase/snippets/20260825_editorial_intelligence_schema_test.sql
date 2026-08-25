@@ -8,6 +8,8 @@
 begin;
 
 do $$
+declare
+  table_name text;
 begin
   if not exists (
     select 1
@@ -72,6 +74,64 @@ begin
   ) then
     raise exception 'FAIL: RLS must be enabled on editorial_recommendations';
   end if;
+
+  if exists (
+    select 1
+    from information_schema.role_table_grants g
+    where g.table_schema = 'public'
+      and g.table_name in (
+        'editorial_recommendations',
+        'editorial_recommendation_events',
+        'editorial_settings'
+      )
+      and g.grantee in ('PUBLIC', 'anon', 'authenticated')
+  ) then
+    raise exception 'FAIL: unauthorized table grants remain for PUBLIC/anon/authenticated';
+  end if;
+
+  for table_name in
+    select unnest(array[
+      'editorial_recommendations',
+      'editorial_recommendation_events',
+      'editorial_settings'
+    ])
+  loop
+    if not (
+      has_table_privilege('service_role', format('public.%I', table_name), 'SELECT')
+      and has_table_privilege('service_role', format('public.%I', table_name), 'INSERT')
+      and (
+        table_name = 'editorial_recommendation_events'
+        or has_table_privilege('service_role', format('public.%I', table_name), 'UPDATE')
+      )
+    ) then
+      raise exception 'FAIL: required service_role table privileges missing for %', table_name;
+    end if;
+
+    if has_table_privilege('public', format('public.%I', table_name), 'SELECT')
+      or has_table_privilege('public', format('public.%I', table_name), 'INSERT')
+      or has_table_privilege('public', format('public.%I', table_name), 'UPDATE')
+      or has_table_privilege('public', format('public.%I', table_name), 'DELETE')
+      or has_table_privilege('public', format('public.%I', table_name), 'TRUNCATE')
+      or has_table_privilege('public', format('public.%I', table_name), 'REFERENCES')
+      or has_table_privilege('public', format('public.%I', table_name), 'TRIGGER')
+      or has_table_privilege('anon', format('public.%I', table_name), 'SELECT')
+      or has_table_privilege('anon', format('public.%I', table_name), 'INSERT')
+      or has_table_privilege('anon', format('public.%I', table_name), 'UPDATE')
+      or has_table_privilege('anon', format('public.%I', table_name), 'DELETE')
+      or has_table_privilege('anon', format('public.%I', table_name), 'TRUNCATE')
+      or has_table_privilege('anon', format('public.%I', table_name), 'REFERENCES')
+      or has_table_privilege('anon', format('public.%I', table_name), 'TRIGGER')
+      or has_table_privilege('authenticated', format('public.%I', table_name), 'SELECT')
+      or has_table_privilege('authenticated', format('public.%I', table_name), 'INSERT')
+      or has_table_privilege('authenticated', format('public.%I', table_name), 'UPDATE')
+      or has_table_privilege('authenticated', format('public.%I', table_name), 'DELETE')
+      or has_table_privilege('authenticated', format('public.%I', table_name), 'TRUNCATE')
+      or has_table_privilege('authenticated', format('public.%I', table_name), 'REFERENCES')
+      or has_table_privilege('authenticated', format('public.%I', table_name), 'TRIGGER')
+    ) then
+      raise exception 'FAIL: unexpected client-side table privilege detected for %', table_name;
+    end if;
+  end loop;
 end $$;
 
 rollback;
