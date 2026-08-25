@@ -86,7 +86,7 @@ beforeEach(() => {
       completedAt: null,
       rejectedAt: null,
       archivedAt: null,
-      performanceSnapshot: {},
+      performanceSnapshot: { score: 91, dimensions: { mission: 90 } },
       createdBy: 'user_01',
       updatedBy: 'user_02',
       createdAt: '2026-08-25T10:00:00.000Z',
@@ -241,6 +241,8 @@ describe('GET /api/admin/intelligence/editorial', () => {
     expect(json.data.organizationId).toBe('org_01')
     expect(json.data.recommendations[0].createdBy).toBeUndefined()
     expect(json.data.recommendations[0].updatedBy).toBeUndefined()
+    expect(json.data.recommendations[0].performanceSnapshot.score).toBeUndefined()
+    expect(json.data.recommendations[0].performanceSnapshot.dimensions).toEqual({ mission: 90 })
     expect(json.data.calendar.items).toHaveLength(1)
     expect(JSON.stringify(json)).not.toContain('user_01')
     expect(JSON.stringify(json)).not.toContain('user_02')

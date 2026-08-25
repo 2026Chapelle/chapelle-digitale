@@ -66,4 +66,16 @@ describe('POST /api/admin/intelligence/editorial/refresh', () => {
     )
   })
 
+  it('does not accept client-provided sources or signals as editorial evidence', async () => {
+    await POST(req('http://localhost/api/admin/intelligence/editorial/refresh', {
+      sources: [{ entity: { content_id: 'fake', type: 'live', title: 'fake' } }],
+      signals: [{ key: 'fake', truthState: 'REAL', available: true }],
+    }))
+
+    expect(refreshEditorialIntelligence).toHaveBeenCalledWith(expect.objectContaining({
+      sources: [],
+      signals: [],
+    }))
+  })
+
 })

@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     requestedBy: null,
     actor: null,
     machineAuth: { kind: 'server', authenticated: true },
-    sources: Array.isArray(payload.sources) ? payload.sources as never[] : [],
-    signals: Array.isArray(payload.signals) ? payload.signals as never[] : [],
+    sources: [],
+    signals: [],
   })
 
   return NextResponse.json({ ok: true, data: { refresh } })

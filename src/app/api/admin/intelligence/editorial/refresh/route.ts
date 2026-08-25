@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
       permissions: ['can_manage_editorial_intelligence'],
     },
     machineAuth: null,
-    sources: Array.isArray(payload.sources) ? payload.sources as never[] : [],
-    signals: Array.isArray(payload.signals) ? payload.signals as never[] : [],
+    sources: [],
+    signals: [],
   })
 
   return NextResponse.json({ ok: true, data: { refresh } })
