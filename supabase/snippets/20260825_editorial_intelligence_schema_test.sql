@@ -43,15 +43,14 @@ begin
 
   if not exists (
     select 1
-    from pg_constraint c
-    join pg_class t on t.oid = c.conrelid
-    join pg_namespace n on n.oid = t.relnamespace
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    join pg_index i on i.indexrelid = c.oid
     where n.nspname = 'public'
-      and t.relname = 'editorial_recommendations'
-      and c.contype = 'u'
-      and c.conname = 'editorial_recommendations_org_dedupe_key_key'
+      and c.relname = 'editorial_recommendations_org_dedupe_key_key'
+      and i.indisunique
   ) then
-    raise exception 'FAIL: composite dedupe unique constraint missing';
+    raise exception 'FAIL: composite dedupe unique index missing';
   end if;
 
   if exists (
