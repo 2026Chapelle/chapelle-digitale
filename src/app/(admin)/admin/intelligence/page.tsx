@@ -299,6 +299,7 @@ export default function IntelligenceHubPage() {
       <div className="container-royal">
         <PageHeader
           eyebrow="Administration"
+          className="sm:[&>div:first-child]:flex-1"
           title={
             <>
               Cockpit{' '}
