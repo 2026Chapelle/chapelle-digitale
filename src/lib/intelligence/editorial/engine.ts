@@ -1,4 +1,5 @@
 import type { EditorialSignal } from './contracts'
+import { v5 as uuidv5 } from 'uuid'
 import {
   buildEditorialRecommendationDedupeKey,
   type EditorialCapacity,
@@ -211,11 +212,12 @@ function buildRecommendationId(dedupeKey: string): string {
   return `draft:${dedupeKey}`
 }
 
-function deterministicBatchId(value: string): string {
-  let a = 0x811c9dc5; let b = 0x811c9dc5
-  for (let i = 0; i < value.length; i += 1) { a = Math.imul(a ^ value.charCodeAt(i), 0x01000193); b = Math.imul(b ^ value.charCodeAt(value.length - 1 - i), 0x01000193) }
-  const hex = `${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(1, 4)}-${hex.slice(4, 16)}`
+function deterministicBatchId(input: EditorialEngineInput, source: ContentGraphNode | null): string {
+  const batchIdentity = source ? `source:${source.entity.content_id}` : 'signals'
+  return uuidv5(
+    `${input.organizationId}:${batchIdentity}:${input.windowStart}:${input.windowEnd}`,
+    uuidv5.URL,
+  )
 }
 
 function dedupeEditorialSignals(signals: ReadonlyArray<EditorialSignal>): EditorialSignal[] {
@@ -241,7 +243,7 @@ function buildRecommendation(
     : null
   const scheduledFor = addDaysIsoDate(input.windowStart, seed.scheduledOffsetDays)
   const signalSignature = buildEditorialSignalSignature(signalSnapshot)
-  const batchId = deterministicBatchId(source ? `source:${source.entity.content_id}:${input.windowStart}:${input.windowEnd}` : `signals:${input.windowStart}:${input.windowEnd}`)
+  const batchId = deterministicBatchId(input, source)
   const dedupeKey = buildEditorialRecommendationDedupeKey({
     organizationId: input.organizationId,
     recommendationKind: seed.kind,
