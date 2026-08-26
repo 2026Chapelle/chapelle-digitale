@@ -119,7 +119,9 @@ export async function refreshEditorialIntelligence(
   }
 
   const windowStart = input.nowIso.slice(0, 10)
-  const windowEnd = windowStart
+  const windowEndDate = new Date(`${windowStart}T00:00:00.000Z`)
+  windowEndDate.setUTCDate(windowEndDate.getUTCDate() + 29)
+  const windowEnd = windowEndDate.toISOString().slice(0, 10)
   const existingRecommendations = await deps.listRecommendations(input.organizationId, {
     windowFrom: windowStart,
     windowTo: windowEnd,

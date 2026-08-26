@@ -211,6 +211,13 @@ function buildRecommendationId(dedupeKey: string): string {
   return `draft:${dedupeKey}`
 }
 
+function deterministicBatchId(value: string): string {
+  let a = 0x811c9dc5; let b = 0x811c9dc5
+  for (let i = 0; i < value.length; i += 1) { a = Math.imul(a ^ value.charCodeAt(i), 0x01000193); b = Math.imul(b ^ value.charCodeAt(value.length - 1 - i), 0x01000193) }
+  const hex = `${(a >>> 0).toString(16).padStart(8, '0')}${(b >>> 0).toString(16).padStart(8, '0')}`
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(1, 4)}-${hex.slice(4, 16)}`
+}
+
 function dedupeEditorialSignals(signals: ReadonlyArray<EditorialSignal>): EditorialSignal[] {
   const seen = new Set<string>()
   const output: EditorialSignal[] = []
@@ -234,6 +241,7 @@ function buildRecommendation(
     : null
   const scheduledFor = addDaysIsoDate(input.windowStart, seed.scheduledOffsetDays)
   const signalSignature = buildEditorialSignalSignature(signalSnapshot)
+  const batchId = deterministicBatchId(source ? `source:${source.entity.content_id}:${input.windowStart}:${input.windowEnd}` : `signals:${input.windowStart}:${input.windowEnd}`)
   const dedupeKey = buildEditorialRecommendationDedupeKey({
     organizationId: input.organizationId,
     recommendationKind: seed.kind,
@@ -243,7 +251,7 @@ function buildRecommendation(
     windowEnd: input.windowEnd,
     scheduledFor,
     sourceContentId: source?.entity.content_id ?? signalSnapshot[0]?.key ?? null,
-    batchId: source ? `batch:${source.entity.content_id}:${input.windowStart}` : `batch:signals:${input.windowStart}`,
+    batchId,
     parentRecommendationId,
   }) + `|signal:${signalSignature}`
   const priority = scoreEditorialPriority(seed)
@@ -266,7 +274,7 @@ function buildRecommendation(
     windowStart: input.windowStart,
     windowEnd: input.windowEnd,
     scheduledFor,
-    batchId: source ? `batch:${source.entity.content_id}:${input.windowStart}` : `batch:signals:${input.windowStart}`,
+    batchId,
     parentRecommendationId,
     dedupeKey,
     sourceContentId: source?.entity.content_id ?? null,

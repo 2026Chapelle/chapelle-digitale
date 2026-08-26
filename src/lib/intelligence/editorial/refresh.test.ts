@@ -159,6 +159,8 @@ describe('refreshEditorialIntelligence', () => {
     )
 
     expect(result.createdCount).toBe(6)
+    expect(result.windowStart).toBe('2026-08-25')
+    expect(result.windowEnd).toBe('2026-09-23')
     expect(result.priorityRecommendations).toHaveLength(3)
     expect(createEditorialRecommendation).toHaveBeenCalledTimes(6)
     expect(appendEditorialRecommendationEvent).toHaveBeenCalledWith(

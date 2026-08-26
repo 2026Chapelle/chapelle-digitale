@@ -57,6 +57,10 @@ describe('buildEditorialRecommendationsForWindow', () => {
       'CREATE',
     ])
     expect(result.recommendations.every((item) => ['FORTE', 'NORMALE', 'A_SURVEILLER'].includes(item.priorityBand))).toBe(true)
+    for (const item of result.recommendations) {
+      expect(item.batchId).toEqual(expect.any(String))
+      expect(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/.test(item.batchId as string)).toBe(true)
+    }
   })
 
   it('deduplicates against existing recommendations on a repeated refresh', () => {

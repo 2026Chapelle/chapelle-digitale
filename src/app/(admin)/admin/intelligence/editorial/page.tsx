@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { parseEditorialResponse } from '@/lib/intelligence/editorial/response-parser'
 import React from 'react'
 import { EditorialWorkspaceShell } from '@/components/admin/intelligence/editorial/EditorialWorkspaceShell'
 
@@ -38,6 +39,7 @@ function rank(item: Recommendation) {
   return item.priorityBand === 'FORTE' ? 0 : item.priorityBand === 'NORMALE' ? 1 : 2
 }
 
+
 export default function EditorialIntelligencePage() {
   const [payload, setPayload] = useState<Payload | null>(null)
   const [loading, setLoading] = useState(true)
@@ -49,7 +51,7 @@ export default function EditorialIntelligencePage() {
     setError(null)
     try {
       const res = await fetch('/api/admin/intelligence/editorial', { cache: 'no-store' })
-      const json = (await res.json()) as Payload
+      const json = await parseEditorialResponse<Payload>(res)
       if (!res.ok || json.ok === false) throw new Error(json.message ?? `HTTP ${res.status}`)
       setPayload(json)
     } catch (cause) {
@@ -74,7 +76,7 @@ export default function EditorialIntelligencePage() {
       const res = await fetch(`/api/admin/intelligence/editorial/${encodeURIComponent(id)}`, {
         method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: action }),
       })
-      const json = (await res.json()) as Payload
+      const json = await parseEditorialResponse<Payload>(res)
       if (!res.ok || json.ok === false) throw new Error(json.message ?? `HTTP ${res.status}`)
       setMessage('Décision éditoriale enregistrée.')
       await load()
@@ -88,7 +90,7 @@ export default function EditorialIntelligencePage() {
     setError(null)
     try {
       const res = await fetch('/api/admin/intelligence/editorial/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
-      const json = (await res.json()) as Payload
+      const json = await parseEditorialResponse<Payload>(res)
       if (!res.ok || json.ok === false) throw new Error(json.message ?? `HTTP ${res.status}`)
       setMessage('Actualisation terminée. Les sources indisponibles restent signalées comme telles.')
       await load()
@@ -100,7 +102,7 @@ export default function EditorialIntelligencePage() {
   async function saveCalendar(id: string, values: { date: string; channel: string; notes: string }) {
     try {
       const res = await fetch(`/api/admin/intelligence/editorial/${encodeURIComponent(id)}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ scheduledFor: values.date, humanNotes: values.notes, humanEdit: { targetChannel: values.channel } }) })
-      const json = (await res.json()) as Payload
+      const json = await parseEditorialResponse<Payload>(res)
       if (!res.ok || json.ok === false) throw new Error(json.message ?? `HTTP ${res.status}`)
       setMessage('Planification éditoriale enregistrée.')
       await load()
