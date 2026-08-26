@@ -10,7 +10,7 @@ describe('editorial signals', () => {
   it('keeps missing values distinct from zero and classifies partial and unavailable sources', async () => {
     const provider: EditorialSignalProvider = {
       key: 'youtube',
-      async fetch() {
+      async read() {
         return [
           {
             key: 'youtube:views',
@@ -47,7 +47,7 @@ describe('editorial signals', () => {
   it('downgrades provider failures to unavailable signals without throwing', async () => {
     const failingProvider: EditorialSignalProvider = {
       key: 'meta',
-      async fetch() {
+      async read() {
         throw new Error('connector unavailable')
       },
     }
@@ -67,7 +67,7 @@ describe('editorial signals', () => {
   it('preserves editorial recommendations as a distinct truth state', async () => {
     const merged = await mergeEditorialSignals([{
       key: 'editorial:manual-context',
-      async fetch() {
+      async read() {
         return [{
           key: 'editorial:manual-context',
           source: 'editorial_context',

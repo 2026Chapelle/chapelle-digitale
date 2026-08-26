@@ -15,7 +15,7 @@ export interface EditorialSignalInput {
 
 export interface EditorialSignalProvider {
   key: string
-  fetch(input: EditorialSignalInput): Promise<ReadonlyArray<EditorialSignal>>
+  read(input: EditorialSignalInput): Promise<ReadonlyArray<EditorialSignal>>
 }
 
 export interface EditorialTrendInput {
@@ -36,7 +36,7 @@ export interface EditorialTrendSignal {
 
 export interface ExternalTrendProvider {
   key: string
-  fetch(input: EditorialTrendInput): Promise<ReadonlyArray<EditorialTrendSignal>>
+  read(input: EditorialTrendInput): Promise<ReadonlyArray<EditorialTrendSignal>>
 }
 
 function sortSignals(a: EditorialSignal, b: EditorialSignal): number {
@@ -74,7 +74,7 @@ export async function mergeEditorialSignals(
 
   for (const provider of providers) {
     try {
-      const result = await provider.fetch(input)
+      const result = await provider.read(input)
       for (const signal of result ?? []) {
         out.push(normalizeSignal(signal, provider.key, input.nowIso))
       }

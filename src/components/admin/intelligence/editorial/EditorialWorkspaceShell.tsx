@@ -83,9 +83,6 @@ export function EditorialWorkspaceShell({
           <button type="button" onClick={onRefresh} disabled={!canWrite} className="rounded-lg border border-pearl/10 bg-pearl/5 px-3 py-2 text-sm text-pearl/75 hover:text-pearl disabled:cursor-not-allowed disabled:opacity-40">
             Actualiser maintenant
           </button>
-          <button type="button" onClick={handlePrepareWeek} disabled={!canWrite} className="rounded-lg bg-cinematic-gold px-3 py-2 text-sm font-semibold text-black hover:bg-cinematic-gold/90 disabled:cursor-not-allowed disabled:opacity-40">
-            Préparer ma semaine
-          </button>
         </div>
       </div>
 

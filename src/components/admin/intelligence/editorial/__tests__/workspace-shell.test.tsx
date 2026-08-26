@@ -21,7 +21,7 @@ describe('editorial workspace shell', () => {
     expect(html).toContain('Calendrier')
     expect(html).toContain('Opportunités')
     expect(html).toContain('Actualiser maintenant')
-    expect(html).toContain('Préparer ma semaine')
+    expect(html.match(/Préparer ma semaine/g)?.length).toBe(1)
     expect(html).not.toContain('Dashboard')
     expect(html).not.toContain('Settings')
   })
