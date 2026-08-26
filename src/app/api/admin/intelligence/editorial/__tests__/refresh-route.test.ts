@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   resolveEditorialWorkspaceAccess: vi.fn(),
   refreshEditorialIntelligence: vi.fn(),
+  loadEditorialContentSources: vi.fn(),
 }))
 
-const { resolveEditorialWorkspaceAccess, refreshEditorialIntelligence } = mocks
+const { resolveEditorialWorkspaceAccess, refreshEditorialIntelligence, loadEditorialContentSources } = mocks
 
 vi.mock('@/lib/intelligence/editorial/permissions', () => ({
   resolveEditorialWorkspaceAccess: (...args: unknown[]) => resolveEditorialWorkspaceAccess(...args),
@@ -14,6 +15,10 @@ vi.mock('@/lib/intelligence/editorial/permissions', () => ({
 
 vi.mock('@/lib/intelligence/editorial/refresh', () => ({
   refreshEditorialIntelligence: (...args: unknown[]) => refreshEditorialIntelligence(...args),
+}))
+
+vi.mock('@/lib/intelligence/editorial/content-sources', () => ({
+  loadEditorialContentSources: (...args: unknown[]) => loadEditorialContentSources(...args),
 }))
 
 import { POST } from '../refresh/route'
@@ -48,6 +53,7 @@ beforeEach(() => {
     recommendations: [],
     priorityRecommendations: [],
   })
+  loadEditorialContentSources.mockResolvedValue([{ entity: { content_id: 'cms_lives:live_1', type: 'live', title: 'Live', canonical_slug: '', published_at: null, sourceRef: { table: 'cms_lives', id: 'live_1' } }, destinations: [] }])
   process.env.EDITORIAL_REFRESH_SECRET = 'cron-secret'
 })
 
@@ -66,14 +72,14 @@ describe('POST /api/admin/intelligence/editorial/refresh', () => {
     )
   })
 
-  it('does not accept client-provided sources or signals as editorial evidence', async () => {
+  it('uses server CMS sources and never client-provided editorial evidence', async () => {
     await POST(req('http://localhost/api/admin/intelligence/editorial/refresh', {
       sources: [{ entity: { content_id: 'fake', type: 'live', title: 'fake' } }],
       signals: [{ key: 'fake', truthState: 'REAL', available: true }],
     }))
 
     expect(refreshEditorialIntelligence).toHaveBeenCalledWith(expect.objectContaining({
-      sources: [],
+      sources: expect.arrayContaining([expect.objectContaining({ entity: expect.objectContaining({ content_id: 'cms_lives:live_1' }) })]),
       signals: [],
     }))
   })
