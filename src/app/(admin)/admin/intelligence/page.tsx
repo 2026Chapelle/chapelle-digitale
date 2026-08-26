@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import {
   BarChart3,
   BookOpen,
@@ -336,7 +337,7 @@ export default function IntelligenceHubPage() {
         />
 
         {/* Onglets */}
-        <div className="mb-8 flex flex-wrap gap-2">
+        <div className="mb-8 flex flex-wrap items-center gap-2">
           {TABS.map((t) => {
             const Icon = t.icon
             const active = t.id === tab
@@ -355,6 +356,12 @@ export default function IntelligenceHubPage() {
               </button>
             )
           })}
+          <Link
+            href="/admin/intelligence/editorial"
+            className="inline-flex items-center gap-2 rounded-lg border border-gold/50 bg-gold/15 px-3 py-2 text-sm font-semibold text-gold-light transition-colors hover:bg-gold/25 hover:text-white sm:ml-auto"
+          >
+            Copilote éditorial
+          </Link>
         </div>
 
         {tab === 'decision' ? (

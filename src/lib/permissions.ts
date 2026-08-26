@@ -26,6 +26,7 @@ export type Permission =
   | 'can_view_group_members'
   | 'can_supervise_community'
   | 'can_access_admin'
+  | 'can_manage_editorial_intelligence'
 
 export const ALL_PERMISSIONS: Permission[] = [
   'can_access_formateur_space', 'can_access_integration_space', 'can_access_national_dashboard',
@@ -33,6 +34,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   'can_manage_certificates', 'can_view_pastoral_dashboard', 'can_manage_pastoral_notes', 'can_respond_pastoral',
   'can_validate_journey_change',
   'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_access_admin',
+  'can_manage_editorial_intelligence',
 ]
 
 export const PERMISSION_LABELS: Record<Permission, string> = {
@@ -52,6 +54,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   can_view_group_members: 'Voir les membres des groupes',
   can_supervise_community: 'Superviser la communauté',
   can_access_admin: 'Administration',
+  can_manage_editorial_intelligence: 'Gérer l’intelligence éditoriale',
 }
 
 export interface RoleContext { role?: string | null; membre_statut?: string | null }
@@ -67,6 +70,7 @@ const PERM_BY_ROLE: Record<string, Permission[]> = {
   // (aligné sur la portée « superviseur » de la RPC validate_member_canonical_axis).
   pasteur_national: ['can_access_national_dashboard', 'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_respond_pastoral', 'can_validate_journey_change'],
   pasteur: ['can_access_national_dashboard', 'can_manage_groups', 'can_view_group_members', 'can_supervise_community', 'can_respond_pastoral', 'can_validate_journey_change'],
+  editorial_manager: ['can_manage_editorial_intelligence'],
   // membre, visiteur, disciple, leader, nouveau_membre… : aucune permission spéciale
 }
 
@@ -123,6 +127,7 @@ export const ASSIGNABLE_ROLES: { value: string; label: string; kind: 'membre' | 
   { value: 'pasteur_national', label: 'Pasteur national', kind: 'fonctionnel' },
   { value: 'admin', label: 'Administrateur', kind: 'admin' },
   { value: 'super_admin', label: 'Super Admin', kind: 'admin' },
+  { value: 'editorial_manager', label: 'Responsable éditorial', kind: 'fonctionnel' },
 ]
 
 /** Rôles présentés dans la matrice de permissions. */
