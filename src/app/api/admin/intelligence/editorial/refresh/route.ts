@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null)
   const payload = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : {}
+  try {
   const sources = await loadEditorialContentSources()
   const refresh = await refreshEditorialIntelligence({
     organizationId: access.organizationId,
@@ -29,4 +30,8 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json({ ok: true, data: { refresh } })
+  } catch (error) {
+    console.error('[editorial-refresh]', error instanceof Error ? error.message : 'unknown-error')
+    return NextResponse.json({ ok: false, message: 'Actualisation éditoriale impossible.' }, { status: 500 })
+  }
 }

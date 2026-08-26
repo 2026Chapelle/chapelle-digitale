@@ -84,4 +84,11 @@ describe('POST /api/admin/intelligence/editorial/refresh', () => {
     }))
   })
 
+  it('returns a safe JSON error when refresh fails', async () => {
+    refreshEditorialIntelligence.mockRejectedValueOnce(new Error('db uuid rejected'))
+    const res = await POST(req('http://localhost/api/admin/intelligence/editorial/refresh'))
+    expect(res.status).toBe(500)
+    await expect(res.json()).resolves.toEqual({ ok: false, message: 'Actualisation éditoriale impossible.' })
+  })
+
 })

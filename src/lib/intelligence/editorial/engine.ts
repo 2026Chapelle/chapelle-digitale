@@ -1,4 +1,5 @@
 import type { EditorialSignal } from './contracts'
+import { v5 as uuidv5 } from 'uuid'
 import {
   buildEditorialRecommendationDedupeKey,
   type EditorialCapacity,
@@ -211,6 +212,14 @@ function buildRecommendationId(dedupeKey: string): string {
   return `draft:${dedupeKey}`
 }
 
+function deterministicBatchId(input: EditorialEngineInput, source: ContentGraphNode | null): string {
+  const batchIdentity = source ? `source:${source.entity.content_id}` : 'signals'
+  return uuidv5(
+    `${input.organizationId}:${batchIdentity}:${input.windowStart}:${input.windowEnd}`,
+    uuidv5.URL,
+  )
+}
+
 function dedupeEditorialSignals(signals: ReadonlyArray<EditorialSignal>): EditorialSignal[] {
   const seen = new Set<string>()
   const output: EditorialSignal[] = []
@@ -234,6 +243,7 @@ function buildRecommendation(
     : null
   const scheduledFor = addDaysIsoDate(input.windowStart, seed.scheduledOffsetDays)
   const signalSignature = buildEditorialSignalSignature(signalSnapshot)
+  const batchId = deterministicBatchId(input, source)
   const dedupeKey = buildEditorialRecommendationDedupeKey({
     organizationId: input.organizationId,
     recommendationKind: seed.kind,
@@ -243,7 +253,7 @@ function buildRecommendation(
     windowEnd: input.windowEnd,
     scheduledFor,
     sourceContentId: source?.entity.content_id ?? signalSnapshot[0]?.key ?? null,
-    batchId: source ? `batch:${source.entity.content_id}:${input.windowStart}` : `batch:signals:${input.windowStart}`,
+    batchId,
     parentRecommendationId,
   }) + `|signal:${signalSignature}`
   const priority = scoreEditorialPriority(seed)
@@ -266,7 +276,7 @@ function buildRecommendation(
     windowStart: input.windowStart,
     windowEnd: input.windowEnd,
     scheduledFor,
-    batchId: source ? `batch:${source.entity.content_id}:${input.windowStart}` : `batch:signals:${input.windowStart}`,
+    batchId,
     parentRecommendationId,
     dedupeKey,
     sourceContentId: source?.entity.content_id ?? null,
