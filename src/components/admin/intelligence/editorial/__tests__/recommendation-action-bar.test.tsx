@@ -9,8 +9,8 @@ describe('recommendation action bar', () => {
 
     expect(html).toContain('Accepter')
     expect(html).toContain('disabled:opacity-100')
-    expect(html).toContain('bg-cinematic-gold/15')
-    expect(html).toContain('border-cinematic-gold/45')
-    expect(html).toContain('text-cinematic-gold')
+    expect(html).toContain('bg-gold/15')
+    expect(html).toContain('border-gold/50')
+    expect(html).toContain('text-gold-light')
   })
 })

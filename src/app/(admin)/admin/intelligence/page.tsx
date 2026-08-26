@@ -358,7 +358,7 @@ export default function IntelligenceHubPage() {
           })}
           <Link
             href="/admin/intelligence/editorial"
-            className="inline-flex items-center gap-2 rounded-lg bg-cinematic-gold px-3 py-2 text-sm font-semibold text-black hover:bg-cinematic-gold/90 sm:ml-auto"
+            className="inline-flex items-center gap-2 rounded-lg border border-gold/50 bg-gold/15 px-3 py-2 text-sm font-semibold text-gold-light transition-colors hover:bg-gold/25 hover:text-white sm:ml-auto"
           >
             Copilote éditorial
           </Link>

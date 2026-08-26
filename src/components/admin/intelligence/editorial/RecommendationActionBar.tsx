@@ -14,7 +14,7 @@ export function RecommendationActionBar({ canWrite = false, onAccept, onModify, 
       ? 'bg-cinematic-gold text-black hover:bg-cinematic-gold/90'
       : 'border border-pearl/10 text-pearl/70 hover:border-pearl/20 hover:bg-pearl/5 hover:text-pearl'
     const disabledClasses = primary
-      ? 'border border-cinematic-gold/45 bg-cinematic-gold/15 text-cinematic-gold'
+      ? 'border border-gold/50 bg-gold/15 text-gold-light'
       : 'border border-pearl/10 bg-white/[0.03] text-pearl/50'
 
     return (
