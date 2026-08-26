@@ -299,7 +299,6 @@ export default function IntelligenceHubPage() {
       <div className="container-royal">
         <PageHeader
           eyebrow="Administration"
-          className="sm:[&>div:first-child]:flex-1"
           title={
             <>
               Cockpit{' '}
@@ -326,12 +325,6 @@ export default function IntelligenceHubPage() {
               >
                 <BookOpen className="h-4 w-4" /> Comprendre ces données
               </button>
-              <Link
-                href="/admin/intelligence/editorial"
-                className="inline-flex items-center gap-2 rounded-lg bg-cinematic-gold px-3 py-2 text-sm font-semibold text-black hover:bg-cinematic-gold/90"
-              >
-                Copilote éditorial
-              </Link>
               <button
                 type="button"
                 onClick={refresh}
@@ -344,7 +337,7 @@ export default function IntelligenceHubPage() {
         />
 
         {/* Onglets */}
-        <div className="mb-8 flex flex-wrap gap-2">
+        <div className="mb-8 flex flex-wrap items-center gap-2">
           {TABS.map((t) => {
             const Icon = t.icon
             const active = t.id === tab
@@ -363,6 +356,12 @@ export default function IntelligenceHubPage() {
               </button>
             )
           })}
+          <Link
+            href="/admin/intelligence/editorial"
+            className="inline-flex items-center gap-2 rounded-lg bg-cinematic-gold px-3 py-2 text-sm font-semibold text-black hover:bg-cinematic-gold/90 sm:ml-auto"
+          >
+            Copilote éditorial
+          </Link>
         </div>
 
         {tab === 'decision' ? (
