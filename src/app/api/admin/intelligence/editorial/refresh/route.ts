@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { resolveEditorialWorkspaceAccess } from '@/lib/intelligence/editorial/permissions'
 import { refreshEditorialIntelligence } from '@/lib/intelligence/editorial/refresh'
+import { loadEditorialContentSources } from '@/lib/intelligence/editorial/content-sources'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null)
   const payload = body && typeof body === 'object' && !Array.isArray(body) ? body as Record<string, unknown> : {}
+  const sources = await loadEditorialContentSources()
   const refresh = await refreshEditorialIntelligence({
     organizationId: access.organizationId,
     nowIso: typeof payload.nowIso === 'string' ? payload.nowIso : new Date().toISOString(),
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
       permissions: ['can_manage_editorial_intelligence'],
     },
     machineAuth: null,
-    sources: [],
+    sources,
     signals: [],
   })
 
