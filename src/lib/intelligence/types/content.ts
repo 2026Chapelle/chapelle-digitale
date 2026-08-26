@@ -43,7 +43,7 @@ export interface ContentEntity {
   content_id: string
   type: ContentType
   title: string
-  canonical_slug: string
+  canonical_slug: string | null
   published_at: string | null // ISO 8601 ou null si brouillon
   /** Référence vers la ligne CMS source (table + id) — traçabilité, pas de copie. */
   sourceRef?: { table: string; id: string }

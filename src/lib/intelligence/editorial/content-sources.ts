@@ -2,7 +2,7 @@ import { cmsList, type CmsArticle, type CmsLive, type CmsPodcast } from '@/lib/c
 import type { ContentGraphNode } from '../types/content'
 
 function node(table: string, row: CmsLive | CmsArticle | CmsPodcast, type: 'live' | 'article' | 'podcast'): ContentGraphNode {
-  const slug = type === 'article' ? ((row as CmsArticle).slug ?? '') : ''
+  const slug = type === 'article' ? ((row as CmsArticle).slug ?? null) : null
   const url = type === 'live' ? (row as CmsLive).youtube_url : type === 'podcast' ? (row as CmsPodcast).audio_url : undefined
   return {
     entity: { content_id: `${table}:${row.id}`, type, title: row.title, canonical_slug: slug, published_at: type === 'live' ? ((row as CmsLive).scheduled_at ?? null) : null, sourceRef: { table, id: row.id } },
