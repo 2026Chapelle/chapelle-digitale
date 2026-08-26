@@ -12,5 +12,6 @@ describe('recommendation action bar', () => {
     expect(html).toContain('bg-gold/15')
     expect(html).toContain('border-gold/50')
     expect(html).toContain('text-gold-light')
+    expect(html).toContain('color:#F5E6A7')
   })
 })

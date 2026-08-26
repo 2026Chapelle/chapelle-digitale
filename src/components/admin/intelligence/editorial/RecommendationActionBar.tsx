@@ -22,6 +22,7 @@ export function RecommendationActionBar({ canWrite = false, onAccept, onModify, 
         type="button"
         onClick={handler}
         disabled={!canWrite}
+        style={!canWrite && primary ? { color: '#F5E6A7' } : undefined}
         className={
           `${primary ? 'font-semibold ' : ''}rounded-md px-2.5 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-100 disabled:shadow-none ` +
           (canWrite ? activeClasses : disabledClasses)
