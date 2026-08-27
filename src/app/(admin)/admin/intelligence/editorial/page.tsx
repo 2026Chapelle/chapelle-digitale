@@ -109,7 +109,7 @@ export default function EditorialIntelligencePage() {
 
   const recommendations = payload?.data?.recommendations ?? []
   const normalized = recommendations.map((item) => ({ ...item, title: titleOf(item), notes: item.humanNotes }))
-  const workspace = buildEditorialWorkspaceReadModel(normalized, payload?.data?.settings)
+  const workspace = buildEditorialWorkspaceReadModel(normalized, payload?.data?.settings, new Date())
 
   return (
     <div className="min-h-screen bg-abyss pb-16 pt-24">

@@ -33,7 +33,7 @@ function resolveEditorialTimeZone(timeZone?: unknown) {
   }
 }
 
-export function getEditorialToday(timeZone?: unknown, now = new Date()) {
+export function getEditorialToday(timeZone: unknown, now: Date) {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: resolveEditorialTimeZone(timeZone),
     year: 'numeric',
@@ -68,7 +68,7 @@ export function buildSuggestedWeeklyDates<T extends PlanningRecommendation>(reco
   })
 }
 
-export function buildEditorialWorkspaceReadModel<T extends PlanningRecommendation>(recommendations: readonly T[], settings?: EditorialPlanningSettings | null, now = new Date()) {
+export function buildEditorialWorkspaceReadModel<T extends PlanningRecommendation>(recommendations: readonly T[], settings: EditorialPlanningSettings | null | undefined, now: Date) {
   const weeklyCapacity = getWeeklyCapacity(settings)
   const weeklyRecommendations = buildSuggestedWeeklyDates(selectWeeklyRecommendations(recommendations, weeklyCapacity), getEditorialToday(settings?.timezone, now))
   return {

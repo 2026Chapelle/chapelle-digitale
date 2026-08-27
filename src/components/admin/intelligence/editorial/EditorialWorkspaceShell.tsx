@@ -58,6 +58,8 @@ const views: Array<{ id: EditorialWorkspaceView; label: string }> = [
   { id: 'opportunities', label: 'Opportunités' },
 ]
 
+export const weekPreviewAcceptClasses = 'border border-[#D4AF37] bg-[#D4AF37] text-[#050505] shadow-[0_0_18px_rgba(212,175,55,0.28)] hover:bg-[#F5E6A7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505] disabled:cursor-not-allowed disabled:border-gold/50 disabled:bg-gold/15 disabled:text-gold-light disabled:opacity-100'
+
 export function EditorialWorkspaceShell({
   organizationId,
   activeView,
@@ -130,8 +132,8 @@ export function EditorialWorkspaceShell({
             <button type="button" onClick={() => setWeekPreview(false)} className="rounded-md border border-pearl/10 px-2.5 py-1.5 text-xs text-pearl/65">Fermer</button>
           </div>
           {summary.weeklyRecommendations.length === 0 ? <div className="mt-4 text-sm text-pearl/50">Aucune opportunité compatible avec la capacité actuelle.</div> : <>
-            <div className="mt-4 space-y-2">{summary.weeklyRecommendations.slice(0, 5).map((item) => <div key={item.id} className="flex flex-col gap-2 border-t border-pearl/10 py-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm text-pearl/85">{item.title}</div><div className="text-xs text-pearl/45">{formatEditorialAction(item)} · {item.status === 'PROPOSED' ? `Suggéré le ${item.suggestedFor ?? 'date à définir'}` : `Prévu le ${item.scheduledFor ?? item.windowStart ?? 'date à définir'}`}</div></div><button type="button" disabled={!canWrite} onClick={() => onAction?.(item.id, 'ACCEPTED')} className="rounded-md border border-cinematic-gold/30 px-2.5 py-1.5 text-xs text-cinematic-gold disabled:opacity-40">Accepter cet élément</button></div>)}</div>
-            <button type="button" disabled={!canWrite} onClick={() => summary.weeklyRecommendations.slice(0, 5).forEach((item) => onAction?.(item.id, 'ACCEPTED'))} className="mt-3 rounded-lg bg-cinematic-gold px-3 py-2 text-xs font-semibold text-black disabled:opacity-40">Accepter les éléments proposés</button>
+            <div className="mt-4 space-y-2">{summary.weeklyRecommendations.slice(0, 5).map((item) => <div key={item.id} className="flex flex-col gap-2 border-t border-pearl/10 py-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm text-pearl/85">{item.title}</div><div className="text-xs text-pearl/45">{formatEditorialAction(item)} · {item.status === 'PROPOSED' ? `Suggéré le ${item.suggestedFor ?? 'date à définir'}` : `Prévu le ${item.scheduledFor ?? item.windowStart ?? 'date à définir'}`}</div></div><button type="button" disabled={!canWrite} onClick={() => onAction?.(item.id, 'ACCEPTED')} className={`${weekPreviewAcceptClasses} rounded-md px-2.5 py-1.5 text-xs`}>Accepter cet élément</button></div>)}</div>
+            <button type="button" disabled={!canWrite} onClick={() => summary.weeklyRecommendations.slice(0, 5).forEach((item) => onAction?.(item.id, 'ACCEPTED'))} className={`${weekPreviewAcceptClasses} mt-3 rounded-lg px-3 py-2 text-xs font-semibold`}>Accepter les éléments proposés</button>
           </>}
         </section>
       )}
