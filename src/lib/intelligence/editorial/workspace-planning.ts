@@ -165,7 +165,7 @@ export function formatEditorialChannel(channel?: string | null) {
     youtube: 'YouTube',
     podcast: 'Podcast',
   }
-  return labels[channel?.toLowerCase() ?? ''] ?? 'Canal Ã©ditorial'
+  return labels[channel?.toLowerCase() ?? ''] ?? 'Canal \u00e9ditorial'
 }
 
 export function formatEditorialFamily(kind?: string | null) {

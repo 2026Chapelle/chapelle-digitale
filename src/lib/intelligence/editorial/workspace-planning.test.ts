@@ -119,6 +119,7 @@ describe('editorial workspace planning', () => {
       .toBe('Cr\u00e9er un article')
 
     expect(formatEditorialChannel('web')).toBe('Site web')
+    expect(formatEditorialChannel(undefined)).toBe('Canal \u00e9ditorial')
   })
   it('projects two rolling generations of fifty logical opportunities to fifty current opportunities', () => {
     const persisted = Array.from({ length: 50 }, (_, index) => {
