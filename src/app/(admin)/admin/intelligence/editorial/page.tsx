@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { parseEditorialResponse } from '@/lib/intelligence/editorial/response-parser'
 import React from 'react'
 import { EditorialWorkspaceShell } from '@/components/admin/intelligence/editorial/EditorialWorkspaceShell'
+import { buildEditorialWorkspaceReadModel } from '@/lib/intelligence/editorial/workspace-planning'
 
 type Recommendation = {
   id: string
@@ -27,18 +28,13 @@ type Recommendation = {
 
 type Payload = {
   ok?: boolean
-  data?: { organizationId: string; recommendations?: Recommendation[]; canWrite?: boolean }
+  data?: { organizationId: string; recommendations?: Recommendation[]; canWrite?: boolean; settings?: { timezone?: string; weeklyCapacity?: { weeklyTotal?: number } } }
   message?: string
 }
 
 function titleOf(item: Recommendation) {
   return item.humanTitleOverride ?? item.sourceTitle ?? `${item.contentKind ?? 'Contenu'} · ${item.targetChannel ?? 'canal à choisir'}`
 }
-
-function rank(item: Recommendation) {
-  return item.priorityBand === 'FORTE' ? 0 : item.priorityBand === 'NORMALE' ? 1 : 2
-}
-
 
 export default function EditorialIntelligencePage() {
   const [payload, setPayload] = useState<Payload | null>(null)
@@ -113,10 +109,7 @@ export default function EditorialIntelligencePage() {
 
   const recommendations = payload?.data?.recommendations ?? []
   const normalized = recommendations.map((item) => ({ ...item, title: titleOf(item), notes: item.humanNotes }))
-  const priorities = [...normalized].sort((a, b) => rank(a) - rank(b)).filter((item) => item.status === 'PROPOSED' || item.status === 'ACCEPTED').slice(0, 5)
-  const today = new Date().toISOString().slice(0, 10)
-  const weekEnd = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10)
-  const weeklyRecommendations = normalized.filter((item) => (item.scheduledFor ?? item.windowStart ?? today) >= today && (item.scheduledFor ?? item.windowStart ?? today) <= weekEnd)
+  const workspace = buildEditorialWorkspaceReadModel(normalized, payload?.data?.settings, new Date())
 
   return (
     <div className="min-h-screen bg-abyss pb-16 pt-24">
@@ -128,7 +121,15 @@ export default function EditorialIntelligencePage() {
           organizationId={payload?.data?.organizationId ?? 'unknown'}
           activeView="today"
           canWrite={payload?.data?.canWrite ?? false}
-          summary={{ priorities, weeklyRecommendations: normalized, watchlist: normalized.filter((item) => item.priorityBand === 'A_SURVEILLER') }}
+          summary={{
+            priorities: workspace.priorities,
+            weeklyRecommendations: workspace.weeklyRecommendations,
+            opportunities: workspace.opportunities,
+            calendarRecommendations: workspace.calendarRecommendations,
+            totalOpportunities: normalized.length,
+            weeklyCapacity: workspace.weeklyCapacity,
+            watchlist: normalized.filter((item) => item.priorityBand === 'A_SURVEILLER'),
+          }}
           onRefresh={() => void refresh()}
           onPrepareWeek={() => setMessage('Aperçu de la semaine prêt. Chaque décision doit être acceptée individuellement ou explicitement par l’utilisateur.')}
           onAction={(id, action) => void mutate(id, action)}

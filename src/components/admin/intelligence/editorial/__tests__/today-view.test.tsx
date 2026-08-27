@@ -27,4 +27,25 @@ describe('today view', () => {
     expect(html).toContain('Planifier')
     expect(html).toContain('Rejeter')
   })
+
+  it('labels a proposed planning date as suggested and keeps committed dates planned', () => {
+    const proposed = renderToStaticMarkup(
+      <TodayView
+        priorities={[{ id: 'proposed', title: 'Article suggéré', status: 'PROPOSED', suggestedFor: '2026-08-27' }]}
+        watchlist={[]}
+        onPrepareWeek={() => undefined}
+      />,
+    )
+    const committed = renderToStaticMarkup(
+      <TodayView
+        priorities={[{ id: 'scheduled', title: 'Article accepté', status: 'SCHEDULED', scheduledFor: '2026-08-28' }]}
+        watchlist={[]}
+        onPrepareWeek={() => undefined}
+      />,
+    )
+
+    expect(proposed).toContain('Suggéré le 2026-08-27')
+    expect(proposed).not.toContain('Prévu le 2026-08-27')
+    expect(committed).toContain('Prévu le 2026-08-28')
+  })
 })
