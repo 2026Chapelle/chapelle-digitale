@@ -5,6 +5,7 @@ import React from 'react'
 import { TodayView } from './TodayView'
 import { CalendarView } from './CalendarView'
 import { OpportunitiesView } from './OpportunitiesView'
+import { formatEditorialAction, formatEditorialChannel, formatEditorialFamily } from '@/lib/intelligence/editorial/workspace-planning'
 
 export type EditorialWorkspaceView = 'today' | 'calendar' | 'opportunities'
 
@@ -17,6 +18,7 @@ export type EditorialWorkspaceItem = {
   priorityBand?: 'FORTE' | 'NORMALE' | 'A_SURVEILLER'
   status?: string
   scheduledFor?: string | null
+  suggestedFor?: string
   windowStart?: string
   windowEnd?: string
   sourceTitle?: string | null
@@ -32,6 +34,10 @@ export type EditorialWorkspaceItem = {
 export type EditorialWorkspaceSummary = {
   priorities: EditorialWorkspaceItem[]
   weeklyRecommendations: EditorialWorkspaceItem[]
+  opportunities: EditorialWorkspaceItem[]
+  calendarRecommendations: EditorialWorkspaceItem[]
+  totalOpportunities: number
+  weeklyCapacity: number
   watchlist: EditorialWorkspaceItem[]
 }
 
@@ -101,18 +107,18 @@ export function EditorialWorkspaceShell({
       </nav>
 
       {view === 'today' ? (
-        <TodayView priorities={summary.priorities} weeklyRecommendations={summary.weeklyRecommendations} watchlist={summary.watchlist} canWrite={canWrite} onPrepareWeek={handlePrepareWeek} onAction={onAction} />
+        <TodayView priorities={summary.priorities} weeklyRecommendations={summary.weeklyRecommendations} totalOpportunities={summary.totalOpportunities} weeklyCapacity={summary.weeklyCapacity} watchlist={summary.watchlist} canWrite={canWrite} onPrepareWeek={handlePrepareWeek} onAction={onAction} />
       ) : view === 'calendar' ? (
         <CalendarView
           window={{ start: new Date().toISOString().slice(0, 10), end: new Date(Date.now() + 29 * 86400000).toISOString().slice(0, 10) }}
-          items={summary.weeklyRecommendations.map((item) => ({ id: item.id, title: item.title, status: item.status ?? 'PROPOSED', channel: item.targetChannel ?? '—', date: item.scheduledFor ?? item.windowStart ?? new Date().toISOString().slice(0, 10), notes: item.notes, batchId: item.batchId, parentRecommendationId: item.parentRecommendationId }))}
+          items={summary.calendarRecommendations.map((item) => ({ id: item.id, title: item.title, status: item.status ?? 'PROPOSED', channel: formatEditorialChannel(item.targetChannel), date: item.scheduledFor ?? item.windowStart ?? new Date().toISOString().slice(0, 10), notes: item.notes, batchId: item.batchId, parentRecommendationId: item.parentRecommendationId }))}
           canWrite={canWrite}
           onSave={onCalendarSave}
         />
       ) : (
         <OpportunitiesView
-          filters={['CREATE', 'REPURPOSE', 'PROMOTE', 'SEO', 'sous-exploité', 'à surveiller']}
-          opportunities={summary.weeklyRecommendations.map((item) => ({ id: item.id, title: item.title, family: item.recommendationKind ?? 'CREATE', status: item.priorityBand, tags: item.priorityBand === 'A_SURVEILLER' ? ['à surveiller'] : undefined }))}
+          filters={['Créer', 'Décliner', 'Promouvoir', 'SEO', 'sous-exploité', 'à surveiller']}
+          opportunities={summary.opportunities.map((item) => ({ id: item.id, title: item.title, family: formatEditorialFamily(item.recommendationKind), status: item.priorityBand, tags: item.priorityBand === 'A_SURVEILLER' ? ['à surveiller'] : undefined }))}
           connectorStates={[]}
           canWrite={canWrite}
         />
@@ -124,7 +130,7 @@ export function EditorialWorkspaceShell({
             <button type="button" onClick={() => setWeekPreview(false)} className="rounded-md border border-pearl/10 px-2.5 py-1.5 text-xs text-pearl/65">Fermer</button>
           </div>
           {summary.weeklyRecommendations.length === 0 ? <div className="mt-4 text-sm text-pearl/50">Aucune opportunité compatible avec la capacité actuelle.</div> : <>
-            <div className="mt-4 space-y-2">{summary.weeklyRecommendations.slice(0, 5).map((item) => <div key={item.id} className="flex flex-col gap-2 border-t border-pearl/10 py-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm text-pearl/85">{item.title}</div><div className="text-xs text-pearl/45">{item.contentKind ?? 'Contenu'} · {item.targetChannel ?? 'Canal'} · {item.scheduledFor ?? item.windowStart ?? 'Fenêtre à définir'}</div></div><button type="button" disabled={!canWrite} onClick={() => onAction?.(item.id, 'ACCEPTED')} className="rounded-md border border-cinematic-gold/30 px-2.5 py-1.5 text-xs text-cinematic-gold disabled:opacity-40">Accepter cet élément</button></div>)}</div>
+            <div className="mt-4 space-y-2">{summary.weeklyRecommendations.slice(0, 5).map((item) => <div key={item.id} className="flex flex-col gap-2 border-t border-pearl/10 py-3 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm text-pearl/85">{item.title}</div><div className="text-xs text-pearl/45">{formatEditorialAction(item)} · {item.status === 'PROPOSED' ? `Suggéré le ${item.suggestedFor ?? 'date à définir'}` : `Prévu le ${item.scheduledFor ?? item.windowStart ?? 'date à définir'}`}</div></div><button type="button" disabled={!canWrite} onClick={() => onAction?.(item.id, 'ACCEPTED')} className="rounded-md border border-cinematic-gold/30 px-2.5 py-1.5 text-xs text-cinematic-gold disabled:opacity-40">Accepter cet élément</button></div>)}</div>
             <button type="button" disabled={!canWrite} onClick={() => summary.weeklyRecommendations.slice(0, 5).forEach((item) => onAction?.(item.id, 'ACCEPTED'))} className="mt-3 rounded-lg bg-cinematic-gold px-3 py-2 text-xs font-semibold text-black disabled:opacity-40">Accepter les éléments proposés</button>
           </>}
         </section>

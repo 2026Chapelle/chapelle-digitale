@@ -12,6 +12,10 @@ describe('editorial workspace shell', () => {
         summary={{
           priorities: [],
           weeklyRecommendations: [],
+          opportunities: [],
+          calendarRecommendations: [],
+          totalOpportunities: 0,
+          weeklyCapacity: 10,
           watchlist: [],
         }}
       />,

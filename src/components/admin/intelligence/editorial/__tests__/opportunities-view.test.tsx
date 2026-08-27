@@ -7,15 +7,15 @@ describe('opportunities view', () => {
   it('renders filters and non-blocking error states without breaking the page', () => {
     const html = renderToStaticMarkup(
       <OpportunitiesView
-        filters={['CREATE', 'REPURPOSE', 'PROMOTE', 'SEO', 'sous-exploité', 'à surveiller']}
-        opportunities={[{ id: 'opp_01', title: 'Article à réutiliser', family: 'REPURPOSE', status: 'FORTE' }]}
+        filters={['Créer', 'Décliner', 'Promouvoir', 'SEO', 'sous-exploité', 'à surveiller']}
+        opportunities={[{ id: 'opp_01', title: 'Article à réutiliser', family: 'Décliner', status: 'FORTE' }]}
         connectorStates={[{ key: 'youtube', truthState: 'PARTIAL' }, { key: 'meta', truthState: 'UNAVAILABLE' }]}
       />,
     )
 
-    expect(html).toContain('CREATE')
-    expect(html).toContain('REPURPOSE')
-    expect(html).toContain('PROMOTE')
+    expect(html).toContain('Créer')
+    expect(html).toContain('Décliner')
+    expect(html).toContain('Promouvoir')
     expect(html).toContain('SEO')
     expect(html).toContain('PARTIAL')
     expect(html).toContain('UNAVAILABLE')

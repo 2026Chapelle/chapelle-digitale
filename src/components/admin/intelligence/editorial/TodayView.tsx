@@ -3,6 +3,7 @@
 import React from 'react'
 import { RecommendationActionBar } from './RecommendationActionBar'
 import { WhyDrawer, type EditorialEvidence } from './WhyDrawer'
+import { formatEditorialAction } from '@/lib/intelligence/editorial/workspace-planning'
 
 export type TodayRecommendation = {
   id: string
@@ -12,7 +13,9 @@ export type TodayRecommendation = {
   recommendationKind?: 'CREATE' | 'REPURPOSE' | 'PROMOTE'
   contentKind?: string
   targetChannel?: string
+  status?: string
   scheduledFor?: string | null
+  suggestedFor?: string
   why?: ReadonlyArray<string>
   evidence?: EditorialEvidence[]
   signals?: ReadonlyArray<Record<string, unknown>>
@@ -21,6 +24,8 @@ export type TodayRecommendation = {
 type Props = {
   priorities: TodayRecommendation[]
   weeklyRecommendations?: TodayRecommendation[]
+  totalOpportunities?: number
+  weeklyCapacity?: number
   watchlist: TodayRecommendation[]
   canWrite?: boolean
   onPrepareWeek: () => void
@@ -33,7 +38,7 @@ const bandLabel: Record<NonNullable<TodayRecommendation['band']>, string> = {
   A_SURVEILLER: 'À SURVEILLER',
 }
 
-export function TodayView({ priorities, weeklyRecommendations = [], watchlist, canWrite = false, onPrepareWeek, onAction }: Props) {
+export function TodayView({ priorities, weeklyRecommendations = [], totalOpportunities = weeklyRecommendations.length, weeklyCapacity = weeklyRecommendations.length, watchlist, canWrite = false, onPrepareWeek, onAction }: Props) {
   const visible = priorities.slice(0, 5)
   return (
     <div className="space-y-5">
@@ -54,12 +59,11 @@ export function TodayView({ priorities, weeklyRecommendations = [], watchlist, c
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 text-[11px]">
                       <span className="rounded-full border border-cinematic-gold/35 px-2 py-0.5 text-cinematic-gold">{bandLabel[band]}</span>
-                      {item.recommendationKind && <span className="text-pearl/45">{item.recommendationKind}</span>}
-                      {item.contentKind && <span className="text-pearl/45">{item.contentKind}</span>}
-                      {item.targetChannel && <span className="text-pearl/45">{item.targetChannel}</span>}
+                      <span className="text-pearl/60">{formatEditorialAction(item)}</span>
                     </div>
                     <h3 className="mt-2 text-base font-semibold text-pearl/90">{item.title}</h3>
-                    {item.scheduledFor && <div className="mt-1 text-xs text-pearl/45">Prévu le {item.scheduledFor}</div>}
+                    {item.status === 'PROPOSED' && item.suggestedFor && <div className="mt-1 text-xs text-pearl/45">Suggéré le {item.suggestedFor}</div>}
+                    {item.status !== 'PROPOSED' && item.scheduledFor && <div className="mt-1 text-xs text-pearl/45">Prévu le {item.scheduledFor}</div>}
                   </div>
                   <RecommendationActionBar
                     canWrite={canWrite}
@@ -76,7 +80,7 @@ export function TodayView({ priorities, weeklyRecommendations = [], watchlist, c
         )}
       </section>
       <section aria-label="Recommandations de la semaine" className="grid gap-4 lg:grid-cols-2">
-        <div className="card-royal p-4"><div className="section-label mb-2">Cette semaine</div><div className="text-sm text-pearl/55">{weeklyRecommendations.length} opportunité(s) dans la fenêtre de 7 jours.</div></div>
+        <div className="card-royal p-4"><div className="section-label mb-2">Cette semaine</div><div className="text-sm text-pearl/55">{totalOpportunities} opportunités détectées · {weeklyRecommendations.length} retenues sur {weeklyCapacity} · {visible.length} priorités maintenant.</div></div>
         <div className="card-royal p-4"><div className="section-label mb-2">À surveiller</div><div className="text-sm text-pearl/55">{watchlist.length} opportunité(s) sans action immédiate.</div></div>
       </section>
     </div>

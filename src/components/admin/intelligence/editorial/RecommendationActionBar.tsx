@@ -11,7 +11,7 @@ type Props = {
 export function RecommendationActionBar({ canWrite = false, onAccept, onModify, onSchedule, onReject }: Props) {
   const action = (label: string, handler?: () => void, primary = false) => {
     const activeClasses = primary
-      ? 'bg-cinematic-gold text-black hover:bg-cinematic-gold/90'
+      ? 'border border-[#D4AF37] bg-[#D4AF37] text-[#050505] shadow-[0_0_18px_rgba(212,175,55,0.28)] hover:bg-[#F5E6A7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050505]'
       : 'border border-pearl/10 text-pearl/70 hover:border-pearl/20 hover:bg-pearl/5 hover:text-pearl'
     const disabledClasses = primary
       ? 'border border-gold/50 bg-gold/15 text-gold-light'
