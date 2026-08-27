@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { parseEditorialResponse } from '@/lib/intelligence/editorial/response-parser'
 import React from 'react'
 import { EditorialWorkspaceShell } from '@/components/admin/intelligence/editorial/EditorialWorkspaceShell'
-import { buildEditorialWorkspaceReadModel } from '@/lib/intelligence/editorial/workspace-planning'
+import { buildEditorialWorkspaceReadModel, buildEditorialWorkspaceSummary } from '@/lib/intelligence/editorial/workspace-planning'
 
 type Recommendation = {
   id: string
@@ -34,24 +34,6 @@ type Payload = {
 
 function titleOf(item: Recommendation) {
   return item.humanTitleOverride ?? item.sourceTitle ?? `${item.contentKind ?? 'Contenu'} · ${item.targetChannel ?? 'canal à choisir'}`
-}
-
-export function buildEditorialWorkspaceSummary<T extends { priorityBand?: Recommendation['priorityBand'] }>(workspace: {
-  priorities: T[]
-  weeklyRecommendations: T[]
-  opportunities: T[]
-  calendarRecommendations: T[]
-  weeklyCapacity: number
-}) {
-  return {
-    priorities: workspace.priorities,
-    weeklyRecommendations: workspace.weeklyRecommendations,
-    opportunities: workspace.opportunities,
-    calendarRecommendations: workspace.calendarRecommendations,
-    totalOpportunities: workspace.opportunities.length,
-    weeklyCapacity: workspace.weeklyCapacity,
-    watchlist: workspace.opportunities.filter((item) => item.priorityBand === 'A_SURVEILLER'),
-  }
 }
 
 export default function EditorialIntelligencePage() {

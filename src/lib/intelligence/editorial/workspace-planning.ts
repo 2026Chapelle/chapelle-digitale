@@ -153,6 +153,24 @@ export function buildEditorialWorkspaceReadModel<T extends PlanningRecommendatio
   }
 }
 
+export function buildEditorialWorkspaceSummary<T extends { priorityBand?: PlanningRecommendation['priorityBand'] }>(workspace: {
+  priorities: T[]
+  weeklyRecommendations: T[]
+  opportunities: T[]
+  calendarRecommendations: T[]
+  weeklyCapacity: number
+}) {
+  return {
+    priorities: workspace.priorities,
+    weeklyRecommendations: workspace.weeklyRecommendations,
+    opportunities: workspace.opportunities,
+    calendarRecommendations: workspace.calendarRecommendations,
+    totalOpportunities: workspace.opportunities.length,
+    weeklyCapacity: workspace.weeklyCapacity,
+    watchlist: workspace.opportunities.filter((item) => item.priorityBand === 'A_SURVEILLER'),
+  }
+}
+
 export function selectCalendarRecommendations<T extends { status?: string }>(recommendations: readonly T[]): T[] {
   return recommendations.filter((item) => CALENDAR_STATUSES.has(item.status ?? ''))
 }
