@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseEditorialResponse } from '@/lib/intelligence/editorial/response-parser'
-import { buildEditorialWorkspaceReadModel } from '@/lib/intelligence/editorial/workspace-planning'
-import { buildEditorialWorkspaceSummary } from './page'
+import { buildEditorialWorkspaceReadModel, buildEditorialWorkspaceSummary } from '@/lib/intelligence/editorial/workspace-planning'
 
 it('returns a French error for an empty refresh response', async () => {
   await expect(parseEditorialResponse(new Response('', { status: 500 }))).rejects.toThrow('Actualisation éditoriale impossible.')
