@@ -189,7 +189,7 @@ export default function GlobalCommandPage() {
               { icon: Compass, label: 'Mission', v: d?.mission?.pulse?.projets_actifs ?? d?.mission?.pulse?.total ?? '—', sub: 'projets' },
               { icon: Flame, label: 'Crise', v: d?.crise?.incidents_ouverts ?? d?.crise?.ouverts ?? '—', sub: 'incidents ouverts' },
               { icon: Brain, label: 'Churn critique', v: d?.prediction?.churn_critique ?? '—', sub: 'membres à risque' },
-              { icon: Globe2, label: 'Nations', v: d?.vision?.nations ?? d?.vision?.pays ?? '—', sub: 'touchées' },
+              { icon: Globe2, label: 'Nations', v: d?.vision?.totaux?.nations ?? '—', sub: 'touchées' },
             ].map((c, i) => (
               <div key={i} className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                 <div className="flex items-center gap-2 mb-2"><c.icon className="w-4 h-4 text-gold/70" /><span className="text-xs text-pearl/50">{c.label}</span></div>
