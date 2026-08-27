@@ -139,7 +139,7 @@ describe('buildEditorialRecommendationsForWindow', () => {
     expect(second.priorityRecommendations).toHaveLength(0)
   })
 
-  it('reopens recommendations when the signal signature changes meaningfully', () => {
+  it('does not duplicate proposed recommendations when the signal signature changes meaningfully', () => {
     const first = buildEditorialRecommendationsForWindow({
       organizationId: 'org_01',
       nowIso: '2026-08-25T10:00:00.000Z',
@@ -166,8 +166,7 @@ describe('buildEditorialRecommendationsForWindow', () => {
       existingRecommendations: first.recommendations,
     })
 
-    expect(second.recommendations).toHaveLength(6)
-    expect(second.recommendations[0].dedupeKey).not.toBe(first.recommendations[0].dedupeKey)
+    expect(second.recommendations).toHaveLength(0)
   })
 
   it('does not regenerate accepted work when a signal changes', () => {
@@ -193,4 +192,169 @@ describe('buildEditorialRecommendationsForWindow', () => {
 
     expect(second.recommendations).toHaveLength(0)
   })
-})
+
+  it('suppresses proposed recommendations generated for the same source on a consecutive rolling window', () => {
+    const yesterday = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-26T10:00:00.000Z',
+      windowStart: '2026-08-26',
+      windowEnd: '2026-09-24',
+      sources: [liveSource()],
+      signals: [],
+    })
+
+    const today = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-27T10:00:00.000Z',
+      windowStart: '2026-08-27',
+      windowEnd: '2026-09-25',
+      sources: [liveSource()],
+      signals: [],
+      existingRecommendations: yesterday.recommendations,
+    })
+
+    expect(today.recommendations).toHaveLength(0)
+  })
+
+  it.each(['ACCEPTED', 'SCHEDULED', 'COMPLETED'] as const)('keeps %s recommendations human-locked across rolling windows', (status) => {
+    const yesterday = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-26T10:00:00.000Z',
+      windowStart: '2026-08-26',
+      windowEnd: '2026-09-24',
+      sources: [liveSource()],
+      signals: [],
+    })
+
+    const today = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-27T10:00:00.000Z',
+      windowStart: '2026-08-27',
+      windowEnd: '2026-09-25',
+      sources: [liveSource()],
+      signals: [],
+      existingRecommendations: yesterday.recommendations.map((item) => ({ ...item, status })),
+    })
+
+    expect(today.recommendations).toHaveLength(0)
+  })
+
+  it('suppresses a rejected recommendation with an identical signal signature across rolling windows', () => {
+    const yesterday = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-26T10:00:00.000Z',
+      windowStart: '2026-08-26',
+      windowEnd: '2026-09-24',
+      sources: [],
+      signals: [createSignal],
+    })
+
+    const today = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-27T10:00:00.000Z',
+      windowStart: '2026-08-27',
+      windowEnd: '2026-09-25',
+      sources: [],
+      signals: [createSignal],
+      existingRecommendations: yesterday.recommendations.map((item) => ({ ...item, status: 'REJECTED' as const })),
+    })
+
+    expect(today.recommendations).toHaveLength(0)
+  })
+
+  it('allows a rejected recommendation to regenerate when its signal changes meaningfully', () => {
+    const yesterday = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-26T10:00:00.000Z',
+      windowStart: '2026-08-26',
+      windowEnd: '2026-09-24',
+      sources: [],
+      signals: [createSignal],
+    })
+
+    const today = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-27T10:00:00.000Z',
+      windowStart: '2026-08-27',
+      windowEnd: '2026-09-25',
+      sources: [],
+      signals: [{ ...createSignal, value: { topic: 'Marriage', fresh: true } }],
+      existingRecommendations: yesterday.recommendations.map((item) => ({ ...item, status: 'REJECTED' as const })),
+    })
+
+    expect(today.recommendations).toHaveLength(1)
+  })
+
+  it('allows changed rejected work to regenerate despite an older proposed duplicate', () => {
+    const yesterday = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-26T10:00:00.000Z',
+      windowStart: '2026-08-26',
+      windowEnd: '2026-09-24',
+      sources: [],
+      signals: [createSignal],
+    })
+
+    const staleProposed = {
+      ...yesterday.recommendations[0],
+      id: 'stale-proposed',
+      status: 'PROPOSED' as const,
+    }
+
+    const rejected = {
+      ...yesterday.recommendations[0],
+      id: 'rejected',
+      status: 'REJECTED' as const,
+      lastHumanActionAt: '2026-08-27T08:00:00.000Z',
+      rejectedAt: '2026-08-27T08:00:00.000Z',
+    }
+
+    const today = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-27T10:00:00.000Z',
+      windowStart: '2026-08-27',
+      windowEnd: '2026-09-25',
+      sources: [],
+      signals: [{ ...createSignal, value: { topic: 'Marriage', fresh: true } }],
+      existingRecommendations: [staleProposed, rejected],
+    })
+
+    expect(today.recommendations).toHaveLength(1)
+  })
+
+  it('allows regeneration after archival despite an older proposed duplicate', () => {
+    const yesterday = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-26T10:00:00.000Z',
+      windowStart: '2026-08-26',
+      windowEnd: '2026-09-24',
+      sources: [],
+      signals: [createSignal],
+    })
+
+    const staleProposed = {
+      ...yesterday.recommendations[0],
+      id: 'stale-proposed',
+      status: 'PROPOSED' as const,
+    }
+
+    const archived = {
+      ...yesterday.recommendations[0],
+      id: 'archived',
+      status: 'ARCHIVED' as const,
+      lastHumanActionAt: '2026-08-27T08:00:00.000Z',
+      archivedAt: '2026-08-27T08:00:00.000Z',
+    }
+
+    const today = buildEditorialRecommendationsForWindow({
+      organizationId: 'org_01',
+      nowIso: '2026-08-27T10:00:00.000Z',
+      windowStart: '2026-08-27',
+      windowEnd: '2026-09-25',
+      sources: [],
+      signals: [createSignal],
+      existingRecommendations: [staleProposed, archived],
+    })
+
+    expect(today.recommendations).toHaveLength(1)
+  })})

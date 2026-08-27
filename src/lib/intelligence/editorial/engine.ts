@@ -11,6 +11,7 @@ import {
   isHumanLockedEditorialStatus,
   shouldSuppressRejectedEditorialRecommendation,
 } from './memory'
+import { buildEditorialLogicalIdentity } from './logical-identity'
 import type { ContentGraphNode } from '../types/content'
 import { compareEditorialPriorityBands, scoreEditorialPriority } from './prioritization'
 
@@ -325,10 +326,49 @@ function dedupeByKey(recommendations: ReadonlyArray<EditorialRecommendation>): E
   return output
 }
 
-function recommendationIdentity(dedupeKey: string): string {
-  return dedupeKey.split('|signal:')[0]
+function editorialRecommendationRecency(recommendation: EditorialRecommendation) {
+  return (
+    recommendation.lastHumanActionAt ??
+    recommendation.rejectedAt ??
+    recommendation.archivedAt ??
+    recommendation.completedAt ??
+    recommendation.scheduledAt ??
+    recommendation.acceptedAt ??
+    recommendation.lastRefreshedAt ??
+    recommendation.generatedAt ??
+    recommendation.updatedAt ??
+    recommendation.createdAt ??
+    ''
+  )
 }
 
+function editorialCanonicalStatusTieBreak(status: EditorialRecommendation['status']) {
+  if (isHumanLockedEditorialStatus(status)) return 0
+  if (status === 'REJECTED' || status === 'ARCHIVED') return 1
+  if (status === 'PROPOSED') return 2
+  return 3
+}
+
+function selectCanonicalExistingRecommendation(
+  recommendations: ReadonlyArray<EditorialRecommendation>,
+): EditorialRecommendation | null {
+  if (recommendations.length === 0) return null
+
+  return [...recommendations].sort((left, right) => {
+    const recencyOrder = editorialRecommendationRecency(right)
+      .localeCompare(editorialRecommendationRecency(left))
+
+    if (recencyOrder !== 0) return recencyOrder
+
+    const statusOrder =
+      editorialCanonicalStatusTieBreak(left.status) -
+      editorialCanonicalStatusTieBreak(right.status)
+
+    if (statusOrder !== 0) return statusOrder
+
+    return left.id.localeCompare(right.id)
+  })[0] ?? null
+}
 function selectVisibleRecommendations(
   recommendations: ReadonlyArray<EditorialRecommendation>,
   capacity: EditorialCapacity | null | undefined,
@@ -365,19 +405,44 @@ export function buildEditorialRecommendationsForWindow(input: EditorialEngineInp
   const existingKeys = new Set(existingRecommendations.map((recommendation) => recommendation.dedupeKey))
   const existingByIdentity = new Map<string, EditorialRecommendation[]>()
   for (const existing of existingRecommendations) {
-    const identity = recommendationIdentity(existing.dedupeKey)
+    const identity = buildEditorialLogicalIdentity(existing)
     existingByIdentity.set(identity, [...(existingByIdentity.get(identity) ?? []), existing])
   }
   const recommendations = generated.filter((recommendation) => {
     if (existingKeys.has(recommendation.dedupeKey)) return false
-    const identityMatches = existingByIdentity.get(recommendationIdentity(recommendation.dedupeKey)) ?? []
-    if (identityMatches.some((existing) => isHumanLockedEditorialStatus(existing.status))) return false
-    const signalSignature = typeof recommendation.sourceSnapshot.signalSignature === 'string'
-      ? recommendation.sourceSnapshot.signalSignature
-      : ''
-    return !identityMatches.some((existing) => shouldSuppressRejectedEditorialRecommendation(existing, signalSignature))
-  })
 
+    const identityMatches =
+      existingByIdentity.get(buildEditorialLogicalIdentity(recommendation)) ?? []
+
+    const canonicalExisting =
+      selectCanonicalExistingRecommendation(identityMatches)
+
+    if (!canonicalExisting) return true
+
+    if (isHumanLockedEditorialStatus(canonicalExisting.status)) {
+      return false
+    }
+
+    if (canonicalExisting.status === 'PROPOSED') {
+      return false
+    }
+
+    const signalSignature =
+      typeof recommendation.sourceSnapshot.signalSignature === 'string'
+        ? recommendation.sourceSnapshot.signalSignature
+        : ''
+
+    if (canonicalExisting.status === 'REJECTED') {
+      return !shouldSuppressRejectedEditorialRecommendation(
+        canonicalExisting,
+        signalSignature,
+      )
+    }
+
+    // ARCHIVED (or another non-locking terminal state):
+    // a genuinely new generated recommendation may become current again.
+    return true
+  })
   return {
     recommendations,
     priorityRecommendations: selectVisibleRecommendations(recommendations, input.capacity),

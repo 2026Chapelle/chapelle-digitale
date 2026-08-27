@@ -12,9 +12,18 @@ import {
 
 type FixtureRecommendation = {
   id: string
-  status: 'PROPOSED' | 'ACCEPTED' | 'SCHEDULED' | 'COMPLETED' | 'REJECTED'
+  status: 'PROPOSED' | 'ACCEPTED' | 'SCHEDULED' | 'COMPLETED' | 'REJECTED' | 'ARCHIVED'
   priorityBand: 'FORTE' | 'NORMALE' | 'A_SURVEILLER'
   scheduledFor?: string | null
+  organizationId?: string
+  recommendationKind?: 'CREATE' | 'REPURPOSE' | 'PROMOTE'
+  contentKind?: string
+  targetChannel?: string
+  sourceContentId?: string | null
+  sourceSnapshot?: Record<string, unknown>
+  signals?: Array<{ key: string }>
+  generatedAt?: string
+  lastRefreshedAt?: string | null
 }
 
 const recommendations = (count: number): FixtureRecommendation[] => Array.from({ length: count }, (_, index) => ({
@@ -100,9 +109,145 @@ describe('editorial workspace planning', () => {
   })
 
   it('formats editorial actions and channels in human French', () => {
-    expect(formatEditorialAction({ recommendationKind: 'REPURPOSE', contentKind: 'article', targetChannel: 'web' })).toBe('Décliner en article')
-    expect(formatEditorialAction({ recommendationKind: 'PROMOTE', targetChannel: 'whatsapp' })).toBe('Promouvoir sur WhatsApp')
-    expect(formatEditorialAction({ recommendationKind: 'CREATE', contentKind: 'article' })).toBe('Créer un article')
+    expect(formatEditorialAction({ recommendationKind: 'REPURPOSE', contentKind: 'article', targetChannel: 'web' }))
+      .toBe('D\u00e9cliner en article')
+
+    expect(formatEditorialAction({ recommendationKind: 'PROMOTE', targetChannel: 'whatsapp' }))
+      .toBe('Promouvoir sur WhatsApp')
+
+    expect(formatEditorialAction({ recommendationKind: 'CREATE', contentKind: 'article' }))
+      .toBe('Cr\u00e9er un article')
+
     expect(formatEditorialChannel('web')).toBe('Site web')
+    expect(formatEditorialChannel(undefined)).toBe('Canal \u00e9ditorial')
+  })
+  it('projects two rolling generations of fifty logical opportunities to fifty current opportunities', () => {
+    const persisted = Array.from({ length: 50 }, (_, index) => {
+      const identity = String(index + 1).padStart(2, '0')
+      const common = {
+        organizationId: 'org_01',
+        recommendationKind: 'REPURPOSE' as const,
+        contentKind: 'article',
+        targetChannel: 'web',
+        sourceContentId: `source_${identity}`,
+        priorityBand: 'FORTE' as const,
+        status: 'PROPOSED' as const,
+      }
+      return [
+        { ...common, id: `yesterday-${identity}`, generatedAt: '2026-08-26T10:00:00.000Z', scheduledFor: '2026-08-26' },
+        { ...common, id: `today-${identity}`, generatedAt: '2026-08-27T10:00:00.000Z', scheduledFor: '2026-08-27' },
+      ]
+    }).flat()
+
+    const model = buildEditorialWorkspaceReadModel(persisted, { weeklyCapacity: { weeklyTotal: 10 } }, new Date('2026-08-27T12:00:00.000Z'))
+
+    expect(model.opportunities).toHaveLength(50)
+    expect(model.weeklyRecommendations).toHaveLength(10)
+    expect(model.priorities).toHaveLength(5)
+    expect(model.opportunities.every((item) => item.id.startsWith('today-'))).toBe(true)
+  })
+
+  it('keeps a human-locked recommendation canonical over a stale proposed duplicate without mutating inputs', () => {
+    const stale = {
+      id: 'proposed-old', status: 'PROPOSED' as const, priorityBand: 'FORTE' as const,
+      organizationId: 'org_01', recommendationKind: 'REPURPOSE' as const, contentKind: 'article', targetChannel: 'web', sourceContentId: 'source_01',
+      generatedAt: '2026-08-26T10:00:00.000Z', scheduledFor: '2026-08-26',
+    }
+    const accepted = {
+      ...stale,
+      id: 'accepted',
+      status: 'ACCEPTED' as const,
+      generatedAt: '2026-08-25T10:00:00.000Z',
+      lastHumanActionAt: '2026-08-27T09:00:00.000Z',
+      acceptedAt: '2026-08-27T09:00:00.000Z',
+      scheduledFor: '2026-09-01',
+    }
+    const input = [stale, accepted]
+
+    const model = buildEditorialWorkspaceReadModel(input, { weeklyCapacity: { weeklyTotal: 10 } }, new Date('2026-08-27T12:00:00.000Z'))
+
+    expect(model.opportunities.map((item) => item.id)).toEqual(['accepted'])
+    expect(model.calendarRecommendations.map((item) => item.id)).toEqual(['accepted'])
+    expect(input[0].scheduledFor).toBe('2026-08-26')
+    expect(input[1].scheduledFor).toBe('2026-09-01')
+  })
+  it('keeps a newer rejected decision canonical over an older proposed duplicate', () => {
+    const stale = {
+      id: 'old-proposed',
+      status: 'PROPOSED' as const,
+      priorityBand: 'FORTE' as const,
+      organizationId: 'org_01',
+      recommendationKind: 'REPURPOSE' as const,
+      contentKind: 'article',
+      targetChannel: 'web',
+      sourceContentId: 'source_01',
+      generatedAt: '2026-08-26T10:00:00.000Z',
+      lastRefreshedAt: '2026-08-26T10:00:00.000Z',
+    }
+
+    const rejected = {
+      ...stale,
+      id: 'new-rejected',
+      status: 'REJECTED' as const,
+      lastHumanActionAt: '2026-08-27T10:00:00.000Z',
+      rejectedAt: '2026-08-27T10:00:00.000Z',
+    }
+
+    const model = buildEditorialWorkspaceReadModel(
+      [stale, rejected],
+      { weeklyCapacity: { weeklyTotal: 10 } },
+      new Date('2026-08-27T12:00:00.000Z'),
+    )
+
+    expect(model.opportunities.map((item) => item.id)).toEqual(['new-rejected'])
+    expect(model.weeklyRecommendations).toHaveLength(0)
+  })
+
+  it('does not resurrect a stale proposal after archival and allows a genuinely newer proposal later', () => {
+    const stale = {
+      id: 'old-proposed',
+      status: 'PROPOSED' as const,
+      priorityBand: 'FORTE' as const,
+      organizationId: 'org_01',
+      recommendationKind: 'REPURPOSE' as const,
+      contentKind: 'article',
+      targetChannel: 'web',
+      sourceContentId: 'source_01',
+      generatedAt: '2026-08-25T10:00:00.000Z',
+      lastRefreshedAt: '2026-08-25T10:00:00.000Z',
+    }
+
+    const archived = {
+      ...stale,
+      id: 'archived',
+      status: 'ARCHIVED' as const,
+      lastHumanActionAt: '2026-08-26T10:00:00.000Z',
+      archivedAt: '2026-08-26T10:00:00.000Z',
+    }
+
+    const afterArchive = buildEditorialWorkspaceReadModel(
+      [stale, archived],
+      { weeklyCapacity: { weeklyTotal: 10 } },
+      new Date('2026-08-27T12:00:00.000Z'),
+    )
+
+    expect(afterArchive.opportunities.map((item) => item.id)).toEqual(['archived'])
+    expect(afterArchive.weeklyRecommendations).toHaveLength(0)
+
+    const regenerated = {
+      ...stale,
+      id: 'new-proposed',
+      generatedAt: '2026-08-27T10:00:00.000Z',
+      lastRefreshedAt: '2026-08-27T10:00:00.000Z',
+    }
+
+    const afterRegeneration = buildEditorialWorkspaceReadModel(
+      [stale, archived, regenerated],
+      { weeklyCapacity: { weeklyTotal: 10 } },
+      new Date('2026-08-27T12:00:00.000Z'),
+    )
+
+    expect(afterRegeneration.opportunities.map((item) => item.id)).toEqual(['new-proposed'])
+    expect(afterRegeneration.weeklyRecommendations).toHaveLength(1)
   })
 })
