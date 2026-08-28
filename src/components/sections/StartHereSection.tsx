@@ -43,7 +43,7 @@ const PATH_STEPS: PathStep[] = [
     title: 'Découvrir',
     phrase: 'Entrer dans la maison et voir le chemin s’ouvrir.',
     icon: Eye,
-    image: '/images/formations/parcours-1/module-1-vision-et-histoire.png',
+    image: '/images/formations/parcours-1/module-1-vision-et-histoire.webp',
     alt: 'Vision et histoire de la maison',
   },
   {
@@ -51,7 +51,7 @@ const PATH_STEPS: PathStep[] = [
     title: "S'enraciner",
     phrase: 'Poser des fondations solides dans la foi.',
     icon: Anchor,
-    image: '/images/formations/parcours-1/module-2-valeurs-du-royaume.png',
+    image: '/images/formations/parcours-1/module-2-valeurs-du-royaume.webp',
     alt: 'Valeurs du Royaume',
   },
   {
@@ -59,7 +59,7 @@ const PATH_STEPS: PathStep[] = [
     title: 'Grandir',
     phrase: 'Avancer pas à pas, nourri et accompagné.',
     icon: Sprout,
-    image: '/images/formations/parcours-1/module-5-mes-premiers-pas.png',
+    image: '/images/formations/parcours-1/module-5-mes-premiers-pas.webp',
     alt: 'Premiers pas de croissance',
   },
   {
@@ -67,7 +67,7 @@ const PATH_STEPS: PathStep[] = [
     title: 'Servir',
     phrase: 'Mettre ses dons au service des autres.',
     icon: HandHeart,
-    image: '/images/formations/parcours-1/module-3-rejoindre-une-cellule.png',
+    image: '/images/formations/parcours-1/module-3-rejoindre-une-cellule.webp',
     alt: 'Rejoindre une cellule et servir',
   },
   {
@@ -75,7 +75,7 @@ const PATH_STEPS: PathStep[] = [
     title: 'Conduire',
     phrase: 'Guider avec sagesse et responsabilité.',
     icon: Compass,
-    image: '/images/formations/parcours-1/module-4-nos-plateformes.png',
+    image: '/images/formations/parcours-1/module-4-nos-plateformes.webp',
     alt: 'Nos plateformes et le leadership',
   },
   {
@@ -83,7 +83,7 @@ const PATH_STEPS: PathStep[] = [
     title: 'Multiplier',
     phrase: 'Former d’autres et étendre le Royaume.',
     icon: Share2,
-    image: '/images/formations/parcours-1/module-6-mon-engagement.png',
+    image: '/images/formations/parcours-1/module-6-mon-engagement.webp',
     alt: 'Engagement et multiplication',
   },
 ]
