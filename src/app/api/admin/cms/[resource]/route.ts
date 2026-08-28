@@ -122,6 +122,9 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
   try {
     const body = await req.json().catch(() => ({}))
     delete body.id; delete body.created_at; delete body.updated_at
+    // cms_media : l'option « non précisé » du select vaut ''. La contrainte SQL
+    // attend NULL ou une nature documentaire canonique.
+    if (table === 'cms_media' && body.document_type === '') body.document_type = null
     // Podcast : la case « Instant gratuit » (is_home_instant, virtuelle) est traduite en
     // destination home_instant AVEC garde-fou Premium (serveur, pas seulement UI).
     let enforceInstantUnique = false
@@ -173,6 +176,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
     const keyVal = body[keyCol]
     if (keyVal == null) return NextResponse.json({ ok: false, message: `${keyCol} requis.` }, { status: 400 })
     const patch = { ...body }; delete patch[keyCol]; delete patch.created_at; delete patch.updated_at
+    // Même normalisation lors d'une modification d'un média existant.
+    if (table === 'cms_media' && patch.document_type === '') patch.document_type = null
     // Pré-lecture du statut ANTÉRIEUR (uniquement pour les tables notifiables) afin
     // de détecter une transition brouillon → publié. Aucune surcharge ailleurs.
     let before: Record<string, any> | null = null
