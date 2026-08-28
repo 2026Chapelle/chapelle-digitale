@@ -37,6 +37,7 @@ export default function AdminModulesPage() {
       resource="formation_modules"
       previewable={true}
       itemLabel="module"
+      orderColumn="ordre"
       title={<>Modules de <span className="text-cinematic-gold">formation</span></>}
       description="Modules d'une formation : vidéo YouTube non répertoriée, PDF, accès par statut, prérequis."
       statusField="status"

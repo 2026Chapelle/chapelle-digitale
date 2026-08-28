@@ -70,6 +70,7 @@ export default function AdminParcoursPage() {
       resource="parcours"
       previewable={true}
       itemLabel="parcours"
+      orderColumn="ordre"
       title={<>Parcours de <span className="text-cinematic-gold">transformation</span></>}
       description="Parcours du tunnel Visiteur → Envoyé. Regroupez plusieurs formations par étape spirituelle."
       statusField="status"
