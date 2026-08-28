@@ -77,11 +77,13 @@ interface CmsManagerProps {
   publishedValue?: string
   /** Valeur "brouillon" (défaut 'draft'). Ex: 'brouillon'. */
   draftValue?: string
+  /** Colonne utilisée pour l'ordre manuel. null désactive l'ordre. */
+  orderColumn?: string | null
 }
 
 type Row = Record<string, any>
 
-export function CmsManager({ resource, eyebrow = 'Administration', title, description, fields, statusField = 'status', itemLabel = 'élément', apiBase = '/api/admin/cms', previewable = true, statusColumn = 'status', publishedValue = 'published', draftValue = 'draft' }: CmsManagerProps) {
+export function CmsManager({ resource, eyebrow = 'Administration', title, description, fields, statusField = 'status', itemLabel = 'élément', apiBase = '/api/admin/cms', previewable = true, statusColumn = 'status', publishedValue = 'published', draftValue = 'draft', orderColumn = 'sort_order' }: CmsManagerProps) {
   const [rows, setRows] = useState<Row[]>([])
   const [demo, setDemo] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -155,7 +157,7 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
     for (const f of fields) blank[f.name] = f.default ?? (f.type === 'boolean' ? true : '')
     if (statusField === 'status' && !blank[statusColumn]) blank[statusColumn] = draftValue
     if (statusField === 'is_active' && blank.is_active === '') blank.is_active = true
-    blank.sort_order = rows.length
+    if (orderColumn) blank[orderColumn] = rows.length
     setEditing(blank); setIsNew(true)
   }
   function openEdit(row: Row) { setEditing({ ...row }); setIsNew(false) }
@@ -203,7 +205,7 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
     for (const k of ['title', 'titre', 'public_title']) if (copy[k]) copy[k] = `${copy[k]} (copie)`
     if (copy.slug) copy.slug = `${copy.slug}-copie`
     if (statusField === 'status') copy[statusColumn] = draftValue   // la copie est un brouillon
-    copy.sort_order = rows.length
+    if (orderColumn) copy[orderColumn] = rows.length
     try {
       const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(copy) })
       const j = await r.json()
@@ -232,11 +234,12 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
   }
 
   async function move(row: Row, dir: -1 | 1) {
+    if (!orderColumn) return
     const idx = rows.findIndex((r) => r.id === row.id)
     const swap = rows[idx + dir]
     if (!swap) return
-    await patch(row, { sort_order: swap.sort_order ?? idx + dir })
-    await patch(swap, { sort_order: row.sort_order ?? idx })
+    await patch(row, { [orderColumn]: swap[orderColumn] ?? idx + dir })
+    await patch(swap, { [orderColumn]: row[orderColumn] ?? idx })
   }
 
   async function uploadFile(fieldName: string, file: File) {
@@ -310,8 +313,8 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
                     <tr key={row.id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
                       <td className="px-4 py-3 text-pearl/30">
                         <div className="flex flex-col">
-                          <button onClick={() => move(row, -1)} disabled={i === 0} className="text-pearl/30 hover:text-gold disabled:opacity-20"><ArrowUp className="w-3 h-3" /></button>
-                          <button onClick={() => move(row, 1)} disabled={i === rows.length - 1} className="text-pearl/30 hover:text-gold disabled:opacity-20"><ArrowDown className="w-3 h-3" /></button>
+                          <button onClick={() => move(row, -1)} disabled={!orderColumn || i === 0} className="text-pearl/30 hover:text-gold disabled:opacity-20"><ArrowUp className="w-3 h-3" /></button>
+                          <button onClick={() => move(row, 1)} disabled={!orderColumn || i === rows.length - 1} className="text-pearl/30 hover:text-gold disabled:opacity-20"><ArrowDown className="w-3 h-3" /></button>
                         </div>
                       </td>
                       {tableFields.map((f) => (

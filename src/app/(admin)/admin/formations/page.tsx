@@ -27,6 +27,7 @@ export default function AdminFormationsPage() {
       resource="formations"
       previewable={true}
       itemLabel="formation"
+      orderColumn={null}
       title={<>Formations <span className="text-cinematic-gold">(LMS)</span></>}
       description="Créez les formations, puis ajoutez-leur des modules dans « Modules de formation »."
       statusField="status"
