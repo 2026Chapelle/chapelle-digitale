@@ -20,7 +20,7 @@ function guard(req: NextRequest, resource: string): NextResponse | null {
   if (!(ALLOWED as readonly string[]).includes(resource)) return NextResponse.json({ ok: false, message: 'Ressource inconnue.' }, { status: 404 })
   return null
 }
-const orderCol = (r: string) => (r === 'certificats' ? 'delivre_le' : (r === 'formations' ? 'created_at' : 'ordre'))
+const orderCol = (r: string) => (r === 'certificats' ? 'delivre_le' : 'ordre')
 
 export async function GET(req: NextRequest, { params }: { params: { resource: string } }) {
   const d = guard(req, params.resource); if (d) return d
