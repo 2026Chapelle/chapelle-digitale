@@ -69,8 +69,10 @@ export default function FormationsPublicPage() {
     ;(async () => {
       try {
         const { data } = await supabase.from('formations')
-          .select('id, titre, slug, niveau, type, certifiant, instructeur_nom, contenu_court, image_couverture, duree_heures, statut')
-          .eq('statut', 'publie').order('created_at', { ascending: false })
+          .select('id, titre, slug, niveau, type, certifiant, instructeur_nom, contenu_court, image_couverture, duree_heures, statut, ordre')
+          .eq('statut', 'publie')
+          .order('ordre', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: true })
         if (!cancelled && data) setItems(data.map(mapFormation))
       } catch { /* vide */ }
       finally { if (!cancelled) setLoading(false) }

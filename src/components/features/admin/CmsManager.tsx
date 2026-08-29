@@ -152,12 +152,20 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
     setEditing((prev) => (prev ? cascadeClearChildren(f, { ...prev, [f.name]: value }) : prev))
   }
 
+  function nextOrderValue() {
+    if (!orderColumn) return 1
+    const existing = rows
+      .map((row) => Number(row[orderColumn]))
+      .filter((value) => Number.isFinite(value))
+    return existing.length ? Math.max(...existing) + 1 : 1
+  }
+
   function openNew() {
     const blank: Row = {}
     for (const f of fields) blank[f.name] = f.default ?? (f.type === 'boolean' ? true : '')
     if (statusField === 'status' && !blank[statusColumn]) blank[statusColumn] = draftValue
     if (statusField === 'is_active' && blank.is_active === '') blank.is_active = true
-    if (orderColumn) blank[orderColumn] = rows.length
+    if (orderColumn) blank[orderColumn] = nextOrderValue()
     setEditing(blank); setIsNew(true)
   }
   function openEdit(row: Row) { setEditing({ ...row }); setIsNew(false) }
@@ -205,7 +213,7 @@ export function CmsManager({ resource, eyebrow = 'Administration', title, descri
     for (const k of ['title', 'titre', 'public_title']) if (copy[k]) copy[k] = `${copy[k]} (copie)`
     if (copy.slug) copy.slug = `${copy.slug}-copie`
     if (statusField === 'status') copy[statusColumn] = draftValue   // la copie est un brouillon
-    if (orderColumn) copy[orderColumn] = rows.length
+    if (orderColumn) copy[orderColumn] = nextOrderValue()
     try {
       const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(copy) })
       const j = await r.json()
