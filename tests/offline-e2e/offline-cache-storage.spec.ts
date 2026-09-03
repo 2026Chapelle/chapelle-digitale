@@ -1,5 +1,15 @@
 import { test, expect } from '@playwright/test'
-import { HARNESS_PATH, SHELL_CACHE, waitForServiceWorkerActive, readCacheStorage } from './_helpers'
+import {
+  HARNESS_PATH,
+  SHELL_CACHE,
+  PDF_FIXTURE,
+  AUDIO_FIXTURE,
+  installOfflineApiMocks,
+  waitForServiceWorkerActive,
+  readCacheStorage,
+  readOfflineDb,
+  seedDownloadViaUi,
+} from './_helpers'
 
 /**
  * Scénario E — Cache Storage.
@@ -30,5 +40,42 @@ test.describe('E — Cache Storage', () => {
       (p) => p.startsWith('/api/') || p.startsWith('/_next/data/') || p.includes('_rsc='),
     )
     expect(leaked, `ressources sensibles mises en cache par erreur: ${leaked.join(', ')}`).toEqual([])
+  })
+
+  test('garde les médias protégés dans IndexedDB et hors de tous les caches', async ({ page, context }) => {
+    await installOfflineApiMocks(context)
+    await page.goto(HARNESS_PATH)
+    await waitForServiceWorkerActive(page)
+
+    await seedDownloadViaUi(page, PDF_FIXTURE.contentId)
+    await seedDownloadViaUi(page, AUDIO_FIXTURE.contentId)
+
+    const db = await readOfflineDb(page)
+    const downloaded = db.items.filter(
+      (item) => item.contentId === PDF_FIXTURE.contentId || item.contentId === AUDIO_FIXTURE.contentId,
+    )
+    expect(downloaded.map((item) => item.contentId).sort()).toEqual([PDF_FIXTURE.contentId, AUDIO_FIXTURE.contentId].sort())
+    expect(db.fileKeys.map(String)).toEqual(expect.arrayContaining(downloaded.map((item) => String(item.id))))
+
+    const cachedResponses = await page.evaluate(async () => {
+      const entries: Array<{ url: string; contentType: string }> = []
+      for (const cacheName of await caches.keys()) {
+        const cache = await caches.open(cacheName)
+        for (const request of await cache.keys()) {
+          const response = await cache.match(request)
+          entries.push({ url: request.url, contentType: response?.headers.get('content-type') || '' })
+        }
+      }
+      return entries
+    })
+
+    const protectedMedia = cachedResponses.filter(
+      ({ url, contentType }) =>
+        url.includes(`/api/member/offline/download?contentId=${PDF_FIXTURE.contentId}`) ||
+        url.includes(`/api/member/offline/download?contentId=${AUDIO_FIXTURE.contentId}`) ||
+        contentType.toLowerCase() === 'application/pdf' ||
+        contentType.toLowerCase().startsWith('audio/'),
+    )
+    expect(protectedMedia, `médias protégés trouvés dans Cache Storage: ${JSON.stringify(protectedMedia)}`).toEqual([])
   })
 })
