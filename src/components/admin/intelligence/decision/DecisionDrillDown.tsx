@@ -112,11 +112,13 @@ export default function DecisionDrillDown({
   fields,
   note,
   align = 'left',
+  variant = 'default',
 }: {
   title: string
   fields: DrillDownField[]
   note?: string
   align?: 'left' | 'right'
+  variant?: 'default' | 'funnel'
 }) {
   const [open, setOpen] = useState(false)
   const tipId = useId()
@@ -143,16 +145,19 @@ export default function DecisionDrillDown({
           id={tipId}
           role="tooltip"
           className={
-            'absolute top-6 z-40 w-72 max-w-[80vw] rounded-lg border border-pearl/15 bg-abyss/95 p-3 text-left text-[11px] leading-relaxed text-pearl/75 shadow-xl backdrop-blur ' +
+            'absolute top-6 z-40 max-w-[80vw] rounded-lg border p-3 text-left text-[11px] leading-relaxed backdrop-blur ' +
+            (variant === 'funnel'
+              ? 'w-64 border-amber-400/20 bg-[rgba(8,8,10,0.98)] text-pearl/90 shadow-2xl shadow-black/60 '
+              : 'w-72 border-pearl/15 bg-abyss/95 text-pearl/75 shadow-xl ') +
             (align === 'right' ? 'right-0' : 'left-0')
           }
         >
-          <span className="mb-1.5 block font-semibold text-pearl/90">{title}</span>
+          <span className={'mb-1.5 block font-semibold ' + (variant === 'funnel' ? 'text-white' : 'text-pearl/90')}>{title}</span>
           <span className="block space-y-1">
             {visible.map((f) => (
               <span key={f.label} className="flex flex-col">
-                <span className="text-pearl/40">{f.label}</span>
-                <span className="text-pearl/80">{f.value}</span>
+                <span className={variant === 'funnel' ? 'text-pearl/65' : 'text-pearl/40'}>{f.label}</span>
+                <span className={variant === 'funnel' ? 'text-pearl/95' : 'text-pearl/80'}>{f.value}</span>
               </span>
             ))}
           </span>
