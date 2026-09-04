@@ -78,7 +78,7 @@ export default function RessourcesPage() {
   // Compteur de téléchargements local : incrémenté uniquement après un clic réussi.
   const [dlBoost, setDlBoost] = useState<Record<string, number>>({})
 
-  /** Ouvre / télécharge la ressource (PDF public, vidéo, audio) puis incrémente le compteur. */
+  /** Ouvre la ressource en ligne, distinctement du téléchargement hors ligne. */
   const access = (r: RessourceMock) => {
     if (!r.url) return
     const win = window.open(r.url, '_blank', 'noopener,noreferrer')
@@ -234,8 +234,8 @@ export default function RessourcesPage() {
           </div>
           {r.url ? (
             <button onClick={() => access(r)} className="btn-royal text-xs px-3 py-1.5 flex items-center gap-1">
-              <Download className="w-3 h-3" />
-              Accéder
+              <Headphones className="w-3 h-3" />
+              Écouter
             </button>
           ) : (
             <span className="text-[10px] text-pearl/30 font-inter px-3 py-1.5">Bientôt</span>
@@ -363,7 +363,7 @@ export default function RessourcesPage() {
               <div className="flex gap-2 flex-shrink-0">
                 {featured.url ? (
                   <button onClick={() => access(featured)} className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5">
-                    <Download className="w-3.5 h-3.5" /> Accéder
+                    <Headphones className="w-3.5 h-3.5" /> Écouter
                   </button>
                 ) : (
                   <span className="text-xs text-pearl/35 font-inter px-4 py-2">Bientôt disponible</span>

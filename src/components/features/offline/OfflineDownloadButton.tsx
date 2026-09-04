@@ -167,7 +167,7 @@ export function OfflineDownloadButton({ contentId, type, title, coverUrl, classN
       ) : (
         <Download className="h-3.5 w-3.5" aria-hidden="true" />
       )}
-      {state === 'failed' ? 'Réessayer' : 'Télécharger'}
+      {state === 'failed' ? 'Réessayer le téléchargement hors ligne' : 'Télécharger hors ligne'}
     </button>
   )
 }

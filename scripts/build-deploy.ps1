@@ -7,6 +7,9 @@
 # Passenger (ex. MODULE_NOT_FOUND sur next/dist/server/node-polyfill-crypto.js).
 $ErrorActionPreference = 'Stop'
 $root = (Get-Location).Path
+$envGate = Join-Path $root 'scripts\require-production-build-env.mjs'
+& node $envGate
+if ($LASTEXITCODE -ne 0) { throw 'Configuration publique Supabase invalide pour un artefact de production.' }
 $standalone = Join-Path $root '.next\standalone'
 $deploy = Join-Path $root 'deploy-citadelle'
 

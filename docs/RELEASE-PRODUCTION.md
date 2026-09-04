@@ -132,7 +132,7 @@ select ordre, titre, status from public.academy_levels order by ordre;  -- 6 niv
 
 ### Étape 1 — (Local) Régénérer le ZIP
 ```powershell
-npm run build                      # build standalone (doit être VERT)
+npm run build:production           # refuse un build sans Supabase public de production
 powershell -File scripts\build-deploy.ps1   # assemble deploy-citadelle/ + ZIP
 ```
 Produit `deploy-citadelle.zip` à la racine (slashs Linux, compatible PlanetHoster).
