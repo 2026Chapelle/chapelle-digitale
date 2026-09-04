@@ -54,6 +54,7 @@ function StageRow({ stage, isDropOff }: { stage: DecisionFunnelStage; isDropOff:
           )}
           <DecisionDrillDown
             title={stage.label}
+            variant="funnel"
             fields={[
               { label: 'Définition', value: stage.definition },
               { label: 'Source', value: stage.source },
