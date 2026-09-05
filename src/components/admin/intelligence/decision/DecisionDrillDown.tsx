@@ -145,7 +145,9 @@ export default function DecisionDrillDown({
           id={tipId}
           role="tooltip"
           className={
-            'absolute top-6 z-40 max-w-[80vw] rounded-lg border p-3 text-left text-[11px] leading-relaxed backdrop-blur ' +
+            'absolute ' +
+            (variant === 'funnel' ? 'bottom-6' : 'top-6') +
+            ' z-40 max-w-[80vw] rounded-lg border p-3 text-left text-[11px] leading-relaxed backdrop-blur ' +
             (variant === 'funnel'
               ? 'w-64 border-amber-400/20 bg-[rgba(8,8,10,0.98)] text-pearl/90 shadow-2xl shadow-black/60 '
               : 'w-72 border-pearl/15 bg-abyss/95 text-pearl/75 shadow-xl ') +
@@ -156,12 +158,21 @@ export default function DecisionDrillDown({
           <span className="block space-y-1">
             {visible.map((f) => (
               <span key={f.label} className="flex flex-col">
-                <span className={variant === 'funnel' ? 'text-pearl/65' : 'text-pearl/40'}>{f.label}</span>
-                <span className={variant === 'funnel' ? 'text-pearl/95' : 'text-pearl/80'}>{f.value}</span>
+                <span className={variant === 'funnel' ? 'text-zinc-300' : 'text-pearl/40'}>{f.label}</span>
+                <span className={variant === 'funnel' ? 'text-zinc-100' : 'text-pearl/80'}>{f.value}</span>
               </span>
             ))}
           </span>
-          {note && <span className="mt-2 block border-t border-pearl/10 pt-2 text-pearl/50">{note}</span>}
+          {note && (
+            <span
+              className={
+                'mt-2 block border-t border-pearl/10 pt-2 ' +
+                (variant === 'funnel' ? 'text-zinc-300' : 'text-pearl/50')
+              }
+            >
+              {note}
+            </span>
+          )}
         </span>
       )}
     </span>
