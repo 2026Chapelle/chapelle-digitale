@@ -36,12 +36,14 @@ export default function LivePage() {
           .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at')
           .in('status', ['live', 'scheduled', 'ended', 'published'])
         if (cancelled || !data) return
-        const canonical = resolveLiveState(data as any[])
+        const canonicalResponse = await fetch('/api/live/canonical', { cache: 'no-store' }).catch(() => null)
+        const canonicalPayload = canonicalResponse?.ok ? await canonicalResponse.json().catch(() => null) : null
+        const canonical = canonicalPayload?.state || resolveLiveState(data as any[])
         const canonicalTitle = canonical.status === 'LIVE' ? canonical.title : null
         const row: any = canonical.status === 'LIVE'
           ? data.find((d: any) => d.title === canonicalTitle && (d.youtube_url || d.video_url))
           : null
-        if (row && canonicalTitle) setLive({ titre: canonicalTitle, description: row.description || '', youtube_url: row.youtube_url || '', video_url: row.video_url || '', cover: row.cover_url || '', plateforme: row.platform || '' })
+        if (canonical.status === 'LIVE' && canonicalTitle) setLive({ titre: canonicalTitle, description: row?.description || '', youtube_url: row?.youtube_url || (canonical.youtubeVideoId ? `https://www.youtube.com/watch?v=${canonical.youtubeVideoId}` : ''), video_url: row?.video_url || '', cover: row?.cover_url || canonical.thumbnail || '', plateforme: row?.platform || 'YouTube' })
         // Replays RÉELS : rediffusions terminées/publiées disposant d'une vidéo.
         const reps: Replay[] = (data as any[])
           .filter((d) => (d.status === 'ended' || d.status === 'published') && (d.youtube_url || d.video_url))

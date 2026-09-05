@@ -1651,3 +1651,13 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-reveal { opacity: 0; transform: translateY(22px); transition: opacity 560ms ease, transform 560ms ease; }
+  .home-reveal.is-visible { opacity: 1; transform: translateY(0); }
+  .home-today-primary, .home-pastoral-panel { transition: transform 280ms ease, border-color 280ms ease; }
+  .home-today-primary:hover, .home-pastoral-panel:hover { transform: translateY(-3px); border-color: rgba(212,175,55,.5); }
+}
+
+.home-today-primary { position: relative; overflow: hidden; background-image: linear-gradient(110deg, rgba(8,8,14,.9), rgba(8,8,14,.62)), url('/images/formations/parcours-1/parcours-1-je-decouvre-la-maison.png'); background-size: cover; background-position: center; }
+.home-pastoral-panel { position: relative; overflow: hidden; background-image: linear-gradient(90deg, rgba(15,10,25,.98) 0%, rgba(15,10,25,.88) 48%, rgba(15,10,25,.54) 100%), url('/images/prayers/prayer-family.jpg'); background-size: cover; background-position: center; }
