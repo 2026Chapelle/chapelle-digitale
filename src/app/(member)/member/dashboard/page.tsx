@@ -13,6 +13,7 @@ import { roleLabel } from '@/lib/roles'
 import { AnnouncementBanner } from '@/components/features/member/AnnouncementBanner'
 import { BibleTodayWidget } from '@/components/features/member/BibleTodayWidget'
 import { ProgressionCard } from '@/components/features/member/ProgressionCard'
+import { resolveMemberNextAction, type MemberNextAction } from '@/lib/member-home/next-action'
 
 // Recueil de versets (LSG). Rotation déterministe par date — réellement « du jour ».
 const VERSETS = [
@@ -40,10 +41,25 @@ const QUICK_WINS: QuickWin[] = [
 ]
 
 interface FormationCard { id: string; titre: string; progression: number; slug: string }
+type FormationEnrollment = {
+  id: string
+  formation_id: string
+  progression: number
+  statut: string
+  dernier_acces: string | null
+  formation: { titre: string; slug: string } | null
+}
+type IntegrationProgress = {
+  parcours: { slug: string; titre: string; pct: number; complete: boolean; locked: boolean }[]
+  current_slug: string | null
+  integration_complete: boolean
+}
 
 export default function DashboardPage() {
   const { profile, user, isDemo } = useAuth()
   const [formations, setFormations] = useState<FormationCard[] | null>(null)
+  const [nextAction, setNextAction] = useState<MemberNextAction | null>(null)
+  const [nextActionLoading, setNextActionLoading] = useState(true)
   // Verset du jour : calculé après montage (évite tout décalage d'hydratation).
   const [DAILY_VERSE, setDailyVerse] = useState(VERSETS[0])
   useEffect(() => { setDailyVerse(versetDuJour()) }, [])
@@ -55,19 +71,32 @@ export default function DashboardPage() {
   const score = Number(profile?.score_engagement ?? 0)
 
   useEffect(() => {
-    if (isDemo) { setFormations([]); return }
+    if (isDemo) {
+      setFormations([])
+      setNextAction(resolveMemberNextAction({ integration: null, formations: [] }))
+      setNextActionLoading(false)
+      return
+    }
     let cancelled = false
     ;(async () => {
-      try {
-        const r = await fetch('/api/member/formations', { credentials: 'same-origin' })
-        if (!r.ok) { if (!cancelled) setFormations([]); return }
-        const j = await r.json()
-        if (cancelled) return
-        const cards: FormationCard[] = (j.data?.inscriptions || []).slice(0, 4).map((i: any) => ({
-          id: i.id, slug: i.formation?.slug || '', titre: i.formation?.titre || 'Formation', progression: i.progression || 0,
-        }))
-        setFormations(cards)
-      } catch { if (!cancelled) setFormations([]) }
+      const [formationsResult, integrationResult] = await Promise.allSettled([
+        fetch('/api/member/formations', { credentials: 'same-origin' }).then(async (r) => r.ok ? r.json() : null),
+        fetch('/api/member/integration-progression', { credentials: 'same-origin' }).then(async (r) => r.ok ? r.json() : null),
+      ])
+      if (cancelled) return
+
+      const enrollmentData: FormationEnrollment[] = formationsResult.status === 'fulfilled' && formationsResult.value?.ok
+        ? formationsResult.value.data?.inscriptions || []
+        : []
+      const integrationData: IntegrationProgress | null = integrationResult.status === 'fulfilled' && integrationResult.value?.ok
+        ? integrationResult.value.data
+        : null
+      const cards: FormationCard[] = enrollmentData.slice(0, 4).map((item) => ({
+        id: item.id, slug: item.formation?.slug || '', titre: item.formation?.titre || 'Formation', progression: item.progression || 0,
+      }))
+      setFormations(cards)
+      setNextAction(resolveMemberNextAction({ integration: integrationData, formations: enrollmentData }))
+      setNextActionLoading(false)
     })()
     return () => { cancelled = true }
   }, [isDemo])
@@ -105,13 +134,27 @@ export default function DashboardPage() {
               <p className="font-inter text-sm md:text-[15px] mb-6 leading-relaxed max-w-xl" style={{ color: 'rgba(255,255,255,0.55)' }}>
                 Avancez à votre rythme : votre croissance, votre intégration et vos formations progressent chacune sur leur propre axe.
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Link href="/member/dashboard/lives" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-inter font-semibold text-sm" style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)', color: '#1A0F00', boxShadow: '0 4px 16px rgba(212,175,55,0.3)' }}>
-                  <Radio className="w-3.5 h-3.5" /> Rejoindre le Live
-                </Link>
-                <Link href="/member/dashboard/formations" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-inter font-medium text-sm" style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.75)' }}>
-                  <BookOpen className="w-3.5 h-3.5" /> Mes Formations
-                </Link>
+              <div className="max-w-xl border-l-2 pl-4" style={{ borderColor: 'rgba(212,175,55,0.7)' }}>
+                <p className="font-inter text-[10px] font-bold tracking-[0.18em] uppercase mb-1.5" style={{ color: 'rgba(212,175,55,0.75)' }}>MON PROCHAIN PAS</p>
+                {nextActionLoading || !nextAction ? (
+                  <p className="font-inter text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Préparation de votre prochain pas…</p>
+                ) : (
+                  <>
+                    <h2 className="font-cinzel font-bold text-base md:text-lg" style={{ color: '#FFFFFF' }}>{nextAction.label}</h2>
+                    <p className="font-inter text-xs md:text-sm mt-1.5 leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>{nextAction.reason}</p>
+                    {nextAction.progress !== undefined && (
+                      <div className="flex items-center gap-2 mt-3 max-w-xs">
+                        <div className="h-1.5 flex-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                          <div className="h-full rounded-full" style={{ width: `${nextAction.progress}%`, background: 'linear-gradient(90deg, #6B21A8, #D4AF37)' }} />
+                        </div>
+                        <span className="font-inter text-[11px] font-semibold" style={{ color: '#D4AF37' }}>{nextAction.progress}%</span>
+                      </div>
+                    )}
+                    <Link href={nextAction.href} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-xl font-inter font-semibold text-sm" style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)', color: '#1A0F00', boxShadow: '0 4px 16px rgba(212,175,55,0.3)' }}>
+                      {nextAction.ctaLabel} <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 
