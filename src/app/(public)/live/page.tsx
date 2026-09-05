@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Users, Heart, Send, MessageCircle, Radio, Clock, Eye } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { resolveLiveState } from '@/lib/home/contextual'
 
 /** Extrait l'ID YouTube d'une URL ou ID brut (source unique avec l'espace membre). */
 function ytId(url?: string): string | null {
@@ -35,8 +36,12 @@ export default function LivePage() {
           .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at')
           .in('status', ['live', 'scheduled', 'ended', 'published'])
         if (cancelled || !data) return
-        const row: any = data.find((d: any) => d.status === 'live' || d.is_live)
-        if (row) setLive({ titre: row.title, description: row.description || '', youtube_url: row.youtube_url || '', video_url: row.video_url || '', cover: row.cover_url || '', plateforme: row.platform || '' })
+        const canonical = resolveLiveState(data as any[])
+        const canonicalTitle = canonical.status === 'LIVE' ? canonical.title : null
+        const row: any = canonical.status === 'LIVE'
+          ? data.find((d: any) => d.title === canonicalTitle && (d.youtube_url || d.video_url))
+          : null
+        if (row && canonicalTitle) setLive({ titre: canonicalTitle, description: row.description || '', youtube_url: row.youtube_url || '', video_url: row.video_url || '', cover: row.cover_url || '', plateforme: row.platform || '' })
         // Replays RÉELS : rediffusions terminées/publiées disposant d'une vidéo.
         const reps: Replay[] = (data as any[])
           .filter((d) => (d.status === 'ended' || d.status === 'published') && (d.youtube_url || d.video_url))
