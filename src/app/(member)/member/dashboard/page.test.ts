@@ -9,6 +9,8 @@ describe('member dashboard hero next action source guard', () => {
     expect(source).toContain("from '@/lib/member-home/next-action'")
     expect(source).toContain('MON PROCHAIN PAS')
     expect(source).toContain('nextAction.href')
+    expect(source).toContain('nextAction.ctaLabel')
+    expect(source).not.toContain("nextAction.kind === 'fallback' ? 'Voir mon parcours' : 'Continuer'")
     expect(source).not.toContain('> Rejoindre le Live</Link>')
   })
 

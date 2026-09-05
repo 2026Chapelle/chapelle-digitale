@@ -151,7 +151,7 @@ export default function DashboardPage() {
                       </div>
                     )}
                     <Link href={nextAction.href} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-xl font-inter font-semibold text-sm" style={{ background: 'linear-gradient(135deg, #D4AF37, #C49A20)', color: '#1A0F00', boxShadow: '0 4px 16px rgba(212,175,55,0.3)' }}>
-                      {nextAction.kind === 'fallback' ? 'Voir mon parcours' : 'Continuer'} <ChevronRight className="w-3.5 h-3.5" />
+                      {nextAction.ctaLabel} <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
                   </>
                 )}

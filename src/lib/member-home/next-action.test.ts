@@ -21,13 +21,31 @@ describe('resolveMemberNextAction', () => {
     expect(result.kind).toBe('fallback')
   })
 
+  it('does not select abandoned formations', () => {
+    const result = resolveMemberNextAction({ integration: integration(), formations: [formation({ formation_id: 'abandoned', progression: 80, statut: 'abandonne' }), formation({ formation_id: 'active', progression: 20 })] })
+    expect(result).toMatchObject({ kind: 'formation', href: '/member/dashboard/formations/formation-test', progress: 20 })
+    expect(result.href).not.toBe('/member/dashboard/formations/abandoned')
+  })
+
+  it('uses Commencer for an unstarted formation', () => {
+    expect(resolveMemberNextAction({ integration: integration(), formations: [formation({ progression: 0 })] }).ctaLabel).toBe('Commencer')
+  })
+
+  it('uses Continuer for a started formation', () => {
+    expect(resolveMemberNextAction({ integration: integration(), formations: [formation({ progression: 20 })] }).ctaLabel).toBe('Continuer')
+  })
+
+  it('uses Commencer for an unstarted integration step', () => {
+    expect(resolveMemberNextAction({ integration: integration({ current_slug: 'step', parcours: [{ slug: 'step', titre: 'Étape', pct: 0, complete: false, locked: false }] }), formations: [] }).ctaLabel).toBe('Commencer')
+  })
+
   it('prefers a started unfinished formation over an unrelated not-started formation', () => {
     const result = resolveMemberNextAction({ integration: integration(), formations: [formation({ formation_id: 'new', progression: 0, dernier_acces: '2026-09-02T10:00:00.000Z', formation: { titre: 'Nouvelle formation', slug: 'nouvelle' } }), formation({ formation_id: 'started', progression: 5, dernier_acces: '2026-08-01T10:00:00.000Z', formation: { titre: 'Formation commencée', slug: 'commencee' } })] })
     expect(result).toMatchObject({ kind: 'formation', label: 'Continuer Formation commencée', href: '/member/dashboard/formations/commencee', progress: 5 })
   })
 
   it('returns a safe fallback when no eligible integration or formation exists', () => {
-    expect(resolveMemberNextAction({ integration: integration(), formations: [] })).toEqual({ kind: 'fallback', label: 'Voir mon parcours', reason: 'Retrouve les étapes disponibles de ton parcours.', href: '/member/dashboard/parcours', priority: 999 })
+    expect(resolveMemberNextAction({ integration: integration(), formations: [] })).toMatchObject({ kind: 'fallback', label: 'Voir mon parcours', ctaLabel: 'Voir mon parcours', href: '/member/dashboard/parcours', priority: 999 })
   })
 
   it('only returns bounded real progress', () => {

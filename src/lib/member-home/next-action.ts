@@ -1,6 +1,7 @@
 export type MemberNextAction = {
   kind: 'integration' | 'formation' | 'fallback'
   label: string
+  ctaLabel: 'Commencer' | 'Continuer' | 'Voir mon parcours'
   reason: string
   href: string
   priority: number
@@ -40,6 +41,7 @@ export type MemberNextActionInput = {
 const fallback = (): MemberNextAction => ({
   kind: 'fallback',
   label: 'Voir mon parcours',
+  ctaLabel: 'Voir mon parcours',
   reason: 'Retrouve les étapes disponibles de ton parcours.',
   href: '/member/dashboard/parcours',
   priority: 999,
@@ -63,6 +65,7 @@ export function resolveMemberNextAction({ integration, formations }: MemberNextA
     return {
       kind: 'integration',
       label: `${progress && progress > 0 ? 'Continuer' : 'Commencer'} ${currentIntegration.titre}`,
+      ctaLabel: progress && progress > 0 ? 'Continuer' : 'Commencer',
       reason: 'Cette étape est la prochaine étape disponible de ton parcours d’intégration.',
       href: `/member/dashboard/formations/${currentIntegration.slug}`,
       priority: 10,
@@ -71,7 +74,7 @@ export function resolveMemberNextAction({ integration, formations }: MemberNextA
   }
 
   const eligible = formations
-    .filter((item) => item.formation?.slug && item.statut !== 'termine')
+    .filter((item) => item.formation?.slug && item.statut === 'actif')
     .map((item) => ({ ...item, progress: validProgress(Number(item.progression)) }))
     .filter((item): item is EligibleFormation => item.progress !== undefined && item.progress < 100)
     .sort((a, b) => {
@@ -91,6 +94,7 @@ export function resolveMemberNextAction({ integration, formations }: MemberNextA
   return {
     kind: 'formation',
     label: `${isStarted ? 'Continuer' : 'Commencer'} ${selected.formation.titre}`,
+    ctaLabel: isStarted ? 'Continuer' : 'Commencer',
     reason: isStarted
       ? `Tu as déjà complété ${selected.progress} % de cette formation.`
       : 'Cette formation est disponible dans ton espace.',
