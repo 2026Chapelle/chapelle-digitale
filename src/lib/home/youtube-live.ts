@@ -1,25 +1,14 @@
 import 'server-only'
 import type { LiveState } from './contextual'
-
-type YouTubeItem = { id?: { videoId?: string }; snippet?: { title?: string; scheduledStartTime?: string; thumbnails?: { high?: { url?: string }; medium?: { url?: string } } }; liveStreamingDetails?: { actualStartTime?: string; scheduledStartTime?: string } }
-const channelId = () => process.env.YOUTUBE_CHANNEL_ID?.trim() || ''
-const apiKey = () => process.env.YOUTUBE_API_KEY?.trim() || ''
-function toState(item: YouTubeItem | undefined, status: 'LIVE' | 'UPCOMING'): LiveState | null {
-  const id = item?.id?.videoId; const title = item?.snippet?.title?.trim()
-  if (!id || !title) return null
-  const details = item.liveStreamingDetails; const thumbnail = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url
-  if (status === 'LIVE') return { status, title, youtubeVideoId: id, watchUrl: '/live', thumbnail, startedAt: details?.actualStartTime }
-  const scheduledAt = details?.scheduledStartTime || item.snippet?.scheduledStartTime
-  return scheduledAt && Number.isFinite(Date.parse(scheduledAt)) ? { status, title, youtubeVideoId: id, watchUrl: '/live', thumbnail, scheduledAt } : null
-}
-async function search(eventType: 'live' | 'upcoming'): Promise<YouTubeItem | undefined> {
-  const key = apiKey(); const channel = channelId(); if (!key || !channel) return undefined
-  const url = new URL('https://www.googleapis.com/youtube/v3/search')
-  url.search = new URLSearchParams({ part: 'snippet', channelId: channel, eventType, type: 'video', maxResults: '1', key }).toString()
-  const response = await fetch(url, { next: { revalidate: 60 } }); if (!response.ok) throw new Error(`youtube_live_${response.status}`)
-  return (await response.json() as { items?: YouTubeItem[] }).items?.[0]
-}
-export async function detectYouTubeLive(): Promise<LiveState | null> {
-  if (!apiKey() || !channelId()) return null
-  try { return toState(await search('live'), 'LIVE') || toState(await search('upcoming'), 'UPCOMING') } catch { return null }
-}
+type YouTubeItem={id?:string|{videoId?:string};snippet?:{title?:string;liveBroadcastContent?:string;scheduledStartTime?:string;thumbnails?:{high?:{url?:string};medium?:{url?:string}}};liveStreamingDetails?:{actualStartTime?:string;scheduledStartTime?:string}}
+type DetectorOptions={now?:Date;fetchImpl?:typeof fetch}
+const channelId=()=>process.env.YOUTUBE_CHANNEL_ID?.trim()||''
+const apiKey=()=>process.env.YOUTUBE_API_KEY?.trim()||''
+let cached:{state:LiveState;expiresAt:number}|null=null
+export function revalidationSeconds(state:LiveState,now=new Date()):number{if(state.status==='LIVE')return 60;if(state.status==='OFFLINE')return 900;const remaining=Date.parse(state.scheduledAt)-now.getTime();if(remaining<=15*60_000)return 60;if(remaining<=60*60_000)return 180;return 900}
+function videoId(item:YouTubeItem|undefined){return typeof item?.id==='string'?item.id:item?.id?.videoId}
+function toState(item:YouTubeItem|undefined,status:'LIVE'|'UPCOMING'):LiveState|null{const id=videoId(item);const snippet=item?.snippet;const title=snippet?.title?.trim();if(!id||!title||!snippet)return null;const d=item?.liveStreamingDetails;const thumbnail=snippet.thumbnails?.high?.url||snippet.thumbnails?.medium?.url;if(status==='LIVE')return{status,title,youtubeVideoId:id,watchUrl:'/live',thumbnail,startedAt:d?.actualStartTime};const scheduledAt=d?.scheduledStartTime||snippet.scheduledStartTime;return scheduledAt&&Number.isFinite(Date.parse(scheduledAt))?{status,title,youtubeVideoId:id,watchUrl:'/live',thumbnail,scheduledAt}:null}
+async function search(fetchImpl:typeof fetch):Promise<YouTubeItem[]>{const key=apiKey();const channel=channelId();if(!key||!channel)return[];const url=new URL('https://www.googleapis.com/youtube/v3/search');url.search=new URLSearchParams({part:'snippet',channelId:channel,type:'video',order:'date',maxResults:'5',key}).toString();const response=await fetchImpl(url,{next:{revalidate:900}});if(!response.ok)throw new Error(`youtube_live_${response.status}`);return(await response.json() as{items?:YouTubeItem[]}).items||[]}
+async function inspectVideo(videoId:string,fetchImpl:typeof fetch):Promise<YouTubeItem|undefined>{const url=new URL('https://www.googleapis.com/youtube/v3/videos');url.search=new URLSearchParams({part:'snippet,liveStreamingDetails',id:videoId,key:apiKey()}).toString();const response=await fetchImpl(url,{next:{revalidate:60}});if(!response.ok)throw new Error(`youtube_live_${response.status}`);return(await response.json() as{items?:YouTubeItem[]}).items?.[0]}
+export async function detectYouTubeLive(options:DetectorOptions={}):Promise<LiveState|null>{const now=options.now||new Date();const nowMs=now.getTime();const fetchImpl=options.fetchImpl||fetch;if(!apiKey()||!channelId())return null;if(cached&&cached.expiresAt>nowMs)return cached.state.status==='OFFLINE'?null:cached.state;try{let state:LiveState|null=null;const knownVideoId=cached?.state.status!=='OFFLINE'?cached?.state.youtubeVideoId:undefined;if(knownVideoId){const item=await inspectVideo(knownVideoId,fetchImpl);const status=item?.snippet?.liveBroadcastContent;if(status==='live'||status==='upcoming')state=toState(item,status.toUpperCase() as 'LIVE'|'UPCOMING')}if(!state){const items=await search(fetchImpl);const live=items.find(i=>i.snippet?.liveBroadcastContent==='live');const upcoming=items.filter(i=>i.snippet?.liveBroadcastContent==='upcoming').sort((a,b)=>Date.parse(a.snippet?.scheduledStartTime||'')-Date.parse(b.snippet?.scheduledStartTime||''))[0];state=toState(live,'LIVE')||toState(upcoming,'UPCOMING')||{status:'OFFLINE' as const}}cached={state,expiresAt:nowMs+revalidationSeconds(state,now)*1000};return state.status==='OFFLINE'?null:state}catch{return null}}
+export function __resetYouTubeLiveCache(){cached=null}

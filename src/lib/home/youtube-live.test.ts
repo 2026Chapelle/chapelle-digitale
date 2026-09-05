@@ -1,16 +1,14 @@
-import { describe, expect, it } from 'vitest'
-import { detectYouTubeLive } from './youtube-live'
-
-describe('youtube live detection', () => {
-  it('is fail-safe when server credentials are not configured', async () => {
-    const previousKey = process.env.YOUTUBE_API_KEY
-    const previousChannel = process.env.YOUTUBE_CHANNEL_ID
-    delete process.env.YOUTUBE_API_KEY
-    delete process.env.YOUTUBE_CHANNEL_ID
-    await expect(detectYouTubeLive()).resolves.toBeNull()
-    if (previousKey === undefined) delete process.env.YOUTUBE_API_KEY
-    else process.env.YOUTUBE_API_KEY = previousKey
-    if (previousChannel === undefined) delete process.env.YOUTUBE_CHANNEL_ID
-    else process.env.YOUTUBE_CHANNEL_ID = previousChannel
-  })
+import {describe,expect,it,beforeEach,afterEach} from 'vitest'
+import {__resetYouTubeLiveCache,detectYouTubeLive,revalidationSeconds} from './youtube-live'
+import {resolveLiveState} from './contextual'
+const original={key:process.env.YOUTUBE_API_KEY,channel:process.env.YOUTUBE_CHANNEL_ID}
+const response=(items:unknown[])=>new Response(JSON.stringify({items}),{status:200})
+describe('youtube live adaptive quota',()=>{beforeEach(()=>{process.env.YOUTUBE_API_KEY='test';process.env.YOUTUBE_CHANNEL_ID='UCtest';__resetYouTubeLiveCache()});afterEach(()=>{if(original.key===undefined)delete process.env.YOUTUBE_API_KEY;else process.env.YOUTUBE_API_KEY=original.key;if(original.channel===undefined)delete process.env.YOUTUBE_CHANNEL_ID;else process.env.YOUTUBE_CHANNEL_ID=original.channel})
+it('uses 15 min for offline and cache suppresses repeated calls',async()=>{let calls=0;const fetchImpl=async()=>{calls++;return response([])};const now=new Date('2026-01-01T00:00:00Z');await expect(detectYouTubeLive({now,fetchImpl})).resolves.toBeNull();await expect(detectYouTubeLive({now:new Date(now.getTime()+60_000),fetchImpl})).resolves.toBeNull();expect(calls).toBe(1);expect(revalidationSeconds({status:'OFFLINE'},now)).toBe(900)})
+it('increases upcoming frequency as the event approaches',()=>{const now=new Date('2026-01-01T00:00:00Z');expect(revalidationSeconds({status:'UPCOMING',title:'x',scheduledAt:'2026-01-01T05:00:00Z'},now)).toBe(900);expect(revalidationSeconds({status:'UPCOMING',title:'x',scheduledAt:'2026-01-01T00:45:00Z'},now)).toBe(180);expect(revalidationSeconds({status:'UPCOMING',title:'x',scheduledAt:'2026-01-01T00:10:00Z'},now)).toBe(60)})
+it('uses one search call and detects live',async()=>{let calls=0;const fetchImpl=async()=>{calls++;return response([{id:{videoId:'abc12345678'},snippet:{title:'Culte',liveBroadcastContent:'live'},liveStreamingDetails:{actualStartTime:'2026-01-01T00:00:00Z'}}])};const state=await detectYouTubeLive({now:new Date('2026-01-01T00:01:00Z'),fetchImpl});expect(state?.status).toBe('LIVE');expect(calls).toBe(1);expect(revalidationSeconds(state!,new Date())).toBe(60)})
+it('detects upcoming and fails safely on API errors',async()=>{const state=await detectYouTubeLive({now:new Date('2026-01-01T00:00:00Z'),fetchImpl:async()=>response([{id:{videoId:'abc12345678'},snippet:{title:'Demain',liveBroadcastContent:'upcoming',scheduledStartTime:'2026-01-01T05:00:00Z'}}])});expect(state?.status).toBe('UPCOMING');__resetYouTubeLiveCache();await expect(detectYouTubeLive({fetchImpl:async()=>new Response('',{status:503})})).resolves.toBeNull()})
+it('tracks a known upcoming video with videos.list after discovery expires',async()=>{const calls:string[]=[];const fetchImpl=async(input:RequestInfo|URL)=>{const url=String(input);calls.push(url);if(url.includes('/search?'))return response([{id:{videoId:'abc12345678'},snippet:{title:'Demain',liveBroadcastContent:'upcoming',scheduledStartTime:'2026-01-01T05:00:00Z'}}]);return response([{id:'abc12345678',snippet:{title:'Demain',liveBroadcastContent:'upcoming',scheduledStartTime:'2026-01-01T05:00:00Z'}}])};const now=new Date('2026-01-01T00:00:00Z');await expect(detectYouTubeLive({now,fetchImpl})).resolves.toMatchObject({status:'UPCOMING'});await expect(detectYouTubeLive({now:new Date(now.getTime()+15*60_000+1),fetchImpl})).resolves.toMatchObject({status:'UPCOMING'});expect(calls).toHaveLength(2);expect(calls[1]).toContain('/videos?')})
+it('tracks a known live video with videos.list at the 60 second cadence',async()=>{let calls=0;const fetchImpl=async(input:RequestInfo|URL)=>{calls++;if(String(input).includes('/search?'))return response([{id:{videoId:'abc12345678'},snippet:{title:'Culte',liveBroadcastContent:'live'},liveStreamingDetails:{actualStartTime:'2026-01-01T00:00:00Z'}}]);return response([{id:'abc12345678',snippet:{title:'Culte',liveBroadcastContent:'live'},liveStreamingDetails:{actualStartTime:'2026-01-01T00:00:00Z'}}])};const now=new Date('2026-01-01T00:00:00Z');await expect(detectYouTubeLive({now,fetchImpl})).resolves.toMatchObject({status:'LIVE'});await expect(detectYouTubeLive({now:new Date(now.getTime()+60_001),fetchImpl})).resolves.toMatchObject({status:'LIVE'});expect(calls).toBe(2);expect(revalidationSeconds({status:'LIVE',title:'Culte',watchUrl:'/live'},now)).toBe(60)})
+it('leaves CMS as the safe fallback when YouTube is unavailable',async()=>{__resetYouTubeLiveCache();const detected=await detectYouTubeLive({fetchImpl:async()=>new Response('',{status:503})});expect(detected).toBeNull();expect(resolveLiveState([{status:'live',title:'Culte CMS',youtube_url:'https://youtu.be/abcdefghijk'}])).toMatchObject({status:'LIVE',title:'Culte CMS'});expect(resolveLiveState([])).toEqual({status:'OFFLINE'})})
 })
