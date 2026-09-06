@@ -7,7 +7,7 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { INTENTS,resolveFirstStep,type HomeIntent,type LiveState } from '@/lib/home/contextual'
 import { resolveMemberNextAction,type MemberNextAction } from '@/lib/member-home/next-action'
 import { track } from '@/lib/analytics'
-const dateLabel=(v:string)=>new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date(v))
+const dateLabel=(v?:string)=>v?new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date(v)):'Préparé pour le prochain direct'
 export function ContextualHome({liveState}:{liveState:LiveState}){
  const {user,profile,isDemo}=useAuth(); const authenticated=Boolean(user); const [intent,setIntent]=useState<HomeIntent|null>(null); const [memberNextAction,setMemberNextAction]=useState<MemberNextAction|null>(null)
  useEffect(()=>{if(!authenticated||isDemo)return;let cancelled=false;(async()=>{try{const [f,i]=await Promise.all([fetch('/api/member/formations',{credentials:'same-origin'}).then(r=>r.ok?r.json():null),fetch('/api/member/integration-progression',{credentials:'same-origin'}).then(r=>r.ok?r.json():null)]);if(!cancelled)setMemberNextAction(resolveMemberNextAction({integration:i?.ok?i.data:null,formations:f?.ok?f.data?.inscriptions||[]:[]}))}catch{if(!cancelled)setMemberNextAction(null)}})();return()=>{cancelled=true}},[authenticated,isDemo])

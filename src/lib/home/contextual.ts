@@ -1,5 +1,5 @@
 import type { MemberNextAction } from '@/lib/member-home/next-action'
-export type LiveState = { status:'LIVE'; title:string; youtubeVideoId?:string; watchUrl:string; thumbnail?:string; startedAt?:string } | { status:'UPCOMING'; title:string; youtubeVideoId?:string; watchUrl?:string; thumbnail?:string; scheduledAt:string } | { status:'OFFLINE' }
+export type LiveState = { status:'LIVE'; title:string; youtubeVideoId?:string; watchUrl:string; thumbnail?:string; startedAt?:string } | { status:'UPCOMING'; title:string; youtubeVideoId?:string; watchUrl?:string; thumbnail?:string; scheduledAt?:string } | { status:'OFFLINE' }
 export type CmsLiveLike = { title?:unknown; status?:unknown; is_live?:unknown; youtube_url?:unknown; video_url?:unknown; cover_url?:unknown; scheduled_at?:unknown; started_at?:unknown }
 export type HomeIntent = 'closer_to_god'|'grow_in_faith'|'need_prayer'|'resume_walk'
 export type FirstStep = { type:'prayer'|'formation'|'parcours'|'live'; title:string; reason:string; href:string; cta:string }
