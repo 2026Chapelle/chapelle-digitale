@@ -4,14 +4,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight,BookOpen,Headphones,Heart,Radio,Users } from 'lucide-react'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { INTENTS,resolveFirstStep,type HomeIntent,type LiveState } from '@/lib/home/contextual'
+import { INTENTS,resolveFirstStep,resolveHeroGreeting,type HomeIntent,type LiveState } from '@/lib/home/contextual'
 import { resolveMemberNextAction,type MemberNextAction } from '@/lib/member-home/next-action'
 import { track } from '@/lib/analytics'
 const dateLabel=(v?:string)=>v?new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}).format(new Date(v)):'Préparé pour le prochain direct'
 export function ContextualHome({liveState}:{liveState:LiveState}){
- const {user,profile,isDemo}=useAuth(); const authenticated=Boolean(user); const [intent,setIntent]=useState<HomeIntent|null>(null); const [memberNextAction,setMemberNextAction]=useState<MemberNextAction|null>(null)
+ const {user,profile,isDemo}=useAuth(); const authenticated=Boolean(user)&&!isDemo; const [intent,setIntent]=useState<HomeIntent|null>(null); const [memberNextAction,setMemberNextAction]=useState<MemberNextAction|null>(null)
  useEffect(()=>{if(!authenticated||isDemo)return;let cancelled=false;(async()=>{try{const [f,i]=await Promise.all([fetch('/api/member/formations',{credentials:'same-origin'}).then(r=>r.ok?r.json():null),fetch('/api/member/integration-progression',{credentials:'same-origin'}).then(r=>r.ok?r.json():null)]);if(!cancelled)setMemberNextAction(resolveMemberNextAction({integration:i?.ok?i.data:null,formations:f?.ok?f.data?.inscriptions||[]:[]}))}catch{if(!cancelled)setMemberNextAction(null)}})();return()=>{cancelled=true}},[authenticated,isDemo])
- const firstStep=useMemo(()=>resolveFirstStep({intent:intent||'grow_in_faith',authenticated,memberNextAction,liveState}),[intent,authenticated,memberNextAction,liveState]); const firstName=profile?.prenom||profile?.first_name||''; const primaryHref=authenticated?(memberNextAction?.href||'/member/dashboard'):'/rejoindre'; const primaryLabel=authenticated?(memberNextAction?.ctaLabel==='Continuer'?'CONTINUER MON PARCOURS':'ENTRER DANS MA CITADELLE'):'COMMENCER MAINTENANT'
+ const firstStep=useMemo(()=>resolveFirstStep({intent:intent||'grow_in_faith',authenticated,memberNextAction,liveState}),[intent,authenticated,memberNextAction,liveState]); const firstName=authenticated?(profile?.prenom||profile?.first_name||''):''; const hero=resolveHeroGreeting({authenticated,firstName}); const primaryHref=authenticated?(memberNextAction?.href||'/member/dashboard'):'/rejoindre'; const primaryLabel=authenticated?(memberNextAction?.ctaLabel==='Continuer'?'CONTINUER MON PARCOURS':'ENTRER DANS MA CITADELLE'):'COMMENCER MAINTENANT'
  const selectIntent=(id:HomeIntent)=>{setIntent(id);track('home_intent_selected',{intent:id})}
  const revealRef=useRef<HTMLDivElement>(null)
  useEffect(()=>{const root=revealRef.current;if(!root)return;root.querySelector('[aria-labelledby="today-title"] a')?.classList.add('home-today-primary');root.querySelector('[aria-labelledby="pastoral-title"] > div')?.classList.add('home-pastoral-panel');if(typeof IntersectionObserver==='undefined')return;const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&(e.target.classList.add('is-visible'),io.unobserve(e.target))),{threshold:.12});root.querySelectorAll('section').forEach(el=>{el.classList.add('home-reveal');io.observe(el)});return()=>io.disconnect()},[])

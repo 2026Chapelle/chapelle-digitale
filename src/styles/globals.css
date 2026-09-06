@@ -762,7 +762,7 @@
 
   /* Section spacing tokens */
   .section-cinematic { @apply py-24 md:py-32 px-4 md:px-8 lg:px-16 relative overflow-hidden; }
-  .container-cinematic { @apply max-w-7xl mx-auto relative; }
+.container-cinematic { @apply max-w-7xl mx-auto relative; padding-inline: clamp(16px, 4vw, 32px); }
 
   /* Halos */
   .halo-gold {
@@ -1661,3 +1661,14 @@
 
 .home-today-primary { position: relative; overflow: hidden; background-image: linear-gradient(110deg, rgba(8,8,14,.9), rgba(8,8,14,.62)), url('/images/formations/parcours-1/parcours-1-je-decouvre-la-maison.png'); background-size: cover; background-position: center; }
 .home-pastoral-panel { position: relative; overflow: hidden; background-image: linear-gradient(90deg, rgba(15,10,25,.98) 0%, rgba(15,10,25,.88) 48%, rgba(15,10,25,.54) 100%), url('/images/prayers/prayer-family.jpg'); background-size: cover; background-position: center; }
+.home-pastoral-panel > div:last-child { align-self: center; }
+.home-pastoral-panel > div:last-child a { width: auto; min-height: 48px; padding-inline: 24px; white-space: nowrap; }
+@media (max-width: 640px) { .home-pastoral-panel > div:last-child { width: 100%; } .home-pastoral-panel > div:last-child a { width: 100%; } }
+/* The poster carries its own message; keep UI copy below it, never over it. */
+.home-today-primary { display: flex; flex-direction: column; padding: 0; background-image: none; overflow: hidden; }
+.home-today-primary > div:first-child { display: flex; flex-direction: column; padding: 0; }
+.home-today-primary > div:first-child::before { content: ''; display: block; min-height: 190px; background: url('/images/formations/parcours-1/parcours-1-je-decouvre-la-maison.png') center/cover no-repeat; }
+.home-today-primary > div:first-child > svg { margin: 20px 24px 0; }
+.home-today-primary > div:first-child > h3, .home-today-primary > div:first-child > p { margin-inline: 24px; }
+.home-today-primary > div:first-child > h3 { margin-top: 12px; }
+.home-today-primary > span { padding: 18px 24px 22px; }
