@@ -11,28 +11,28 @@ import { KingdomRecognition } from '@/components/features/member/KingdomRecognit
 import { useAuth } from '@/components/providers/AuthProvider'
 
 /**
- * MON PARCOURS DU ROYAUME — page membre.
+ * MON PARCOURS DU ROYAUME  page membre.
  *
  * Les QUATRE axes du Parcours du Royaume ne sont JAMAIS fondus en une seule
- * échelle « magique » :
- *   â€¢ Croissance + Appartenance â†’ reconnaissance CANONIQUE (KingdomRecognition).
- *   â€¢ Formation (learning journey) â†’ « Programme d'Intégration » ci-dessous.
- *   â€¢ Fonction / ministère â†’ affiché dans la reconnaissance, jamais comme un niveau.
- * Aucune séquence mixte (Visiteur â†’ Membre â†’ Disciple â†’ Leader de cellule â†’ Pasteur).
+ * chelle  magique  :
+ *    Croissance + Appartenance  reconnaissance CANONIQUE (KingdomRecognition).
+ *    Formation (learning journey)   Programme d'Intgration  ci-dessous.
+ *    Fonction / ministre  affich dans la reconnaissance, jamais comme un niveau.
+ * Aucune squence mixte (Visiteur  Membre  Disciple  Leader de cellule  Pasteur).
  */
 
-/** Actions recommandées, orientées intégration/formation — jamais un « niveau » spirituel. */
+/** Actions recommandes, orientes intgration/formation  jamais un  niveau  spirituel. */
 const RECOMMENDED_ACTIONS: { label: string; href: string }[] = [
   { label: 'Avancer dans mes formations', href: '/member/dashboard/formations' },
   { label: 'Rejoindre un groupe / une cellule', href: '/member/dashboard/groupes' },
-  { label: 'Participer au mur de prière', href: '/member/dashboard/prieres' },
-  { label: "S'inscrire Ã  un événement", href: '/member/dashboard/evenements' },
-  { label: 'Compléter mon profil', href: '/member/dashboard/profil' },
+  { label: 'Participer au mur de prire', href: '/member/dashboard/prieres' },
+  { label: "S'inscrire  un vnement", href: '/member/dashboard/evenements' },
+  { label: 'Complter mon profil', href: '/member/dashboard/profil' },
 ]
 
 /**
- * PROGRAMME D'INTÉGRATION — NIVEAU 1 (FORMATION, jamais un niveau de croissance).
- * Logique : Entrer â†’ S'enraciner â†’ ÃŠtre formé â†’ ÃŠtre envoyé.
+ * PROGRAMME D'INTGRATION  NIVEAU 1 (FORMATION, jamais un niveau de croissance).
+ * Logique : Entrer  S'enraciner  tre form  tre envoy.
  */
 const PROGRAMME_INTEGRATION: {
   num: number; titre: string; phase: string; desc: string
@@ -40,10 +40,10 @@ const PROGRAMME_INTEGRATION: {
 }[] = [
   {
     num: 1,
-    titre: 'Je découvre la maison',
+    titre: 'Je dcouvre la maison',
     phase: 'Entrer',
     desc: 'Comprendre qui nous sommes, la vision de la CIER, et trouver ma place dans la famille.',
-    objectifs: ['Découvrir la vision et l\'histoire', 'Comprendre les valeurs du Royaume', 'ÃŠtre accueilli et rattaché Ã  une cellule'],
+    objectifs: ['Dcouvrir la vision et l\'histoire', 'Comprendre les valeurs du Royaume', 'tre accueilli et rattach  une cellule'],
     icon: Sparkles,
     couleur: '#0EA5E9',
     href: '/member/dashboard/formations',
@@ -52,8 +52,8 @@ const PROGRAMME_INTEGRATION: {
     num: 2,
     titre: 'Je stabilise ma foi',
     phase: "S'enraciner",
-    desc: 'Poser des fondations solides : la prière, la Parole, le baptême et la vie communautaire.',
-    objectifs: ['Établir une vie de prière', 'Lire la Bible chaque jour', 'Comprendre le baptême et la grâce'],
+    desc: 'Poser des fondations solides : la prire, la Parole, le baptme et la vie communautaire.',
+    objectifs: ['tablir une vie de prire', 'Lire la Bible chaque jour', 'Comprendre le baptme et la grce'],
     icon: Sprout,
     couleur: '#22C55E',
     href: '/member/dashboard/formations',
@@ -61,9 +61,9 @@ const PROGRAMME_INTEGRATION: {
   {
     num: 3,
     titre: 'Je deviens un disciple actif',
-    phase: 'ÃŠtre formé â†’ ÃŠtre envoyé',
-    desc: 'Grandir, servir et porter du fruit : être formé, exercer ses dons et être envoyé vers les autres.',
-    objectifs: ['ÃŠtre formé comme disciple', 'Servir dans un groupe', 'Témoigner et accompagner'],
+    phase: 'tre form  tre envoy',
+    desc: 'Grandir, servir et porter du fruit : tre form, exercer ses dons et tre envoy vers les autres.',
+    objectifs: ['tre form comme disciple', 'Servir dans un groupe', 'Tmoigner et accompagner'],
     icon: HandHeart,
     couleur: '#D4AF37',
     href: '/member/dashboard/formations',
@@ -71,18 +71,18 @@ const PROGRAMME_INTEGRATION: {
 ]
 
 const PARCOURS_ENTREE = [
-  { slug: 'visiteur', titre: 'Parcours Visiteur', desc: 'Découvrir la foi et faire un premier pas.', href: '/formations/visiteur', couleur: '#38BDF8' },
-  { slug: 'nouveau-croyant', titre: 'Parcours du Salut — Nouveau Croyant', desc: 'Les fondations de la foi, pas Ã  pas.', href: '/formations/nouveau-croyant', couleur: '#A78BFA' },
+  { slug: 'visiteur', titre: 'Parcours Visiteur', desc: 'Dcouvrir la foi et faire un premier pas.', href: '/formations/visiteur', couleur: '#38BDF8' },
+  { slug: 'nouveau-croyant', titre: 'Parcours du Salut  Nouveau Croyant', desc: 'Les fondations de la foi, pas  pas.', href: '/formations/nouveau-croyant', couleur: '#A78BFA' },
 ]
 
 export default function ParcoursPage() {
   const { profile } = useAuth()
   const score = Number(profile?.score_engagement ?? 0)
 
-  // Mentorat réel Ã  venir (table mentorships) — aucun mentor fictif affiché.
-  const MENTOR = { nom: 'À assigner', role: 'Mentorat Ã  venir', initials: 'âœ¦', disponible: false }
+  // Mentorat rel  venir (table mentorships)  aucun mentor fictif affich.
+  const MENTOR = { nom: ' assigner', role: 'Mentorat  venir', initials: '', disponible: false }
 
-  // Progression RÉELLE du Programme d'Intégration (FORMATION), source serveur.
+  // Progression RELLE du Programme d'Intgration (FORMATION), source serveur.
   const [integ, setInteg] = useState<{ parcours: any[]; overall_pct: number; current_slug: string | null; next_slug: string | null; integration_complete: boolean } | null>(null)
   useEffect(() => {
     if (IS_DEMO_MODE) return
@@ -105,15 +105,15 @@ export default function ParcoursPage() {
     }
   }, [])
 
-  // Position d'intégration (0,1,2) dérivée de la FORMATION réelle (jamais d'un niveau).
+  // Position d'intgration (0,1,2) drive de la FORMATION relle (jamais d'un niveau).
   const integEtape = integ?.current_slug
     ? Math.max(0, integ.parcours.findIndex((p: any) => p.slug === integ.current_slug))
     : 0
 
-  // Stats RÉELLES — chacune sur SA nature (aucune « étape » mixte).
+  // Stats RELLES  chacune sur SA nature (aucune  tape  mixte).
   const STATS = [
     { icon: Zap, label: 'Score engagement', value: String(score), color: '#D4AF37' },
-    { icon: TrendingUp, label: 'Progression intégration', value: `${integ?.overall_pct ?? 0}%`, color: '#22C55E' },
+    { icon: TrendingUp, label: 'Progression intgration', value: `${integ?.overall_pct ?? 0}%`, color: '#22C55E' },
     { icon: Target, label: 'Parcours de formation', value: `${integEtape + 1}/${integ?.parcours?.length ?? PROGRAMME_INTEGRATION.length}`, color: '#8B5CF6' },
   ]
 
@@ -144,7 +144,7 @@ export default function ParcoursPage() {
             Mon Parcours du Royaume
           </h1>
           <p className="font-inter text-sm md:text-[15px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Grandis, apprends et avance dans ta marche avec Dieu, accompagné par la Citadelle.
+            Grandis, apprends et avance dans ta marche avec Dieu, accompagn par la Citadelle.
           </p>
         </div>
         {/* Mentor card */}
@@ -168,20 +168,20 @@ export default function ParcoursPage() {
           </div>
           <span className="ml-2 text-[10px] font-inter font-semibold px-3 py-1.5 rounded-lg"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(212,175,55,0.25)', color: 'rgba(212,175,55,0.6)' }}>
-            <Mic className="w-3 h-3 inline mr-1" />Bientôt
+            <Mic className="w-3 h-3 inline mr-1" />Bientt
           </span>
         </div>
       </div>
 
-      {/* MA RECONNAISSANCE DANS LA MAISON — croissance + appartenance + ministère (axes séparés). */}
+      {/* MA RECONNAISSANCE DANS LA MAISON  croissance + appartenance + ministre (axes spars). */}
       <KingdomRecognition />
 
       <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <h2 className="font-cinzel text-base font-bold text-pearl mb-1">Commencer ici</h2>
-        <p className="font-inter text-sm text-pearl/55 mb-5">Deux parcours d’entrée, distincts du programme d’intégration.</p>
+        <p className="font-inter text-sm text-pearl/55 mb-5">Deux parcours dentre, distincts du programme dintgration.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {PARCOURS_ENTREE.map((p) => <Link key={p.slug} href={p.href} className="rounded-2xl p-5" style={{ background: p.couleur + '12', border: '1px solid ' + p.couleur + '45' }}>
-            <div className="font-inter text-[11px] font-semibold mb-1" style={{ color: p.couleur }}>PARCOURS D’ENTRÉE</div>
+            <div className="font-inter text-[11px] font-semibold mb-1" style={{ color: p.couleur }}>PARCOURS DENTRE</div>
             <h3 className="font-cinzel text-base font-bold text-pearl">{p.titre}</h3>
             <p className="font-inter text-xs text-pearl/55 mt-2">{p.desc}</p>
             <span className="inline-flex items-center gap-1 mt-4 text-xs font-semibold" style={{ color: p.couleur }}>Commencer <ChevronRight className="w-3.5 h-3.5" /></span>
@@ -189,17 +189,17 @@ export default function ParcoursPage() {
         </div>
       </div>
 
-      {/* Programme d'Intégration — Niveau 1 : les parcours d'entrée (FORMATION). */}
+      {/* Programme d'Intgration  Niveau 1 : les parcours d'entre (FORMATION). */}
       <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
           <h2 className="font-cinzel text-base font-bold text-pearl flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-gold" /> Ma formation — Programme d'Intégration
+            <Sparkles className="w-4 h-4 text-gold" /> Ma formation  Programme d'Intgration
           </h2>
           <span className="font-inter text-[11px] text-pearl/45">Progression globale : <span className="text-gold font-semibold">{integ?.overall_pct ?? 0}%</span></span>
         </div>
         <p className="font-inter text-sm text-pearl/55 mb-5 max-w-2xl">
-          Parcours pédagogiques progressifs, Ã  suivre dans l&apos;ordre. C&apos;est ta progression de
-          <span className="text-pearl/80 font-semibold"> formation</span> — distincte de ton niveau de croissance et de ton statut communautaire.
+          Parcours pdagogiques progressifs,  suivre dans l&apos;ordre. C&apos;est ta progression de
+          <span className="text-pearl/80 font-semibold"> formation</span>  distincte de ton niveau de croissance et de ton statut communautaire.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -217,9 +217,9 @@ export default function ParcoursPage() {
                   {p.done ? <Check className="w-5 h-5" /> : p.locked ? <Lock className="w-4 h-4" /> : p.num}
                 </div>
                 {p.done ? (
-                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', color: '#22C55E' }}>Terminé</span>
+                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', color: '#22C55E' }}>Termin</span>
                 ) : p.locked ? (
-                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>Verrouillé</span>
+                  <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)' }}>Verrouill</span>
                 ) : typeof p.pct === 'number' ? (
                   <span className="font-inter text-[10px] font-bold px-2 py-1 rounded-full" style={{ background: `${p.couleur}1A`, color: p.couleur }}>{p.pct}%</span>
                 ) : null}
@@ -234,11 +234,11 @@ export default function ParcoursPage() {
               <div className="flex-1" />
               {p.statut !== 'publie' ? (
                 <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-inter font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  <Clock className="w-3.5 h-3.5" /> Bientôt disponible
+                  <Clock className="w-3.5 h-3.5" /> Bientt disponible
                 </span>
               ) : p.locked ? (
                 <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-inter font-semibold" style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
-                  <Lock className="w-3.5 h-3.5" /> Terminez le précédent
+                  <Lock className="w-3.5 h-3.5" /> Terminez le prcdent
                 </span>
               ) : (
                 <Link href={p.href}
@@ -255,7 +255,7 @@ export default function ParcoursPage() {
         <div className="mt-5 pt-4 border-t border-white/5 flex items-center gap-2">
           <Target className="w-3.5 h-3.5 text-gold/70 flex-shrink-0" />
           <p className="font-inter text-[11px] text-pearl/45">
-            Ces parcours nourrissent ta croissance, mais ne la <span className="text-pearl/70 font-semibold">déterminent pas automatiquement</span> : ta reconnaissance est confirmée par tes bergers.
+            Ces parcours nourrissent ta croissance, mais ne la <span className="text-pearl/70 font-semibold">dterminent pas automatiquement</span> : ta reconnaissance est confirme par tes bergers.
           </p>
         </div>
       </div>
@@ -267,11 +267,11 @@ export default function ParcoursPage() {
           <h2 className="font-cinzel text-sm font-bold text-pearl">Bienvenue dans la Citadelle{profile?.prenom ? `, ${profile.prenom}` : ''}</h2>
         </div>
         <p className="font-inter text-sm text-pearl/60 mb-4 max-w-2xl">
-          La Citadelle est une famille spirituelle mondiale. Découvrez la vision de l'Å“uvre, téléchargez votre livret d'accueil, puis avancez vers votre prochaine étape.
+          La Citadelle est une famille spirituelle mondiale. Dcouvrez la vision de l'uvre, tlchargez votre livret d'accueil, puis avancez vers votre prochaine tape.
         </p>
         <div className="flex flex-wrap gap-2.5">
           <Link href="/notre-histoire" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-inter font-semibold" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
-            <Globe className="w-3.5 h-3.5" /> Découvrir la vision
+            <Globe className="w-3.5 h-3.5" /> Dcouvrir la vision
           </Link>
           <a href="/livret-accueil" target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-1.5 text-xs px-4 py-2">
             <BookOpen className="w-3.5 h-3.5" /> Lire le Livret d'Accueil
@@ -279,14 +279,14 @@ export default function ParcoursPage() {
         </div>
       </div>
 
-      {/* Prochaines actions recommandées (concrètes, non hiérarchiques). */}
+      {/* Prochaines actions recommandes (concrtes, non hirarchiques). */}
       <div className="rounded-2xl p-5 mb-6" style={{ background: 'linear-gradient(135deg, rgba(75,0,130,0.18) 0%, rgba(212,175,55,0.06) 100%)', border: '1px solid rgba(212,175,55,0.2)' }}>
         <div className="flex items-center gap-2 mb-1">
           <Target className="w-4 h-4 text-gold" />
           <h2 className="font-cinzel text-sm font-bold text-pearl">Mes prochaines actions</h2>
         </div>
         <p className="font-inter text-sm text-pearl/60 mb-4">
-          Des pas concrets pour avancer — chacun nourrit un axe différent (formation, communauté, prière).
+          Des pas concrets pour avancer  chacun nourrit un axe diffrent (formation, communaut, prire).
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
           {RECOMMENDED_ACTIONS.map((a) => (
@@ -320,19 +320,19 @@ export default function ParcoursPage() {
           <h2 className="font-cinzel text-base font-bold text-pearl">Ma formation de disciple</h2>
         </div>
         <p className="font-inter text-sm text-pearl/55 mb-5 max-w-2xl">
-          Ta formation se poursuit dans tes cours. Le cursus de l&apos;Académie des Élus s&apos;y débloque
-          progressivement, une fois ton intégration franchie.
+          Ta formation se poursuit dans tes cours. Le cursus de l&apos;Acadmie des lus s&apos;y dbloque
+          progressivement, une fois ton intgration franchie.
         </p>
         <div className="flex flex-wrap gap-2.5">
           <Link href="/member/dashboard/formations"
             className="btn-gold inline-flex items-center gap-1.5 text-xs px-4 py-2.5">
-            <BookOpen className="w-3.5 h-3.5" /> Accéder Ã  Mes Formations
+            <BookOpen className="w-3.5 h-3.5" /> Accder  Mes Formations
             <ChevronRight className="w-3.5 h-3.5" />
           </Link>
           <Link href="/member/dashboard/formations"
             className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-inter font-semibold"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }}>
-            <Sprout className="w-3.5 h-3.5" /> Académie des Élus
+            <Sprout className="w-3.5 h-3.5" /> Acadmie des lus
           </Link>
         </div>
       </div>
@@ -340,5 +340,11 @@ export default function ParcoursPage() {
     </div>
   )
 }
+
+
+
+
+
+
 
 
