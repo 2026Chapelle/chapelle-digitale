@@ -1653,7 +1653,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .home-reveal { opacity: 0; transform: translateY(22px); transition: opacity 560ms ease, transform 560ms ease; }
+  .home-reveal { opacity: 1; transform: translateY(0); transition: opacity 560ms ease, transform 560ms ease; }
   .home-reveal.is-visible { opacity: 1; transform: translateY(0); }
   .home-today-primary, .home-pastoral-panel { transition: transform 280ms ease, border-color 280ms ease; }
   .home-today-primary:hover, .home-pastoral-panel:hover { transform: translateY(-3px); border-color: rgba(212,175,55,.5); }
