@@ -175,3 +175,51 @@ describe('ContextualHome final CTA', () => {
     )
   })
 })
+
+describe('ContextualHome offline editorial fallback', () => {
+  it('derives live availability from the canonical state', () => {
+    expect(source).toContain(
+      "const hasLive = liveState.status !== 'OFFLINE'"
+    )
+  })
+
+  it('does not keep podcast and prayer inside a nested offline support column', () => {
+    expect(source).not.toContain('today-support-shell')
+    expect(source).not.toContain('today-offline-support-column')
+  })
+
+  it('keeps podcast top-right while offline', () => {
+    expect(source).toContain(
+      'today-podcast-card today-support-card home-motion-card self-start md:col-start-3 md:row-start-1'
+    )
+  })
+
+  it('moves prayer to a full-width second row while offline', () => {
+    expect(source).toContain('today-prayer-offline-row')
+    expect(source).toContain(
+      'md:col-span-3 md:col-start-1 md:row-start-2'
+    )
+  })
+
+  it('renders the offline prayer card as a compact horizontal accompaniment card on desktop', () => {
+    expect(source).toContain('today-prayer-offline-content')
+    expect(source).toContain(
+      'md:flex md:items-center md:justify-between'
+    )
+  })
+
+  it('keeps the live card conditional on canonical live availability', () => {
+    expect(source).toContain(
+      '{hasLive && <article className="today-live-card'
+    )
+  })
+
+  it('preserves the live-state prayer position in the right column', () => {
+    expect(source).toContain(
+      'today-prayer-live-row'
+    )
+    expect(source).toContain(
+      'md:col-start-3 md:row-start-2'
+    )
+  })
+})
