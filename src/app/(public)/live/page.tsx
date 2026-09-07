@@ -17,6 +17,8 @@ const REACTIONS = ['🙏', '🔥', '❤️', '✨', '🙌', '💫', '👑', '⚡
 
 interface Replay { id: string; titre: string; date: string; speaker: string; url: string; cover?: string }
 
+const LIVE_POLL_INTERVAL_MS = 15_000
+
 export default function LivePage() {
   const [tab, setTab] = useState<'live' | 'replays'>('live')
   const [chatMessage, setChatMessage] = useState('')
@@ -59,6 +61,58 @@ export default function LivePage() {
       } catch { /* pas de direct */ }
     })()
     return () => { cancelled = true }
+  }, [])
+  useEffect(() => {
+    let cancelled = false
+
+    const refreshCanonicalLive = async () => {
+      const canonicalResponse = await fetch('/api/live/canonical', {
+        cache: 'no-store',
+      }).catch(() => null)
+
+      if (!canonicalResponse?.ok || cancelled) return
+
+      const canonicalPayload = await canonicalResponse
+        .json()
+        .catch(() => null)
+
+      if (cancelled) return
+
+      const canonical = canonicalPayload?.state
+      if (!canonical) return
+
+      if (canonical.status === 'LIVE' && canonical.title) {
+        setLive({
+          titre: canonical.title,
+          description: '',
+          youtube_url: canonical.youtubeVideoId
+            ? `https://www.youtube.com/watch?v=${canonical.youtubeVideoId}`
+            : '',
+          video_url: '',
+          cover: canonical.thumbnail || '',
+          plateforme: 'YouTube',
+        })
+        return
+      }
+
+      setLive(null)
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshCanonicalLive()
+    }
+
+    const pollId = window.setInterval(refreshCanonicalLive, LIVE_POLL_INTERVAL_MS)
+
+    window.addEventListener('focus', refreshCanonicalLive)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(pollId)
+      window.removeEventListener('focus', refreshCanonicalLive)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
   }, [])
   const liveYt = ytId(live?.youtube_url)
 
