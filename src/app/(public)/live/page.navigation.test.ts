@@ -22,7 +22,7 @@ describe("live back navigation consistency", () => {
     expect(source).toContain("LIVE_POLL_INTERVAL_MS = 15_000")
     expect(source).toContain("min-h-[420px] sm:min-h-[470px] xl:min-h-[520px]")
     expect(source).toContain("grid grid-cols-1 lg:grid-cols-2 items-start gap-4 lg:gap-6")
-    expect(source).toContain("mt-5 sm:mt-6 px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-5")
+    expect(source).toContain("container-royal mt-5 sm:mt-6 space-y-4 sm:space-y-5")
     expect(source).toContain('<a href="/evenements"')
     expect(source).toContain('data-live-agenda-link="true"')
   })

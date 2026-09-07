@@ -617,7 +617,7 @@ export default function LivePage() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
-            className="mt-5 sm:mt-6 px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-5"
+            className="container-royal mt-5 sm:mt-6 space-y-4 sm:space-y-5"
           >
             <div>
               <p className="font-inter text-[10px] font-bold tracking-[0.2em] uppercase text-gold/60">
