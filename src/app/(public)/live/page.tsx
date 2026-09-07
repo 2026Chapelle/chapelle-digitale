@@ -335,7 +335,7 @@ export default function LivePage() {
                     Demander une prière
                   </a>
                 </div>
-                    <div className="badge-gold flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Programmes réguliers — voir l&apos;agenda</div>
+                    <a href="/evenements" data-live-agenda-link="true" className="badge-gold flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-90"><Clock className="w-3.5 h-3.5" /> Programmes réguliers — voir l&apos;agenda</a>
                   </div>
                 )}
               </div>
@@ -617,7 +617,7 @@ export default function LivePage() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
-            className="mt-5 sm:mt-6 space-y-4 sm:space-y-5"
+            className="mt-5 sm:mt-6 px-4 sm:px-6 lg:px-8 space-y-4 sm:space-y-5"
           >
             <div>
               <p className="font-inter text-[10px] font-bold tracking-[0.2em] uppercase text-gold/60">
@@ -633,7 +633,7 @@ export default function LivePage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-4 lg:gap-6">
               <div className="rounded-2xl sm:rounded-3xl border border-gold/15 bg-gold/[0.025] p-4 sm:p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-gold/10 border border-gold/15 flex-shrink-0">
