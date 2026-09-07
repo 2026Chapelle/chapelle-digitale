@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Users, Heart, Radio, Clock } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import LivePresenceControls from '@/components/live/LivePresenceControls'
+import { LIVE_PUBLIC_URL, LIVE_SHARE_TEXT, recordSuccessfulLiveShare } from '@/lib/live/live-share-client'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
 
@@ -231,26 +232,33 @@ export default function LivePage() {
   const shareLive = async () => {
     if (typeof window === 'undefined') return
 
-    const url = window.location.href
+    const url = LIVE_PUBLIC_URL
 
     try {
       if (navigator.share) {
         await navigator.share({
           title: live?.titre || 'Citadelle — Chapelle Royale TV',
-          text: live
-            ? 'Rejoins-nous maintenant dans le direct sur Citadelle.'
-            : 'Découvre Citadelle, notre maison spirituelle en ligne.',
+          text: LIVE_SHARE_TEXT,
           url,
         })
+
+        await recordSuccessfulLiveShare(
+          'native_share',
+        )
 
         return
       }
 
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(url)
+
+        await recordSuccessfulLiveShare(
+          'copy_link',
+        )
       }
     } catch {
-      // Partage annulé ou indisponible.
+      // Annulation ou échec navigateur :
+      // aucune action de partage n'est enregistrée.
     }
   }
 
