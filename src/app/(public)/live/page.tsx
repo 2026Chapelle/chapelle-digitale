@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Users, Heart, Send, MessageCircle, Radio, Clock, Eye } from 'lucide-react'
+import { Play, Users, Heart, Radio, Clock } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
@@ -17,25 +17,32 @@ const REACTIONS = ['🙏', '🔥', '❤️', '✨', '🙌', '💫', '👑', '⚡
 
 interface Replay { id: string; titre: string; date: string; speaker: string; url: string; cover?: string }
 
+type UpcomingLive = {
+  titre: string
+  date: string
+  heure: string
+  scheduled_at: string
+  plateforme: string
+}
+
 const LIVE_POLL_INTERVAL_MS = 15_000
 
 export default function LivePage() {
   const [tab, setTab] = useState<'live' | 'replays'>('live')
-  const [chatMessage, setChatMessage] = useState('')
-  const [messages, setMessages] = useState<any[]>([])
-  const [reactionsVisible, setReactionsVisible] = useState(false)
-  const chatEndRef = useRef<HTMLDivElement>(null)
+  const [reactions, setReactions] = useState<{ id: number; emoji: string; x: number }[]>([])
+  const reactionCount = useRef(0)
 
   // Direct RÉEL depuis cms_lives — MÊME source que l'espace membre (source unique).
   const [live, setLive] = useState<{ titre: string; description: string; youtube_url: string; video_url: string; cover: string; plateforme: string } | null>(null)
   const [replays, setReplays] = useState<Replay[]>([])
+  const [upcoming, setUpcoming] = useState<UpcomingLive[]>([])
   useEffect(() => {
     if (IS_DEMO_MODE) return
     let cancelled = false
     ;(async () => {
       try {
         const { data } = await supabase.from('cms_lives')
-          .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at')
+          .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at, scheduled_at')
           .in('status', ['live', 'scheduled', 'ended', 'published'])
         if (cancelled || !data) return
         const canonicalResponse = await fetch('/api/live/canonical', { cache: 'no-store' }).catch(() => null)
@@ -47,17 +54,89 @@ export default function LivePage() {
           : null
         if (canonical.status === 'LIVE' && canonicalTitle) setLive({ titre: canonicalTitle, description: row?.description || '', youtube_url: row?.youtube_url || (canonical.youtubeVideoId ? `https://www.youtube.com/watch?v=${canonical.youtubeVideoId}` : ''), video_url: row?.video_url || '', cover: row?.cover_url || canonical.thumbnail || '', plateforme: row?.platform || 'YouTube' })
         // Replays RÉELS : rediffusions terminées/publiées disposant d'une vidéo.
-        const reps: Replay[] = (data as any[])
-          .filter((d) => (d.status === 'ended' || d.status === 'published') && (d.youtube_url || d.video_url))
-          .map((d, i) => ({
-            id: `${d.title || 'replay'}-${i}`,
-            titre: d.title || 'Rediffusion',
-            date: d.created_at ? new Date(d.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
-            speaker: d.platform || '',
-            url: d.youtube_url || d.video_url || '',
-            cover: d.cover_url || (ytId(d.youtube_url) ? `https://i.ytimg.com/vi/${ytId(d.youtube_url)}/hqdefault.jpg` : ''),
-          }))
+        const replayRows = (data as any[])
+          .filter(
+            (d) =>
+              (d.status === 'ended' || d.status === 'published') &&
+              (d.youtube_url || d.video_url)
+          )
+          .sort((a, b) => {
+            const aDate = a.scheduled_at || a.created_at
+            const bDate = b.scheduled_at || b.created_at
+
+            const aTime = aDate
+              ? new Date(aDate).getTime()
+              : 0
+
+            const bTime = bDate
+              ? new Date(bDate).getTime()
+              : 0
+
+            return bTime - aTime
+          })
+
+        const reps: Replay[] = replayRows.map((d, i) => ({
+          id: `${d.title || 'replay'}-${i}`,
+          titre: d.title || 'Rediffusion',
+          date: d.scheduled_at || d.created_at
+            ? new Date(d.scheduled_at || d.created_at).toLocaleDateString(
+                'fr-FR',
+                {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                }
+              )
+            : '',
+          speaker: d.platform || '',
+          url: d.youtube_url || d.video_url || '',
+          cover:
+            d.cover_url ||
+            (ytId(d.youtube_url)
+              ? `https://i.ytimg.com/vi/${ytId(d.youtube_url)}/hqdefault.jpg`
+              : ''),
+        }))
+
         setReplays(reps)
+
+        const now = Date.now()
+
+        const futureLives: UpcomingLive[] = (data as any[])
+          .filter((d) => {
+            if (d.status !== 'scheduled' || !d.scheduled_at) {
+              return false
+            }
+
+            const time = new Date(d.scheduled_at).getTime()
+
+            return Number.isFinite(time) && time > now
+          })
+          .sort(
+            (a, b) =>
+              new Date(a.scheduled_at).getTime() -
+              new Date(b.scheduled_at).getTime()
+          )
+          .slice(0, 3)
+          .map((d) => {
+            const scheduled = new Date(d.scheduled_at)
+
+            return {
+              titre: d.title || 'Prochain direct',
+              date: scheduled.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              }),
+              heure: scheduled.toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+              scheduled_at: d.scheduled_at,
+              plateforme: d.platform || '',
+            }
+          })
+
+        setUpcoming(futureLives)
       } catch { /* pas de direct */ }
     })()
     return () => { cancelled = true }
@@ -115,34 +194,50 @@ export default function LivePage() {
     }
   }, [])
   const liveYt = ytId(live?.youtube_url)
+  const nextLive = upcoming[0] ?? null
+  const latestReplay = replays[0] ?? null
 
-  const sendMessage = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!chatMessage.trim()) return
-    const newMsg = {
-      id: Date.now(),
-      nom: 'Vous',
-      pays: '',
-      message: chatMessage,
-      type: 'message',
-      time: new Date().toLocaleTimeString('fr', { hour: '2-digit', minute: '2-digit' }),
-    }
-    setMessages(prev => [...prev, newMsg])
-    setChatMessage('')
-    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  const sendReaction = (emoji: string) => {
+    const id = reactionCount.current++
+
+    setReactions(prev => [
+      ...prev,
+      {
+        id,
+        emoji,
+        x: Math.random() * 70 + 15,
+      },
+    ])
+
+    window.setTimeout(() => {
+      setReactions(prev => prev.filter(item => item.id !== id))
+    }, 1900)
   }
 
-  const sendReaction = (reaction: string) => {
-    const newMsg = {
-      id: Date.now(),
-      nom: 'Vous',
-      pays: '',
-      message: reaction,
-      type: 'reaction',
-      time: new Date().toLocaleTimeString('fr', { hour: '2-digit', minute: '2-digit' }),
+  const shareLive = async () => {
+    if (typeof window === 'undefined') return
+
+    const url = window.location.href
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: live?.titre || 'Citadelle — Chapelle Royale TV',
+          text: live
+            ? 'Rejoins-nous maintenant dans le direct sur Citadelle.'
+            : 'Découvre Citadelle, notre maison spirituelle en ligne.',
+          url,
+        })
+
+        return
+      }
+
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url)
+      }
+    } catch {
+      // Partage annulé ou indisponible.
     }
-    setMessages(prev => [...prev, newMsg])
-    setReactionsVisible(false)
   }
 
   return (
@@ -179,7 +274,7 @@ export default function LivePage() {
           <div className="flex items-center gap-3 text-xs text-pearl/40">
             <div className="flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />
-              <span className="font-inter">0 en direct</span>
+              <span className="font-inter">{live ? 'En direct' : 'Maison ouverte'}</span>
             </div>
           </div>
         </div>
@@ -208,7 +303,25 @@ export default function LivePage() {
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
                     <div className="w-20 h-20 rounded-3xl bg-pearl/5 flex items-center justify-center text-3xl mb-4">⛪</div>
                     <h2 className="font-cinzel text-xl font-bold text-pearl mb-2">Pas de Live en ce moment</h2>
-                    <p className="text-pearl/50 font-inter text-sm mb-6 max-w-sm">Le prochain culte en direct sera annoncé ici. Consultez le programme des cultes.</p>
+                    <p className="text-pearl/50 font-inter text-sm mb-6 max-w-md">
+                  Il n&apos;y a pas de direct en ce moment, mais ton chemin avec Dieu continue.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTab('replays')}
+                    className="px-4 py-2 rounded-xl bg-gold/15 border border-gold/25 text-gold text-xs font-inter font-semibold hover:bg-gold/20 transition-colors"
+                  >
+                    Voir les derniers cultes
+                  </button>
+
+                  <a
+                    href="/priere"
+                    className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-pearl/70 text-xs font-inter font-semibold hover:bg-white/[0.07] transition-colors"
+                  >
+                    Demander une prière
+                  </a>
+                </div>
                     <div className="badge-gold flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Programmes réguliers — voir l&apos;agenda</div>
                   </div>
                 )}
@@ -221,7 +334,7 @@ export default function LivePage() {
                     {live?.titre || 'Cultes en direct'}
                   </h1>
                   <p className="text-pearl/40 text-sm font-inter">
-                    {live ? (live.plateforme || 'En direct maintenant') : 'Aucun direct en ce moment'}
+                    {live ? (live.plateforme || 'En direct maintenant') : 'La maison reste ouverte'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -236,105 +349,498 @@ export default function LivePage() {
               <div className="mt-4 rounded-2xl border border-gold/20 bg-gold/[0.04] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <p className="font-cinzel text-sm font-bold text-pearl">Soutenez ce programme</p>
-                  <p className="font-inter text-xs text-pearl/45">Faites votre offrande pendant le direct — un reçu vous est envoyé par email.</p>
+                  <p className="font-inter text-xs text-pearl/45">
+                  {live
+                    ? 'Tu peux soutenir ce programme sans quitter le direct — un reçu est envoyé par email.'
+                    : 'Tu peux soutenir la mission et l’œuvre de Citadelle.'}
+                </p>
                 </div>
-                <LiveOffering programme={live?.titre || 'Culte en direct'} />
+                <LiveOffering programme={live?.titre || 'Citadelle'} />
               </div>
             </div>
 
-            {/* Chat panel */}
-            <div className="flex flex-col h-[600px] rounded-3xl border border-pearl/10 overflow-hidden bg-pearl/[0.02]">
-              {/* Chat header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-pearl/5">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-gold" />
-                  <h3 className="font-cinzel text-xs font-bold text-pearl">Chat en Direct</h3>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-pearl/30">
-                  <Eye className="w-3 h-3" />
-                  <span>0</span>
-                </div>
-              </div>
+            {/* Famille Royale — emplacement du futur chat Realtime */}
+            <div className="flex flex-col min-h-[460px] sm:min-h-[520px] xl:min-h-[600px] rounded-2xl sm:rounded-3xl border border-pearl/10 overflow-hidden bg-pearl/[0.02]">
+              <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-pearl/[0.06] bg-gradient-to-r from-gold/[0.05] to-transparent">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gold/10 border border-gold/20">
+                      <Users className="w-4 h-4 text-gold" />
+                    </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
-                {messages.length === 0 && (
-                  <p className="text-center text-pearl/30 text-xs font-inter py-10">Le chat s&apos;anime pendant les directs. Soyez le premier à écrire un message.</p>
-                )}
-                {messages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`text-xs font-inter ${
-                      msg.type === 'systeme' ? 'text-gold/60 italic text-center' :
-                      msg.type === 'priere' ? 'bg-royal/20 rounded-xl p-2 border border-royal/20' :
-                      msg.type === 'reaction' ? 'text-center text-2xl' : ''
-                    }`}
-                  >
-                    {msg.type !== 'systeme' && msg.type !== 'reaction' && (
-                      <span className="font-semibold text-pearl/80">
-                        {msg.nom} {msg.pays}
+                    <div>
+                      <h3 className="font-cinzel text-sm font-bold text-pearl">
+                        Famille Royale
+                      </h3>
+
+                      <p className="font-inter text-[11px] text-pearl/35 mt-0.5">
+                        {live
+                          ? 'Nous vivons ce culte ensemble.'
+                          : 'La maison reste ouverte.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {live && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-300 text-[10px] font-inter font-bold">
+                      <span className="relative flex w-1.5 h-1.5">
+                        <span className="absolute inline-flex w-full h-full rounded-full bg-red-500 opacity-70 animate-ping" />
+                        <span className="relative inline-flex w-1.5 h-1.5 rounded-full bg-red-500" />
                       </span>
-                    )}
-                    {msg.type === 'priere' && (
-                      <span className="block text-violet-300/70 text-[10px] mb-0.5 font-semibold">🙏 Prière</span>
-                    )}
-                    {msg.type !== 'systeme' && msg.type !== 'reaction' && ' '}
-                    <span className={msg.type === 'priere' ? 'text-pearl/80' : 'text-pearl/60'}>
-                      {msg.message}
+                      EN DIRECT
                     </span>
-                    {msg.type === 'reaction' && msg.message}
-                    {msg.type === 'systeme' && msg.message}
-                  </motion.div>
-                ))}
-                <div ref={chatEndRef} />
+                  )}
+                </div>
               </div>
 
-              {/* Chat input */}
-              <div className="p-3 border-t border-pearl/5">
-                {/* Reactions */}
-                <AnimatePresence>
-                  {reactionsVisible && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="grid grid-cols-8 gap-1 mb-2"
-                    >
-                      {REACTIONS.map((r) => (
-                        <button key={r} onClick={() => sendReaction(r)}
-                          className="text-lg hover:scale-125 transition-transform">
-                          {r}
+              <div className="flex-1 p-4 sm:p-5 space-y-4 sm:space-y-5">
+                {live ? (
+                  <>
+                    <div className="relative h-20 sm:h-24 overflow-hidden rounded-xl sm:rounded-2xl border border-gold/10 bg-gold/[0.025]">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <p className="font-inter text-xs text-pearl/40">
+                          Exprime ta réaction au culte
+                        </p>
+                      </div>
+
+                      <div className="absolute inset-0 pointer-events-none">
+                        <AnimatePresence>
+                          {reactions.map((reaction) => (
+                            <motion.div
+                              key={reaction.id}
+                              initial={{
+                                opacity: 0,
+                                y: 60,
+                                scale: 0.65,
+                              }}
+                              animate={{
+                                opacity: 1,
+                                y: -10,
+                                scale: 1.3,
+                              }}
+                              exit={{
+                                opacity: 0,
+                                y: -40,
+                              }}
+                              transition={{
+                                duration: 1.8,
+                                ease: 'easeOut',
+                              }}
+                              className="absolute bottom-1 text-2xl"
+                              style={{
+                                left: `${reaction.x}%`,
+                              }}
+                            >
+                              {reaction.emoji}
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
+                      {REACTIONS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => sendReaction(emoji)}
+                          className="h-10 rounded-xl border border-pearl/[0.07] bg-pearl/[0.03] hover:border-gold/30 hover:bg-gold/[0.05] transition-all text-lg"
+                          aria-label={'Réagir ' + emoji}
+                        >
+                          {emoji}
                         </button>
                       ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-gold/15 bg-gold/[0.035] p-4">
+                    <p className="font-cinzel text-sm font-bold text-gold">
+                      🕊️ La maison reste ouverte
+                    </p>
 
-                <form onSubmit={sendMessage} className="flex gap-2">
-                  <button type="button" onClick={() => setReactionsVisible(!reactionsVisible)}
-                    className="w-8 h-8 rounded-lg bg-pearl/5 hover:bg-pearl/10 flex items-center justify-center text-base flex-shrink-0 transition-colors">
-                    😊
+                    <p className="font-inter text-xs text-pearl/45 mt-2 leading-relaxed">
+                      Il n&apos;y a pas de direct maintenant, mais tu peux prier, être accompagné et continuer à grandir.
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <p className="font-cinzel text-[11px] font-bold text-pearl/40 uppercase tracking-[0.14em] mb-3">
+                    Je participe au culte
+                  </p>
+
+                  <div className="space-y-2">
+                    <a
+                      href="/priere"
+                      className="flex items-center gap-3 p-3.5 rounded-2xl border border-pearl/[0.07] bg-pearl/[0.025] hover:border-gold/25 hover:bg-gold/[0.04] transition-all"
+                    >
+                      <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-violet-500/10 text-lg">
+                        🙏
+                      </span>
+
+                      <div>
+                        <p className="font-inter text-sm font-semibold text-pearl">
+                          Demander une prière
+                        </p>
+
+                        <p className="font-inter text-[11px] text-pearl/35">
+                          Confie-nous ton sujet de prière.
+                        </p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="/contact"
+                      className="flex items-center gap-3 p-3.5 rounded-2xl border border-pearl/[0.07] bg-pearl/[0.025] hover:border-gold/25 hover:bg-gold/[0.04] transition-all"
+                    >
+                      <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-pink-500/10 text-lg">
+                        ❤️
+                      </span>
+
+                      <div>
+                        <p className="font-inter text-sm font-semibold text-pearl">
+                          Parler à un pasteur
+                        </p>
+
+                        <p className="font-inter text-[11px] text-pearl/35">
+                          Tu as besoin d&apos;écoute ou d&apos;accompagnement.
+                        </p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="/nouveau-venu"
+                      className="flex items-center gap-3 p-3.5 rounded-2xl border border-pearl/[0.07] bg-pearl/[0.025] hover:border-gold/25 hover:bg-gold/[0.04] transition-all"
+                    >
+                      <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-emerald-500/10 text-lg">
+                        ✝️
+                      </span>
+
+                      <div>
+                        <p className="font-inter text-sm font-semibold text-pearl">
+                          Je veux suivre Jésus
+                        </p>
+
+                        <p className="font-inter text-[11px] text-pearl/35">
+                          Nous voulons t&apos;accompagner dans cette décision.
+                        </p>
+                      </div>
+                    </a>
+
+                    <a
+                      href="/parcours"
+                      className="flex items-center gap-3 p-3.5 rounded-2xl border border-gold/15 bg-gold/[0.035] hover:border-gold/30 hover:bg-gold/[0.06] transition-all"
+                    >
+                      <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-gold/10 text-lg">
+                        👑
+                      </span>
+
+                      <div>
+                        <p className="font-inter text-sm font-semibold text-gold">
+                          Continuer à grandir
+                        </p>
+
+                        <p className="font-inter text-[11px] text-pearl/35">
+                          Découvre ton prochain pas dans Citadelle.
+                        </p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTab('replays')}
+                    className="px-3 py-2.5 rounded-xl border border-pearl/[0.08] bg-pearl/[0.025] text-pearl/55 hover:text-pearl transition-colors font-inter text-xs font-semibold"
+                  >
+                    Derniers cultes
                   </button>
-                  <input
-                    type="text"
-                    value={chatMessage}
-                    onChange={e => setChatMessage(e.target.value)}
-                    placeholder="Écrire un message..."
-                    className="flex-1 bg-pearl/5 border border-pearl/10 rounded-xl px-3 py-2 text-xs text-pearl placeholder-pearl/30 focus:outline-none focus:border-gold/30"
-                  />
-                  <button type="submit" className="w-8 h-8 rounded-lg bg-gold/20 border border-gold/30 hover:bg-gold/30 flex items-center justify-center flex-shrink-0 transition-colors">
-                    <Send className="w-3.5 h-3.5 text-gold" />
-                  </button>
-                </form>
+
+                  {live ? (
+                    <button
+                      type="button"
+                      onClick={shareLive}
+                      className="px-3 py-2.5 rounded-xl border border-gold/20 bg-gold/[0.05] text-gold hover:bg-gold/[0.08] transition-colors font-inter text-xs font-semibold"
+                    >
+                      Partager le direct
+                    </button>
+                  ) : (
+                    <a
+                      href="/rejoindre"
+                      className="px-3 py-2.5 rounded-xl border border-gold/20 bg-gold/[0.05] text-gold hover:bg-gold/[0.08] transition-colors font-inter text-xs font-semibold text-center"
+                    >
+                      Découvrir Citadelle
+                    </a>
+                  )}
+                </div>
+
+                {!live && (
+                  <a
+                    href="/evenements"
+                    className="flex items-center justify-center w-full px-3 py-2.5 rounded-xl border border-pearl/[0.07] text-pearl/45 hover:text-pearl/70 transition-colors font-inter text-xs"
+                  >
+                    Voir les prochains rendez-vous
+                  </a>
+                )}
+              </div>
+
+              <div className="px-5 py-3.5 border-t border-pearl/[0.05] bg-black/10">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-3.5 h-3.5 text-gold/60" />
+
+                  <p className="font-inter text-[10px] text-pearl/30 leading-relaxed">
+                    Citadelle est une maison spirituelle en ligne : regarder, recevoir de l&apos;aide et continuer à grandir.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {tab === 'replays' && (
+      {!live && tab === 'live' && (
+          <motion.section
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="mt-6 sm:mt-8 space-y-4 sm:space-y-5"
+          >
+            <div>
+              <p className="font-inter text-[10px] font-bold tracking-[0.2em] uppercase text-gold/60">
+                Entre deux directs
+              </p>
+
+              <h2 className="font-cinzel text-xl sm:text-2xl font-bold text-pearl mt-1">
+                Ta vie avec Dieu continue
+              </h2>
+
+              <p className="font-inter text-sm text-pearl/40 mt-2 max-w-2xl">
+                Même sans direct maintenant, Citadelle reste ouverte pour t&apos;aider à prier, recevoir, grandir et préparer le prochain rendez-vous.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-2xl sm:rounded-3xl border border-gold/15 bg-gold/[0.025] p-4 sm:p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-gold/10 border border-gold/15 flex-shrink-0">
+                    <Clock className="w-5 h-5 text-gold" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="font-inter text-[10px] font-bold tracking-[0.16em] uppercase text-gold/60">
+                      Prochain rendez-vous
+                    </p>
+
+                    {nextLive ? (
+                      <>
+                        <h3 className="font-cinzel text-base sm:text-lg font-bold text-pearl mt-1.5">
+                          {nextLive.titre}
+                        </h3>
+
+                        <p className="font-inter text-sm text-pearl/55 mt-2 capitalize">
+                          {nextLive.date}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <span className="inline-flex px-2.5 py-1 rounded-full bg-pearl/[0.04] border border-pearl/[0.07] font-inter text-[11px] text-pearl/50">
+                            {nextLive.heure} · heure locale
+                          </span>
+
+                          {nextLive.plateforme && (
+                            <span className="inline-flex px-2.5 py-1 rounded-full bg-pearl/[0.04] border border-pearl/[0.07] font-inter text-[11px] text-pearl/40">
+                              {nextLive.plateforme}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="font-inter text-[11px] text-pearl/30 mt-3">
+                          Ce rendez-vous vient directement de la programmation Citadelle.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="font-cinzel text-base font-bold text-pearl mt-1.5">
+                          Aucun prochain direct n&apos;est encore programmé
+                        </h3>
+
+                        <p className="font-inter text-xs text-pearl/40 mt-2 leading-relaxed">
+                          Dès qu&apos;un rendez-vous sera publié dans Citadelle, il apparaîtra automatiquement ici.
+                        </p>
+                      </>
+                    )}
+
+                    <a
+                      href="/evenements"
+                      className="inline-flex mt-4 px-4 py-2 rounded-xl border border-gold/20 bg-gold/[0.05] text-gold hover:bg-gold/[0.09] transition-colors font-inter text-xs font-semibold"
+                    >
+                      Voir tous les rendez-vous
+                    </a>
+                  </div>
+                </div>
+
+                {upcoming.length > 1 && (
+                  <div className="mt-5 pt-4 border-t border-pearl/[0.06]">
+                    <p className="font-inter text-[10px] uppercase tracking-[0.14em] text-pearl/30 mb-3">
+                      Ensuite
+                    </p>
+
+                    <div className="space-y-2">
+                      {upcoming.slice(1).map((item) => (
+                        <div
+                          key={item.scheduled_at}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-pearl/[0.06] bg-pearl/[0.02] px-3 py-2.5"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-inter text-xs font-semibold text-pearl/70 truncate">
+                              {item.titre}
+                            </p>
+
+                            <p className="font-inter text-[10px] text-pearl/30 capitalize mt-0.5">
+                              {item.date}
+                            </p>
+                          </div>
+
+                          <span className="font-inter text-[10px] text-gold/70 whitespace-nowrap">
+                            {item.heure}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-3xl border border-pearl/10 bg-pearl/[0.02] overflow-hidden">
+                {latestReplay ? (
+                  <>
+                    <div
+                      className="relative aspect-video sm:aspect-[16/7] bg-black/30 bg-cover bg-center"
+                      style={
+                        latestReplay.cover
+                          ? {
+                              backgroundImage: `url(${latestReplay.cover})`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-abyss via-abyss/30 to-transparent" />
+
+                      <span className="absolute bottom-4 left-4 px-2.5 py-1 rounded-full bg-black/45 backdrop-blur-sm border border-white/10 font-inter text-[10px] text-pearl/65">
+                        Dernier culte disponible
+                      </span>
+                    </div>
+
+                    <div className="p-5 sm:p-6">
+                      <h3 className="font-cinzel text-base sm:text-lg font-bold text-pearl">
+                        {latestReplay.titre}
+                      </h3>
+
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {latestReplay.date && (
+                          <span className="font-inter text-[11px] text-pearl/40">
+                            {latestReplay.date}
+                          </span>
+                        )}
+
+                        {latestReplay.speaker && (
+                          <span className="font-inter text-[11px] text-pearl/40">
+                            {latestReplay.speaker}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="font-inter text-xs text-pearl/40 mt-3 leading-relaxed">
+                        Tu as manqué le dernier rendez-vous ? Reprends le message et continue ta croissance.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => setTab('replays')}
+                        className="mt-4 px-4 py-2 rounded-xl bg-pearl/[0.05] border border-pearl/10 text-pearl/75 hover:text-pearl hover:bg-pearl/[0.08] transition-colors font-inter text-xs font-semibold"
+                      >
+                        Regarder les replays
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-5 sm:p-6">
+                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-pearl/[0.04] border border-pearl/[0.07]">
+                      <Play className="w-5 h-5 text-pearl/45" />
+                    </div>
+
+                    <h3 className="font-cinzel text-base font-bold text-pearl mt-4">
+                      Les prochains replays apparaîtront ici
+                    </h3>
+
+                    <p className="font-inter text-xs text-pearl/40 mt-2">
+                      Aucun replay publié n&apos;est disponible pour le moment.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl sm:rounded-3xl border border-pearl/[0.07] bg-pearl/[0.015] p-4 sm:p-6">
+              <p className="font-inter text-[10px] uppercase tracking-[0.18em] font-bold text-pearl/30">
+                Ton prochain pas aujourd&apos;hui
+              </p>
+
+              <h3 className="font-cinzel text-base font-bold text-pearl mt-1 mb-4">
+                Ne quitte pas simplement la page. Continue ton chemin.
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <a
+                  href="/priere"
+                  className="rounded-2xl border border-pearl/[0.07] bg-pearl/[0.02] hover:border-gold/20 hover:bg-gold/[0.03] transition-all p-4"
+                >
+                  <span className="text-xl">🙏</span>
+
+                  <p className="font-inter text-sm font-semibold text-pearl mt-3">
+                    J&apos;ai besoin de prière
+                  </p>
+
+                  <p className="font-inter text-[11px] text-pearl/35 mt-1">
+                    Dépose ton sujet maintenant.
+                  </p>
+                </a>
+
+                <a
+                  href="/contact"
+                  className="rounded-2xl border border-pearl/[0.07] bg-pearl/[0.02] hover:border-gold/20 hover:bg-gold/[0.03] transition-all p-4"
+                >
+                  <span className="text-xl">❤️</span>
+
+                  <p className="font-inter text-sm font-semibold text-pearl mt-3">
+                    Je veux être accompagné
+                  </p>
+
+                  <p className="font-inter text-[11px] text-pearl/35 mt-1">
+                    Parle à l&apos;équipe pastorale.
+                  </p>
+                </a>
+
+                <a
+                  href="/parcours"
+                  className="rounded-2xl border border-gold/15 bg-gold/[0.025] hover:border-gold/30 hover:bg-gold/[0.05] transition-all p-4"
+                >
+                  <span className="text-xl">👑</span>
+
+                  <p className="font-inter text-sm font-semibold text-gold mt-3">
+                    Je continue à grandir
+                  </p>
+
+                  <p className="font-inter text-[11px] text-pearl/35 mt-1">
+                    Découvre ton prochain parcours.
+                  </p>
+                </a>
+              </div>
+            </div>
+          </motion.section>
+        )}
+
+        {tab === 'replays' && (
         <div className="container-royal py-8">
           <h2 className="font-cinzel text-2xl font-bold text-pearl mb-8">Replays &amp; Archives</h2>
           {replays.length === 0 ? (

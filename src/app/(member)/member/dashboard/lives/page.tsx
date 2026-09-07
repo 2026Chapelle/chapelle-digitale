@@ -2,8 +2,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Play, Pause, Clock, Eye, Calendar, Tv, Radio, Heart,
-  MessageSquare, Send, Share2, Volume2, VolumeX, Maximize,
+  Play, Pause, Clock, Calendar, Tv, Radio, Heart,
+  Share2, Volume2, VolumeX, Maximize,
   ChevronLeft, ChevronRight, Bell, Users, Star, Bookmark, Download,
   Church, Moon, BookOpen, Crown, Flame, Sparkles, Radio as RadioIcon, X,
   type LucideIcon,
@@ -79,7 +79,6 @@ const LIVE_FALLBACK = {
   titre: 'Aucun direct en cours',
   plateforme: '',
   pasteur: '',
-  spectateurs: 0,
   duree: '',
   couleur: '#D4AF37',
   emoji: '⛪',
@@ -89,13 +88,10 @@ const LIVE_FALLBACK = {
   cover: '',
 }
 
-// Aucun faux commentaire : le chat live réel (Supabase Realtime) arrivera au Lot 4.
-type ChatMessage = { id: number; user: string; drapeau: string; msg: string; time: string; couleur: string }
-const CHAT_MESSAGES: ChatMessage[] = []
 
 // Aucun replay / programme fictif : tout vient de cms_lives (état chargé en composant).
-type ReplayItem = { id: string; titre: string; date: string; duree: string; plateforme: string; emoji: string; couleur: string; views: number; youtube_url?: string; cover?: string }
-type AVenirItem = { id: string; titre: string; date: string; heure: string; plateforme: string; emoji: string; couleur: string; prevues: number }
+type ReplayItem = { id: string; titre: string; date: string; duree: string; plateforme: string; emoji: string; couleur: string; youtube_url?: string; cover?: string }
+type AVenirItem = { id: string; titre: string; date: string; heure: string; plateforme: string; emoji: string; couleur: string }
 
 const REACTIONS_LIVE = ['🙌', '🔥', '❤️', '🙏', '✨', '👑']
 
@@ -109,13 +105,11 @@ const PROGRAMMES_REGULIERS = [
   { titre: 'Cohorte de prière', jour: 'Jeudi', heure: 'Selon programmation' },
 ]
 
+const LIVE_POLL_INTERVAL_MS = 15_000
+
 export default function LivesPage() {
   const [tab, setTab] = useState<'live' | 'replays' | 'programme'>('live')
-  const [chatOpen, setChatOpen] = useState(true)
-  const [chatMsg, setChatMsg] = useState('')
-  const [messages, setMessages] = useState(CHAT_MESSAGES)
   const [reactions, setReactions] = useState<{ id: number; emoji: string; x: number }[]>([])
-  const chatRef = useRef<HTMLDivElement>(null)
   const reactionCount = useRef(0)
 
   // Lecteur intégré (replays + playlists) : le membre reste dans Citadelle.
@@ -123,8 +117,9 @@ export default function LivesPage() {
   // Partage (modale réutilisant le composant ShareButtons).
   const [share, setShare] = useState<{ url: string; titre: string; texte?: string } | null>(null)
 
-  // Données RÉELLES (cms_lives) : direct en cours, replays, programme. Aucun mock.
+  // cms_lives fournit les métadonnées, replays et programme ; le canonical décide de l’état LIVE.
   const [liveData, setLiveData] = useState<typeof LIVE_FALLBACK | null>(null)
+  const [cmsLiveData, setCmsLiveData] = useState<typeof LIVE_FALLBACK | null>(null)
   const [replays, setReplays] = useState<ReplayItem[]>([])
   const [aVenir, setAVenir] = useState<AVenirItem[]>([])
   useEffect(() => {
@@ -140,7 +135,7 @@ export default function LivesPage() {
         const fmt = (s?: string) => { if (!s) return ''; try { return new Date(s).toLocaleDateString('fr-FR') } catch { return '' } }
         const hhmm = (s?: string) => { if (!s) return ''; try { return new Date(s).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) } catch { return '' } }
         const liveRow: any = data.find((d: any) => d.status === 'live' || d.is_live)
-        setLiveData(liveRow ? { titre: liveRow.title, plateforme: liveRow.platform || '', pasteur: '', spectateurs: 0, duree: '', couleur: '#D4AF37', emoji: '⛪', description: liveRow.description || '', youtube_url: liveRow.youtube_url || '', video_url: liveRow.video_url || '', cover: liveRow.cover_url || '' } : null)
+        setCmsLiveData(liveRow ? { titre: liveRow.title, plateforme: liveRow.platform || '', pasteur: '', duree: '', couleur: '#D4AF37', emoji: '⛪', description: liveRow.description || '', youtube_url: liveRow.youtube_url || '', video_url: liveRow.video_url || '', cover: liveRow.cover_url || '' } : null)
         // Traçabilité : visionnage réel d'un live (best-effort).
         if (liveRow) {
           try {
@@ -150,36 +145,107 @@ export default function LivesPage() {
             })
           } catch { /* non bloquant */ }
         }
-        setReplays(data.filter((d: any) => d.status === 'ended' || (d.status === 'published' && (d.youtube_url || d.video_url))).map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), duree: '', plateforme: d.platform || '', emoji: '🎬', couleur: '#D4AF37', views: 0, youtube_url: d.youtube_url || d.video_url, cover: d.cover_url || '' })))
-        setAVenir(data.filter((d: any) => d.status === 'scheduled').map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), heure: hhmm(d.scheduled_at), plateforme: d.platform || '', emoji: '📅', couleur: '#8B5CF6', prevues: 0 })))
+        setReplays(data.filter((d: any) => d.status === 'ended' || (d.status === 'published' && (d.youtube_url || d.video_url))).map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), duree: '', plateforme: d.platform || '', emoji: '🎬', couleur: '#D4AF37', youtube_url: d.youtube_url || d.video_url, cover: d.cover_url || '' })))
+        setAVenir(data.filter((d: any) => d.status === 'scheduled').map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), heure: hhmm(d.scheduled_at), plateforme: d.platform || '', emoji: '📅', couleur: '#8B5CF6' })))
       } catch { /* listes vides */ }
     })()
     return () => { cancelled = true }
   }, [])
+  useEffect(() => {
+    if (IS_DEMO_MODE) return
+
+    let cancelled = false
+
+    const refreshCanonicalLive = async () => {
+      const response = await fetch('/api/live/canonical', {
+        cache: 'no-store',
+      }).catch(() => null)
+
+      if (cancelled) return
+
+      if (!response?.ok) {
+        setLiveData(cmsLiveData)
+        return
+      }
+
+      const payload = await response.json().catch(() => null)
+
+      if (cancelled) return
+
+      const canonical = payload?.state
+
+      if (!canonical) {
+        setLiveData(cmsLiveData)
+        return
+      }
+
+      if (canonical.status === 'LIVE' && canonical.title) {
+        const matchingCms =
+          cmsLiveData?.titre === canonical.title
+            ? cmsLiveData
+            : null
+
+        setLiveData({
+          ...(matchingCms ?? LIVE_FALLBACK),
+          titre: canonical.title,
+          plateforme: matchingCms?.plateforme || 'YouTube',
+          youtube_url: canonical.youtubeVideoId
+            ? `https://www.youtube.com/watch?v=${canonical.youtubeVideoId}`
+            : (matchingCms?.youtube_url || ''),
+          video_url: matchingCms?.video_url || '',
+          cover: matchingCms?.cover || canonical.thumbnail || '',
+        })
+
+        return
+      }
+
+      setLiveData(null)
+    }
+
+    void refreshCanonicalLive()
+
+    const pollId = window.setInterval(
+      refreshCanonicalLive,
+      LIVE_POLL_INTERVAL_MS
+    )
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshCanonicalLive()
+      }
+    }
+
+    window.addEventListener(
+      'focus',
+      refreshCanonicalLive
+    )
+
+    document.addEventListener(
+      'visibilitychange',
+      onVisibilityChange
+    )
+
+    return () => {
+      cancelled = true
+
+      window.clearInterval(pollId)
+
+      window.removeEventListener(
+        'focus',
+        refreshCanonicalLive
+      )
+
+      document.removeEventListener(
+        'visibilitychange',
+        onVisibilityChange
+      )
+    }
+  }, [cmsLiveData])
   const LIVE_EN_COURS = liveData ?? LIVE_FALLBACK
   const hasLive = !!liveData
   // Source vidéo réelle du direct : ID YouTube extrait de l'URL/ID admin, sinon vidéo hébergée.
   const liveYtId = ytId(LIVE_EN_COURS.youtube_url)
   const liveVideoUrl = LIVE_EN_COURS.video_url || ''
-
-  useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight
-    }
-  }, [messages])
-
-  const sendMessage = () => {
-    if (!chatMsg.trim()) return
-    setMessages(prev => [...prev, {
-      id: Date.now(),
-      user: 'Vous',
-      drapeau: '🇫🇷',
-      msg: chatMsg,
-      time: new Date().toLocaleTimeString('fr', { hour: '2-digit', minute: '2-digit' }),
-      couleur: '#D4AF37',
-    }])
-    setChatMsg('')
-  }
 
   const sendReaction = (emoji: string) => {
     const id = reactionCount.current++
@@ -242,8 +308,7 @@ export default function LivesPage() {
           ))}
           <div className="ml-auto flex items-center gap-2 text-sm text-pearl/40 font-inter">
             <Users className="w-3.5 h-3.5" />
-            <span className="font-cinzel text-gold font-bold tabular-nums">{LIVE_EN_COURS.spectateurs.toLocaleString('fr')}</span>
-            <span className="hidden sm:inline">en ligne</span>
+            <span className="font-inter text-xs text-pearl/40">Famille Royale</span>
           </div>
         </div>
 
@@ -322,15 +387,7 @@ export default function LivesPage() {
                   </AnimatePresence>
                 </div>
 
-                {/* Bouton Chat flottant (n'obstrue pas la vidéo) */}
-                <button
-                  onClick={() => setChatOpen(!chatOpen)}
-                  className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-inter"
-                  style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-white" />
-                  <span className="text-white">{chatOpen ? 'Masquer' : 'Chat'}</span>
-                </button>
+
               </motion.div>
 
               {/* Info bar */}
@@ -430,110 +487,58 @@ export default function LivesPage() {
               </motion.div>
             </div>
 
-            {/* Chat column */}
-            <AnimatePresence>
-              {chatOpen && (
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  className="flex flex-col rounded-3xl overflow-hidden"
-                  style={{
-                    background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                    height: '680px',
-                  }}
-                >
-                  {/* Chat header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-pearl/[0.06]">
-                    <div className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-gold" />
-                      <span className="font-cinzel text-sm font-bold text-pearl">Chat Live</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                      <span className="text-[10px] text-pearl/30 font-inter">
-                        {LIVE_EN_COURS.spectateurs.toLocaleString()} en ligne
-                      </span>
-                    </div>
-                  </div>
+            {/* Community column — réservé au futur chat partagé en temps réel */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col rounded-3xl overflow-hidden border border-pearl/10 bg-pearl/[0.02]"
+            >
+              <div className="px-5 py-4 border-b border-pearl/[0.06]">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-gold animate-pulse" />
+                  <h3 className="font-cinzel text-sm font-bold text-pearl">
+                    Famille Royale
+                  </h3>
+                </div>
 
-                  {/* Messages */}
-                  <div ref={chatRef} className="flex-1 overflow-y-auto p-4 space-y-3"
-                    style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.05) transparent' }}>
-                    {messages.map((m) => (
-                      <div key={m.id} className="flex items-start gap-2">
-                        <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0 mt-0.5"
-                          style={{ background: m.couleur }}>
-                          {m.user[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-[10px] font-semibold font-inter" style={{ color: m.couleur }}>
-                              {m.user}
-                            </span>
-                            <span className="text-sm">{m.drapeau}</span>
-                            <span className="text-[9px] text-pearl/20 font-inter">{m.time}</span>
-                          </div>
-                          <p className="text-xs font-inter text-pearl/65 leading-relaxed">{m.msg}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <p className="font-inter text-xs text-pearl/40 mt-2 leading-relaxed">
+                  Tu n&apos;es pas seul. Participe au culte avec une réaction.
+                </p>
+              </div>
 
-                  {/* Chat input */}
-                  <div className="p-3 border-t border-pearl/[0.06]">
-                    <div className="flex gap-2 mb-2">
-                      {['🙌', '🔥', '🙏', '❤️'].map(e => (
-                        <button key={e} onClick={() => sendReaction(e)}
-                          className="text-base hover:scale-110 transition-transform">
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        className="flex-1 px-3 py-2 rounded-xl text-xs font-inter text-pearl/80 placeholder-pearl/25 outline-none"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
-                        placeholder="Écrire dans le chat..."
-                        value={chatMsg}
-                        onChange={e => setChatMsg(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                      />
-                      <button
-                        onClick={sendMessage}
-                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
-                        style={{ background: chatMsg ? 'rgba(212,175,55,0.85)' : 'rgba(255,255,255,0.05)' }}
-                      >
-                        <Send className="w-3.5 h-3.5" style={{ color: chatMsg ? '#1A0F00' : 'rgba(255,255,255,0.3)' }} />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <div className="p-5">
+                <div className="grid grid-cols-3 gap-2">
+                  {REACTIONS_LIVE.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => sendReaction(emoji)}
+                      className="h-12 rounded-xl border border-pearl/[0.07] bg-pearl/[0.03] hover:border-gold/30 hover:bg-gold/[0.05] transition-all text-xl"
+                      aria-label={'Réagir ' + emoji}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-gold/15 bg-gold/[0.035] p-4">
+                  <p className="font-cinzel text-xs font-bold text-gold">
+                    Communion en ligne
+                  </p>
+
+                  <p className="font-inter text-xs text-pearl/40 mt-1.5 leading-relaxed">
+                    Le chat communautaire apparaîtra ici lorsqu&apos;il sera réellement partagé entre tous les participants.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
           </div>
         )}
 
         {tab === 'replays' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {[
-                { label: 'Lives regardés', value: '24', icon: Tv, color: '#D4AF37' },
-                { label: 'Heures visionnées', value: '47h', icon: Clock, color: '#8B5CF6' },
-                { label: 'Plateformes suivies', value: '4', icon: Eye, color: '#0EA5E9' },
-              ].map(s => (
-                <div key={s.label} className="card-royal text-center py-4">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2"
-                    style={{ background: `${s.color}18` }}>
-                    <s.icon className="w-4 h-4" style={{ color: s.color }} />
-                  </div>
-                  <div className="font-cinzel text-xl font-black" style={{ color: s.color }}>{s.value}</div>
-                  <div className="text-[10px] text-pearl/35 font-inter mt-0.5">{s.label}</div>
-                </div>
-              ))}
-            </div>
+
 
             {replays.length === 0 && (
               <div className="card-cinematic text-center py-16">
@@ -603,7 +608,6 @@ export default function LivesPage() {
                   </h3>
                   <div className="flex items-center justify-between text-[11px] text-pearl/35 font-inter mb-3">
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{r.date}</span>
-                    <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{r.views.toLocaleString()} vues</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-inter px-2 py-1 rounded-lg"
@@ -704,7 +708,6 @@ export default function LivesPage() {
                           <h3 className="font-cinzel font-bold text-pearl text-sm mb-1 truncate">{item.titre}</h3>
                           <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11px] text-pearl/40 font-inter">
                             <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{item.heure}</span>
-                            <span className="flex items-center gap-1"><Users className="w-3 h-3" />{item.prevues.toLocaleString('fr')} attendus</span>
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold"
                               style={{ background: `${item.couleur}15`, color: item.couleur }}>{item.plateforme}</span>
                           </div>
