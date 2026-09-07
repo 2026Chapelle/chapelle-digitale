@@ -193,6 +193,19 @@ export default function LivePage() {
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [])
+  useEffect(() => {
+    const handleLivePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload()
+      }
+    }
+
+    window.addEventListener('pageshow', handleLivePageShow)
+
+    return () => {
+      window.removeEventListener('pageshow', handleLivePageShow)
+    }
+  }, [])
   const liveYt = ytId(live?.youtube_url)
   const nextLive = upcoming[0] ?? null
   const latestReplay = replays[0] ?? null
@@ -360,7 +373,7 @@ export default function LivePage() {
             </div>
 
             {/* Famille Royale — emplacement du futur chat Realtime */}
-            <div className="flex flex-col min-h-[460px] sm:min-h-[520px] xl:min-h-[600px] rounded-2xl sm:rounded-3xl border border-pearl/10 overflow-hidden bg-pearl/[0.02]">
+            <div className="flex flex-col min-h-[420px] sm:min-h-[470px] xl:min-h-[520px] rounded-2xl sm:rounded-3xl border border-pearl/10 overflow-hidden bg-pearl/[0.02]">
               <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-pearl/[0.06] bg-gradient-to-r from-gold/[0.05] to-transparent">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -604,7 +617,7 @@ export default function LivePage() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
-            className="mt-6 sm:mt-8 space-y-4 sm:space-y-5"
+            className="mt-5 sm:mt-6 space-y-4 sm:space-y-5"
           >
             <div>
               <p className="font-inter text-[10px] font-bold tracking-[0.2em] uppercase text-gold/60">
@@ -620,7 +633,7 @@ export default function LivePage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-4">
               <div className="rounded-2xl sm:rounded-3xl border border-gold/15 bg-gold/[0.025] p-4 sm:p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-gold/10 border border-gold/15 flex-shrink-0">
