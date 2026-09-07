@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Users, Heart, Radio, Clock } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
+import LivePresenceControls from '@/components/live/LivePresenceControls'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
 
@@ -409,10 +410,14 @@ export default function LivePage() {
               <div className="flex-1 p-4 sm:p-5 space-y-4 sm:space-y-5">
                 {live ? (
                   <>
+                    {liveYt && (
+                      <LivePresenceControls liveVideoId={liveYt} />
+                    )}
+
                     <div className="relative h-20 sm:h-24 overflow-hidden rounded-xl sm:rounded-2xl border border-gold/10 bg-gold/[0.025]">
                       <div className="absolute inset-0 flex items-center justify-center">
                         <p className="font-inter text-xs text-pearl/40">
-                          Exprime ta réaction au culte
+                          Exprime ta réaction sur ton écran
                         </p>
                       </div>
 
