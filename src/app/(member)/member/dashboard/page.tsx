@@ -58,11 +58,32 @@ type IntegrationProgress = {
   integration_complete: boolean
 }
 
+type CommunityMembership = {
+  groupe_id: string
+  statut: string
+  is_primary?: boolean
+  role?: string
+}
+
+type CommunityGroupSummary = {
+  id: string
+  nom: string
+}
+
+type CommunityThread = {
+  unread: number
+}
+
 export default function DashboardPage() {
   const { profile, user, isDemo } = useAuth()
   const [formations, setFormations] = useState<FormationCard[] | null>(null)
   const [nextAction, setNextAction] = useState<MemberNextAction | null>(null)
   const [nextActionLoading, setNextActionLoading] = useState(true)
+  const [continueFormation, setContinueFormation] = useState<FormationCard | null>(null)
+  const [communityGroup, setCommunityGroup] = useState<CommunityGroupSummary | null>(null)
+  const [pendingGroupRequests, setPendingGroupRequests] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [communityLoading, setCommunityLoading] = useState(true)
   const [liveState, setLiveState] = useState<LiveState>({ status: 'OFFLINE' })
   // Verset du jour : calculé après montage (évite tout décalage d'hydratation).
   const [DAILY_VERSE, setDailyVerse] = useState(VERSETS[0])
@@ -123,6 +144,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (isDemo) {
       setFormations([])
+      setContinueFormation(null)
       setNextAction(resolveMemberNextAction({ integration: null, formations: [] }))
       setNextActionLoading(false)
       return
@@ -144,11 +166,100 @@ export default function DashboardPage() {
       const cards: FormationCard[] = enrollmentData.slice(0, 4).map((item) => ({
         id: item.id, slug: item.formation?.slug || '', titre: item.formation?.titre || 'Formation', progression: item.progression || 0,
       }))
+      // CONTINUER : /api/member/formations est déjà trié par dernier_acces DESC.
+      // La première correspondance est donc la formation commencée la plus récemment consultée.
+      const continueEnrollment = enrollmentData.find((item) =>
+        item.formation?.slug &&
+        item.statut === 'actif' &&
+        item.progression > 0 &&
+        item.progression < 100
+      )
+
+      const continueCard: FormationCard | null = continueEnrollment?.formation
+        ? {
+            id: continueEnrollment.id,
+            slug: continueEnrollment.formation.slug,
+            titre: continueEnrollment.formation.titre,
+            progression: continueEnrollment.progression,
+          }
+        : null
+
       setFormations(cards)
+      setContinueFormation(continueCard)
       setNextAction(resolveMemberNextAction({ integration: integrationData, formations: enrollmentData }))
       setNextActionLoading(false)
     })()
     return () => { cancelled = true }
+  }, [isDemo])
+
+  useEffect(() => {
+    if (isDemo) {
+      setCommunityGroup(null)
+      setPendingGroupRequests(0)
+      setUnreadMessages(0)
+      setCommunityLoading(false)
+      return
+    }
+
+    let cancelled = false
+
+    ;(async () => {
+      const [groupsResult, messagesResult] = await Promise.allSettled([
+        fetch('/api/member/groupes', { credentials: 'same-origin' }).then(async (response) =>
+          response.ok ? response.json() : null
+        ),
+        fetch('/api/member/messages', { credentials: 'same-origin' }).then(async (response) =>
+          response.ok ? response.json() : null
+        ),
+      ])
+
+      if (cancelled) return
+
+      const groupsPayload =
+        groupsResult.status === 'fulfilled' && groupsResult.value?.ok
+          ? groupsResult.value
+          : null
+
+      const memberships: CommunityMembership[] =
+        groupsPayload?.data?.mes_groupes || []
+
+      const groups: CommunityGroupSummary[] =
+        groupsPayload?.data?.annuaire || []
+
+      const requests =
+        groupsPayload?.data?.demandes || []
+
+      const activeMemberships = memberships.filter(
+        (membership) => membership.statut === 'actif'
+      )
+
+      const primaryMembership =
+        activeMemberships.find((membership) => membership.is_primary) ||
+        activeMemberships[0] ||
+        null
+
+      const communityGroup =
+        groups.find(
+          (group) => group.id === primaryMembership?.groupe_id
+        ) || null
+
+      const threads: CommunityThread[] =
+        messagesResult.status === 'fulfilled' && messagesResult.value?.ok
+          ? messagesResult.value.data || []
+          : []
+
+      const unreadMessages =
+        threads.reduce((total, thread) => total + thread.unread, 0)
+
+      setCommunityGroup(communityGroup)
+      setPendingGroupRequests(requests.length)
+      setUnreadMessages(unreadMessages)
+      setCommunityLoading(false)
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [isDemo])
 
   const quickStats = [
@@ -362,7 +473,213 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Verse + quick wins */}
+        {/* CONTINUER — reprendre exactement là où le membre s'est arrêté */}
+         {continueFormation && (
+           <motion.section
+             initial={{ opacity: 0, y: 12 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.4 }}
+             className="rounded-2xl mb-6 p-5 md:p-6"
+             style={{
+               background: 'linear-gradient(135deg, rgba(75,0,130,0.20), rgba(212,175,55,0.06))',
+               border: '1px solid rgba(139,92,246,0.22)',
+             }}
+           >
+             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+               <div className="flex items-center gap-4 min-w-0">
+                 <div
+                   className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{
+                     background: 'rgba(139,92,246,0.16)',
+                     border: '1px solid rgba(139,92,246,0.28)',
+                   }}
+                 >
+                   <BookOpen className="w-5 h-5" style={{ color: '#A78BFA' }} />
+                 </div>
+
+                 <div className="min-w-0 flex-1">
+                   <p
+                     className="font-inter text-[10px] font-black tracking-[0.18em] uppercase mb-1"
+                     style={{ color: '#A78BFA' }}
+                   >
+                     CONTINUER
+                   </p>
+
+                   <h2 className="font-cinzel font-bold text-base md:text-lg text-white truncate">
+                     {continueFormation.titre}
+                   </h2>
+
+                   <div className="flex items-center gap-3 mt-2.5 max-w-sm">
+                     <div
+                       className="h-1.5 flex-1 rounded-full overflow-hidden"
+                       style={{ background: 'rgba(255,255,255,0.08)' }}
+                     >
+                       <div
+                         className="h-full rounded-full"
+                         style={{
+                           width: `${continueFormation.progression}%`,
+                           background: 'linear-gradient(90deg, #7C3AED, #D4AF37)',
+                         }}
+                       />
+                     </div>
+
+                     <span
+                       className="font-inter text-xs font-semibold"
+                       style={{ color: '#D4AF37' }}
+                     >
+                       {continueFormation.progression}%
+                     </span>
+                   </div>
+                 </div>
+               </div>
+
+               <Link
+                 href={`/member/dashboard/formations/${continueFormation.slug}`}
+                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-inter text-xs font-semibold flex-shrink-0"
+                 style={{
+                   background: 'rgba(139,92,246,0.12)',
+                   border: '1px solid rgba(167,139,250,0.28)',
+                   color: '#DDD6FE',
+                 }}
+               >
+                 Reprendre
+                 <ChevronRight className="w-3.5 h-3.5" />
+               </Link>
+             </div>
+           </motion.section>
+         )}
+
+         {/* MA COMMUNAUTÉ — appartenance, demandes et messages réels */}
+         <motion.section
+           initial={{ opacity: 0, y: 12 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.4 }}
+           className="rounded-2xl mb-6 p-5 md:p-6"
+           style={{
+             background: 'linear-gradient(135deg, rgba(15,82,62,0.20), rgba(212,175,55,0.05))',
+             border: '1px solid rgba(52,211,153,0.18)',
+           }}
+         >
+           <div className="flex items-center gap-3 mb-5">
+             <div
+               className="w-10 h-10 rounded-xl flex items-center justify-center"
+               style={{
+                 background: 'rgba(52,211,153,0.10)',
+                 border: '1px solid rgba(52,211,153,0.18)',
+               }}
+             >
+               <Users className="w-4 h-4" style={{ color: '#6EE7B7' }} />
+             </div>
+
+             <div>
+               <p
+                 className="font-inter text-[10px] font-black tracking-[0.18em] uppercase"
+                 style={{ color: '#6EE7B7' }}
+               >
+                 MA COMMUNAUTÉ
+               </p>
+               <p
+                 className="font-inter text-xs mt-0.5"
+                 style={{ color: 'rgba(255,255,255,0.38)' }}
+               >
+                 Ma place et mes échanges dans la maison
+               </p>
+             </div>
+           </div>
+
+           {communityLoading ? (
+             <p
+               className="font-inter text-sm py-3"
+               style={{ color: 'rgba(255,255,255,0.38)' }}
+             >
+               Chargement de votre communauté…
+             </p>
+           ) : (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+               <Link
+                 href="/member/dashboard/groupes"
+                 className="flex items-center gap-4 p-4 rounded-xl"
+                 style={{
+                   background: 'rgba(255,255,255,0.025)',
+                   border: '1px solid rgba(255,255,255,0.06)',
+                 }}
+               >
+                 <div
+                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: 'rgba(249,115,22,0.12)' }}
+                 >
+                   <Users className="w-4 h-4" style={{ color: '#FB923C' }} />
+                 </div>
+
+                 <div className="flex-1 min-w-0">
+                   <p
+                     className="font-inter text-[10px] uppercase tracking-wide mb-0.5"
+                     style={{ color: 'rgba(255,255,255,0.35)' }}
+                   >
+                     Mon groupe
+                   </p>
+
+                   <p className="font-inter text-sm font-semibold text-white truncate">
+                     {communityGroup?.nom || 'Trouver mon groupe'}
+                   </p>
+
+                   {pendingGroupRequests > 0 && (
+                     <p
+                       className="font-inter text-[11px] mt-1"
+                       style={{ color: '#FBBF24' }}
+                     >
+                       {pendingGroupRequests} demande{pendingGroupRequests > 1 ? 's' : ''} en attente
+                     </p>
+                   )}
+                 </div>
+
+                 <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.22)' }} />
+               </Link>
+
+               <Link
+                 href="/member/dashboard/messages"
+                 className="flex items-center gap-4 p-4 rounded-xl"
+                 style={{
+                   background: 'rgba(255,255,255,0.025)',
+                   border: '1px solid rgba(255,255,255,0.06)',
+                 }}
+               >
+                 <div
+                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                   style={{ background: 'rgba(14,165,233,0.12)' }}
+                 >
+                   <Bell className="w-4 h-4" style={{ color: '#38BDF8' }} />
+                 </div>
+
+                 <div className="flex-1 min-w-0">
+                   <p
+                     className="font-inter text-[10px] uppercase tracking-wide mb-0.5"
+                     style={{ color: 'rgba(255,255,255,0.35)' }}
+                   >
+                     Messages
+                   </p>
+
+                   <p className="font-inter text-sm font-semibold text-white">
+                     {unreadMessages > 0
+                       ? `${unreadMessages} non lu${unreadMessages > 1 ? 's' : ''}`
+                       : 'À jour'}
+                   </p>
+
+                   <p
+                     className="font-inter text-[11px] mt-1"
+                     style={{ color: 'rgba(255,255,255,0.34)' }}
+                   >
+                     Échanger avec mon responsable et l’équipe
+                   </p>
+                 </div>
+
+                 <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.22)' }} />
+               </Link>
+             </div>
+           )}
+         </motion.section>
+
+         {/* Verse + quick wins */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="md:col-span-1 rounded-2xl p-5 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(75,0,130,0.25) 0%, rgba(212,175,55,0.08) 100%)', border: '1px solid rgba(212,175,55,0.2)' }}>
             <div className="flex items-center gap-2 mb-3">
