@@ -14,6 +14,7 @@ import { AnnouncementBanner } from '@/components/features/member/AnnouncementBan
 import { BibleTodayWidget } from '@/components/features/member/BibleTodayWidget'
 import { ProgressionCard } from '@/components/features/member/ProgressionCard'
 import { resolveMemberNextAction, type MemberNextAction } from '@/lib/member-home/next-action'
+import type { LiveState } from '@/lib/home/contextual'
 
 // Recueil de versets (LSG). Rotation déterministe par date — réellement « du jour ».
 const VERSETS = [
@@ -26,6 +27,8 @@ const VERSETS = [
   { reference: 'Romains 8 : 28', text: '"Toutes choses concourent au bien de ceux qui aiment Dieu."' },
   { reference: 'Matthieu 6 : 33', text: '"Cherchez premièrement le royaume et la justice de Dieu."' },
 ]
+const LIVE_POLL_INTERVAL_MS = 15_000
+
 function versetDuJour() {
   const now = new Date()
   const start = new Date(now.getFullYear(), 0, 0)
@@ -60,9 +63,56 @@ export default function DashboardPage() {
   const [formations, setFormations] = useState<FormationCard[] | null>(null)
   const [nextAction, setNextAction] = useState<MemberNextAction | null>(null)
   const [nextActionLoading, setNextActionLoading] = useState(true)
+  const [liveState, setLiveState] = useState<LiveState>({ status: 'OFFLINE' })
   // Verset du jour : calculé après montage (évite tout décalage d'hydratation).
   const [DAILY_VERSE, setDailyVerse] = useState(VERSETS[0])
   useEffect(() => { setDailyVerse(versetDuJour()) }, [])
+
+  useEffect(() => {
+    if (isDemo) {
+      setLiveState({ status: 'OFFLINE' })
+      return
+    }
+
+    let cancelled = false
+
+    const refreshCanonicalLive = async () => {
+      const response = await fetch('/api/live/canonical', {
+        cache: 'no-store',
+      }).catch(() => null)
+
+      if (!response?.ok || cancelled) return
+
+      const payload = await response.json().catch(() => null)
+
+      if (!cancelled && payload?.state) {
+        setLiveState(payload.state as LiveState)
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshCanonicalLive()
+      }
+    }
+
+    void refreshCanonicalLive()
+
+    const pollId = window.setInterval(
+      refreshCanonicalLive,
+      LIVE_POLL_INTERVAL_MS,
+    )
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', refreshCanonicalLive)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(pollId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', refreshCanonicalLive)
+    }
+  }, [isDemo])
 
   const prenom = profile?.prenom || ''
   const pays = profile?.pays || ''
@@ -107,10 +157,136 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-abyss pt-24 pb-20">
+    <div data-now-status={liveState.status} className="min-h-screen bg-abyss pt-24 pb-20">
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-10">
 
         <AnnouncementBanner />
+
+        {/* MAINTENANT — état canonique du direct, sans duplication YouTube/CMS */}
+        {liveState.status === 'LIVE' && (
+          <motion.section
+            aria-live="polite"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45 }}
+            className="relative overflow-hidden rounded-3xl mb-6 p-5 md:p-7"
+            style={{
+              background: 'linear-gradient(135deg, rgba(91,12,12,0.96) 0%, rgba(46,5,20,0.96) 52%, rgba(15,8,32,0.98) 100%)',
+              border: '1px solid rgba(248,113,113,0.28)',
+              boxShadow: '0 18px 50px rgba(127,29,29,0.2)',
+            }}
+          >
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'radial-gradient(circle at 12% 30%, rgba(239,68,68,0.20), transparent 34%), radial-gradient(circle at 88% 10%, rgba(212,175,55,0.12), transparent 30%)',
+              }}
+            />
+
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-2 mb-3">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                  </span>
+
+                  <span
+                    className="font-inter text-[10px] md:text-[11px] font-black tracking-[0.18em] uppercase"
+                    style={{ color: '#FCA5A5' }}
+                  >
+                    EN DIRECT MAINTENANT
+                  </span>
+                </div>
+
+                <h2
+                  className="font-cinzel font-black text-xl md:text-2xl text-white text-balance"
+                >
+                  {liveState.title}
+                </h2>
+
+                <p
+                  className="font-inter text-sm mt-2 max-w-2xl leading-relaxed"
+                  style={{ color: 'rgba(255,255,255,0.62)' }}
+                >
+                  La famille royale est réunie en ce moment. Entre dans le direct et participe avec nous.
+                </p>
+              </div>
+
+              <Link
+                href={liveState.watchUrl}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-inter text-xs md:text-sm font-black tracking-wide flex-shrink-0"
+                style={{
+                  background: 'linear-gradient(135deg, #F5E6A7, #D4AF37)',
+                  color: '#241600',
+                  boxShadow: '0 8px 24px rgba(212,175,55,0.22)',
+                }}
+              >
+                <Radio className="w-4 h-4" />
+                REJOINDRE LE DIRECT
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </motion.section>
+        )}
+
+        {liveState.status === 'UPCOMING' && (
+          <motion.section
+            aria-live="polite"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="relative overflow-hidden rounded-2xl mb-6 p-5 md:px-6 md:py-5"
+            style={{
+              background: 'linear-gradient(135deg, rgba(75,0,130,0.16), rgba(212,175,55,0.06))',
+              border: '1px solid rgba(212,175,55,0.16)',
+            }}
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-3.5 h-3.5" style={{ color: '#D4AF37' }} />
+
+                  <span
+                    className="font-inter text-[10px] font-black tracking-[0.18em] uppercase"
+                    style={{ color: 'rgba(212,175,55,0.82)' }}
+                  >
+                    PROCHAIN RENDEZ-VOUS
+                  </span>
+                </div>
+
+                <h2 className="font-cinzel font-bold text-base md:text-lg text-white">
+                  {liveState.title}
+                </h2>
+
+                {liveState.scheduledAt && (
+                  <p
+                    className="font-inter text-xs md:text-sm mt-1.5"
+                    style={{ color: 'rgba(255,255,255,0.50)' }}
+                  >
+                    {new Intl.DateTimeFormat('fr-FR', {
+                      dateStyle: 'full',
+                      timeStyle: 'short',
+                    }).format(new Date(liveState.scheduledAt))}
+                  </p>
+                )}
+              </div>
+
+              <Link
+                href={liveState.watchUrl || '/live'}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-inter text-xs font-semibold flex-shrink-0"
+                style={{
+                  background: 'rgba(212,175,55,0.10)',
+                  border: '1px solid rgba(212,175,55,0.24)',
+                  color: '#F5E6A7',
+                }}
+              >
+                Voir le rendez-vous
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </motion.section>
+        )}
 
         {/* Welcome banner */}
         <motion.div
