@@ -1,0 +1,38 @@
+import type { MemberNextAction } from '@/lib/member-home/next-action'
+
+export function resolveHeroGreeting(input: { authenticated: boolean; firstName?: string }) {
+  const firstName = input.firstName?.trim()
+  return input.authenticated && firstName
+    ? { title: `Bonjour ${firstName}.`, subtitle: 'Ton prochain pas peut commencer ici.' }
+    : { title: 'N’avance plus seul dans ta foi.', subtitle: 'Ton prochain pas peut commencer ici.' }
+}
+
+export type TodayPrimaryCandidate = { kind: 'visitor' | 'salvation' | 'integration'; title: string; description?: string; image?: string; href: string }
+export function selectTodayPrimary(candidates: TodayPrimaryCandidate[]) {
+  return candidates.find(c => c.kind === 'visitor') || candidates.find(c => c.kind === 'salvation') || candidates.find(c => c.kind === 'integration')
+}
+
+export type LiveState = { status: 'LIVE'; title: string; youtubeVideoId?: string; watchUrl: string; thumbnail?: string; startedAt?: string } | { status: 'UPCOMING'; title: string; youtubeVideoId?: string; watchUrl?: string; thumbnail?: string; scheduledAt?: string } | { status: 'OFFLINE' }
+export type CmsLiveLike = { title?: unknown; status?: unknown; is_live?: unknown; youtube_url?: unknown; video_url?: unknown; cover_url?: unknown; scheduled_at?: unknown; started_at?: unknown }
+export type HomeIntent = 'closer_to_god' | 'grow_in_faith' | 'need_prayer' | 'resume_walk'
+export type FirstStep = { type: 'prayer' | 'formation' | 'parcours' | 'live'; title: string; reason: string; href: string; cta: string }
+const str = (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : undefined
+const yt = (v: unknown) => typeof v === 'string' ? (v.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|live\/|shorts\/))([\w-]{11})/)?.[1] || (/^[\w-]{11}$/.test(v) ? v : undefined)) : undefined
+export function resolveLiveState(rows: CmsLiveLike[] | null | undefined, now = new Date()): LiveState {
+  const live = (rows || []).find(r => r.status === 'live' || r.is_live === true)
+  const source = live && (str(live.youtube_url) || str(live.video_url))
+  if (live && source) return { status: 'LIVE', title: str(live.title) || 'Direct de la Chapelle', youtubeVideoId: yt(live.youtube_url), watchUrl: '/live', thumbnail: str(live.cover_url), startedAt: str(live.started_at) }
+  const next = (rows || []).filter(r => r.status === 'scheduled' && str(r.scheduled_at)).map(r => ({ r, t: Date.parse(String(r.scheduled_at)) })).filter(x => Number.isFinite(x.t) && x.t >= now.getTime()).sort((a, b) => a.t - b.t)[0]
+  if (next) return { status: 'UPCOMING', title: str(next.r.title) || 'Prochain direct', youtubeVideoId: yt(next.r.youtube_url), watchUrl: (str(next.r.youtube_url) || str(next.r.video_url)) ? '/live' : undefined, thumbnail: str(next.r.cover_url), scheduledAt: String(next.r.scheduled_at) }
+  return { status: 'OFFLINE' }
+}
+export function resolveFirstStep(input: { intent: HomeIntent; authenticated: boolean; memberNextAction?: MemberNextAction | null; liveState?: LiveState }): FirstStep {
+  const { intent, authenticated, memberNextAction, liveState } = input
+  if (authenticated && memberNextAction && intent !== 'need_prayer') return { type: memberNextAction.kind === 'formation' ? 'formation' : 'parcours', title: memberNextAction.label, reason: memberNextAction.reason, href: memberNextAction.href, cta: memberNextAction.ctaLabel }
+  if (intent === 'need_prayer') return { type: 'prayer', title: 'Déposer une demande de prière', reason: 'Tu peux déposer ce que tu portes et être rejoint dans la prière.', href: '/priere', cta: 'Demander une prière' }
+  if (intent === 'closer_to_god') return { type: 'prayer', title: 'Prendre un temps avec Dieu', reason: 'Commence par un temps simple de prière et de présence.', href: '/priere', cta: 'Commencer dans la prière' }
+  if (intent === 'resume_walk') return { type: 'parcours', title: 'Reprendre mon parcours', reason: 'Le parcours d’intégration t’aide à reprendre un pas clair, sans pression.', href: '/parcours', cta: 'Reprendre mon parcours' }
+  if (liveState?.status === 'LIVE') return { type: 'live', title: liveState.title, reason: 'Le direct est en cours maintenant.', href: '/live', cta: 'Regarder le direct' }
+  return { type: 'formation', title: 'Grandir dans ma foi', reason: 'Découvre un enseignement pour avancer à ton rythme.', href: '/formations', cta: 'Découvrir les formations' }
+}
+export const INTENTS = [{ id: 'closer_to_god', title: 'Me rapprocher de Dieu', description: 'Un moment pour respirer et prier.' }, { id: 'grow_in_faith', title: 'Grandir dans ma foi', description: 'Un enseignement, un pas à la fois.' }, { id: 'need_prayer', title: 'J’ai besoin de prière', description: 'Déposer ce que tu portes.' }, { id: 'resume_walk', title: 'Reprendre ma marche avec Dieu', description: 'Retrouver un chemin simple.' }] as const

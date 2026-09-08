@@ -762,7 +762,7 @@
 
   /* Section spacing tokens */
   .section-cinematic { @apply py-24 md:py-32 px-4 md:px-8 lg:px-16 relative overflow-hidden; }
-  .container-cinematic { @apply max-w-7xl mx-auto relative; }
+.container-cinematic { @apply max-w-7xl mx-auto relative; padding-inline: clamp(16px, 4vw, 32px); }
 
   /* Halos */
   .halo-gold {
@@ -1649,5 +1649,122 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .home-reveal { opacity: 1; transform: translateY(0); transition: opacity 560ms ease, transform 560ms ease; }
+  .home-reveal.is-visible { opacity: 1; transform: translateY(0); }
+  .home-today-primary, .home-pastoral-panel { transition: transform 280ms ease, border-color 280ms ease; }
+  .home-today-primary:hover, .home-pastoral-panel:hover { transform: translateY(-3px); border-color: rgba(212,175,55,.5); }
+}
+
+.home-today-primary { position: relative; overflow: hidden; background-image: linear-gradient(110deg, rgba(8,8,14,.9), rgba(8,8,14,.62)), url('/images/formations/parcours-1/parcours-1-je-decouvre-la-maison.png'); background-size: cover; background-position: center; }
+.home-pastoral-panel { position: relative; overflow: hidden; background-image: linear-gradient(90deg, rgba(15,10,25,.98) 0%, rgba(15,10,25,.88) 48%, rgba(15,10,25,.54) 100%), url('/images/prayers/prayer-family.jpg'); background-size: cover; background-position: center; }
+.home-pastoral-panel > div:last-child { align-self: center; }
+.home-pastoral-panel > div:last-child { flex: none; display: flex; gap: 14px; }
+.home-pastoral-panel > div:last-child a { display: inline-flex; flex: none; width: auto; min-height: 48px; padding-inline: 24px; white-space: nowrap; }
+@media (max-width: 640px) { .home-pastoral-panel > div:last-child { width: 100%; } .home-pastoral-panel > div:last-child a { width: 100%; } }
+/* The poster carries its own message; keep UI copy below it, never over it. */
+.home-today-primary { display: flex; flex-direction: column; padding: 0; background-image: none; overflow: hidden; }
+.home-today-primary > div:first-child { display: flex; flex-direction: column; padding: 0; }
+.home-today-primary > div:first-child::before { content: ''; display: block; min-height: 220px; background: #0b0c14 url('/images/formations/parcours-1/parcours-1-je-decouvre-la-maison.png') center/contain no-repeat; }
+.home-today-primary > div:first-child > svg { margin: 20px 24px 0; }
+.home-today-primary > div:first-child > h3, .home-today-primary > div:first-child > p { margin-inline: 24px; }
+.home-today-primary > div:first-child > h3 { margin-top: 12px; }
+.home-today-primary > span { padding: 18px 24px 22px; }
+.today-primary-image { width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #0b0c14; }
+.today-primary-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.today-card-label { font-family: Inter, sans-serif; font-size: 10px; letter-spacing: .24em; font-weight: 700; color: #D4AF37; }
+.today-support-card { display: flex; flex-direction: column; }
+.today-support-card > div:last-child { flex: 1; }
+@media (min-width: 768px) { .today-primary-card { grid-row: span 2; } }
+
+/* CITADELLE_HOME_MOTION_V117C
+   Fail-open motion system:
+   cards are always visible even if JavaScript never runs.
+*/
+.home-motion-card {
+  opacity: 1;
+  transform: none;
+  will-change: transform;
+  transition:
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 340ms ease,
+    box-shadow 340ms ease,
+    background-color 340ms ease;
+}
+
+.home-motion-card.home-motion-enter {
+  animation: homeMotionEnter 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--home-motion-delay, 0ms);
+}
+
+@keyframes homeMotionEnter {
+  0% {
+    opacity: 0.78;
+    transform: translateY(14px) scale(0.995);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.home-motion-image {
+  transform: scale(1);
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center;
+}
+
+.home-motion-arrow {
+  transform: translateX(0);
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.home-motion-live {
+  box-shadow:
+    inset 0 0 0 1px rgba(212, 175, 55, 0.08),
+    0 0 0 rgba(212, 175, 55, 0);
+}
+
+.home-motion-live .today-card-label {
+  text-shadow: 0 0 16px rgba(212, 175, 55, 0.22);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .home-motion-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(212, 175, 55, 0.42);
+    box-shadow:
+      0 18px 44px rgba(0, 0, 0, 0.30),
+      0 0 24px rgba(212, 175, 55, 0.07);
+  }
+
+  .home-motion-card:hover .home-motion-image {
+    transform: scale(1.03);
+  }
+
+  .home-motion-card:hover .home-motion-arrow {
+    transform: translateX(3px);
+  }
+
+  .home-motion-live:hover {
+    border-color: rgba(212, 175, 55, 0.50);
+    box-shadow:
+      0 18px 44px rgba(0, 0, 0, 0.32),
+      0 0 30px rgba(212, 175, 55, 0.10);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-motion-card,
+  .home-motion-card.home-motion-enter,
+  .home-motion-image,
+  .home-motion-arrow {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

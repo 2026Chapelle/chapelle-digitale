@@ -7,6 +7,7 @@ import {
   Tv, Activity, CheckCircle, AlertCircle, Trash2, Edit
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
+import LiveAdminSupervision from '@/components/admin/live/LiveAdminSupervision'
 
 type LiveStatut = 'en_cours' | 'planifie' | 'termine' | 'brouillon'
 
@@ -150,7 +151,7 @@ export default function AdminLivePage() {
           {[
             { key: 'lives', label: 'Programme' },
             { key: 'config', label: 'Configuration streaming' },
-            { key: 'stats', label: 'Statistiques' },
+            { key: 'stats', label: 'Supervision' },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as typeof tab)}
               className="px-4 py-2 rounded-lg text-sm font-inter font-medium transition-all"
@@ -292,10 +293,10 @@ export default function AdminLivePage() {
               </h2>
               <div className="space-y-3">
                 {[
-                  { nom: 'YouTube CIER', icon: Youtube, actif: false, abonnes: '0', color: '#EF4444' },
-                  { nom: 'Facebook CIER', icon: Facebook, actif: false, abonnes: '0', color: '#3B82F6' },
-                  { nom: 'Instagram Live', icon: Instagram, actif: false, abonnes: '0', color: '#EC4899' },
-                  { nom: 'Plateforme CIER', icon: Tv, actif: false, abonnes: '0', color: '#D4AF37' },
+                  { nom: 'YouTube CIER', icon: Youtube, actif: false, color: '#EF4444' },
+                  { nom: 'Facebook CIER', icon: Facebook, actif: false, color: '#3B82F6' },
+                  { nom: 'Instagram Live', icon: Instagram, actif: false, color: '#EC4899' },
+                  { nom: 'Plateforme CIER', icon: Tv, actif: false, color: '#D4AF37' },
                 ].map((canal) => (
                   <div key={canal.nom} className="flex items-center gap-3 p-3.5 rounded-xl"
                     style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -305,7 +306,6 @@ export default function AdminLivePage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-inter text-sm font-semibold text-pearl">{canal.nom}</p>
-                      <p className="text-[10px] text-pearl/30 font-inter">{canal.abonnes} abonnés</p>
                     </div>
                     <button
                       className="w-10 h-5 rounded-full relative flex-shrink-0 transition-all"
@@ -322,32 +322,8 @@ export default function AdminLivePage() {
         )}
 
         {tab === 'stats' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[
-              { label: 'Vues totales', value: '0', icon: Eye, color: '#D4AF37', sub: 'tous les lives' },
-              { label: 'Spectateurs peak', value: '0', icon: Users, color: '#EF4444', sub: 'record' },
-              { label: 'Lives ce mois', value: '0', icon: Radio, color: '#22C55E', sub: 'diffusés' },
-              { label: 'Durée totale', value: '0h', icon: Clock, color: '#8B5CF6', sub: 'diffusées ce mois' },
-              { label: 'Pays atteints', value: '0', icon: Tv, color: '#0EA5E9', sub: 'ce mois' },
-              { label: 'Replays vus', value: '0', icon: Play, color: '#F97316', sub: 'après diffusion' },
-            ].map((s, i) => (
-              <motion.div key={s.label}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.06 * i }}
-                className="card-royal">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                  style={{ background: `${s.color}18` }}>
-                  <s.icon className="w-5 h-5" style={{ color: s.color }} />
-                </div>
-                <div className="font-cinzel text-3xl font-black" style={{ color: s.color }}>{s.value}</div>
-                <div className="font-inter text-sm text-pearl/70 mt-1">{s.label}</div>
-                <div className="font-inter text-xs text-pearl/25 mt-0.5">{s.sub}</div>
-              </motion.div>
-            ))}
-          </div>
+          <LiveAdminSupervision />
         )}
-
         {/* New live modal */}
         {showForm && (
           <div className="admin-modal-overlay flex items-center justify-center p-4">
