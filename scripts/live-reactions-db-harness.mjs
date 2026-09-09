@@ -8,6 +8,11 @@ const migrationPath = resolve(
   'supabase/migrations/20260908120000_live_shared_reactions_foundation.sql',
 )
 
+const runtimeMigrationPath = resolve(
+  process.cwd(),
+  'supabase/migrations/20260908123000_live_shared_reactions_runtime_functions.sql',
+)
+
 const productionProjectRef = 'nvyuyffywnuollaxguen'
 
 export function validateTestDatabaseUrl(value) {
@@ -102,7 +107,7 @@ function runPsql(args, input) {
 
 export async function sql(text, { role } = {}) {
   return runPsql(
-    [databaseUrl(), '-X', '-qAt', '-v', 'ON_ERROR_STOP=1'],
+    ['-X', '-qAt', '-v', 'ON_ERROR_STOP=1', databaseUrl()],
     frameSqlTransaction(text, { role }),
   )
 }
@@ -110,7 +115,7 @@ export async function sql(text, { role } = {}) {
 export async function openSqlSession() {
   const child = spawn(
     'psql',
-    [databaseUrl(), '-X', '-qAt', '-v', 'ON_ERROR_STOP=1'],
+    ['-X', '-qAt', '-v', 'ON_ERROR_STOP=1', databaseUrl()],
     { stdio: ['pipe', 'pipe', 'pipe'] },
   )
   let stdout = ''
@@ -180,7 +185,18 @@ export async function applyFoundation() {
   }
 
   return runPsql(
-    [databaseUrl(), '-X', '-v', 'ON_ERROR_STOP=1', '-f', migrationPath],
+    ['-X', '-v', 'ON_ERROR_STOP=1', '-f', migrationPath, databaseUrl()],
+    '',
+  )
+}
+
+export async function applyRuntime() {
+  if (!existsSync(runtimeMigrationPath)) {
+    throw new Error('LIVE 4B.2 runtime migration file is missing')
+  }
+
+  return runPsql(
+    ['-X', '-v', 'ON_ERROR_STOP=1', '-f', runtimeMigrationPath, databaseUrl()],
     '',
   )
 }
@@ -189,9 +205,13 @@ const isMainModule = process.argv[1]
   && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
 
 if (isMainModule) {
-  if (process.argv[2] !== 'apply-foundation') {
-    throw new Error('usage: node scripts/live-reactions-db-harness.mjs apply-foundation')
-  }
+  const command = process.argv[2]
 
-  await applyFoundation()
+  if (command === 'apply-foundation') {
+    await applyFoundation()
+  } else if (command === 'apply-runtime') {
+    await applyRuntime()
+  } else {
+    throw new Error('usage: node scripts/live-reactions-db-harness.mjs apply-foundation|apply-runtime')
+  }
 }

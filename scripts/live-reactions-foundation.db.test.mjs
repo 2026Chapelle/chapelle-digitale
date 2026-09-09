@@ -31,7 +31,7 @@ test('LIVE 4B.1 foundation rejects invalid domains and preserves anonymous event
     await session.sql(`insert into public.live_reaction_events (live_key, reaction) values ('${liveKey}', 'fire')`)
 
     const columns = await session.sql(`select column_name from information_schema.columns where table_schema = 'public' and table_name = 'live_reaction_events' order by ordinal_position`)
-    assert.equal(columns.trim(), 'event_id\nlive_key\nreaction\naccepted_at')
+    assert.equal(columns.replace(/\r\n/g, '\n').trim(), 'event_id\nlive_key\nreaction\naccepted_at')
   } finally {
     await session.close()
   }
