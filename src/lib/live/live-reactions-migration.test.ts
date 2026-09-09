@@ -14,7 +14,7 @@ const sql = existsSync(migrationPath)
 
 const normalized = sql.replace(/\s+/g, ' ').toLowerCase()
 
-const tableNames = [...sql.matchAll(/create table(?: if not exists)? public\.(\w+)/gi)]
+const tableNames = Array.from(sql.matchAll(/create table(?: if not exists)? public\.(\w+)/gi))
   .map((match) => match[1])
 
 describe('LIVE 4B.1 shared reactions foundation migration', () => {
@@ -39,7 +39,7 @@ describe('LIVE 4B.1 shared reactions foundation migration', () => {
     expect(normalized).toContain('event_id uuid primary key default gen_random_uuid()')
     expect(normalized).toContain('create index idx_live_reaction_totals_type')
     expect(normalized).toContain('create index idx_live_reaction_events_time')
-    expect(normalized).not.toMatch(/create table[^;]*live_reaction_events[^;]*(actor_key|member_id|guest_hash|ip_address|profile)/is)
+    expect(normalized).not.toMatch(/create table[^;]*live_reaction_events[^;]*(actor_key|member_id|guest_hash|ip_address|profile)/i)
   })
 
   it('enforces the exact live key, actor key and five-reaction domains', () => {
@@ -79,7 +79,7 @@ describe('LIVE 4B.1 shared reactions foundation migration', () => {
     expect(normalized).toContain('create policy live_reaction_events_recent_read')
     expect(normalized).toContain("accepted_at > statement_timestamp() - interval '60 seconds'")
     expect(normalized).toContain('accepted_at <= statement_timestamp()')
-    expect(normalized).not.toMatch(/create policy[^;]*(live_reaction_runs|live_reaction_actor_limits|live_reaction_actor_totals)/is)
+    expect(normalized).not.toMatch(/create policy[^;]*(live_reaction_runs|live_reaction_actor_limits|live_reaction_actor_totals)/i)
   })
 
   it('uses an existing realtime publication without changing LIVE 4A', () => {

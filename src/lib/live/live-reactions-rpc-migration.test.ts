@@ -9,7 +9,7 @@ describe('LIVE 4B.2 transactional reaction RPC migration', () => {
     for (const name of ['live_reaction_window', 'live_reaction_record', 'live_reaction_snapshot', 'live_reaction_admin_counts', 'live_reaction_finalize']) expect(sql).toContain(`function public.${name}`)
     expect(sql).toContain('security invoker')
     expect(sql).toContain("set local lock_timeout = '1s'")
-    expect(sql).toMatch(/for share.*for update.*clock_timestamp/is)
+    expect(sql).toMatch(/for share.*for update.*clock_timestamp/i)
     expect(sql).toContain("s > p_time - interval '10 seconds' and s <= p_time")
     expect(sql).toContain('rate_limited')
     expect(sql).toContain('on conflict (live_key, actor_key, reaction) do update')
