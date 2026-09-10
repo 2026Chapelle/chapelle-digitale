@@ -1,9 +1,13 @@
 import 'server-only'
 
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, supabaseCmsRead } from '@/lib/supabase'
 import { getCanonicalLiveState, liveKeyFromState } from './canonical-server'
 import { resolveLiveReactionActor } from './live-reaction-identity-server'
 import { REACTION_TYPES, type ReactionCounts, type ReactionType, parseReactionCounts } from './live-reactions'
+import {
+  parseReactionYouTubeId,
+  type ReplayReactionSnapshot,
+} from './live-reaction-replay'
 
 const LIVE_KEY_RE = /^youtube:[A-Za-z0-9_-]{11}$/
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -306,4 +310,266 @@ export async function getLiveReactionAdminAggregate(liveKey: string): Promise<Re
   })
 
   return parseReactionAggregate(raw)
+}
+const CMS_REPLAY_TIMEOUT_MS = 2_000
+
+type CmsReplayRow = {
+  id: string
+  youtube_url: string | null
+  video_url: string | null
+  status: string | null
+  is_live: boolean | null
+}
+
+async function withReplayTimeout<T>(
+  work: PromiseLike<T>,
+): Promise<T | null> {
+  let timer:
+    | ReturnType<typeof setTimeout>
+    | undefined
+
+  try {
+    const timeout =
+      new Promise<null>(
+        resolve => {
+          timer = setTimeout(
+            () => resolve(null),
+            CMS_REPLAY_TIMEOUT_MS,
+          )
+        },
+      )
+
+    return await Promise.race([
+      Promise.resolve(work),
+      timeout,
+    ])
+  } finally {
+    if (timer !== undefined) {
+      clearTimeout(timer)
+    }
+  }
+}
+
+async function finalizeReplayReactionRun(
+  liveKey: string,
+): Promise<ReplayReactionSnapshot> {
+  const raw =
+    await callReactionRpc(
+      'live_reaction_finalize',
+      {
+        p_live_key:
+          liveKey,
+      },
+    )
+
+  if (!isObject(raw)) {
+    return {
+      ok: false,
+      reason:
+        'unavailable',
+    }
+  }
+
+  if (
+    raw.state ===
+      'not_recorded'
+  ) {
+    return {
+      ok: false,
+      reason:
+        'not_recorded',
+    }
+  }
+
+  if (
+    raw.state !== 'final' ||
+    raw.liveKey !== liveKey ||
+    !isObject(raw.stats)
+  ) {
+    return {
+      ok: false,
+      reason:
+        'unavailable',
+    }
+  }
+
+  const aggregate =
+    parseReactionAggregate(
+      raw.stats,
+    )
+
+  if (!aggregate.available) {
+    return {
+      ok: false,
+      reason:
+        'unavailable',
+    }
+  }
+
+  return {
+    ok: true,
+    state: 'final',
+    liveKey,
+    uniqueByType:
+      aggregate.uniqueByType,
+  }
+}
+
+export async function getReplayReactionSnapshot(
+  cmsLiveId: string,
+): Promise<ReplayReactionSnapshot> {
+  if (!UUID_RE.test(cmsLiveId)) {
+    return {
+      ok: false,
+      reason: 'not_found',
+    }
+  }
+
+  let cmsResult:
+    | {
+        data:
+          | CmsReplayRow
+          | null
+        error: unknown
+      }
+    | null
+
+  try {
+    const query =
+      supabaseCmsRead
+        .from('cms_lives')
+        .select(
+          'id,youtube_url,video_url,status,is_live',
+        )
+        .eq(
+          'id',
+          cmsLiveId,
+        )
+        .maybeSingle()
+
+    cmsResult =
+      await withReplayTimeout(
+        query,
+      )
+  } catch {
+    return {
+      ok: false,
+      reason:
+        'unavailable',
+    }
+  }
+
+  if (!cmsResult) {
+    return {
+      ok: false,
+      reason:
+        'unavailable',
+    }
+  }
+
+  if (cmsResult.error) {
+    return {
+      ok: false,
+      reason:
+        'unavailable',
+    }
+  }
+
+  const row =
+    cmsResult.data
+
+  if (!row) {
+    return {
+      ok: false,
+      reason: 'not_found',
+    }
+  }
+
+  if (
+    (
+      row.status !== 'ended' &&
+      row.status !== 'published'
+    ) ||
+    row.is_live !== false
+  ) {
+    return {
+      ok: false,
+      reason: 'not_found',
+    }
+  }
+
+  const primary =
+    typeof row.youtube_url ===
+      'string' &&
+    row.youtube_url.trim() !== ''
+      ? row.youtube_url
+      : null
+
+  const source =
+    primary ??
+    row.video_url
+
+  const videoId =
+    parseReactionYouTubeId(
+      source,
+    )
+
+  if (!videoId) {
+    return {
+      ok: false,
+      reason:
+        'not_recorded',
+    }
+  }
+
+  const liveKey =
+    `youtube:${videoId}`
+
+  let canonicalState:
+    Awaited<
+      ReturnType<
+        typeof getCanonicalLiveState
+      >
+    >
+
+  try {
+    canonicalState =
+      await getCanonicalLiveState()
+  } catch {
+    return {
+      ok: false,
+      reason:
+        'unavailable',
+    }
+  }
+
+  const canonicalKey =
+    canonicalKeyFromState(
+      canonicalState,
+    )
+
+  if (
+    canonicalKey ===
+    liveKey
+  ) {
+    return {
+      ok: false,
+      reason:
+        'not_final',
+    }
+  }
+
+  /*
+   * Editorial replay publication is the explicit
+   * end assertion for this exact CMS row.
+   * Canonical OFFLINE fallback is intentionally
+   * not treated as an independent YouTube end clock.
+   *
+   * Important: finalize does NOT create a run.
+   * Never call live_reaction_snapshot here because
+   * that RPC inserts a run when absent.
+   */
+  return finalizeReplayReactionRun(
+    liveKey,
+  )
 }
