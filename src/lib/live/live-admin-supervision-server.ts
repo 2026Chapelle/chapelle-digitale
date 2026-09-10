@@ -13,6 +13,10 @@ import {
   supabaseAdmin,
 } from '@/lib/supabase'
 
+import {
+  getLiveReactionAdminAggregate,
+} from '@/lib/live/live-reactions-server'
+
 type AvailablePresence = {
   available: true
   activeTotal: number
@@ -32,6 +36,26 @@ type AvailableShares = {
   copyLink: number
 }
 
+type AvailableReactions = {
+  available: true
+  uniqueActors: number
+  totalActions: number
+  uniqueByType: {
+    prayer: number
+    fire: number
+    heart: number
+    praise: number
+    kingdom: number
+  }
+  actionsByType: {
+    prayer: number
+    fire: number
+    heart: number
+    praise: number
+    kingdom: number
+  }
+}
+
 export type LiveAdminSupervisionData = {
   live: boolean
   canonical: {
@@ -45,6 +69,10 @@ export type LiveAdminSupervisionData = {
     | null
   shares:
     | AvailableShares
+    | UnavailableAggregate
+    | null
+  reactions:
+    | AvailableReactions
     | UnavailableAggregate
     | null
 }
@@ -199,6 +227,7 @@ export async function getLiveAdminSupervision():
         canonicalData,
       presence: null,
       shares: null,
+      reactions: null,
     }
   }
 
@@ -206,6 +235,7 @@ export async function getLiveAdminSupervision():
     presenceResult,
     nativeResult,
     copyResult,
+    reactionResult,
   ] =
     await Promise.all([
       getLivePresenceCounts(),
@@ -216,6 +246,9 @@ export async function getLiveAdminSupervision():
       countShareKind(
         liveKey,
         'copy_link',
+      ),
+      getLiveReactionAdminAggregate(
+        liveKey,
       ),
     ])
 
@@ -261,5 +294,11 @@ export async function getLiveAdminSupervision():
       canonicalData,
     presence,
     shares,
+    reactions:
+      reactionResult.available
+        ? reactionResult
+        : {
+            available: false,
+          },
   }
 }

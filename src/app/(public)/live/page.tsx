@@ -1,9 +1,14 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { Play, Users, Heart, Radio, Clock } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import LivePresenceControls from '@/components/live/LivePresenceControls'
+import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
+import LiveReactionControls from '@/components/live/LiveReactionControls'
+import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
+import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
+import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
 import { LIVE_PUBLIC_URL, LIVE_SHARE_TEXT, recordSuccessfulLiveShare } from '@/lib/live/live-share-client'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
@@ -15,7 +20,6 @@ function ytId(url?: string): string | null {
   return m ? m[1] : (/^[\w-]{11}$/.test(String(url)) ? String(url) : null)
 }
 
-const REACTIONS = ['🙏', '🔥', '❤️', '✨', '🙌', '💫', '👑', '⚡']
 
 interface Replay { id: string; titre: string; date: string; speaker: string; url: string; cover?: string }
 
@@ -31,8 +35,6 @@ const LIVE_POLL_INTERVAL_MS = 15_000
 
 export default function LivePage() {
   const [tab, setTab] = useState<'live' | 'replays'>('live')
-  const [reactions, setReactions] = useState<{ id: number; emoji: string; x: number }[]>([])
-  const reactionCount = useRef(0)
 
   // Direct RÉEL depuis cms_lives — MÊME source que l'espace membre (source unique).
   const [live, setLive] = useState<{ titre: string; description: string; youtube_url: string; video_url: string; cover: string; plateforme: string } | null>(null)
@@ -44,7 +46,7 @@ export default function LivePage() {
     ;(async () => {
       try {
         const { data } = await supabase.from('cms_lives')
-          .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at, scheduled_at')
+          .select('id, title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at, scheduled_at')
           .in('status', ['live', 'scheduled', 'ended', 'published'])
         if (cancelled || !data) return
         const canonicalResponse = await fetch('/api/live/canonical', { cache: 'no-store' }).catch(() => null)
@@ -77,8 +79,8 @@ export default function LivePage() {
             return bTime - aTime
           })
 
-        const reps: Replay[] = replayRows.map((d, i) => ({
-          id: `${d.title || 'replay'}-${i}`,
+        const reps: Replay[] = replayRows.map((d) => ({
+          id: d.id,
           titre: d.title || 'Rediffusion',
           date: d.scheduled_at || d.created_at
             ? new Date(d.scheduled_at || d.created_at).toLocaleDateString(
@@ -212,22 +214,6 @@ export default function LivePage() {
   const nextLive = upcoming[0] ?? null
   const latestReplay = replays[0] ?? null
 
-  const sendReaction = (emoji: string) => {
-    const id = reactionCount.current++
-
-    setReactions(prev => [
-      ...prev,
-      {
-        id,
-        emoji,
-        x: Math.random() * 70 + 15,
-      },
-    ])
-
-    window.setTimeout(() => {
-      setReactions(prev => prev.filter(item => item.id !== id))
-    }, 1900)
-  }
 
   const shareLive = async () => {
     if (typeof window === 'undefined') return
@@ -422,61 +408,18 @@ export default function LivePage() {
                       <LivePresenceControls liveVideoId={liveYt} />
                     )}
 
-                    <div className="relative h-20 sm:h-24 overflow-hidden rounded-xl sm:rounded-2xl border border-gold/10 bg-gold/[0.025]">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <p className="font-inter text-xs text-pearl/40">
-                          Exprime ta réaction sur ton écran
-                        </p>
-                      </div>
+                    <LiveReactionsProvider
+                      videoId={liveYt}
+                      enabled={tab === 'live' && Boolean(liveYt)}
+                    >
+                      <LiveReactionBoundary>
+                        <LiveReactionAnimationLayer />
+                      </LiveReactionBoundary>
 
-                      <div className="absolute inset-0 pointer-events-none">
-                        <AnimatePresence>
-                          {reactions.map((reaction) => (
-                            <motion.div
-                              key={reaction.id}
-                              initial={{
-                                opacity: 0,
-                                y: 60,
-                                scale: 0.65,
-                              }}
-                              animate={{
-                                opacity: 1,
-                                y: -10,
-                                scale: 1.3,
-                              }}
-                              exit={{
-                                opacity: 0,
-                                y: -40,
-                              }}
-                              transition={{
-                                duration: 1.8,
-                                ease: 'easeOut',
-                              }}
-                              className="absolute bottom-1 text-2xl"
-                              style={{
-                                left: `${reaction.x}%`,
-                              }}
-                            >
-                              {reaction.emoji}
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
-                      {REACTIONS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => sendReaction(emoji)}
-                          className="h-10 rounded-xl border border-pearl/[0.07] bg-pearl/[0.03] hover:border-gold/30 hover:bg-gold/[0.05] transition-all text-lg"
-                          aria-label={'Réagir ' + emoji}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+                      <LiveReactionBoundary>
+                        <LiveReactionControls />
+                      </LiveReactionBoundary>
+                    </LiveReactionsProvider>
                   </>
                 ) : (
                   <div className="rounded-2xl border border-gold/15 bg-gold/[0.035] p-4">
@@ -878,28 +821,52 @@ export default function LivePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {replays.map((replay, i) => (
-                <motion.a
-                  key={replay.id} href={replay.url} target="_blank" rel="noreferrer"
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  className="card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
+                <motion.div
+                  key={replay.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="space-y-2"
                 >
-                  <div className="relative rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
-                    {replay.cover ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={replay.cover} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-royal/40 to-abyss" />
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(5,3,8,0.35)' }}>
-                      <div className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Play className="w-5 h-5 text-gold ml-0.5" fill="currentColor" />
+                  <a
+                    href={replay.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
+                  >
+                    <div className="relative rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
+                      {replay.cover ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={replay.cover} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-royal/40 to-abyss" />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(5,3,8,0.35)' }}>
+                        <div className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Play className="w-5 h-5 text-gold ml-0.5" fill="currentColor" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <h3 className="font-cinzel text-xs font-bold text-pearl group-hover:text-gold transition-colors line-clamp-2 mb-2">{replay.titre}</h3>
-                  {replay.speaker && <p className="text-[11px] text-pearl/40 font-inter capitalize">{replay.speaker}</p>}
-                  {replay.date && <p className="text-[11px] text-pearl/30 mt-1">{replay.date}</p>}
-                </motion.a>
+
+                    <h3 className="font-cinzel text-xs font-bold text-pearl group-hover:text-gold transition-colors line-clamp-2 mb-2">
+                      {replay.titre}
+                    </h3>
+
+                    {replay.speaker && (
+                      <p className="text-[11px] text-pearl/40 font-inter capitalize">
+                        {replay.speaker}
+                      </p>
+                    )}
+
+                    {replay.date && (
+                      <p className="text-[11px] text-pearl/30 mt-1">
+                        {replay.date}
+                      </p>
+                    )}
+                  </a>
+
+                  <LiveReplayReactionCounts cmsLiveId={replay.id} />
+                </motion.div>
               ))}
             </div>
           )}

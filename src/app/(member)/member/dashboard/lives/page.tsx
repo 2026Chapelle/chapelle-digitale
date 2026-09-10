@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Play, Pause, Clock, Calendar, Tv, Radio, Heart,
@@ -10,6 +10,11 @@ import {
 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import LiveOffering from '@/components/features/giving/LiveOffering'
+import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
+import LiveReactionControls from '@/components/live/LiveReactionControls'
+import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
+import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
+import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
 import ShareButtons from '@/components/ui/ShareButtons'
 import toast from 'react-hot-toast'
 
@@ -93,7 +98,6 @@ const LIVE_FALLBACK = {
 type ReplayItem = { id: string; titre: string; date: string; duree: string; plateforme: string; emoji: string; couleur: string; youtube_url?: string; cover?: string }
 type AVenirItem = { id: string; titre: string; date: string; heure: string; plateforme: string; emoji: string; couleur: string }
 
-const REACTIONS_LIVE = ['🙌', '🔥', '❤️', '🙏', '✨', '👑']
 
 // Programmes réguliers officiels (heure d'Abidjan / GMT).
 const PROGRAMMES_REGULIERS = [
@@ -109,11 +113,9 @@ const LIVE_POLL_INTERVAL_MS = 15_000
 
 export default function LivesPage() {
   const [tab, setTab] = useState<'live' | 'replays' | 'programme'>('live')
-  const [reactions, setReactions] = useState<{ id: number; emoji: string; x: number }[]>([])
-  const reactionCount = useRef(0)
 
   // Lecteur intégré (replays + playlists) : le membre reste dans Citadelle.
-  const [player, setPlayer] = useState<{ ytId?: string; listId?: string; titre: string } | null>(null)
+  const [player, setPlayer] = useState<{ ytId?: string; listId?: string; cmsLiveId?: string; titre: string } | null>(null)
   // Partage (modale réutilisant le composant ShareButtons).
   const [share, setShare] = useState<{ url: string; titre: string; texte?: string } | null>(null)
 
@@ -247,11 +249,6 @@ export default function LivesPage() {
   const liveYtId = ytId(LIVE_EN_COURS.youtube_url)
   const liveVideoUrl = LIVE_EN_COURS.video_url || ''
 
-  const sendReaction = (emoji: string) => {
-    const id = reactionCount.current++
-    setReactions(prev => [...prev, { id, emoji, x: Math.random() * 80 + 10 }])
-    setTimeout(() => setReactions(prev => prev.filter(r => r.id !== id)), 2000)
-  }
 
   // URL publique partageable (le partage ramène vers Citadelle, pas vers YouTube).
   const shareUrl = () => (typeof window !== 'undefined' ? `${window.location.origin}/live` : 'https://chapelleduroyaume.org/live')
@@ -368,25 +365,6 @@ export default function LivesPage() {
                   </div>
                 )}
 
-                {/* Réactions flottantes (par-dessus le lecteur, sans bloquer les clics) */}
-                <div className="absolute bottom-16 left-4 pointer-events-none z-20">
-                  <AnimatePresence>
-                    {reactions.map(r => (
-                      <motion.div
-                        key={r.id}
-                        initial={{ opacity: 1, y: 0, scale: 0.5 }}
-                        animate={{ opacity: 0, y: -120, scale: 1.5 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 2, ease: 'easeOut' }}
-                        className="absolute text-2xl"
-                        style={{ left: `${r.x}%` }}
-                      >
-                        {r.emoji}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-
 
               </motion.div>
 
@@ -420,27 +398,16 @@ export default function LivesPage() {
                   </div>
                 </div>
 
-                {/* Reaction bar */}
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-pearl/[0.05]">
-                  <span className="text-xs text-pearl/30 font-inter mr-1">Réagir :</span>
-                  {REACTIONS_LIVE.map(emoji => (
-                    <button key={emoji}
-                      onClick={() => sendReaction(emoji)}
-                      className="text-xl hover:scale-125 transition-transform active:scale-95"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                  <div className="ml-auto flex items-center gap-3 text-xs text-pearl/30 font-inter">
-                    <button onClick={() => setShare({ url: shareUrl(), titre: LIVE_EN_COURS.titre, texte: LIVE_EN_COURS.description })}
-                      className="flex items-center gap-1 hover:text-pearl transition-colors">
-                      <Share2 className="w-3.5 h-3.5" /> Partager
-                    </button>
-                    <button onClick={() => remind(LIVE_EN_COURS.titre)}
-                      className="flex items-center gap-1 hover:text-pearl transition-colors">
-                      <Bell className="w-3.5 h-3.5" /> Me rappeler
-                    </button>
-                  </div>
+                {/* Actions du direct */}
+                <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-pearl/[0.05] text-xs text-pearl/30 font-inter">
+                  <button onClick={() => setShare({ url: shareUrl(), titre: LIVE_EN_COURS.titre, texte: LIVE_EN_COURS.description })}
+                    className="flex items-center gap-1 hover:text-pearl transition-colors">
+                    <Share2 className="w-3.5 h-3.5" /> Partager
+                  </button>
+                  <button onClick={() => remind(LIVE_EN_COURS.titre)}
+                    className="flex items-center gap-1 hover:text-pearl transition-colors">
+                    <Bell className="w-3.5 h-3.5" /> Me rappeler
+                  </button>
                 </div>
 
                 {/* Offrande pendant le direct — MÊME composant que la page publique /live */}
@@ -508,19 +475,18 @@ export default function LivesPage() {
               </div>
 
               <div className="p-5">
-                <div className="grid grid-cols-3 gap-2">
-                  {REACTIONS_LIVE.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => sendReaction(emoji)}
-                      className="h-12 rounded-xl border border-pearl/[0.07] bg-pearl/[0.03] hover:border-gold/30 hover:bg-gold/[0.05] transition-all text-xl"
-                      aria-label={'Réagir ' + emoji}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
+                <LiveReactionsProvider
+                  videoId={liveYtId}
+                  enabled={tab === 'live' && hasLive && Boolean(liveYtId) && player === null}
+                >
+                  <LiveReactionBoundary>
+                    <LiveReactionAnimationLayer />
+                  </LiveReactionBoundary>
+
+                  <LiveReactionBoundary>
+                    <LiveReactionControls />
+                  </LiveReactionBoundary>
+                </LiveReactionsProvider>
 
                 <div className="mt-5 rounded-2xl border border-gold/15 bg-gold/[0.035] p-4">
                   <p className="font-cinzel text-xs font-bold text-gold">
@@ -557,7 +523,7 @@ export default function LivesPage() {
                   style={{ transition: 'border-color 0.2s, box-shadow 0.2s' }}
                   onClick={() => {
                     const id = ytId(r.youtube_url)
-                    if (id) setPlayer({ ytId: id, titre: r.titre })
+                    if (id) setPlayer({ ytId: id, titre: r.titre, cmsLiveId: r.id })
                     else if (r.youtube_url) window.open(r.youtube_url, '_blank', 'noopener,noreferrer')
                   }}
                   onMouseEnter={e => {
@@ -736,21 +702,36 @@ export default function LivesPage() {
               <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 20 }}
                 transition={{ type: 'spring', damping: 26, stiffness: 320 }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-4xl rounded-3xl overflow-hidden border border-gold/25 bg-abyss"
-                style={{ aspectRatio: '16/9' }}>
-                <button onClick={() => setPlayer(null)} aria-label="Fermer"
-                  className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl flex items-center justify-center bg-black/55 border border-pearl/15 text-pearl/80 hover:text-pearl">
-                  <X className="w-4 h-4" />
-                </button>
-                <iframe
-                  className="absolute inset-0 w-full h-full"
-                  src={player.listId
-                    ? `https://www.youtube.com/embed/videoseries?list=${player.listId}&rel=0&modestbranding=1`
-                    : `https://www.youtube.com/embed/${player.ytId}?rel=0&modestbranding=1&autoplay=1`}
-                  title={player.titre}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+                className="relative w-full max-w-4xl rounded-3xl overflow-hidden border border-gold/25 bg-abyss">
+
+                <div
+                  className="relative"
+                  style={{ aspectRatio: '16/9' }}
+                >
+                  <button
+                    onClick={() => setPlayer(null)}
+                    aria-label="Fermer"
+                    className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl flex items-center justify-center bg-black/55 border border-pearl/15 text-pearl/80 hover:text-pearl"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src={player.listId
+                      ? `https://www.youtube.com/embed/videoseries?list=${player.listId}&rel=0&modestbranding=1`
+                      : `https://www.youtube.com/embed/${player.ytId}?rel=0&modestbranding=1&autoplay=1`}
+                    title={player.titre}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+
+                {player.cmsLiveId && (
+                  <div className="border-t border-pearl/[0.07] p-4">
+                    <LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />
+                  </div>
+                )}
               </motion.div>
             </motion.div>
           )}
