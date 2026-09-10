@@ -8,6 +8,7 @@ import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
 import LiveReactionControls from '@/components/live/LiveReactionControls'
 import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
+import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
 import { LIVE_PUBLIC_URL, LIVE_SHARE_TEXT, recordSuccessfulLiveShare } from '@/lib/live/live-share-client'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
@@ -45,7 +46,7 @@ export default function LivePage() {
     ;(async () => {
       try {
         const { data } = await supabase.from('cms_lives')
-          .select('title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at, scheduled_at')
+          .select('id, title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at, scheduled_at')
           .in('status', ['live', 'scheduled', 'ended', 'published'])
         if (cancelled || !data) return
         const canonicalResponse = await fetch('/api/live/canonical', { cache: 'no-store' }).catch(() => null)
@@ -78,8 +79,8 @@ export default function LivePage() {
             return bTime - aTime
           })
 
-        const reps: Replay[] = replayRows.map((d, i) => ({
-          id: `${d.title || 'replay'}-${i}`,
+        const reps: Replay[] = replayRows.map((d) => ({
+          id: d.id,
           titre: d.title || 'Rediffusion',
           date: d.scheduled_at || d.created_at
             ? new Date(d.scheduled_at || d.created_at).toLocaleDateString(
@@ -820,28 +821,52 @@ export default function LivePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {replays.map((replay, i) => (
-                <motion.a
-                  key={replay.id} href={replay.url} target="_blank" rel="noreferrer"
-                  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  className="card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
+                <motion.div
+                  key={replay.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="space-y-2"
                 >
-                  <div className="relative rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
-                    {replay.cover ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={replay.cover} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-royal/40 to-abyss" />
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(5,3,8,0.35)' }}>
-                      <div className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Play className="w-5 h-5 text-gold ml-0.5" fill="currentColor" />
+                  <a
+                    href={replay.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
+                  >
+                    <div className="relative rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
+                      {replay.cover ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={replay.cover} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-royal/40 to-abyss" />
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'rgba(5,3,8,0.35)' }}>
+                        <div className="w-12 h-12 rounded-full bg-gold/20 border border-gold/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Play className="w-5 h-5 text-gold ml-0.5" fill="currentColor" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <h3 className="font-cinzel text-xs font-bold text-pearl group-hover:text-gold transition-colors line-clamp-2 mb-2">{replay.titre}</h3>
-                  {replay.speaker && <p className="text-[11px] text-pearl/40 font-inter capitalize">{replay.speaker}</p>}
-                  {replay.date && <p className="text-[11px] text-pearl/30 mt-1">{replay.date}</p>}
-                </motion.a>
+
+                    <h3 className="font-cinzel text-xs font-bold text-pearl group-hover:text-gold transition-colors line-clamp-2 mb-2">
+                      {replay.titre}
+                    </h3>
+
+                    {replay.speaker && (
+                      <p className="text-[11px] text-pearl/40 font-inter capitalize">
+                        {replay.speaker}
+                      </p>
+                    )}
+
+                    {replay.date && (
+                      <p className="text-[11px] text-pearl/30 mt-1">
+                        {replay.date}
+                      </p>
+                    )}
+                  </a>
+
+                  <LiveReplayReactionCounts cmsLiveId={replay.id} />
+                </motion.div>
               ))}
             </div>
           )}

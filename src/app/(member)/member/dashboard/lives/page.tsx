@@ -14,6 +14,7 @@ import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
 import LiveReactionControls from '@/components/live/LiveReactionControls'
 import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
+import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
 import ShareButtons from '@/components/ui/ShareButtons'
 import toast from 'react-hot-toast'
 
@@ -114,7 +115,7 @@ export default function LivesPage() {
   const [tab, setTab] = useState<'live' | 'replays' | 'programme'>('live')
 
   // Lecteur intégré (replays + playlists) : le membre reste dans Citadelle.
-  const [player, setPlayer] = useState<{ ytId?: string; listId?: string; titre: string } | null>(null)
+  const [player, setPlayer] = useState<{ ytId?: string; listId?: string; cmsLiveId?: string; titre: string } | null>(null)
   // Partage (modale réutilisant le composant ShareButtons).
   const [share, setShare] = useState<{ url: string; titre: string; texte?: string } | null>(null)
 
@@ -522,7 +523,7 @@ export default function LivesPage() {
                   style={{ transition: 'border-color 0.2s, box-shadow 0.2s' }}
                   onClick={() => {
                     const id = ytId(r.youtube_url)
-                    if (id) setPlayer({ ytId: id, titre: r.titre })
+                    if (id) setPlayer({ ytId: id, titre: r.titre, cmsLiveId: r.id })
                     else if (r.youtube_url) window.open(r.youtube_url, '_blank', 'noopener,noreferrer')
                   }}
                   onMouseEnter={e => {
@@ -701,21 +702,36 @@ export default function LivesPage() {
               <motion.div initial={{ opacity: 0, scale: 0.96, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 20 }}
                 transition={{ type: 'spring', damping: 26, stiffness: 320 }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-4xl rounded-3xl overflow-hidden border border-gold/25 bg-abyss"
-                style={{ aspectRatio: '16/9' }}>
-                <button onClick={() => setPlayer(null)} aria-label="Fermer"
-                  className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl flex items-center justify-center bg-black/55 border border-pearl/15 text-pearl/80 hover:text-pearl">
-                  <X className="w-4 h-4" />
-                </button>
-                <iframe
-                  className="absolute inset-0 w-full h-full"
-                  src={player.listId
-                    ? `https://www.youtube.com/embed/videoseries?list=${player.listId}&rel=0&modestbranding=1`
-                    : `https://www.youtube.com/embed/${player.ytId}?rel=0&modestbranding=1&autoplay=1`}
-                  title={player.titre}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+                className="relative w-full max-w-4xl rounded-3xl overflow-hidden border border-gold/25 bg-abyss">
+
+                <div
+                  className="relative"
+                  style={{ aspectRatio: '16/9' }}
+                >
+                  <button
+                    onClick={() => setPlayer(null)}
+                    aria-label="Fermer"
+                    className="absolute top-3 right-3 z-10 w-9 h-9 rounded-xl flex items-center justify-center bg-black/55 border border-pearl/15 text-pearl/80 hover:text-pearl"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src={player.listId
+                      ? `https://www.youtube.com/embed/videoseries?list=${player.listId}&rel=0&modestbranding=1`
+                      : `https://www.youtube.com/embed/${player.ytId}?rel=0&modestbranding=1&autoplay=1`}
+                    title={player.titre}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+
+                {player.cmsLiveId && (
+                  <div className="border-t border-pearl/[0.07] p-4">
+                    <LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />
+                  </div>
+                )}
               </motion.div>
             </motion.div>
           )}
