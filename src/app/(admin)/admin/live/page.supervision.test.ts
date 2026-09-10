@@ -176,4 +176,25 @@ describe('LIVE 4A.6 admin supervision UI', () => {
       'La supervision s’activera automatiquement',
     )
   })
-})
+
+  it('renders aggregate reactions as anonymous activity without identities', () => {
+    expect(component).toContain(
+      'reactions',
+    )
+
+    expect(component).toContain(
+      'Réactions',
+    )
+
+    expect(component).not.toContain(
+      'member_id',
+    )
+
+    expect(component).not.toContain(
+      'guest_id',
+    )
+
+    expect(component).not.toContain(
+      'user_id',
+    )
+  })})

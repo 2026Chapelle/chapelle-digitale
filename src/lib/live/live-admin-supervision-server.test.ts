@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   getCanonicalLiveState: vi.fn(),
   liveKeyFromState: vi.fn(),
   getLivePresenceCounts: vi.fn(),
+  getLiveReactionAdminAggregate: vi.fn(),
   from: vi.fn(),
 }))
 
@@ -25,6 +26,11 @@ vi.mock('@/lib/live/canonical-server', () => ({
 vi.mock('@/lib/live/live-participation-server', () => ({
   getLivePresenceCounts:
     mocks.getLivePresenceCounts,
+}))
+
+vi.mock('@/lib/live/live-reactions-server', () => ({
+  getLiveReactionAdminAggregate:
+    mocks.getLiveReactionAdminAggregate,
 }))
 
 vi.mock('@/lib/supabase', () => ({
@@ -111,6 +117,26 @@ describe('LIVE 4A.6 admin supervision server', () => {
       joinedTotal: 38,
     })
 
+    mocks.getLiveReactionAdminAggregate.mockResolvedValue({
+      available: true,
+      uniqueActors: 14,
+      totalActions: 25,
+      uniqueByType: {
+        prayer: 3,
+        fire: 5,
+        heart: 4,
+        praise: 1,
+        kingdom: 1,
+      },
+      actionsByType: {
+        prayer: 4,
+        fire: 8,
+        heart: 6,
+        praise: 4,
+        kingdom: 3,
+      },
+    })
+
     mocks.from.mockImplementation(
       () => shareBuilder(),
     )
@@ -136,6 +162,7 @@ describe('LIVE 4A.6 admin supervision server', () => {
       },
       presence: null,
       shares: null,
+      reactions: null,
     })
 
     expect(
@@ -170,6 +197,25 @@ describe('LIVE 4A.6 admin supervision server', () => {
         totalActions: 7,
         nativeShare: 4,
         copyLink: 3,
+      },
+      reactions: {
+        available: true,
+        uniqueActors: 14,
+        totalActions: 25,
+        uniqueByType: {
+          prayer: 3,
+          fire: 5,
+          heart: 4,
+          praise: 1,
+          kingdom: 1,
+        },
+        actionsByType: {
+          prayer: 4,
+          fire: 8,
+          heart: 6,
+          praise: 4,
+          kingdom: 3,
+        },
       },
     })
 
@@ -247,6 +293,42 @@ describe('LIVE 4A.6 admin supervision server', () => {
     })
   })
 
+  it('adds aggregate reaction supervision without exposing actor identity', async () => {
+    const result =
+      await getLiveAdminSupervision()
+
+    expect(result).toHaveProperty(
+      'reactions',
+    )
+
+    expect(result.reactions).toEqual({
+      available: true,
+      uniqueActors: 14,
+      totalActions: 25,
+      uniqueByType: {
+        prayer: 3,
+        fire: 5,
+        heart: 4,
+        praise: 1,
+        kingdom: 1,
+      },
+      actionsByType: {
+        prayer: 4,
+        fire: 8,
+        heart: 6,
+        praise: 4,
+        kingdom: 3,
+      },
+    })
+
+    expect(
+      JSON.stringify(
+        result.reactions,
+      ),
+    ).not.toMatch(
+      /"(?:actor|actor_key|user_id|guest_id|member_id|email|name)"\s*:/i,
+    )
+  })
   it('rejects mixed presence data if the canonical live changes during aggregation', async () => {
     mocks.getLivePresenceCounts.mockResolvedValue({
       ok: true,

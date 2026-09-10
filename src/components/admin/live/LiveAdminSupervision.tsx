@@ -8,6 +8,7 @@ import {
 
 import {
   Activity,
+  Flame,
   Link2,
   Radio,
   Share2,
@@ -33,6 +34,26 @@ type AvailableShares = {
   copyLink: number
 }
 
+type AvailableReactions = {
+  available: true
+  uniqueActors: number
+  totalActions: number
+  uniqueByType: {
+    prayer: number
+    fire: number
+    heart: number
+    praise: number
+    kingdom: number
+  }
+  actionsByType: {
+    prayer: number
+    fire: number
+    heart: number
+    praise: number
+    kingdom: number
+  }
+}
+
 type UnavailableAggregate = {
   available: false
 }
@@ -52,6 +73,10 @@ type SupervisionData = {
     | null
   shares:
     | AvailableShares
+    | UnavailableAggregate
+    | null
+  reactions:
+    | AvailableReactions
     | UnavailableAggregate
     | null
 }
@@ -254,6 +279,9 @@ export default function LiveAdminSupervision() {
   const shares =
     data.shares
 
+  const reactions =
+    data.reactions
+
   return (
     <div className="space-y-5">
       <div
@@ -420,6 +448,81 @@ export default function LiveAdminSupervision() {
           </>
         )}
       </section>
+
+      <div className="card-royal p-5 sm:p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <Flame className="w-4 h-4 text-gold" />
+
+          <div>
+            <h3 className="font-cinzel text-sm font-bold text-pearl">
+              Réactions
+            </h3>
+
+            <p className="font-inter text-[11px] text-pearl/35 mt-1">
+              Activité agrégée et anonyme du direct
+            </p>
+          </div>
+        </div>
+
+        {!reactions ||
+        !reactions.available ? (
+          <div className="py-7 text-center">
+            <Flame className="w-5 h-5 text-pearl/25 mx-auto mb-2" />
+
+            <p className="font-inter text-xs text-pearl/35">
+              Agrégats de réactions indisponibles
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Metric
+                label="Participants uniques"
+                value={reactions.uniqueActors}
+                icon={Users}
+              />
+
+              <Metric
+                label="Actions totales"
+                value={reactions.totalActions}
+                icon={Flame}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <Metric
+                label="Prière"
+                value={reactions.uniqueByType.prayer}
+                icon={Activity}
+              />
+
+              <Metric
+                label="Feu"
+                value={reactions.uniqueByType.fire}
+                icon={Flame}
+              />
+
+              <Metric
+                label="Amour"
+                value={reactions.uniqueByType.heart}
+                icon={UserCheck}
+              />
+
+              <Metric
+                label="Louange"
+                value={reactions.uniqueByType.praise}
+                icon={Activity}
+              />
+
+              <Metric
+                label="Royaume"
+                value={reactions.uniqueByType.kingdom}
+                icon={Radio}
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

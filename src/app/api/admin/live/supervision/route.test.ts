@@ -213,4 +213,67 @@ describe('LIVE 4A.6 admin supervision API', () => {
       ),
     ).toContain('no-store')
   })
-})
+
+  it('returns additive aggregate reaction supervision without identities', async () => {
+    mocks.isAdminRequest.mockReturnValue(
+      true,
+    )
+
+    mocks.getLiveAdminSupervision.mockResolvedValue({
+      live: true,
+      canonical: {
+        status: 'LIVE',
+        title: 'Culte Royal',
+        youtubeVideoId: 'ABCDEFGHIJK',
+      },
+      presence: {
+        available: true,
+        activeTotal: 31,
+        activeMembers: 22,
+        activeGuests: 9,
+        joinedTotal: 38,
+      },
+      shares: {
+        available: true,
+        totalActions: 7,
+        nativeShare: 4,
+        copyLink: 3,
+      },
+      reactions: {
+        available: true,
+        total: 25,
+      },
+    })
+
+    const {
+      GET,
+    } =
+      await import(
+        './route'
+      )
+
+    const response =
+      await GET(
+        request(),
+      )
+
+    expect(response.status).toBe(200)
+
+    const payload =
+      await response.json()
+
+    expect(
+      payload.data.reactions,
+    ).toEqual({
+      available: true,
+      total: 25,
+    })
+
+    expect(
+      JSON.stringify(
+        payload.data.reactions,
+      ),
+    ).not.toMatch(
+      /actor|user_id|guest_id|member_id|email|name/i,
+    )
+  })})
