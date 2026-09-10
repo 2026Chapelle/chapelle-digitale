@@ -407,15 +407,18 @@ export default function LivePage() {
                       <LivePresenceControls liveVideoId={liveYt} />
                     )}
 
-                    <LiveReactionBoundary>
-                      <LiveReactionsProvider
-                        videoId={liveYt}
-                        enabled={Boolean(liveYt)}
-                      >
+                    <LiveReactionsProvider
+                      videoId={liveYt}
+                      enabled={tab === 'live' && Boolean(liveYt)}
+                    >
+                      <LiveReactionBoundary>
                         <LiveReactionAnimationLayer />
+                      </LiveReactionBoundary>
+
+                      <LiveReactionBoundary>
                         <LiveReactionControls />
-                      </LiveReactionsProvider>
-                    </LiveReactionBoundary>
+                      </LiveReactionBoundary>
+                    </LiveReactionsProvider>
                   </>
                 ) : (
                   <div className="rounded-2xl border border-gold/15 bg-gold/[0.035] p-4">

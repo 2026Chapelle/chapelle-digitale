@@ -272,6 +272,48 @@ describe('LIVE shared reaction island integration', () => {
     )
   })
 
+  it('keeps the stable provider outside social error boundaries', () => {
+    const publicProvider =
+      publicPage.indexOf('<LiveReactionsProvider')
+
+    const publicBoundary =
+      publicPage.indexOf('<LiveReactionBoundary>')
+
+    const memberProvider =
+      memberPage.indexOf('<LiveReactionsProvider')
+
+    const memberBoundary =
+      memberPage.indexOf('<LiveReactionBoundary>')
+
+    expect(publicProvider).toBeGreaterThan(-1)
+    expect(memberProvider).toBeGreaterThan(-1)
+
+    expect(publicProvider).toBeLessThan(
+      publicBoundary,
+    )
+
+    expect(memberProvider).toBeLessThan(
+      memberBoundary,
+    )
+
+    expect(
+      publicPage.match(/<LiveReactionBoundary>/g),
+    ).toHaveLength(2)
+
+    expect(
+      memberPage.match(/<LiveReactionBoundary>/g),
+    ).toHaveLength(2)
+  })
+
+  it('enables reactions only for the active member live player context', () => {
+    expect(memberPage).toContain(
+      "enabled={tab === 'live' && hasLive && Boolean(liveYtId) && player === null}",
+    )
+
+    expect(publicPage).toContain(
+      "enabled={tab === 'live' && Boolean(liveYt)}",
+    )
+  })
   it('preserves public sharing and member sharing/reminders', () => {
     expect(publicPage).toContain(
       'navigator.share',

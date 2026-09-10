@@ -474,15 +474,18 @@ export default function LivesPage() {
               </div>
 
               <div className="p-5">
-                <LiveReactionBoundary>
-                  <LiveReactionsProvider
-                    videoId={liveYtId}
-                    enabled={hasLive && Boolean(liveYtId)}
-                  >
+                <LiveReactionsProvider
+                  videoId={liveYtId}
+                  enabled={tab === 'live' && hasLive && Boolean(liveYtId) && player === null}
+                >
+                  <LiveReactionBoundary>
                     <LiveReactionAnimationLayer />
+                  </LiveReactionBoundary>
+
+                  <LiveReactionBoundary>
                     <LiveReactionControls />
-                  </LiveReactionsProvider>
-                </LiveReactionBoundary>
+                  </LiveReactionBoundary>
+                </LiveReactionsProvider>
 
                 <div className="mt-5 rounded-2xl border border-gold/15 bg-gold/[0.035] p-4">
                   <p className="font-cinzel text-xs font-bold text-gold">
