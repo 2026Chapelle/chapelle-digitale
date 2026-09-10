@@ -1,9 +1,13 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { Play, Users, Heart, Radio, Clock } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import LivePresenceControls from '@/components/live/LivePresenceControls'
+import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
+import LiveReactionControls from '@/components/live/LiveReactionControls'
+import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
+import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
 import { LIVE_PUBLIC_URL, LIVE_SHARE_TEXT, recordSuccessfulLiveShare } from '@/lib/live/live-share-client'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
@@ -15,7 +19,6 @@ function ytId(url?: string): string | null {
   return m ? m[1] : (/^[\w-]{11}$/.test(String(url)) ? String(url) : null)
 }
 
-const REACTIONS = ['🙏', '🔥', '❤️', '✨', '🙌', '💫', '👑', '⚡']
 
 interface Replay { id: string; titre: string; date: string; speaker: string; url: string; cover?: string }
 
@@ -31,8 +34,6 @@ const LIVE_POLL_INTERVAL_MS = 15_000
 
 export default function LivePage() {
   const [tab, setTab] = useState<'live' | 'replays'>('live')
-  const [reactions, setReactions] = useState<{ id: number; emoji: string; x: number }[]>([])
-  const reactionCount = useRef(0)
 
   // Direct RÉEL depuis cms_lives — MÊME source que l'espace membre (source unique).
   const [live, setLive] = useState<{ titre: string; description: string; youtube_url: string; video_url: string; cover: string; plateforme: string } | null>(null)
@@ -212,22 +213,6 @@ export default function LivePage() {
   const nextLive = upcoming[0] ?? null
   const latestReplay = replays[0] ?? null
 
-  const sendReaction = (emoji: string) => {
-    const id = reactionCount.current++
-
-    setReactions(prev => [
-      ...prev,
-      {
-        id,
-        emoji,
-        x: Math.random() * 70 + 15,
-      },
-    ])
-
-    window.setTimeout(() => {
-      setReactions(prev => prev.filter(item => item.id !== id))
-    }, 1900)
-  }
 
   const shareLive = async () => {
     if (typeof window === 'undefined') return
@@ -422,61 +407,15 @@ export default function LivePage() {
                       <LivePresenceControls liveVideoId={liveYt} />
                     )}
 
-                    <div className="relative h-20 sm:h-24 overflow-hidden rounded-xl sm:rounded-2xl border border-gold/10 bg-gold/[0.025]">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <p className="font-inter text-xs text-pearl/40">
-                          Exprime ta réaction sur ton écran
-                        </p>
-                      </div>
-
-                      <div className="absolute inset-0 pointer-events-none">
-                        <AnimatePresence>
-                          {reactions.map((reaction) => (
-                            <motion.div
-                              key={reaction.id}
-                              initial={{
-                                opacity: 0,
-                                y: 60,
-                                scale: 0.65,
-                              }}
-                              animate={{
-                                opacity: 1,
-                                y: -10,
-                                scale: 1.3,
-                              }}
-                              exit={{
-                                opacity: 0,
-                                y: -40,
-                              }}
-                              transition={{
-                                duration: 1.8,
-                                ease: 'easeOut',
-                              }}
-                              className="absolute bottom-1 text-2xl"
-                              style={{
-                                left: `${reaction.x}%`,
-                              }}
-                            >
-                              {reaction.emoji}
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
-                      {REACTIONS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => sendReaction(emoji)}
-                          className="h-10 rounded-xl border border-pearl/[0.07] bg-pearl/[0.03] hover:border-gold/30 hover:bg-gold/[0.05] transition-all text-lg"
-                          aria-label={'Réagir ' + emoji}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
+                    <LiveReactionBoundary>
+                      <LiveReactionsProvider
+                        videoId={liveYt}
+                        enabled={Boolean(liveYt)}
+                      >
+                        <LiveReactionAnimationLayer />
+                        <LiveReactionControls />
+                      </LiveReactionsProvider>
+                    </LiveReactionBoundary>
                   </>
                 ) : (
                   <div className="rounded-2xl border border-gold/15 bg-gold/[0.035] p-4">

@@ -55,7 +55,7 @@ describe('LIVE 4A.4 Je suis là UI integration', () => {
 
     const reactionIndex =
       page.indexOf(
-        'Exprime ta réaction sur ton écran',
+        '<LiveReactionControls',
       )
 
     expect(
@@ -161,13 +161,17 @@ describe('LIVE 4A.4 Je suis là UI integration', () => {
     )
   })
 
-  it('labels local reactions truthfully and preserves existing share behaviour', () => {
+  it('uses shared confirmed reactions and preserves existing share behaviour', () => {
     expect(page).toContain(
-      'Exprime ta réaction sur ton écran',
+      '<LiveReactionControls',
     )
 
-    expect(page).not.toContain(
-      'Exprime ta réaction au culte',
+    expect(
+      source(
+        'src/components/live/LiveReactionControls.tsx',
+      ),
+    ).toContain(
+      'Réagir ensemble',
     )
 
     expect(page).toContain(
