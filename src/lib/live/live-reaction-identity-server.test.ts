@@ -25,4 +25,34 @@ describe('LIVE 4B.2 reaction server identity', () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'a' } }, error: null }); mocks.profile.mockResolvedValue({ uid: 'b' }); await expect(resolveLiveReactionActor()).resolves.toEqual({ ok: false, reason: 'unavailable' })
     mocks.demo = true; await expect(resolveLiveReactionActor(GUEST)).resolves.toEqual({ ok: false, reason: 'unavailable' })
   })
-})
+
+  // LIVE_4B9A_GUEST_NO_SESSION_RED
+  it('falls back to guest when no auth was presented and Supabase reports no session', async () => {
+    mocks.cookies.mockReturnValue({
+      getAll: () => [],
+    })
+
+    mocks.headers.mockReturnValue({
+      get: () => null,
+    })
+
+    mocks.getUser.mockResolvedValue({
+      data: {
+        user: null,
+      },
+      error: {
+        status: 400,
+        name: 'AuthSessionMissingError',
+        message: 'Auth session missing',
+      },
+    })
+
+    await expect(
+      resolveLiveReactionActor(GUEST),
+    ).resolves.toEqual({
+      ok: true,
+      actorKey: expect.stringMatching(
+        /^guest:[0-9a-f]{64}$/,
+      ),
+    })
+  })})
