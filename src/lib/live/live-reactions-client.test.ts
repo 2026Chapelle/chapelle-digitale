@@ -7,6 +7,7 @@ import {
   requestReactionSnapshot,
   type ReactionClientState,
 } from './live-reactions-client'
+import { createReactionDedupe } from './live-reactions-realtime'
 
 const GUEST = '550e8400-e29b-41d4-a716-446655440000'
 const OTHER_GUEST = '550e8400-e29b-41d4-a716-446655440001'
@@ -247,5 +248,23 @@ describe('reaction context controller', () => {
     api.setContext('ABCDEFGHIJK', false); await vi.advanceTimersByTimeAsync(30_000)
     expect(fetcher).toHaveBeenCalledTimes(1)
     api.dispose()
+  })
+
+  it('deduplicates committed local POST and Realtime events through one gate, clears it on context reset, and preserves snapshot counts', async () => {
+    const event = { eventId: '11111111-1111-4111-8111-111111111111', liveKey: LIVE, reaction: 'fire' as const, acceptedAt: '2026-09-10T10:00:00.000Z' }
+    const fetcher = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => init?.method === 'POST'
+      ? json({ ok: true, liveKey: LIVE, event: { eventId: event.eventId, reaction: 'fire', acceptedAt: event.acceptedAt }, remaining: 2 })
+      : json(open())) as unknown as typeof fetch
+    const state: ReactionClientState[] = []; const events: unknown[] = []
+    const api = createReactionController({
+      fetcher, now: () => Date.now(), wallNow: () => Date.now(), guestId: () => GUEST,
+      dedupe: createReactionDedupe(() => Date.now()), onState: value => state.push(structuredClone(value)),
+      onEvent: value => events.push(value), onClock: () => undefined, onReset: () => undefined,
+    })
+    api.setContext('ABCDEFGHIJK', true); await vi.runAllTimersAsync(); await api.send('fire'); api.receive(event)
+    expect(events).toEqual([event])
+    expect(state.at(-1)).toMatchObject({ uniqueByType: COUNTS })
+    api.setContext('LMNOPQRSTUV', true); api.setContext('ABCDEFGHIJK', true); await vi.runAllTimersAsync(); api.receive(event)
+    expect(events).toEqual([event, event])
   })
 })

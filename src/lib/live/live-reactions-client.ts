@@ -11,6 +11,11 @@ import {
   type LivePresenceStorage,
 } from './live-presence-client'
 
+import {
+  createReactionDedupe,
+  type ReactionDedupe,
+} from './live-reactions-realtime'
+
 const API_PATH = '/api/live/reactions'
 const GUEST_STORAGE_KEY = 'citadelle_live_guest_session_id_v1'
 
@@ -118,6 +123,7 @@ type ReactionControllerDeps = {
   now: () => number
   wallNow: () => number
   guestId: () => string | undefined
+  dedupe?: ReactionDedupe
   onState: (state: ReactionClientState) => void
   onEvent: (event: ReactionEvent) => void
   onClock: (sample: ReactionClockSample) => void
@@ -523,6 +529,7 @@ export function createReactionController(
   deps: ReactionControllerDeps,
 ): ReactionController {
   const fetcher = deps.fetcher ?? fetch
+  const dedupe = deps.dedupe ?? createReactionDedupe(deps.now)
 
   let generation = 0
   let disposed = false
@@ -634,6 +641,7 @@ export function createReactionController(
   }
 
   function resetForContext() {
+    dedupe.clear()
     dirty = false
     getInFlight = false
     getPromise = null
@@ -950,12 +958,16 @@ export function createReactionController(
         retryUntil: null,
       })
 
-      deps.onEvent({
+      const committedEvent: ReactionEvent = {
         eventId: result.event.eventId,
         liveKey: result.liveKey,
         reaction: result.event.reaction,
         acceptedAt: result.event.acceptedAt,
-      })
+      }
+
+      if (dedupe.accept(committedEvent)) {
+        deps.onEvent(committedEvent)
+      }
 
       dirty = true
       scheduleTrailingRefresh(localGeneration)
@@ -1007,6 +1019,10 @@ export function createReactionController(
       !isReactionType(event.reaction) ||
       !isIsoDate(event.acceptedAt)
     ) {
+      return
+    }
+
+    if (!dedupe.accept(event)) {
       return
     }
 
