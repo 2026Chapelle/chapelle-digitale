@@ -29,6 +29,58 @@ export const metadata = {
   },
 }
 
+const youtubeEmbedUrl = (value?: string | null) => {
+  if (!value) return null
+
+  try {
+    const url = new URL(value)
+
+    let videoId = ''
+
+    if (
+      url.hostname === 'youtu.be'
+    ) {
+      videoId =
+        url.pathname.replace(/^\/+/, '')
+    }
+
+    if (
+      url.hostname.includes('youtube.com')
+    ) {
+      videoId =
+        url.searchParams.get('v') || ''
+
+      if (
+        !videoId &&
+        url.pathname.startsWith('/embed/')
+      ) {
+        videoId =
+          url.pathname.split('/embed/')[1] || ''
+      }
+
+      if (
+        !videoId &&
+        url.pathname.startsWith('/live/')
+      ) {
+        videoId =
+          url.pathname.split('/live/')[1] || ''
+      }
+    }
+
+    videoId =
+      videoId
+        .split('/')[0]
+        .split('?')[0]
+        .trim()
+
+    if (!videoId) return null
+
+    return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?rel=0`
+  } catch {
+    return null
+  }
+}
+
 const fmt = (iso?: string | null) => {
   if (!iso) return ''
 
@@ -90,6 +142,9 @@ export default async function EnseignementsPage() {
 
               const video =
                 t.video_url || ''
+
+              const videoEmbed =
+                youtubeEmbedUrl(video)
 
               const audio =
                 t.audio_url || ''
@@ -199,17 +254,36 @@ export default async function EnseignementsPage() {
 
                     <div className="flex flex-wrap gap-2 mt-auto pt-3 border-t border-white/5">
                       {!isProtected &&
-                        video && (
-                          <a
-                            href={video}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="btn-gold-cinematic px-3 py-1.5 text-xs inline-flex items-center gap-1.5"
-                          >
+                        video &&
+                        videoEmbed && (
+                          <details className="w-full group">
+                            <summary className="btn-gold-cinematic px-3 py-1.5 text-xs inline-flex items-center gap-1.5 cursor-pointer list-none">
+                              <Play className="w-3.5 h-3.5" />
+
+                              Regarder
+                            </summary>
+
+                            <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black aspect-video">
+                              <iframe
+                                src={videoEmbed}
+                                title={`Regarder ${t.title}`}
+                                className="w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                loading="lazy"
+                              />
+                            </div>
+                          </details>
+                        )}
+
+                      {!isProtected &&
+                        video &&
+                        !videoEmbed && (
+                          <span className="inline-flex items-center gap-1.5 text-[11px] text-pearl/40 font-inter px-2 py-1">
                             <Play className="w-3.5 h-3.5" />
 
-                            Regarder
-                          </a>
+                            Vidéo indisponible dans le lecteur intégré
+                          </span>
                         )}
 
                       {!isProtected &&
