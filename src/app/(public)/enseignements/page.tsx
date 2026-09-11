@@ -1,10 +1,9 @@
 import Image from 'next/image'
+import Link from 'next/link'
 
 import {
   BookOpen,
-  FileText,
   GraduationCap,
-  Headphones,
   LockKeyhole,
   Play,
 } from 'lucide-react'
@@ -23,69 +22,22 @@ export const dynamic = 'force-dynamic'
 
 export const metadata = {
   title: 'Enseignements — Citadelle du Royaume',
-  description: 'Prédications et enseignements de la Citadelle : vidéo, audio et texte.',
+  description:
+    'Prédications et enseignements de la Citadelle : vidéo, audio et texte.',
   alternates: {
     canonical: '/enseignements',
   },
 }
 
-const youtubeEmbedUrl = (value?: string | null) => {
-  if (!value) return null
-
-  try {
-    const url = new URL(value)
-
-    let videoId = ''
-
-    if (
-      url.hostname === 'youtu.be'
-    ) {
-      videoId =
-        url.pathname.replace(/^\/+/, '')
-    }
-
-    if (
-      url.hostname.includes('youtube.com')
-    ) {
-      videoId =
-        url.searchParams.get('v') || ''
-
-      if (
-        !videoId &&
-        url.pathname.startsWith('/embed/')
-      ) {
-        videoId =
-          url.pathname.split('/embed/')[1] || ''
-      }
-
-      if (
-        !videoId &&
-        url.pathname.startsWith('/live/')
-      ) {
-        videoId =
-          url.pathname.split('/live/')[1] || ''
-      }
-    }
-
-    videoId =
-      videoId
-        .split('/')[0]
-        .split('?')[0]
-        .trim()
-
-    if (!videoId) return null
-
-    return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?rel=0`
-  } catch {
-    return null
-  }
-}
-
-const fmt = (iso?: string | null) => {
+const fmt = (
+  iso?: string | null,
+) => {
   if (!iso) return ''
 
   try {
-    return new Date(iso).toLocaleDateString(
+    return new Date(
+      iso,
+    ).toLocaleDateString(
       'fr-FR',
       {
         day: 'numeric',
@@ -103,7 +55,7 @@ export default async function EnseignementsPage() {
     await listPublishedTeachingCatalog()
 
   return (
-    <div className="min-h-screen bg-abyss pt-28 pb-20">
+    <main className="min-h-screen bg-abyss pt-28 pb-24">
       <div className="container-royal">
         <PageHeader
           eyebrow="Bibliothèque du Royaume"
@@ -115,7 +67,7 @@ export default async function EnseignementsPage() {
               </span>
             </>
           }
-          description="Prédications et enseignements — à regarder, écouter ou lire."
+          description="Des enseignements pour comprendre, grandir et vivre les principes du Royaume."
         />
 
         {items.length === 0 ? (
@@ -123,60 +75,50 @@ export default async function EnseignementsPage() {
             <GraduationCap className="w-8 h-8 text-gold/50 mx-auto mb-3" />
 
             <p className="text-pearl/50 font-inter">
-              Aucun enseignement publié pour le moment. Revenez bientôt.
+              Aucun enseignement publié pour le moment.
             </p>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {items.map((t) => {
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-7">
+            {items.map((teaching) => {
               const accessLevel =
                 normalizeAccessLevel(
-                  t.access_level,
+                  teaching.access_level,
                 )
 
               const isProtected =
                 accessLevel !== 'public'
 
-              const cover =
-                t.cover_url || ''
+              const slug =
+                teaching.slug?.trim() || ''
 
-              const video =
-                t.video_url || ''
-
-              const videoEmbed =
-                youtubeEmbedUrl(video)
-
-              const audio =
-                t.audio_url || ''
-
-              const body =
-                t.body || ''
-
-              const description =
-                t.description || ''
+              const canOpen =
+                !isProtected && Boolean(slug)
 
               return (
-                <div
-                  key={t.id}
-                  className="card-cinematic overflow-hidden flex flex-col"
+                <article
+                  key={teaching.id}
+                  className="card-cinematic overflow-hidden flex flex-col group"
                 >
-                  <div className="relative aspect-[16/9] bg-white/5 overflow-hidden">
-                    {cover ? (
+                  <div className="relative aspect-video bg-white/5 overflow-hidden">
+                    {teaching.cover_url ? (
                       <Image
-                        src={cover}
-                        alt={t.title}
+                        src={teaching.cover_url}
+                        alt={teaching.title}
                         fill
-                        sizes="(max-width:768px) 100vw, 33vw"
-                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                        className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <GraduationCap className="w-8 h-8 text-gold/30" />
+                        <GraduationCap className="w-10 h-10 text-gold/25" />
                       </div>
                     )}
 
+                    <div className="absolute inset-0 bg-gradient-to-t from-abyss/70 via-transparent to-transparent" />
+
                     {isProtected && (
-                      <div className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-abyss/85 backdrop-blur px-2.5 py-1 text-[10px] uppercase tracking-wider text-pearl/80">
+                      <div className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-abyss/85 backdrop-blur px-3 py-1.5 text-[10px] uppercase tracking-wider text-pearl/85">
                         <LockKeyhole className="w-3 h-3 text-gold" />
 
                         {accessLevel === 'premium'
@@ -184,145 +126,99 @@ export default async function EnseignementsPage() {
                           : 'Membres'}
                       </div>
                     )}
+
+                    {teaching.series_title && (
+                      <div className="absolute left-4 bottom-4">
+                        <span className="text-[10px] uppercase tracking-[0.18em] text-gold font-inter">
+                          {teaching.series_title}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-5 flex flex-col flex-1">
-                    {t.category && (
-                      <span className="text-[11px] uppercase tracking-wider text-gold/70 font-inter mb-2">
-                        {t.category}
-                      </span>
+                    {(teaching.season_number ||
+                      teaching.season_title) && (
+                      <p className="text-[11px] text-pearl/40 font-inter mb-2">
+                        {teaching.season_number
+                          ? `Saison ${teaching.season_number}`
+                          : ''}
+
+                        {teaching.season_title
+                          ? ` · ${teaching.season_title}`
+                          : ''}
+                      </p>
                     )}
 
-                    <h2 className="font-cinzel font-bold text-pearl text-base mb-1 line-clamp-2">
-                      {t.title}
+                    <h2 className="font-cinzel font-bold text-pearl text-lg leading-snug mb-2 line-clamp-2">
+                      {teaching.title}
                     </h2>
 
-                    <p className="text-pearl/40 text-xs font-inter mb-3">
-                      {t.speaker || ''}
+                    <p className="text-pearl/40 text-xs font-inter mb-4">
+                      {teaching.scripture || ''}
 
-                      {t.scripture
-                        ? ` · ${t.scripture}`
+                      {teaching.scripture &&
+                      teaching.speaker
+                        ? ' · '
                         : ''}
 
-                      {t.published_at
-                        ? ` · ${fmt(t.published_at)}`
-                        : ''}
+                      {teaching.speaker || ''}
                     </p>
 
                     {!isProtected &&
-                      description && (
-                        <p className="text-pearl/60 text-sm font-inter leading-relaxed line-clamp-3 mb-4">
-                          {description}
+                      teaching.description && (
+                        <p className="text-pearl/60 text-sm font-inter leading-relaxed line-clamp-2 mb-5">
+                          {teaching.description}
                         </p>
                       )}
 
                     {isProtected && (
-                      <div className="mb-4 rounded-xl border border-white/5 bg-white/[0.025] p-3">
-                        <p className="text-xs text-pearl/55 font-inter leading-relaxed">
-                          {accessLevel === 'premium'
-                            ? 'Cet enseignement est réservé aux membres disposant de l’accès Premium Enseignements.'
-                            : 'Cet enseignement est réservé aux membres de Citadelle.'}
-                        </p>
-                      </div>
+                      <p className="text-pearl/50 text-sm font-inter leading-relaxed mb-5">
+                        {accessLevel === 'premium'
+                          ? 'Réservé aux membres disposant de l’accès Premium Enseignements.'
+                          : 'Réservé aux membres de Citadelle.'}
+                      </p>
                     )}
 
-                    {!isProtected &&
-                      audio && (
-                        <audio
-                          controls
-                          src={audio}
-                          className="w-full mb-3"
+                    <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between gap-3">
+                      {canOpen ? (
+                        <Link
+                          href={`/enseignements/${slug}`}
+                          className="btn-gold-cinematic px-4 py-2 text-xs inline-flex items-center gap-2"
                         >
-                          Audio non supporté.
-                        </audio>
-                      )}
-
-                    {!isProtected &&
-                      body && (
-                        <details className="mb-3 group">
-                          <summary className="inline-flex items-center gap-1.5 text-xs font-inter text-gold/80 hover:text-gold cursor-pointer list-none">
-                            <FileText className="w-3.5 h-3.5" />
-
-                            Lire l&apos;enseignement
-                          </summary>
-
-                          <p className="mt-2 text-pearl/70 text-sm font-inter leading-relaxed whitespace-pre-wrap">
-                            {body}
-                          </p>
-                        </details>
-                      )}
-
-                    <div className="flex flex-wrap gap-2 mt-auto pt-3 border-t border-white/5">
-                      {!isProtected &&
-                        video &&
-                        videoEmbed && (
-                          <details className="w-full group">
-                            <summary className="btn-gold-cinematic px-3 py-1.5 text-xs inline-flex items-center gap-1.5 cursor-pointer list-none">
-                              <Play className="w-3.5 h-3.5" />
-
-                              Regarder
-                            </summary>
-
-                            <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black aspect-video">
-                              <iframe
-                                src={videoEmbed}
-                                title={`Regarder ${t.title}`}
-                                className="w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                                loading="lazy"
-                              />
-                            </div>
-                          </details>
-                        )}
-
-                      {!isProtected &&
-                        video &&
-                        !videoEmbed && (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] text-pearl/40 font-inter px-2 py-1">
-                            <Play className="w-3.5 h-3.5" />
-
-                            Vidéo indisponible dans le lecteur intégré
-                          </span>
-                        )}
-
-                      {!isProtected &&
-                        audio && (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] text-pearl/40 font-inter px-2 py-1">
-                            <Headphones className="w-3.5 h-3.5" />
-
-                            Audio
-                          </span>
-                        )}
-
-                      {!isProtected &&
-                        !video &&
-                        !audio &&
-                        body && (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] text-pearl/40 font-inter px-2 py-1">
-                            <BookOpen className="w-3.5 h-3.5" />
-
-                            Texte
-                          </span>
-                        )}
-
-                      {isProtected && (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] text-gold/70 font-inter px-2 py-1">
+                          <Play className="w-3.5 h-3.5" />
+                          Regarder
+                        </Link>
+                      ) : isProtected ? (
+                        <span className="inline-flex items-center gap-2 text-xs text-gold/70 font-inter">
                           <LockKeyhole className="w-3.5 h-3.5" />
 
                           {accessLevel === 'premium'
                             ? 'Accès Premium'
                             : 'Connexion membre requise'}
                         </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 text-xs text-pearl/40 font-inter">
+                          <BookOpen className="w-3.5 h-3.5" />
+                          Bientôt disponible
+                        </span>
+                      )}
+
+                      {teaching.published_at && (
+                        <span className="text-[10px] text-pearl/30 font-inter">
+                          {fmt(
+                            teaching.published_at,
+                          )}
+                        </span>
                       )}
                     </div>
                   </div>
-                </div>
+                </article>
               )
             })}
           </div>
         )}
       </div>
-    </div>
+    </main>
   )
 }

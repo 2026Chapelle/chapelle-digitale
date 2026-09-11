@@ -134,6 +134,8 @@ export interface TeachingCatalogMeta {
   access_level?: string | null
   is_featured?: boolean | null
   sort_order?: number | null
+  series_id?: string | null
+  season_id?: string | null
 }
 
 /**
@@ -153,6 +155,10 @@ export interface TeachingCatalogItem extends TeachingCatalogMeta {
   body?: string | null
   video_url?: string | null
   audio_url?: string | null
+  series_title?: string | null
+  series_slug?: string | null
+  season_number?: number | null
+  season_title?: string | null
 }
 
 /**
