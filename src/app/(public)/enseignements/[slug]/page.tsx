@@ -181,7 +181,7 @@ export default async function TeachingReadingPage({
 
         {videoEmbed && (
           <section className="mb-10">
-            <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
               <iframe
                 src={videoEmbed}
                 title={teaching.title}

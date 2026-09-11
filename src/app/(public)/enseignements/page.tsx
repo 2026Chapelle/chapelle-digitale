@@ -100,7 +100,7 @@ export default async function EnseignementsPage() {
                   key={teaching.id}
                   className="card-cinematic overflow-hidden flex flex-col group"
                 >
-                  <div className="relative aspect-video bg-white/5 overflow-hidden">
+                  <div className="relative aspect-[16/9] bg-white/5 overflow-hidden">
                     {teaching.cover_url ? (
                       <Image
                         src={teaching.cover_url}
