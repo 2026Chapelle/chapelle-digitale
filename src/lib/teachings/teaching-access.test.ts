@@ -21,7 +21,7 @@ import {
 } from './teaching-access'
 
 describe(
-  'ENSEIGNEMENTS-SEC — access contract',
+  'ENSEIGNEMENTS-SEC â€” access contract',
   () => {
     it(
       'reuses the canonical public/member/premium matrix',
@@ -326,7 +326,7 @@ describe(
           )
 
         expect(source).toContain(
-          'listPublishedTeachingCatalog',
+          'listPublishedTeachingLibrary',
         )
 
         expect(source).not.toContain(
