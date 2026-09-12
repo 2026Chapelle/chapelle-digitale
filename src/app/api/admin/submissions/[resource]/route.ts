@@ -79,7 +79,7 @@ async function notifyWorkflow(resource: string, id: string, patch: Record<string
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const ALLOWED = ['group_join_requests', 'event_registrations', 'priere_demandes', 'temoignages'] as const
+const ALLOWED = ['group_join_requests', 'event_registrations', 'priere_demandes', 'temoignages', 'cms_teaching_comments'] as const
 import { isAdminRequest } from '@/lib/admin-auth'
 
 function check(req: NextRequest, resource: string) {
@@ -91,7 +91,18 @@ function check(req: NextRequest, resource: string) {
 export async function GET(req: NextRequest, { params }: { params: { resource: string } }) {
   const { err } = check(req, params.resource); if (err) return err
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true, data: [] })
-  const { data, error } = await supabaseAdmin.from(params.resource).select('*').order('created_at', { ascending: false })
+  const query =
+    params.resource === 'cms_teaching_comments'
+      ? supabaseAdmin
+          .from('cms_teaching_comments')
+          .select('*, cms_teachings(title, slug)')
+          .order('created_at', { ascending: false })
+      : supabaseAdmin
+          .from(params.resource)
+          .select('*')
+          .order('created_at', { ascending: false })
+
+  const { data, error } = await query
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 500 })
   return NextResponse.json({ ok: true, data: data ?? [] })
 }

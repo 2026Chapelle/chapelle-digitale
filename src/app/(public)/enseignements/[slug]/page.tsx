@@ -26,6 +26,14 @@ import {
   isMemberStatus,
 } from '@/lib/teachings/teaching-access'
 
+import {
+  TeachingEngagementBar,
+} from '@/components/teachings/TeachingEngagementBar'
+
+import {
+  TeachingComments,
+} from '@/components/teachings/TeachingComments'
+
 export const dynamic = 'force-dynamic'
 
 function youtubeEmbedUrl(
@@ -180,8 +188,8 @@ export default async function TeachingReadingPage({
         </header>
 
         {videoEmbed && (
-          <section className="mb-10">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+          <section className="mb-0">
+            <div className="relative aspect-[16/9] overflow-hidden rounded-3xl border border-white/[0.12] bg-black shadow-[0_30px_80px_rgba(0,0,0,0.45)] ring-1 ring-gold/[0.05]">
               <iframe
                 src={videoEmbed}
                 title={teaching.title}
@@ -195,13 +203,25 @@ export default async function TeachingReadingPage({
 
         {!videoEmbed &&
           teaching.videoUrl && (
-            <div className="mb-10 rounded-2xl border border-gold/15 bg-gold/[0.04] p-6 text-sm text-pearl/65">
+            <div className="mb-4 rounded-2xl border border-gold/15 bg-gold/[0.04] p-6 text-sm text-pearl/65">
               <LockKeyhole className="w-5 h-5 text-gold mb-3" />
               La vidéo n&apos;est pas disponible dans le lecteur intégré.
             </div>
           )}
 
-        <section className="grid lg:grid-cols-[1fr_300px] gap-10">
+        <TeachingEngagementBar
+          slug={params.slug}
+          title={teaching.title}
+          scripture={teaching.scripture}
+          defaultName={
+            session?.profile?.prenom ||
+            session?.profile?.nom ||
+            null
+          }
+          defaultEmail={session?.email}
+        />
+
+        <section className="grid lg:grid-cols-[1fr_320px] gap-10">
           <div>
             {teaching.description && (
               <p className="text-lg text-pearl/70 font-inter leading-relaxed mb-8">
@@ -221,6 +241,11 @@ export default async function TeachingReadingPage({
                 </div>
               </details>
             )}
+
+            <TeachingComments
+              teachingId={teaching.id}
+              authenticated={authenticated}
+            />
           </div>
 
           {(series || season) && (
