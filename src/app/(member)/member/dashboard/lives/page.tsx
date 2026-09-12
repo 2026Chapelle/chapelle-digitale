@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import LiveOffering from '@/components/features/giving/LiveOffering'
+import LivePresenceControls from '@/components/live/LivePresenceControls'
 import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
 import LiveReactionControls from '@/components/live/LiveReactionControls'
 import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
@@ -475,6 +476,12 @@ export default function LivesPage() {
               </div>
 
               <div className="p-5">
+                {tab === 'live' && hasLive && liveYtId && player === null && (
+                  <div className="mb-4">
+                    <LivePresenceControls liveVideoId={liveYtId} />
+                  </div>
+                )}
+
                 <LiveReactionsProvider
                   videoId={liveYtId}
                   enabled={tab === 'live' && hasLive && Boolean(liveYtId) && player === null}
