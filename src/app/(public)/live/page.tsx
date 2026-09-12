@@ -39,6 +39,7 @@ export default function LivePage() {
   // Direct RÉEL depuis cms_lives — MÊME source que l'espace membre (source unique).
   const [live, setLive] = useState<{ titre: string; description: string; youtube_url: string; video_url: string; cover: string; plateforme: string } | null>(null)
   const [replays, setReplays] = useState<Replay[]>([])
+  const [replayPlayer, setReplayPlayer] = useState<Replay | null>(null)
   const [upcoming, setUpcoming] = useState<UpcomingLive[]>([])
   useEffect(() => {
     if (IS_DEMO_MODE) return
@@ -809,7 +810,67 @@ export default function LivePage() {
           </motion.section>
         )}
 
-        {tab === 'replays' && (
+        {replayPlayer && (
+        <div
+          data-live-replay-player="true"
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-3 sm:p-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Replay : ${replayPlayer.titre}`}
+          onClick={() => setReplayPlayer(null)}
+        >
+          <div
+            className="w-full max-w-5xl overflow-hidden rounded-2xl sm:rounded-3xl border border-pearl/10 bg-abyss shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 border-b border-pearl/[0.07] px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <p className="font-cinzel text-sm font-bold text-pearl sm:text-base">
+                  {replayPlayer.titre}
+                </p>
+                <p className="mt-0.5 font-inter text-[11px] text-pearl/40">
+                  Replay dans Citadelle
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setReplayPlayer(null)}
+                className="shrink-0 rounded-xl border border-pearl/10 px-3 py-2 font-inter text-xs font-semibold text-pearl/70 transition-colors hover:bg-white/[0.05] hover:text-pearl"
+              >
+                Fermer
+              </button>
+            </div>
+
+            <div
+              className="relative bg-black"
+              style={{ aspectRatio: '16/9' }}
+            >
+              {ytId(replayPlayer.url) ? (
+                <iframe
+                  className="absolute inset-0 h-full w-full"
+                  src={`https://www.youtube.com/embed/${ytId(replayPlayer.url)}?rel=0&modestbranding=1&autoplay=1`}
+                  title={replayPlayer.titre}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  controls
+                  autoPlay
+                  className="absolute inset-0 h-full w-full bg-black"
+                  src={replayPlayer.url}
+                />
+              )}
+            </div>
+
+            <div className="border-t border-pearl/[0.07] p-4 sm:p-5">
+              <LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />
+            </div>
+          </div>
+        </div>
+      )}
+      {tab === 'replays' && (
         <div className="container-royal py-8">
           <h2 className="font-cinzel text-2xl font-bold text-pearl mb-8">Replays &amp; Archives</h2>
           {replays.length === 0 ? (
@@ -828,11 +889,12 @@ export default function LivePage() {
                   transition={{ delay: i * 0.05 }}
                   className="space-y-2"
                 >
-                  <a
-                    href={replay.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
+                  <button
+                    type="button"
+                    data-live-replay-open="true"
+                    aria-label={`Regarder ${replay.titre} dans Citadelle`}
+                    onClick={() => setReplayPlayer(replay)}
+                    className="w-full text-left card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
                   >
                     <div className="relative rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
                       {replay.cover ? (
@@ -863,7 +925,7 @@ export default function LivePage() {
                         {replay.date}
                       </p>
                     )}
-                  </a>
+                  </button>
 
                   <LiveReplayReactionCounts cmsLiveId={replay.id} />
                 </motion.div>

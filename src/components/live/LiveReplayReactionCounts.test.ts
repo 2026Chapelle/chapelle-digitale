@@ -127,7 +127,7 @@ describe('frozen replay reaction counts UI contract', () => {
     )
   })
 
-  it('uses the real CMS UUID on the public replay list and preserves external links', () => {
+  it('uses the real CMS UUID and keeps public replay playback inside Citadelle', () => {
     expect(publicPage).toContain(
       ".select('id, title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at, scheduled_at')",
     )
@@ -145,11 +145,27 @@ describe('frozen replay reaction counts UI contract', () => {
     )
 
     expect(publicPage).toContain(
+      'data-live-replay-open="true"',
+    )
+
+    expect(publicPage).toContain(
+      'onClick={() => setReplayPlayer(replay)}',
+    )
+
+    expect(publicPage).not.toContain(
       'href={replay.url}',
     )
 
     expect(publicPage).toContain(
-      'target="_blank"',
+      'data-live-replay-player="true"',
+    )
+
+    expect(publicPage).toContain(
+      'https://www.youtube.com/embed/${ytId(replayPlayer.url)}?rel=0&modestbranding=1&autoplay=1',
+    )
+
+    expect(publicPage).toContain(
+      '<LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />',
     )
   })
 
