@@ -172,7 +172,7 @@ export default function TeachingCommentsAdminPage() {
     ).length
 
   return (
-    <div className="space-y-7">
+    <div className="pt-28 lg:pt-32 space-y-7">
       <PageHeader
         eyebrow="École du Royaume"
         title={

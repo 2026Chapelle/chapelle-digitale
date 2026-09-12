@@ -111,11 +111,29 @@ describe(
         'utf8',
       )
 
+    const catalogueCard =
+      fs.readFileSync(
+        path.join(
+          root,
+          'src/components/teachings/TeachingCatalogCard.tsx',
+        ),
+        'utf8',
+      )
+
+    const libraryServer =
+      fs.readFileSync(
+        path.join(
+          root,
+          'src/lib/teachings/teaching-library-server.ts',
+        ),
+        'utf8',
+      )
+
     it(
       'uses internal detail links instead of inline player',
       () => {
         expect(
-          cataloguePage,
+          catalogueCard,
         ).toContain(
           'href={`/enseignements/${slug}`}',
         )
@@ -134,13 +152,19 @@ describe(
         expect(
           cataloguePage,
         ).toContain(
-          'teaching.series_title',
+          'library.series',
         )
 
         expect(
-          cataloguePage,
+          libraryServer,
         ).toContain(
-          'teaching.season_title',
+          'cms_teaching_series',
+        )
+
+        expect(
+          libraryServer,
+        ).toContain(
+          'cms_teaching_seasons',
         )
       },
     )
