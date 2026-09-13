@@ -765,6 +765,7 @@ export function LiveReplayPlayer({
     return (
       <div
         className={`relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/90 ${className}`}
+        style={{ aspectRatio: '16/9' }}
         aria-label={title}
       >
         <p className="text-sm text-white/70">
@@ -781,6 +782,7 @@ export function LiveReplayPlayer({
     return (
       <div
         className={`relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/95 p-6 ${className}`}
+        style={{ aspectRatio: '16/9' }}
         aria-label={title}
       >
         <div className="max-w-xl text-center">
@@ -834,6 +836,7 @@ export function LiveReplayPlayer({
     return (
       <div
         className={`relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-black ${className}`}
+        style={{ aspectRatio: '16/9' }}
         aria-label={title}
       >
         <div
