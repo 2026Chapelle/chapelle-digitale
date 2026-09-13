@@ -21,6 +21,7 @@ export type LiveReplayProgressWrite = {
   positionSeconds: number
   durationSeconds: number
   sessionKey: string
+  sessionStart?: boolean
   ended?: boolean
 }
 
@@ -301,14 +302,17 @@ export function applyReplayProgressSample(
   const completedAt =
     existing?.completedAt ??
     (
-      input.ended === true ||
       isReplayComplete(percentComplete)
         ? nowIso
         : null
     )
 
+  const sessionStart =
+    input.sessionStart === true
+
   const sessionChanged =
     Boolean(existing) &&
+    sessionStart &&
     existing?.lastSessionKey !==
       input.sessionKey
 
@@ -321,6 +325,11 @@ export function applyReplayProgressSample(
         (sessionChanged ? 1 : 0)
       : 1
 
+  const lastSessionKey =
+    !existing || sessionStart
+      ? input.sessionKey
+      : existing.lastSessionKey
+
   return {
     cmsLiveId: input.cmsLiveId,
     lastPositionSeconds,
@@ -328,7 +337,7 @@ export function applyReplayProgressSample(
     percentComplete,
     completedAt,
     viewCount,
-    lastSessionKey: input.sessionKey,
+    lastSessionKey,
     firstWatchedAt:
       existing?.firstWatchedAt ?? nowIso,
     lastWatchedAt: nowIso,

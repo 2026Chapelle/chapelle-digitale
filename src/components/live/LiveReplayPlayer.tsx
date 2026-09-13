@@ -182,6 +182,12 @@ export function LiveReplayPlayer({
   const sessionKeyRef =
     useRef<string>('')
 
+  const sessionStartPendingRef =
+    useRef(true)
+
+  const hasPlaybackStartedRef =
+    useRef(false)
+
   if (!sessionKeyRef.current) {
     sessionKeyRef.current =
       createReplaySessionKey()
@@ -213,6 +219,7 @@ export function LiveReplayPlayer({
         durationSeconds: number,
         options: {
           force?: boolean
+          sessionStart?: boolean
           ended?: boolean
         } = {},
       ) => {
@@ -276,6 +283,13 @@ export function LiveReplayPlayer({
             sessionKey:
               sessionKeyRef.current,
             ...(
+              options.sessionStart
+                ? {
+                    sessionStart: true,
+                  }
+                : {}
+            ),
+            ...(
               options.ended
                 ? {
                     ended: true,
@@ -330,6 +344,15 @@ export function LiveReplayPlayer({
     let cancelled = false
 
     async function initialize() {
+      sessionStartPendingRef.current =
+        true
+
+      hasPlaybackStartedRef.current =
+        false
+
+      lastSavedAtRef.current =
+        0
+
       const local =
         readLocalReplayProgress(
           cmsLiveId,
@@ -505,6 +528,39 @@ export function LiveReplayPlayer({
                     if (
                       event.data === 1
                     ) {
+                      hasPlaybackStartedRef.current =
+                        true
+
+                      if (
+                        sessionStartPendingRef.current
+                      ) {
+                        sessionStartPendingRef.current =
+                          false
+
+                        const current =
+                          Number(
+                            playerRef
+                              .current
+                              ?.getCurrentTime?.(),
+                          ) || 0
+
+                        const duration =
+                          Number(
+                            playerRef
+                              .current
+                              ?.getDuration?.(),
+                          ) || 0
+
+                        persist(
+                          current,
+                          duration,
+                          {
+                            force: true,
+                            sessionStart: true,
+                          },
+                        )
+                      }
+
                       sampleIntervalRef.current =
                         setInterval(
                           () => {
@@ -541,6 +597,12 @@ export function LiveReplayPlayer({
                           LIVE_REPLAY_SAMPLE_INTERVAL_MS,
                         )
 
+                      return
+                    }
+
+                    if (
+                      !hasPlaybackStartedRef.current
+                    ) {
                       return
                     }
 
@@ -617,8 +679,11 @@ export function LiveReplayPlayer({
           durationRef.current
 
         if (
-          current > 0 ||
-          duration > 0
+          hasPlaybackStartedRef.current &&
+          (
+            current > 0 ||
+            duration > 0
+          )
         ) {
           persist(
             current,
@@ -665,8 +730,11 @@ export function LiveReplayPlayer({
             .duration || 0
 
         if (
-          current > 0 ||
-          duration > 0
+          hasPlaybackStartedRef.current &&
+          (
+            current > 0 ||
+            duration > 0
+          )
         ) {
           persist(
             current,
@@ -810,7 +878,33 @@ export function LiveReplayPlayer({
           }
         }
       }}
+      onPlay={event => {
+        hasPlaybackStartedRef.current =
+          true
+
+        if (
+          sessionStartPendingRef.current
+        ) {
+          sessionStartPendingRef.current =
+            false
+
+          persist(
+            event.currentTarget.currentTime,
+            event.currentTarget.duration || 0,
+            {
+              force: true,
+              sessionStart: true,
+            },
+          )
+        }
+      }}
       onTimeUpdate={event => {
+        if (
+          !hasPlaybackStartedRef.current
+        ) {
+          return
+        }
+
         const video =
           event.currentTarget
 
@@ -826,6 +920,12 @@ export function LiveReplayPlayer({
         )
       }}
       onPause={event => {
+        if (
+          !hasPlaybackStartedRef.current
+        ) {
+          return
+        }
+
         persist(
           event.currentTarget.currentTime,
           event.currentTarget.duration || 0,

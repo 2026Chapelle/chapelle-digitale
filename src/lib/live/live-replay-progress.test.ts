@@ -146,6 +146,7 @@ describe('LIVE 4C replay progress contract', () => {
           positionSeconds: 50,
           durationSeconds: 100,
           sessionKey: 'session_2',
+          sessionStart: true,
         },
         '2026-09-13T16:10:00.000Z',
       )
@@ -182,6 +183,104 @@ describe('LIVE 4C replay progress contract', () => {
 
     expect(later.completedAt)
       .toBe('2026-09-13T16:20:00.000Z')
+  })
+
+  it('counts a session only on explicit session start and ignores alternating tab saves', () => {
+    const first =
+      applyReplayProgressSample(
+        null,
+        {
+          cmsLiveId: CMS_LIVE_ID,
+          positionSeconds: 10,
+          durationSeconds: 100,
+          sessionKey: 'session_1',
+          sessionStart: true,
+        },
+        '2026-09-13T17:00:00.000Z',
+      )
+
+    expect(first.viewCount)
+      .toBe(1)
+
+    expect(first.lastSessionKey)
+      .toBe('session_1')
+
+    const secondSession =
+      applyReplayProgressSample(
+        first,
+        {
+          cmsLiveId: CMS_LIVE_ID,
+          positionSeconds: 20,
+          durationSeconds: 100,
+          sessionKey: 'session_2',
+          sessionStart: true,
+        },
+        '2026-09-13T17:10:00.000Z',
+      )
+
+    expect(secondSession.viewCount)
+      .toBe(2)
+
+    expect(secondSession.lastSessionKey)
+      .toBe('session_2')
+
+    const oldTabSave =
+      applyReplayProgressSample(
+        secondSession,
+        {
+          cmsLiveId: CMS_LIVE_ID,
+          positionSeconds: 30,
+          durationSeconds: 100,
+          sessionKey: 'session_1',
+        },
+        '2026-09-13T17:11:00.000Z',
+      )
+
+    expect(oldTabSave.viewCount)
+      .toBe(2)
+
+    expect(oldTabSave.lastSessionKey)
+      .toBe('session_2')
+
+    const secondTabSave =
+      applyReplayProgressSample(
+        oldTabSave,
+        {
+          cmsLiveId: CMS_LIVE_ID,
+          positionSeconds: 40,
+          durationSeconds: 100,
+          sessionKey: 'session_2',
+        },
+        '2026-09-13T17:12:00.000Z',
+      )
+
+    expect(secondTabSave.viewCount)
+      .toBe(2)
+
+    expect(secondTabSave.lastSessionKey)
+      .toBe('session_2')
+  })
+
+  it('does not trust ended alone to complete an early replay', () => {
+    const earlyEnd =
+      applyReplayProgressSample(
+        null,
+        {
+          cmsLiveId: CMS_LIVE_ID,
+          positionSeconds: 10,
+          durationSeconds: 100,
+          sessionKey: 'session_1',
+          sessionStart: true,
+          ended: true,
+        },
+        '2026-09-13T17:20:00.000Z',
+      )
+
+    expect(earlyEnd.percentComplete)
+      .toBe(10)
+
+    expect(earlyEnd.completedAt)
+      .toBeNull()
   })
 
   it('chooses the newest local or server copy', () => {

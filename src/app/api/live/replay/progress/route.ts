@@ -211,6 +211,7 @@ export async function POST(
       'positionSeconds',
       'durationSeconds',
       'sessionKey',
+      'sessionStart',
       'ended',
     ])
 
@@ -242,6 +243,9 @@ export async function POST(
   const durationSeconds =
     Number(row.durationSeconds)
 
+  const sessionStart =
+    row.sessionStart
+
   const ended =
     row.ended
 
@@ -260,6 +264,10 @@ export async function POST(
       durationSeconds,
     ) ||
     durationSeconds < 0 ||
+    (
+      sessionStart !== undefined &&
+      typeof sessionStart !== 'boolean'
+    ) ||
     (
       ended !== undefined &&
       typeof ended !== 'boolean'
@@ -280,6 +288,11 @@ export async function POST(
       positionSeconds,
       durationSeconds,
       sessionKey,
+      ...(
+        sessionStart === true
+          ? { sessionStart: true }
+          : {}
+      ),
       ...(
         ended === true
           ? { ended: true }
