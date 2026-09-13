@@ -813,14 +813,14 @@ export default function LivePage() {
         {replayPlayer && (
         <div
           data-live-replay-player="true"
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-3 sm:p-6 backdrop-blur-sm"
+          className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/85 p-3 sm:p-6 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label={`Replay : ${replayPlayer.titre}`}
           onClick={() => setReplayPlayer(null)}
         >
           <div
-            className="w-full max-w-5xl overflow-hidden rounded-2xl sm:rounded-3xl border border-pearl/10 bg-abyss shadow-2xl"
+            className="my-auto w-full max-w-5xl overflow-hidden rounded-2xl sm:rounded-3xl border border-pearl/10 bg-abyss shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-4 border-b border-pearl/[0.07] px-4 py-3 sm:px-5">

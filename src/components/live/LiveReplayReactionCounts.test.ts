@@ -159,6 +159,18 @@ describe('frozen replay reaction counts UI contract', () => {
     expect(publicPage).toContain(
       'data-live-replay-player="true"',
     )
+    expect(publicPage).toContain(
+      'overflow-y-auto',
+    )
+
+    expect(publicPage).toContain(
+      'items-start justify-center',
+    )
+
+    expect(publicPage).toContain(
+      'my-auto w-full max-w-5xl',
+    )
+
 
     expect(publicPage).toContain(
       'https://www.youtube.com/embed/${ytId(replayPlayer.url)}?rel=0&modestbranding=1&autoplay=1',
