@@ -820,10 +820,11 @@ export default function LivePage() {
           onClick={() => setReplayPlayer(null)}
         >
           <div
-            className="my-auto w-full max-w-5xl overflow-hidden rounded-2xl sm:rounded-3xl border border-pearl/10 bg-abyss shadow-2xl"
+            className="my-auto w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-pearl/10 bg-abyss shadow-2xl"
+            style={{ maxWidth: 'min(64rem, 108dvh)' }}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4 border-b border-pearl/[0.07] px-4 py-3 sm:px-5">
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-pearl/[0.07] px-4 py-2.5 sm:px-5">
               <div className="min-w-0">
                 <p className="font-cinzel text-sm font-bold text-pearl sm:text-base">
                   {replayPlayer.titre}
@@ -864,7 +865,10 @@ export default function LivePage() {
               )}
             </div>
 
-            <div className="border-t border-pearl/[0.07] p-4 sm:p-5">
+            <div
+              data-live-replay-reactions="true"
+              className="shrink-0 border-t border-pearl/[0.07] p-3 sm:p-4"
+            >
               <LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />
             </div>
           </div>

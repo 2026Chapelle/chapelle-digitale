@@ -168,7 +168,15 @@ describe('frozen replay reaction counts UI contract', () => {
     )
 
     expect(publicPage).toContain(
-      'my-auto w-full max-w-5xl',
+      "style={{ maxWidth: 'min(64rem, 108dvh)' }}",
+    )
+
+    expect(publicPage).toContain(
+      'data-live-replay-reactions="true"',
+    )
+
+    expect(publicPage).toContain(
+      'shrink-0 border-t border-pearl/[0.07]',
     )
 
 
