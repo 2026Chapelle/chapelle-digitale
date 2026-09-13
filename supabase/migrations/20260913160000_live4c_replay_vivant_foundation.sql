@@ -67,6 +67,10 @@ create index if not exists idx_live_program_seasons_program
 create index if not exists idx_live_program_seasons_status
   on public.live_program_seasons(status);
 
+-- Required by the composite cms_lives(season_id, program_id) FK.
+create unique index if not exists uq_live_program_seasons_id_program
+  on public.live_program_seasons(id, program_id);
+
 comment on table public.live_program_seasons is
   'LIVE 4C editorial seasons between live_programs and cms_lives.';
 
@@ -96,13 +100,46 @@ create policy live_program_seasons_public_read
 -- ============================================================================
 
 alter table public.cms_lives
-  add column if not exists season_id uuid
-  references public.live_program_seasons(id)
-  on delete set null;
+  add column if not exists season_id uuid;
 
 alter table public.cms_lives
   add column if not exists episode_number integer
   check (episode_number is null or episode_number > 0);
+
+-- A season can only exist when a program is assigned.
+-- The composite FK then guarantees that the season belongs
+-- to that exact program.
+do $live4c$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'cms_lives_live4c_season_requires_program_chk'
+      and conrelid = 'public.cms_lives'::regclass
+  ) then
+    alter table public.cms_lives
+      add constraint cms_lives_live4c_season_requires_program_chk
+      check (season_id is null or program_id is not null);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'cms_lives_live4c_season_program_fk'
+      and conrelid = 'public.cms_lives'::regclass
+  ) then
+    alter table public.cms_lives
+      add constraint cms_lives_live4c_season_program_fk
+      foreign key (season_id, program_id)
+      references public.live_program_seasons(id, program_id)
+      on delete restrict;
+  end if;
+end
+$live4c$;
+
+create index if not exists idx_cms_lives_season_program
+  on public.cms_lives(season_id, program_id)
+  where season_id is not null;
 
 create index if not exists idx_cms_lives_season_episode
   on public.cms_lives(season_id, episode_number);
@@ -122,7 +159,9 @@ create table if not exists public.live_replay_progress (
     references public.cms_lives(id)
     on delete cascade,
   actor_key text not null
-    check (char_length(actor_key) between 8 and 200),
+    check (
+      actor_key ~ '^(member:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|guest:[0-9a-f]{64})$'
+    ),
   user_id uuid
     references auth.users(id)
     on delete cascade,
@@ -170,7 +209,9 @@ create table if not exists public.live_replay_reactions (
     references public.cms_lives(id)
     on delete cascade,
   actor_key text not null
-    check (char_length(actor_key) between 8 and 200),
+    check (
+      actor_key ~ '^(member:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|guest:[0-9a-f]{64})$'
+    ),
   user_id uuid
     references auth.users(id)
     on delete cascade,
@@ -290,7 +331,71 @@ grant all on table public.live_cult_notes
   to service_role;
 
 -- ============================================================================
--- 8. EXPLICIT NON-DOMAINS
+-- 8. UPDATED_AT — canonical Citadelle maintenance
+-- ============================================================================
+
+-- Reuse public.cms_touch_updated_at(), already defined by CMS core.
+do $live4c$
+begin
+  if not exists (
+    select 1 from pg_trigger
+    where tgname = 'trg_live_program_seasons_touch_updated_at'
+      and tgrelid = 'public.live_program_seasons'::regclass
+      and not tgisinternal
+  ) then
+    create trigger trg_live_program_seasons_touch_updated_at
+      before update on public.live_program_seasons
+      for each row execute function public.cms_touch_updated_at();
+  end if;
+
+  if not exists (
+    select 1 from pg_trigger
+    where tgname = 'trg_live_replay_progress_touch_updated_at'
+      and tgrelid = 'public.live_replay_progress'::regclass
+      and not tgisinternal
+  ) then
+    create trigger trg_live_replay_progress_touch_updated_at
+      before update on public.live_replay_progress
+      for each row execute function public.cms_touch_updated_at();
+  end if;
+
+  if not exists (
+    select 1 from pg_trigger
+    where tgname = 'trg_live_replay_reactions_touch_updated_at'
+      and tgrelid = 'public.live_replay_reactions'::regclass
+      and not tgisinternal
+  ) then
+    create trigger trg_live_replay_reactions_touch_updated_at
+      before update on public.live_replay_reactions
+      for each row execute function public.cms_touch_updated_at();
+  end if;
+
+  if not exists (
+    select 1 from pg_trigger
+    where tgname = 'trg_live_replay_comments_touch_updated_at'
+      and tgrelid = 'public.live_replay_comments'::regclass
+      and not tgisinternal
+  ) then
+    create trigger trg_live_replay_comments_touch_updated_at
+      before update on public.live_replay_comments
+      for each row execute function public.cms_touch_updated_at();
+  end if;
+
+  if not exists (
+    select 1 from pg_trigger
+    where tgname = 'trg_live_cult_notes_touch_updated_at'
+      and tgrelid = 'public.live_cult_notes'::regclass
+      and not tgisinternal
+  ) then
+    create trigger trg_live_cult_notes_touch_updated_at
+      before update on public.live_cult_notes
+      for each row execute function public.cms_touch_updated_at();
+  end if;
+end
+$live4c$;
+
+-- ============================================================================
+-- 9. EXPLICIT NON-DOMAINS
 -- ============================================================================
 --
 -- No replay prayer table.
