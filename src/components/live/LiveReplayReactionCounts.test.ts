@@ -181,7 +181,15 @@ describe('frozen replay reaction counts UI contract', () => {
 
 
     expect(publicPage).toContain(
-      'https://www.youtube.com/embed/${ytId(replayPlayer.url)}?rel=0&modestbranding=1&autoplay=1',
+      "import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'",
+    )
+
+    expect(publicPage).toContain(
+      'youtubeId={ytId(replayPlayer.youtube_url)}',
+    )
+
+    expect(publicPage).toContain(
+      'videoUrl={replayPlayer.video_url || null}',
     )
 
     expect(publicPage).toContain(
@@ -219,7 +227,19 @@ describe('frozen replay reaction counts UI contract', () => {
     )
 
     expect(memberPage).toContain(
-      'setPlayer({ ytId: id, titre: r.titre, cmsLiveId: r.id })',
+      'cmsLiveId: r.id,',
+    )
+
+    expect(memberPage).toContain(
+      '<LiveReplayPlayer',
+    )
+
+    expect(memberPage).toContain(
+      'cmsLiveId={player.cmsLiveId}',
+    )
+
+    expect(memberPage).toContain(
+      'serverSync',
     )
 
     expect(memberPage).toContain(

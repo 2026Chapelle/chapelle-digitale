@@ -9,6 +9,7 @@ import LiveReactionControls from '@/components/live/LiveReactionControls'
 import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
 import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
+import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'
 import { LIVE_PUBLIC_URL, LIVE_SHARE_TEXT, recordSuccessfulLiveShare } from '@/lib/live/live-share-client'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
@@ -21,7 +22,7 @@ function ytId(url?: string): string | null {
 }
 
 
-interface Replay { id: string; titre: string; date: string; speaker: string; url: string; cover?: string }
+interface Replay { id: string; titre: string; date: string; speaker: string; youtube_url?: string; video_url?: string; cover?: string }
 
 type UpcomingLive = {
   titre: string
@@ -94,7 +95,8 @@ export default function LivePage() {
               )
             : '',
           speaker: d.platform || '',
-          url: d.youtube_url || d.video_url || '',
+          youtube_url: d.youtube_url || '',
+          video_url: d.video_url || '',
           cover:
             d.cover_url ||
             (ytId(d.youtube_url)
@@ -843,27 +845,13 @@ export default function LivePage() {
               </button>
             </div>
 
-            <div
-              className="relative bg-black"
-              style={{ aspectRatio: '16/9' }}
-            >
-              {ytId(replayPlayer.url) ? (
-                <iframe
-                  className="absolute inset-0 h-full w-full"
-                  src={`https://www.youtube.com/embed/${ytId(replayPlayer.url)}?rel=0&modestbranding=1&autoplay=1`}
-                  title={replayPlayer.titre}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <video
-                  controls
-                  autoPlay
-                  className="absolute inset-0 h-full w-full bg-black"
-                  src={replayPlayer.url}
-                />
-              )}
-            </div>
+            <LiveReplayPlayer
+              cmsLiveId={replayPlayer.id}
+              youtubeId={ytId(replayPlayer.youtube_url)}
+              videoUrl={replayPlayer.video_url || null}
+              title={replayPlayer.titre}
+              className="rounded-none border-0"
+            />
 
             <div
               data-live-replay-reactions="true"
