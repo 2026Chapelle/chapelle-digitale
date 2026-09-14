@@ -1,8 +1,10 @@
 'use client'
 
 import {
+  forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from 'react'
@@ -106,6 +108,11 @@ function loadYouTubeApi():
   return youtubeApiPromise
 }
 
+export type LiveReplayPlayerHandle = {
+  getCurrentPosition: () => number | null
+  seekTo: (seconds: number) => boolean
+}
+
 type Props = {
   cmsLiveId: string
   youtubeId?: string | null
@@ -142,14 +149,19 @@ function nowPerformance():
   return Date.now()
 }
 
-export function LiveReplayPlayer({
-  cmsLiveId,
-  youtubeId,
-  videoUrl,
-  title = 'Replay Citadelle',
-  serverSync = false,
-  className = '',
-}: Props) {
+export const LiveReplayPlayer =
+  forwardRef<LiveReplayPlayerHandle, Props>(
+    function LiveReplayPlayer(
+      {
+        cmsLiveId,
+        youtubeId,
+        videoUrl,
+        title = 'Replay Citadelle',
+        serverSync = false,
+        className = '',
+      }: Props,
+      ref,
+    ) {
   const hostRef =
     useRef<HTMLDivElement>(
       null,
@@ -187,6 +199,129 @@ export function LiveReplayPlayer({
 
   const hasPlaybackStartedRef =
     useRef(false)
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      getCurrentPosition: () => {
+        try {
+          const youtubePosition =
+            Number(
+              playerRef.current
+                ?.getCurrentTime?.(),
+            )
+
+          if (
+            Number.isFinite(
+              youtubePosition,
+            ) &&
+            youtubePosition >= 0
+          ) {
+            return youtubePosition
+          }
+        } catch {
+          // Fall back to HTML5 or
+          // the last sampled position.
+        }
+
+        try {
+          const video =
+            videoRef.current
+
+          if (video) {
+            const html5Position =
+              Number(
+                video.currentTime,
+              )
+
+            if (
+              Number.isFinite(
+                html5Position,
+              ) &&
+              html5Position >= 0
+            ) {
+              return html5Position
+            }
+          }
+        } catch {
+          // Fall back to the last
+          // sampled position.
+        }
+
+        const fallback =
+          Number(
+            positionRef.current,
+          )
+
+        return (
+          Number.isFinite(
+            fallback,
+          ) &&
+          fallback >= 0
+        )
+          ? fallback
+          : null
+      },
+
+      seekTo: (
+        seconds: number,
+      ) => {
+        const numeric =
+          Number(seconds)
+
+        const target =
+          Number.isFinite(numeric)
+            ? Math.max(
+                0,
+                numeric,
+              )
+            : 0
+
+        if (
+          typeof playerRef
+            .current
+            ?.seekTo ===
+          'function'
+        ) {
+          try {
+            playerRef.current
+              .seekTo(
+                target,
+                true,
+              )
+
+            positionRef.current =
+              target
+
+            return true
+          } catch {
+            // Try the HTML5 player
+            // before reporting failure.
+          }
+        }
+
+        const video =
+          videoRef.current
+
+        if (video) {
+          try {
+            video.currentTime =
+              target
+
+            positionRef.current =
+              target
+
+            return true
+          } catch {
+            // No usable player.
+          }
+        }
+
+        return false
+      },
+    }),
+    [],
+  )
 
   if (!sessionKeyRef.current) {
     sessionKeyRef.current =
@@ -953,7 +1088,8 @@ export function LiveReplayPlayer({
       }}
     />
   )
-}
+},
+  )
 
 export function replayProgressPercent(
   positionSeconds: number,
