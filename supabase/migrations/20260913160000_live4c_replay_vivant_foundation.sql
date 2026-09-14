@@ -298,7 +298,7 @@ create table if not exists public.live_cult_notes (
     references auth.users(id)
     on delete cascade,
   kind text not null default 'note'
-    check (kind in ('note', 'bookmark', 'scripture')),
+    check (kind in ('note', 'received_word', 'scripture', 'decision', 'meditation')),
   body text not null
     check (char_length(btrim(body)) between 1 and 10000),
   position_seconds integer
