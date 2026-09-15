@@ -1,7 +1,7 @@
 # LIVE 4C — Task 6 : Réactions vivantes du replay
 
 Date de validation : 15 septembre 2026
-Statut : conception validée
+Statut : conception validée et alignée sur le dépôt
 Base Git : `577a4e52e05c071ccb1cf8f115e46741c06db1cf`
 
 ## 1. Objectif
@@ -32,49 +32,84 @@ Le sous-système comprend :
 
 L’API Next.js est l’autorité. Le navigateur n’écrit jamais directement dans les tables Supabase.
 
-Le replay utilise une clé canonique unique dans tous les espaces d’affichage.
+Le replay utilise son `cms_live_id` comme identité canonique unique dans tous les espaces d’affichage.
 
 Les réactions locales du direct restent distinctes des réactions persistantes du replay.
 
 ## 3. Données
 
+L’implémentation réutilise la table `public.live_replay_reactions` déjà créée par la migration LIVE 4C `20260913160000_live4c_replay_vivant_foundation.sql`.
+
+La migration historique ne sera pas modifiée. Une migration additive et corrective séparée alignera son contrat avec la présente spécification.
+
 ### 3.1 `live_replay_reactions`
 
-Champs requis :
+Champs conservés :
 
-- `id`
-- `replay_key`
-- `reaction_key`
-- `actor_kind`
-- `member_id`
-- `guest_hash`
+- `cms_live_id`
+- `actor_key`
+- `user_id`
+- `reaction`
 - `created_at`
 - `updated_at`
 
-Contraintes :
+`cms_live_id` référence `public.cms_lives(id)` et constitue l’identité canonique du replay.
 
-- `reaction_key` appartient à la liste fermée des quatre réactions ;
-- `actor_kind` vaut `member` ou `guest` ;
-- une ligne appartient soit à un membre, soit à un visiteur ;
-- unicité partielle sur `replay_key + member_id` ;
-- unicité partielle sur `replay_key + guest_hash`.
+`actor_key` conserve le format existant :
 
-Il ne peut donc exister qu’une seule réaction active par personne et par replay.
+- `member:<uuid>` pour un membre ;
+- `guest:<empreinte-hexadécimale>` pour un visiteur.
 
-### 3.2 `live_replay_reaction_settings`
+`user_id` est renseigné pour un membre et reste nul pour un visiteur.
+
+Réactions autorisées :
+
+- `amen`
+- `receive`
+- `glory`
+- `thanks`
+
+La clé primaire devient `(cms_live_id, actor_key)`. Elle garantit une seule réaction active par personne et par replay.
+
+Le changement de réaction met à jour la ligne existante. Le retrait supprime cette ligne.
+
+Avant toute application de la migration corrective sur une base distante, un préflight vérifie que cette table ne contient aucune réaction. Si des données existent, la migration s’arrête sans suppression automatique et exige une décision explicite. Aucun compteur historique n’est inventé ou converti.
+
+Les tables et fonctions des réactions du direct LIVE 4B ne sont jamais modifiées.
+
+### 3.2 Rattachement territorial de `cms_lives`
+
+`public.cms_lives` reçoit deux colonnes optionnelles :
+
+- `organization_id`
+- `organization_unit_id`
+
+Elles sont soit toutes les deux nulles, soit toutes les deux renseignées.
+
+Le couple référence la hiérarchie existante `public.organization_units(organization_id, id)`.
+
+Un replay sans unité est global. Un replay rattaché hérite du périmètre réel de son unité : mondial, continental, national ou local.
+
+Aucune nouvelle table de pays, d’assemblées ou de rôles n’est créée.
+
+### 3.3 `live_replay_reaction_settings`
 
 Champs requis :
 
-- `replay_key`
+- `cms_live_id`
 - `enabled`
 - `updated_by`
 - `updated_at`
+
+`cms_live_id` est la clé primaire et référence `public.cms_lives(id)`.
 
 L’absence de ligne signifie que les réactions sont actives.
 
 La désactivation masque les réactions et bloque les mutations sans supprimer les données existantes.
 
-Les tables utilisent RLS. Les droits directs publics d’écriture ne sont pas accordés.
+`updated_by` conserve l’administrateur ayant effectué le dernier changement.
+
+Toutes les tables concernées utilisent RLS. Les rôles `anon` et `authenticated` ne reçoivent aucun droit direct d’écriture. Le serveur utilise exclusivement les accès privilégiés déjà réservés aux routes internes.
 
 ## 4. Identité visiteur
 
@@ -87,7 +122,7 @@ Le serveur crée un jeton aléatoire cryptographiquement sûr dans un cookie :
 
 Le jeton brut n’est jamais stocké en base.
 
-Le serveur calcule `guest_hash` avec un secret privé. Aucun fingerprint du navigateur, nom ou courriel n’est collecté.
+Le serveur calcule l’empreinte visiteur avec un secret privé. Aucun fingerprint du navigateur, nom ou courriel n’est collecté.
 
 L’effacement du cookie crée une nouvelle identité visiteur.
 
@@ -103,9 +138,11 @@ Après connexion :
 
 ## 6. API
 
+Les nouvelles routes utilisent `cmsLiveId`, déjà employé par le lecteur, le Carnet du Culte et la progression du replay.
+
 ### 6.1 Lecture
 
-`GET /api/live/replay/reactions?replayKey=...`
+`GET /api/live/replay/reactions?cmsLiveId=...`
 
 La réponse contient :
 
@@ -115,16 +152,18 @@ La réponse contient :
 
 La lecture peut créer l’identité visiteur ou effectuer le transfert après connexion.
 
+L’ancienne route en lecture seule `/api/live/reactions/replay`, consacrée à la mémoire figée du direct LIVE 4B, reste intacte et séparée.
+
 ### 6.2 Ajouter ou remplacer
 
 `PUT /api/live/replay/reactions`
 
 Corps :
 
-- `replayKey`
+- `cmsLiveId`
 - `reaction`
 
-L’opération est idempotente. Choisir une autre réaction remplace la précédente.
+L’opération est idempotente. Choisir une autre réaction met à jour la ligne existante.
 
 ### 6.3 Retirer
 
@@ -132,20 +171,27 @@ L’opération est idempotente. Choisir une autre réaction remplace la précéd
 
 Corps :
 
-- `replayKey`
+- `cmsLiveId`
 
 ### 6.4 Administration
 
-Une route séparée modifie `enabled` après vérification du rôle et du périmètre administratif.
+`PATCH /api/admin/live/replay/reactions`
+
+Corps :
+
+- `cmsLiveId`
+- `enabled`
+
+La route vérifie l’identité réelle de l’administrateur, son rôle ERP et son accès à l’unité du replay.
 
 Codes attendus :
 
 - `400` : données invalides ;
 - `401` : identité impossible à établir ;
-- `403` : origine, désactivation ou périmètre refusé ;
-- `404` : replay inexistant ;
+- `403` : origine, désactivation ou autorisation refusée ;
+- `404` : replay inexistant ou situé hors du périmètre visible ;
 - `429` : limitation de fréquence ;
-- `500` : erreur interne.
+- `500` ou `503` : erreur interne ou dépendance indisponible.
 
 ## 7. Sécurité
 
@@ -204,16 +250,31 @@ Cette version n’utilise pas Supabase Realtime.
 
 ## 10. Administration hiérarchisée
 
+L’autorisation réutilise exclusivement la hiérarchie ERP existante :
+
+- `organization_units`
+- `organization_unit_members`
+- `resolveAdminActorProfile()`
+- `resolveActorUnitContext()`
+- `assertUnitAccess()`
+
 Droits :
 
-- super-admin : tous les replays ;
-- administration internationale : tous les replays ;
-- administration nationale : replays de son pays ;
-- administration locale : replays de son assemblée ou périmètre.
+- `world_super_admin` : tous les replays ;
+- `world_admin` : tous les replays ;
+- `zone_admin` : replays de sa zone et de ses descendants ;
+- `national_admin` : replays de son unité nationale et de ses descendants ;
+- `local_admin` : replays de son église locale uniquement.
 
-Un replay global ou sans rattachement territorial est administrable uniquement aux niveaux international et super-admin.
+Un replay global, dont `organization_id` et `organization_unit_id` sont nuls, est administrable uniquement par `world_super_admin` ou `world_admin`.
+
+Un replay rattaché est administrable uniquement lorsque l’unité appartient au périmètre réel de l’acteur.
+
+Le serveur retourne une réponse `404` uniforme pour un replay situé hors périmètre afin de ne pas révéler son existence.
 
 L’administration peut activer ou désactiver les réactions. Elle ne peut ni modifier les compteurs ni altérer les réactions individuelles.
+
+Le formulaire existant de gestion des lives expose le rattachement d’un replay à une unité autorisée et l’état des réactions. Le contrôle serveur reste l’autorité, même si l’interface est contournée.
 
 ## 11. Tests obligatoires
 
