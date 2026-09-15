@@ -113,6 +113,9 @@ export const NAV_SECTIONS: AdminNavSection[] = [
     id: 'academie', label: 'Académie & Formation', icon: GraduationCap,
     items: [
       { label: 'Enseignements', href: '/admin/enseignements', icon: BookOpen, color: '#8B5CF6' },
+      { label: 'Séries d’enseignements', href: '/admin/teaching-series', icon: Layers, color: '#A78BFA' },
+      { label: 'Saisons d’enseignements', href: '/admin/teaching-seasons', icon: Layers, color: '#C4B5FD' },
+      { label: 'Commentaires enseignements', href: '/admin/teaching-comments', icon: MessageSquare, color: '#D4AF37' },
       { label: 'Formations', href: '/admin/formations', icon: GraduationCap, color: '#0EA5E9' },
       { label: 'Modules', href: '/admin/modules', icon: Layers, color: '#06B6D4' },
       { label: 'Parcours', href: '/admin/parcours', icon: Route, color: '#A855F7' },

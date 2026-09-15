@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Play, Pause, Clock, Calendar, Tv, Radio, Heart,
@@ -10,11 +10,15 @@ import {
 } from 'lucide-react'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import LiveOffering from '@/components/features/giving/LiveOffering'
+import LivePresenceControls from '@/components/live/LivePresenceControls'
 import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
 import LiveReactionControls from '@/components/live/LiveReactionControls'
 import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
 import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
+import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'
+import type { LiveReplayPlayerHandle } from '@/components/live/LiveReplayPlayer'
+import LiveCultNotebook from '@/components/live/LiveCultNotebook'
 import ShareButtons from '@/components/ui/ShareButtons'
 import toast from 'react-hot-toast'
 
@@ -95,7 +99,7 @@ const LIVE_FALLBACK = {
 
 
 // Aucun replay / programme fictif : tout vient de cms_lives (état chargé en composant).
-type ReplayItem = { id: string; titre: string; date: string; duree: string; plateforme: string; emoji: string; couleur: string; youtube_url?: string; cover?: string }
+type ReplayItem = { id: string; titre: string; date: string; duree: string; plateforme: string; emoji: string; couleur: string; youtube_url?: string; video_url?: string; cover?: string }
 type AVenirItem = { id: string; titre: string; date: string; heure: string; plateforme: string; emoji: string; couleur: string }
 
 
@@ -115,7 +119,9 @@ export default function LivesPage() {
   const [tab, setTab] = useState<'live' | 'replays' | 'programme'>('live')
 
   // Lecteur intégré (replays + playlists) : le membre reste dans Citadelle.
-  const [player, setPlayer] = useState<{ ytId?: string; listId?: string; cmsLiveId?: string; titre: string } | null>(null)
+  const [player, setPlayer] = useState<{ ytId?: string; videoUrl?: string; listId?: string; cmsLiveId?: string; titre: string } | null>(null)
+  const replayPlayerRef =
+    useRef<LiveReplayPlayerHandle | null>(null)
   // Partage (modale réutilisant le composant ShareButtons).
   const [share, setShare] = useState<{ url: string; titre: string; texte?: string } | null>(null)
 
@@ -147,7 +153,7 @@ export default function LivesPage() {
             })
           } catch { /* non bloquant */ }
         }
-        setReplays(data.filter((d: any) => d.status === 'ended' || (d.status === 'published' && (d.youtube_url || d.video_url))).map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), duree: '', plateforme: d.platform || '', emoji: '🎬', couleur: '#D4AF37', youtube_url: d.youtube_url || d.video_url, cover: d.cover_url || '' })))
+        setReplays(data.filter((d: any) => d.status === 'ended' || (d.status === 'published' && (d.youtube_url || d.video_url))).map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), duree: '', plateforme: d.platform || '', emoji: '🎬', couleur: '#D4AF37', youtube_url: d.youtube_url || '', video_url: d.video_url || '', cover: d.cover_url || '' })))
         setAVenir(data.filter((d: any) => d.status === 'scheduled').map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), heure: hhmm(d.scheduled_at), plateforme: d.platform || '', emoji: '📅', couleur: '#8B5CF6' })))
       } catch { /* listes vides */ }
     })()
@@ -475,6 +481,12 @@ export default function LivesPage() {
               </div>
 
               <div className="p-5">
+                {tab === 'live' && hasLive && liveYtId && player === null && (
+                  <div className="mb-4">
+                    <LivePresenceControls liveVideoId={liveYtId} />
+                  </div>
+                )}
+
                 <LiveReactionsProvider
                   videoId={liveYtId}
                   enabled={tab === 'live' && hasLive && Boolean(liveYtId) && player === null}
@@ -523,8 +535,15 @@ export default function LivesPage() {
                   style={{ transition: 'border-color 0.2s, box-shadow 0.2s' }}
                   onClick={() => {
                     const id = ytId(r.youtube_url)
-                    if (id) setPlayer({ ytId: id, titre: r.titre, cmsLiveId: r.id })
-                    else if (r.youtube_url) window.open(r.youtube_url, '_blank', 'noopener,noreferrer')
+
+                    if (id || r.video_url) {
+                      setPlayer({
+                        ytId: id || undefined,
+                        videoUrl: r.video_url || undefined,
+                        titre: r.titre,
+                        cmsLiveId: r.id,
+                      })
+                    }
                   }}
                   onMouseEnter={e => {
                     (e.currentTarget as HTMLDivElement).style.borderColor = `${r.couleur}30`
@@ -716,21 +735,41 @@ export default function LivesPage() {
                     <X className="w-4 h-4" />
                   </button>
 
-                  <iframe
-                    className="absolute inset-0 w-full h-full"
-                    src={player.listId
-                      ? `https://www.youtube.com/embed/videoseries?list=${player.listId}&rel=0&modestbranding=1`
-                      : `https://www.youtube.com/embed/${player.ytId}?rel=0&modestbranding=1&autoplay=1`}
-                    title={player.titre}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+                  {player.listId ? (
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src={`https://www.youtube.com/embed/videoseries?list=${player.listId}&rel=0&modestbranding=1`}
+                      title={player.titre}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : player.cmsLiveId ? (
+                    <LiveReplayPlayer
+                      ref={replayPlayerRef}
+                      cmsLiveId={player.cmsLiveId}
+                      youtubeId={player.ytId ?? null}
+                      videoUrl={player.videoUrl ?? null}
+                      title={player.titre}
+                      serverSync
+                      className="h-full rounded-none border-0"
+                    />
+                  ) : null}
                 </div>
 
                 {player.cmsLiveId && (
-                  <div className="border-t border-pearl/[0.07] p-4">
-                    <LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />
-                  </div>
+                  <>
+                    <div className="border-t border-pearl/[0.07] p-4">
+                      <LiveCultNotebook
+                        cmsLiveId={player.cmsLiveId}
+                        playerRef={replayPlayerRef}
+                        serverSync
+                      />
+                    </div>
+
+                    <div className="border-t border-pearl/[0.07] p-4">
+                      <LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />
+                    </div>
+                  </>
                 )}
               </motion.div>
             </motion.div>

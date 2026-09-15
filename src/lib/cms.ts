@@ -47,7 +47,32 @@ export interface CmsPodcast extends CmsRow {
 export interface CmsPodcastShow extends CmsRow { slug: string; title: string; short_description?: string; description?: string; cover_url?: string }
 export interface CmsPodcastSeries extends CmsRow { show_id: string; slug: string; title: string; short_description?: string; description?: string; cover_url?: string; editorial_period?: string }
 export interface CmsPodcastSeason extends CmsRow { series_id: string; season_number: number; title?: string; short_description?: string; description?: string; cover_url?: string }
-export interface CmsTeaching extends CmsRow { title: string; speaker?: string; scripture?: string }
+export interface CmsTeachingSeries extends CmsRow {
+  slug: string
+  title: string
+  short_description?: string
+  description?: string
+  cover_url?: string
+}
+
+export interface CmsTeachingSeason extends CmsRow {
+  series_id: string
+  season_number: number
+  title?: string
+  short_description?: string
+  description?: string
+  cover_url?: string
+}
+
+export interface CmsTeaching extends CmsRow {
+  title: string
+  speaker?: string
+  scripture?: string
+  series_id?: string | null
+  season_id?: string | null
+  access_level?: 'public' | 'member' | 'premium'
+  is_featured?: boolean
+}
 export interface CmsTestimony extends CmsRow { author_name: string; body: string; featured?: boolean }
 export interface CmsArticle extends CmsRow { title: string; slug?: string; excerpt?: string; body?: string; cover_url?: string; author?: string; category?: string; featured?: boolean }
 export interface CmsPlatformContent extends CmsRow { platform_slug: string; title: string }
@@ -59,6 +84,8 @@ export const CMS_TABLES = [
   'cms_platform_content', 'cms_settings', 'cms_articles',
   // PODCAST-SPINE (migration 20260818120000) — conteneurs éditoriaux podcast.
   'cms_podcast_shows', 'cms_podcast_series', 'cms_podcast_seasons',
+  // TEACHING-SPINE — conteneurs éditoriaux des enseignements.
+  'cms_teaching_series', 'cms_teaching_seasons',
 ] as const
 export type CmsTable = typeof CMS_TABLES[number]
 

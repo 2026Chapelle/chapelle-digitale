@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Play, Users, Heart, Radio, Clock } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
@@ -9,6 +9,9 @@ import LiveReactionControls from '@/components/live/LiveReactionControls'
 import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
 import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
+import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'
+import type { LiveReplayPlayerHandle } from '@/components/live/LiveReplayPlayer'
+import LiveCultNotebook from '@/components/live/LiveCultNotebook'
 import { LIVE_PUBLIC_URL, LIVE_SHARE_TEXT, recordSuccessfulLiveShare } from '@/lib/live/live-share-client'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
@@ -21,7 +24,7 @@ function ytId(url?: string): string | null {
 }
 
 
-interface Replay { id: string; titre: string; date: string; speaker: string; url: string; cover?: string }
+interface Replay { id: string; titre: string; date: string; speaker: string; youtube_url?: string; video_url?: string; cover?: string }
 
 type UpcomingLive = {
   titre: string
@@ -39,6 +42,9 @@ export default function LivePage() {
   // Direct RÉEL depuis cms_lives — MÊME source que l'espace membre (source unique).
   const [live, setLive] = useState<{ titre: string; description: string; youtube_url: string; video_url: string; cover: string; plateforme: string } | null>(null)
   const [replays, setReplays] = useState<Replay[]>([])
+  const [replayPlayer, setReplayPlayer] = useState<Replay | null>(null)
+  const replayPlayerRef =
+    useRef<LiveReplayPlayerHandle | null>(null)
   const [upcoming, setUpcoming] = useState<UpcomingLive[]>([])
   useEffect(() => {
     if (IS_DEMO_MODE) return
@@ -93,7 +99,8 @@ export default function LivePage() {
               )
             : '',
           speaker: d.platform || '',
-          url: d.youtube_url || d.video_url || '',
+          youtube_url: d.youtube_url || '',
+          video_url: d.video_url || '',
           cover:
             d.cover_url ||
             (ytId(d.youtube_url)
@@ -809,7 +816,65 @@ export default function LivePage() {
           </motion.section>
         )}
 
-        {tab === 'replays' && (
+        {replayPlayer && (
+        <div
+          data-live-replay-player="true"
+          className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-black/85 p-3 sm:p-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Replay : ${replayPlayer.titre}`}
+          onClick={() => setReplayPlayer(null)}
+        >
+          <div
+            className="my-auto w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-pearl/10 bg-abyss shadow-2xl"
+            style={{ maxWidth: 'min(64rem, 108dvh)' }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-pearl/[0.07] px-4 py-2.5 sm:px-5">
+              <div className="min-w-0">
+                <p className="font-cinzel text-sm font-bold text-pearl sm:text-base">
+                  {replayPlayer.titre}
+                </p>
+                <p className="mt-0.5 font-inter text-[11px] text-pearl/40">
+                  Replay dans Citadelle
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setReplayPlayer(null)}
+                className="shrink-0 rounded-xl border border-pearl/10 px-3 py-2 font-inter text-xs font-semibold text-pearl/70 transition-colors hover:bg-white/[0.05] hover:text-pearl"
+              >
+                Fermer
+              </button>
+            </div>
+
+            <LiveReplayPlayer
+              ref={replayPlayerRef}
+              cmsLiveId={replayPlayer.id}
+              youtubeId={ytId(replayPlayer.youtube_url)}
+              videoUrl={replayPlayer.video_url || null}
+              title={replayPlayer.titre}
+              className="rounded-none border-0"
+            />
+
+            <div className="border-t border-pearl/[0.07] p-3 sm:p-4">
+              <LiveCultNotebook
+                cmsLiveId={replayPlayer.id}
+                playerRef={replayPlayerRef}
+              />
+            </div>
+
+            <div
+              data-live-replay-reactions="true"
+              className="shrink-0 border-t border-pearl/[0.07] p-3 sm:p-4"
+            >
+              <LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />
+            </div>
+          </div>
+        </div>
+      )}
+      {tab === 'replays' && (
         <div className="container-royal py-8">
           <h2 className="font-cinzel text-2xl font-bold text-pearl mb-8">Replays &amp; Archives</h2>
           {replays.length === 0 ? (
@@ -828,11 +893,12 @@ export default function LivePage() {
                   transition={{ delay: i * 0.05 }}
                   className="space-y-2"
                 >
-                  <a
-                    href={replay.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
+                  <button
+                    type="button"
+                    data-live-replay-open="true"
+                    aria-label={`Regarder ${replay.titre} dans Citadelle`}
+                    onClick={() => setReplayPlayer(replay)}
+                    className="w-full text-left card-royal group cursor-pointer hover:-translate-y-1 transition-all duration-300 block"
                   >
                     <div className="relative rounded-xl overflow-hidden mb-4" style={{ aspectRatio: '16/9' }}>
                       {replay.cover ? (
@@ -863,7 +929,7 @@ export default function LivePage() {
                         {replay.date}
                       </p>
                     )}
-                  </a>
+                  </button>
 
                   <LiveReplayReactionCounts cmsLiveId={replay.id} />
                 </motion.div>

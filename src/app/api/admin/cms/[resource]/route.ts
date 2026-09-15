@@ -25,6 +25,12 @@ import {
   checkSpineConsistency, nullifyEmpty, SPINE_ERRORS,
   type EpisodeSpineInput,
 } from '@/lib/podcast/spine-relations'
+import {
+  checkTeachingSpineConsistency,
+  normalizeTeachingRef,
+  TEACHING_SPINE_ERRORS,
+  type TeachingSpineInput,
+} from '@/lib/teachings/teaching-spine-relations'
 
 function resolveTable(resource: string): CmsTable | null {
   const name = (resource.startsWith('cms_') ? resource : `cms_${resource}`) as CmsTable
@@ -63,6 +69,62 @@ async function assertEpisodeSpine(effective: EpisodeSpineInput): Promise<string 
     seasonRow = (data as { series_id?: string | null } | null) ?? null
   }
   const verdict = checkSpineConsistency(effective, { seriesRow, seasonRow })
+  return verdict.ok ? null : verdict.message
+}
+
+// ── TEACHING-SPINE — garde-fous Série → Saison → Enseignement ─────────
+const TEACHING_UUID_FKS: Record<string, string[]> = {
+  cms_teachings: ['series_id', 'season_id'],
+  cms_teaching_seasons: ['series_id'],
+}
+
+function normalizeTeachingFks(
+  table: string,
+  obj: Record<string, any>,
+): void {
+  for (const key of TEACHING_UUID_FKS[table] ?? []) {
+    if (key in obj) {
+      obj[key] = normalizeTeachingRef(obj[key])
+    }
+  }
+}
+
+async function assertTeachingSpine(
+  effective: TeachingSpineInput,
+): Promise<string | null> {
+  const series = normalizeTeachingRef(effective.series_id)
+  const season = normalizeTeachingRef(effective.season_id)
+
+  let seriesRow: { id?: string | null } | null = null
+  let seasonRow: { series_id?: string | null } | null = null
+
+  if (series) {
+    const { data } = await supabaseAdmin
+      .from('cms_teaching_series')
+      .select('id')
+      .eq('id', series)
+      .maybeSingle()
+
+    seriesRow =
+      (data as { id?: string | null } | null) ?? null
+  }
+
+  if (season) {
+    const { data } = await supabaseAdmin
+      .from('cms_teaching_seasons')
+      .select('series_id')
+      .eq('id', season)
+      .maybeSingle()
+
+    seasonRow =
+      (data as { series_id?: string | null } | null) ?? null
+  }
+
+  const verdict = checkTeachingSpineConsistency(
+    effective,
+    { seriesRow, seasonRow },
+  )
+
   return verdict.ok ? null : verdict.message
 }
 
@@ -149,6 +211,44 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
       normalizeSpineFks(table, body)
       if (!body.series_id) return NextResponse.json({ ok: false, message: SPINE_ERRORS.seasonSeriesRequired }, { status: 400 })
     }
+    // TEACHING-SPINE — POST consistency
+    if (table === 'cms_teachings') {
+      normalizeTeachingFks(table, body)
+
+      const err = await assertTeachingSpine(body)
+
+      if (err) {
+        return NextResponse.json(
+          { ok: false, message: err },
+          { status: 400 },
+        )
+      }
+    }
+
+    if (table === 'cms_teaching_seasons') {
+      normalizeTeachingFks(table, body)
+
+      if (!body.series_id) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: TEACHING_SPINE_ERRORS.seasonSeriesRequired,
+          },
+          { status: 400 },
+        )
+      }
+
+      const err = await assertTeachingSpine({
+        series_id: body.series_id,
+      })
+
+      if (err) {
+        return NextResponse.json(
+          { ok: false, message: err },
+          { status: 400 },
+        )
+      }
+    }
     const { data, error } = await supabaseAdmin.from(table).insert(body).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
     // Slot unique : le nouvel Instant remplace tout ancien (best-effort).
@@ -226,6 +326,78 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
     } else if (table === 'cms_podcast_seasons') {
       normalizeSpineFks(table, patch)
       if ('series_id' in patch && !patch.series_id) return NextResponse.json({ ok: false, message: SPINE_ERRORS.seasonSeriesRequired }, { status: 400 })
+    }
+    // TEACHING-SPINE — PATCH consistency
+    if (table === 'cms_teachings') {
+      normalizeTeachingFks(table, patch)
+
+      const touchesTeachingSpine =
+        ['series_id', 'season_id'].some(
+          (key) => key in patch,
+        )
+
+      if (touchesTeachingSpine) {
+        const { data: existingTeaching } =
+          await supabaseAdmin
+            .from('cms_teachings')
+            .select('series_id, season_id')
+            .eq(keyCol, keyVal)
+            .maybeSingle()
+
+        const existing =
+          existingTeaching as {
+            series_id?: string | null
+            season_id?: string | null
+          } | null
+
+        const effective: TeachingSpineInput = {
+          series_id:
+            'series_id' in patch
+              ? patch.series_id
+              : existing?.series_id,
+          season_id:
+            'season_id' in patch
+              ? patch.season_id
+              : existing?.season_id,
+        }
+
+        const err =
+          await assertTeachingSpine(effective)
+
+        if (err) {
+          return NextResponse.json(
+            { ok: false, message: err },
+            { status: 400 },
+          )
+        }
+      }
+    }
+
+    if (table === 'cms_teaching_seasons') {
+      normalizeTeachingFks(table, patch)
+
+      if ('series_id' in patch && !patch.series_id) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: TEACHING_SPINE_ERRORS.seasonSeriesRequired,
+          },
+          { status: 400 },
+        )
+      }
+
+      if ('series_id' in patch && patch.series_id) {
+        const err = await assertTeachingSpine({
+          series_id: patch.series_id,
+        })
+
+        if (err) {
+          return NextResponse.json(
+            { ok: false, message: err },
+            { status: 400 },
+          )
+        }
+      }
     }
     const { data, error } = await supabaseAdmin.from(table).update(patch).eq(keyCol, keyVal).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })

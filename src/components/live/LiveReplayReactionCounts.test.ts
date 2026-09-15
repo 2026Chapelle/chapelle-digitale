@@ -127,7 +127,7 @@ describe('frozen replay reaction counts UI contract', () => {
     )
   })
 
-  it('uses the real CMS UUID on the public replay list and preserves external links', () => {
+  it('uses the real CMS UUID and keeps public replay playback inside Citadelle', () => {
     expect(publicPage).toContain(
       ".select('id, title, description, youtube_url, video_url, cover_url, platform, is_live, status, created_at, scheduled_at')",
     )
@@ -145,11 +145,55 @@ describe('frozen replay reaction counts UI contract', () => {
     )
 
     expect(publicPage).toContain(
+      'data-live-replay-open="true"',
+    )
+
+    expect(publicPage).toContain(
+      'onClick={() => setReplayPlayer(replay)}',
+    )
+
+    expect(publicPage).not.toContain(
       'href={replay.url}',
     )
 
     expect(publicPage).toContain(
-      'target="_blank"',
+      'data-live-replay-player="true"',
+    )
+    expect(publicPage).toContain(
+      'overflow-y-auto',
+    )
+
+    expect(publicPage).toContain(
+      'items-start justify-center',
+    )
+
+    expect(publicPage).toContain(
+      "style={{ maxWidth: 'min(64rem, 108dvh)' }}",
+    )
+
+    expect(publicPage).toContain(
+      'data-live-replay-reactions="true"',
+    )
+
+    expect(publicPage).toContain(
+      'shrink-0 border-t border-pearl/[0.07]',
+    )
+
+
+    expect(publicPage).toContain(
+      "import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'",
+    )
+
+    expect(publicPage).toContain(
+      'youtubeId={ytId(replayPlayer.youtube_url)}',
+    )
+
+    expect(publicPage).toContain(
+      'videoUrl={replayPlayer.video_url || null}',
+    )
+
+    expect(publicPage).toContain(
+      '<LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />',
     )
   })
 
@@ -183,7 +227,19 @@ describe('frozen replay reaction counts UI contract', () => {
     )
 
     expect(memberPage).toContain(
-      'setPlayer({ ytId: id, titre: r.titre, cmsLiveId: r.id })',
+      'cmsLiveId: r.id,',
+    )
+
+    expect(memberPage).toContain(
+      '<LiveReplayPlayer',
+    )
+
+    expect(memberPage).toContain(
+      'cmsLiveId={player.cmsLiveId}',
+    )
+
+    expect(memberPage).toContain(
+      'serverSync',
     )
 
     expect(memberPage).toContain(
