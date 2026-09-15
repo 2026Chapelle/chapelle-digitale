@@ -3,6 +3,10 @@ import {
 } from 'next/server'
 
 import {
+  SITE_URL,
+} from '@/lib/site-url'
+
+import {
   LIVE_CULT_NOTE_KINDS,
   validCultNoteUuid,
 } from '@/lib/live/live-cult-notes'
@@ -125,7 +129,7 @@ function sameOrigin(
     return (
       new URL(origin).origin ===
       new URL(
-        request.url,
+        SITE_URL,
       ).origin
     )
   } catch {

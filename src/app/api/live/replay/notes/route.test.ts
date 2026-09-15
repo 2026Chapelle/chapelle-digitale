@@ -30,6 +30,14 @@ vi.mock(
   }),
 )
 
+vi.mock(
+  '@/lib/site-url',
+  () => ({
+    SITE_URL:
+      'https://citadelle.test',
+  }),
+)
+
 const CMS_ID =
   '11111111-1111-4111-8111-111111111111'
 
@@ -581,6 +589,59 @@ describe(
           json(response),
         ).resolves.toEqual({
           ok: true,
+        })
+      },
+    )
+
+    it(
+      'accepts the configured public Origin when the request URL carries an internal proxy origin',
+      async () => {
+        const POST =
+          routeMethod('POST')
+
+        if (!POST) return
+
+        const response =
+          await POST(
+            new Request(
+              'http://127.0.0.1:3000/api/live/replay/notes',
+              {
+                method: 'POST',
+                headers: {
+                  'content-type':
+                    'application/json',
+                  origin:
+                    'https://citadelle.test',
+                  'sec-fetch-site':
+                    'same-origin',
+                },
+                body: JSON.stringify({
+                  id: NOTE_ID,
+                  cmsLiveId: CMS_ID,
+                  kind: 'note',
+                  body: 'My note',
+                  positionSeconds: 42,
+                  scriptureReference:
+                    null,
+                }),
+              },
+            ),
+          )
+
+        expect(
+          response.status,
+        ).toBe(200)
+
+        expect(
+          mocks.create,
+        ).toHaveBeenCalledWith({
+          id: NOTE_ID,
+          cmsLiveId: CMS_ID,
+          kind: 'note',
+          body: 'My note',
+          positionSeconds: 42,
+          scriptureReference:
+            null,
         })
       },
     )

@@ -4,6 +4,10 @@ import {
 } from 'next/server'
 
 import {
+  SITE_URL,
+} from '@/lib/site-url'
+
+import {
   getReplayProgress,
   saveReplayProgress,
   validReplayProgressId,
@@ -87,7 +91,7 @@ function sameOrigin(
   try {
     return (
       new URL(origin).origin ===
-      new URL(request.url).origin
+      new URL(SITE_URL).origin
     )
   } catch {
     return false
