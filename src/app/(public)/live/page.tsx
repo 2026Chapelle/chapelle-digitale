@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Play, Users, Heart, Radio, Clock } from 'lucide-react'
 import LiveOffering from '@/components/features/giving/LiveOffering'
@@ -10,6 +10,8 @@ import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationL
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
 import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
 import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'
+import type { LiveReplayPlayerHandle } from '@/components/live/LiveReplayPlayer'
+import LiveCultNotebook from '@/components/live/LiveCultNotebook'
 import { LIVE_PUBLIC_URL, LIVE_SHARE_TEXT, recordSuccessfulLiveShare } from '@/lib/live/live-share-client'
 import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
 import { resolveLiveState } from '@/lib/home/contextual'
@@ -41,6 +43,8 @@ export default function LivePage() {
   const [live, setLive] = useState<{ titre: string; description: string; youtube_url: string; video_url: string; cover: string; plateforme: string } | null>(null)
   const [replays, setReplays] = useState<Replay[]>([])
   const [replayPlayer, setReplayPlayer] = useState<Replay | null>(null)
+  const replayPlayerRef =
+    useRef<LiveReplayPlayerHandle | null>(null)
   const [upcoming, setUpcoming] = useState<UpcomingLive[]>([])
   useEffect(() => {
     if (IS_DEMO_MODE) return
@@ -846,12 +850,20 @@ export default function LivePage() {
             </div>
 
             <LiveReplayPlayer
+              ref={replayPlayerRef}
               cmsLiveId={replayPlayer.id}
               youtubeId={ytId(replayPlayer.youtube_url)}
               videoUrl={replayPlayer.video_url || null}
               title={replayPlayer.titre}
               className="rounded-none border-0"
             />
+
+            <div className="border-t border-pearl/[0.07] p-3 sm:p-4">
+              <LiveCultNotebook
+                cmsLiveId={replayPlayer.id}
+                playerRef={replayPlayerRef}
+              />
+            </div>
 
             <div
               data-live-replay-reactions="true"

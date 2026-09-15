@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Play, Pause, Clock, Calendar, Tv, Radio, Heart,
@@ -17,6 +17,8 @@ import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationL
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
 import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
 import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'
+import type { LiveReplayPlayerHandle } from '@/components/live/LiveReplayPlayer'
+import LiveCultNotebook from '@/components/live/LiveCultNotebook'
 import ShareButtons from '@/components/ui/ShareButtons'
 import toast from 'react-hot-toast'
 
@@ -118,6 +120,8 @@ export default function LivesPage() {
 
   // Lecteur intégré (replays + playlists) : le membre reste dans Citadelle.
   const [player, setPlayer] = useState<{ ytId?: string; videoUrl?: string; listId?: string; cmsLiveId?: string; titre: string } | null>(null)
+  const replayPlayerRef =
+    useRef<LiveReplayPlayerHandle | null>(null)
   // Partage (modale réutilisant le composant ShareButtons).
   const [share, setShare] = useState<{ url: string; titre: string; texte?: string } | null>(null)
 
@@ -741,6 +745,7 @@ export default function LivesPage() {
                     />
                   ) : player.cmsLiveId ? (
                     <LiveReplayPlayer
+                      ref={replayPlayerRef}
                       cmsLiveId={player.cmsLiveId}
                       youtubeId={player.ytId ?? null}
                       videoUrl={player.videoUrl ?? null}
@@ -752,9 +757,19 @@ export default function LivesPage() {
                 </div>
 
                 {player.cmsLiveId && (
-                  <div className="border-t border-pearl/[0.07] p-4">
-                    <LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />
-                  </div>
+                  <>
+                    <div className="border-t border-pearl/[0.07] p-4">
+                      <LiveCultNotebook
+                        cmsLiveId={player.cmsLiveId}
+                        playerRef={replayPlayerRef}
+                        serverSync
+                      />
+                    </div>
+
+                    <div className="border-t border-pearl/[0.07] p-4">
+                      <LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />
+                    </div>
+                  </>
                 )}
               </motion.div>
             </motion.div>
