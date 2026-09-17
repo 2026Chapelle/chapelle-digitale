@@ -69,6 +69,34 @@ describe('LIVE 4C replay reactions migration', () => {
   })
 
   it('contains no data rewrite or destructive table command', () => {
-    expect(sql).not.toMatch(/\b(drop table|truncate|delete from|insert into|update public\.)\b/)
+    expect(sql.split('create or replace function public.live_replay_reaction_transfer')[0]).not.toMatch(/\b(drop table|truncate|delete from|insert into|update public\.)\b/)
+  })
+})
+
+// TASK 6D â€” atomic guest-to-member transfer contract
+
+describe('LIVE 4C replay reaction transfer RPC', () => {
+  it('is a private SECURITY DEFINER RPC with a fixed search path', () => {
+    expect(sql).toContain('create or replace function public.live_replay_reaction_transfer')
+    expect(sql).toContain('security definer')
+    expect(sql).toContain('set search_path = pg_catalog, public, pg_temp')
+    expect(sql).toContain('revoke all on function public.live_replay_reaction_transfer(uuid, text, uuid) from public, anon, authenticated')
+    expect(sql).toContain('grant execute on function public.live_replay_reaction_transfer(uuid, text, uuid) to service_role')
+  })
+
+  it('locks guest and member candidates in deterministic actor-key order', () => {
+    expect(sql).toContain('order by actor_key for update')
+    expect(sql).toContain('p_guest_actor_key')
+    expect(sql).toContain('v_member_actor_key')
+  })
+
+  it('implements member-wins and guest-only transfer without copying token data', () => {
+    expect(sql).toContain("v_member_actor_key := 'member:' || p_user_id::text")
+    expect(sql).toContain('delete from public.live_replay_reactions')
+    expect(sql).toContain('actor_key = p_guest_actor_key')
+    expect(sql).toContain('update public.live_replay_reactions')
+    expect(sql).toContain('actor_key = v_member_actor_key')
+    expect(sql).toContain('user_id = p_user_id')
+    expect(sql).not.toContain('guest_token')
   })
 })

@@ -129,4 +129,66 @@ grant all on table public.live_replay_reaction_settings
 grant all on table public.live_replay_reactions
   to service_role;
 
+-- ============================================================================
+-- TASK 6D — ATOMIC REPLAY REACTION GUEST → MEMBER TRANSFER
+-- ============================================================================
+
+create or replace function public.live_replay_reaction_transfer(
+  p_cms_live_id uuid,
+  p_guest_actor_key text,
+  p_user_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $live4c_transfer$
+declare
+  v_member_actor_key text;
+begin
+  if p_cms_live_id is null or p_user_id is null then
+    raise exception 'live4c_replay_reaction_transfer_invalid_identity';
+  end if;
+
+  if p_guest_actor_key is null
+    or p_guest_actor_key !~ '^guest:[0-9a-f]{64}$'
+  then
+    raise exception 'live4c_replay_reaction_transfer_invalid_guest';
+  end if;
+
+  v_member_actor_key := 'member:' || p_user_id::text;
+
+  perform actor_key
+  from public.live_replay_reactions
+  where cms_live_id = p_cms_live_id
+    and actor_key in (p_guest_actor_key, v_member_actor_key)
+  order by actor_key
+  for update;
+
+  if exists (
+    select 1
+    from public.live_replay_reactions
+    where cms_live_id = p_cms_live_id
+      and actor_key = v_member_actor_key
+  ) then
+    delete from public.live_replay_reactions
+    where cms_live_id = p_cms_live_id
+      and actor_key = p_guest_actor_key;
+  else
+    update public.live_replay_reactions
+    set actor_key = v_member_actor_key,
+        user_id = p_user_id,
+        updated_at = now()
+    where cms_live_id = p_cms_live_id
+      and actor_key = p_guest_actor_key;
+  end if;
+end
+$live4c_transfer$;
+
+revoke all on function public.live_replay_reaction_transfer(uuid, text, uuid)
+  from public, anon, authenticated;
+
+grant execute on function public.live_replay_reaction_transfer(uuid, text, uuid)
+  to service_role;
+
 commit;
