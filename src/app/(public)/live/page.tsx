@@ -9,6 +9,7 @@ import LiveReactionControls from '@/components/live/LiveReactionControls'
 import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
 import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
+import LiveReplayReactions from '@/components/live/LiveReplayReactions'
 import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'
 import type { LiveReplayPlayerHandle } from '@/components/live/LiveReplayPlayer'
 import LiveCultNotebook from '@/components/live/LiveCultNotebook'
@@ -863,6 +864,10 @@ export default function LivePage() {
                 cmsLiveId={replayPlayer.id}
                 playerRef={replayPlayerRef}
               />
+            </div>
+
+            <div className="shrink-0 border-t border-pearl/[0.07] p-3 sm:p-4">
+              <LiveReplayReactions cmsLiveId={replayPlayer.id} />
             </div>
 
             <div
