@@ -183,29 +183,40 @@ describe(
     )
 
     it(
-      'public keeps frozen LIVE4B reaction memory',
+      'public keeps frozen replay memory only on archive cards',
       () => {
         expect(
           publicSource,
         ).toContain(
-          '<LiveReplayReactionCounts',
+          '<LiveReplayReactionCounts cmsLiveId={replay.id} />',
+        )
+
+        expect(
+          publicSource,
+        ).not.toContain(
+          '<LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />',
         )
       },
     )
 
     it(
-      'member keeps frozen LIVE4B reaction memory',
+      'member omits frozen replay memory from the replay modal',
       () => {
         expect(
           memberSource,
+        ).not.toContain(
+          '<LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />',
+        )
+        expect(
+          memberSource,
         ).toContain(
-          '<LiveReplayReactionCounts',
+          '<LiveReplayReactions cmsLiveId={player.cmsLiveId} />',
         )
       },
     )
 
     it(
-      'public places notebook after player and before reaction memory',
+      'public places notebook after player and before living LIVE 4C reactions',
       () => {
         const player =
           publicSource.indexOf(
@@ -219,7 +230,7 @@ describe(
 
         const reactions =
           publicSource.indexOf(
-            '<LiveReplayReactionCounts',
+            '<LiveReplayReactions cmsLiveId={replayPlayer.id} />',
             Math.max(
               notebook,
               0,
@@ -238,7 +249,7 @@ describe(
     )
 
     it(
-      'member places notebook after replay player and before reaction memory',
+      'member places notebook after replay player and before living LIVE 4C reactions',
       () => {
         const player =
           memberSource.indexOf(
@@ -252,7 +263,7 @@ describe(
 
         const reactions =
           memberSource.indexOf(
-            '<LiveReplayReactionCounts',
+            '<LiveReplayReactions cmsLiveId={player.cmsLiveId} />',
             Math.max(
               notebook,
               0,

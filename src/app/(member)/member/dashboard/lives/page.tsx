@@ -15,7 +15,6 @@ import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
 import LiveReactionControls from '@/components/live/LiveReactionControls'
 import LiveReactionAnimationLayer from '@/components/live/LiveReactionAnimationLayer'
 import LiveReactionBoundary from '@/components/live/LiveReactionBoundary'
-import LiveReplayReactionCounts from '@/components/live/LiveReplayReactionCounts'
 import LiveReplayReactions from '@/components/live/LiveReplayReactions'
 import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'
 import type { LiveReplayPlayerHandle } from '@/components/live/LiveReplayPlayer'
@@ -771,9 +770,7 @@ export default function LivesPage() {
                       <LiveReplayReactions cmsLiveId={player.cmsLiveId} />
                     </div>
 
-                    <div className="border-t border-pearl/[0.07] p-4">
-                      <LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />
-                    </div>
+
                   </>
                 )}
               </motion.div>

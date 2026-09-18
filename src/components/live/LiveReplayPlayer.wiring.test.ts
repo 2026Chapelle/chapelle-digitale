@@ -35,13 +35,17 @@ describe('LIVE 4C replay player wiring', () => {
     )
   })
 
-  it('preserves the public frozen LIVE4B memory', () => {
-    expect(publicSource).toContain(
+  it('keeps frozen replay memory on public archive cards outside the modal', () => {
+    expect(publicSource).not.toContain(
       '<LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />',
     )
 
     expect(publicSource).toContain(
       '<LiveReplayReactionCounts cmsLiveId={replay.id} />',
+    )
+
+    expect(publicSource).toContain(
+      '<LiveReplayReactions cmsLiveId={replayPlayer.id} />',
     )
   })
 

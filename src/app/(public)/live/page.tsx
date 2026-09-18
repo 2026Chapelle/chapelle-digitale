@@ -870,12 +870,7 @@ export default function LivePage() {
               <LiveReplayReactions cmsLiveId={replayPlayer.id} />
             </div>
 
-            <div
-              data-live-replay-reactions="true"
-              className="shrink-0 border-t border-pearl/[0.07] p-3 sm:p-4"
-            >
-              <LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />
-            </div>
+
           </div>
         </div>
       )}

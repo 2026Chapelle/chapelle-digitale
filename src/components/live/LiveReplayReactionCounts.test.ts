@@ -171,7 +171,7 @@ describe('frozen replay reaction counts UI contract', () => {
       "style={{ maxWidth: 'min(64rem, 108dvh)' }}",
     )
 
-    expect(publicPage).toContain(
+    expect(publicPage).not.toContain(
       'data-live-replay-reactions="true"',
     )
 
@@ -192,8 +192,12 @@ describe('frozen replay reaction counts UI contract', () => {
       'videoUrl={replayPlayer.video_url || null}',
     )
 
-    expect(publicPage).toContain(
+    expect(publicPage).not.toContain(
       '<LiveReplayReactionCounts cmsLiveId={replayPlayer.id} />',
+    )
+
+    expect(publicPage).toContain(
+      '<LiveReplayReactions cmsLiveId={replayPlayer.id} />',
     )
   })
 
@@ -251,9 +255,13 @@ describe('frozen replay reaction counts UI contract', () => {
     )
   })
 
-  it('places frozen replay history below the member video and keeps live reactions suspended while modal exists', () => {
-    expect(memberPage).toContain(
+  it('places living LIVE 4C reactions below the member video and keeps live reactions suspended while modal exists', () => {
+    expect(memberPage).not.toContain(
       '<LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />',
+    )
+
+    expect(memberPage).toContain(
+      '<LiveReplayReactions cmsLiveId={player.cmsLiveId} />',
     )
 
     const iframe =
@@ -261,12 +269,12 @@ describe('frozen replay reaction counts UI contract', () => {
         '<iframe',
       )
 
-    const history =
+    const living =
       memberPage.indexOf(
-        '<LiveReplayReactionCounts cmsLiveId={player.cmsLiveId} />',
+        '<LiveReplayReactions cmsLiveId={player.cmsLiveId} />',
       )
 
-    expect(history).toBeGreaterThan(
+    expect(living).toBeGreaterThan(
       iframe,
     )
 
