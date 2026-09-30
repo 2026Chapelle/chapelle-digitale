@@ -37,7 +37,7 @@ export function ContextualHome({ liveState }: { liveState: LiveState }) {
 
   useEffect(() => {
     let cancelled = false
-    Promise.resolve(fetchPublishedPodcasts(cols => supabase.from('cms_podcasts').select(cols).eq('status', 'published').order('published_at', { ascending: false }).limit(1)))
+    Promise.resolve(fetchPublishedPodcasts(cols => supabase.from('cms_podcasts').select(cols).eq('status', 'published').contains('destinations', ['home_instant']).limit(1)))
       .then(({ rows }) => {
         const row = rows[0]
         if (!cancelled && typeof row?.title === 'string' && row.title.trim()) setPodcast({ title: row.title.trim(), cover: typeof row.cover_url === 'string' && row.cover_url.trim() ? row.cover_url : undefined })
