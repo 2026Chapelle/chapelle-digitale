@@ -96,6 +96,24 @@ describe('resendConfirmationEmail', () => {
     expect(seen.options.emailRedirectTo).toBe(CONFIRM_EMAIL_REDIRECT)
   })
 
+  it('préserve un next Mahanaïm allowlisté lors du renvoi', async () => {
+    let seen: any = null
+    const client = fakeClient({ error: null }, (a) => { seen = a })
+    const next =
+      '/member/plateformes/mahanaim/retraites/chambre-haute-2026'
+
+    const out = await resendConfirmationEmail(
+      client,
+      'member@test.co',
+      next,
+    )
+
+    expect(out.ok).toBe(true)
+    expect(seen.options.emailRedirectTo).toBe(
+      'https://citadelle.chapelleduroyaume.org/auth/callback?next=%2Fmember%2Fplateformes%2Fmahanaim%2Fretraites%2Fchambre-haute-2026',
+    )
+  })
+
   it('erreur rate-limit → message patiente', async () => {
     const client = fakeClient({ error: { message: 'rate limit exceeded', status: 429 } })
     const out = await resendConfirmationEmail(client, 'member@test.co')
