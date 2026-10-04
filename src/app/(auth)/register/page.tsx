@@ -159,7 +159,7 @@ export default function RegisterPage() {
     setResending(true)
     try {
       const outcome = await resendGuard.current.run(() =>
-        resendConfirmationEmail(getBrowserClient() ?? supabase, form.email),
+        resendConfirmationEmail(getBrowserClient() ?? supabase, form.email, nextPath),
       )
       if (outcome) outcome.ok ? toast.success(outcome.message) : toast.error(outcome.message)
     } finally {
