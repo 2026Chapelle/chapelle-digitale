@@ -106,7 +106,7 @@ export default function LoginPage() {
     setResending(true)
     try {
       const outcome = await resendGuard.current.run(() =>
-        resendConfirmationEmail(authClient(), email),
+        resendConfirmationEmail(authClient(), email, nextPath),
       )
       if (outcome) outcome.ok ? toast.success(outcome.message) : toast.error(outcome.message)
     } finally {
