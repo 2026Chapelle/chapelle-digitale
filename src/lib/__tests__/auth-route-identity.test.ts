@@ -28,6 +28,7 @@ describe('safe-redirect allowlist', () => {
   it('autorise les chemins internes connus', () => {
     expect(isAllowedAuthNext('/admin/update-password')).toBe(true)
     expect(isAllowedAuthNext('/member/dashboard')).toBe(true)
+    expect(isAllowedAuthNext('/member/plateformes/mahanaim/retraites/chambre-haute-2026')).toBe(true)
     expect(AUTH_CALLBACK_NEXT_ALLOWLIST).toContain('/admin/update-password')
   })
 
