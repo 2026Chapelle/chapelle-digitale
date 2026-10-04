@@ -106,7 +106,7 @@ export default function ChambreHautePublicPage() {
               </span>
             </div>
 
-            <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-white/58">
+            <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-white/[0.58]">
               Dix jours de jeûne, de prière, de consécration,
               d&apos;attente et d&apos;effusion pour entrer dans
               une nouvelle dimension de communion, de puissance
@@ -124,7 +124,7 @@ export default function ChambreHautePublicPage() {
 
               <Link
                 href={REGISTER_HREF}
-                className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-white/12 bg-white/[0.04] px-7 py-4 font-inter text-sm font-semibold text-white/80 transition hover:bg-white/[0.08]"
+                className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-white/[0.12] bg-white/[0.04] px-7 py-4 font-inter text-sm font-semibold text-white/80 transition hover:bg-white/[0.08]"
               >
                 Je n&apos;ai pas encore de compte
               </Link>
@@ -159,7 +159,7 @@ export default function ChambreHautePublicPage() {
           ].map(({ icon: Icon, title, text }) => (
             <article
               key={title}
-              className="rounded-3xl border border-white/8 bg-white/[0.035] p-7"
+              className="rounded-3xl border border-white/[0.08] bg-white/[0.035] p-7"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10">
                 <Icon className="h-5 w-5 text-[#D4AF37]" />
@@ -195,9 +195,9 @@ export default function ChambreHautePublicPage() {
             {days.map(([number, date, title]) => (
               <article
                 key={number}
-                className="flex items-center gap-4 rounded-2xl border border-white/8 bg-white/[0.025] p-4"
+                className="flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4"
               >
-                <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-violet-500/12 font-cinzel text-sm font-black text-violet-200">
+                <div className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-violet-500/[0.12] font-cinzel text-sm font-black text-violet-200">
                   {number}
                 </div>
                 <div className="min-w-0">
@@ -239,7 +239,7 @@ export default function ChambreHautePublicPage() {
             </Link>
             <Link
               href={MEMBER_RETREAT}
-              className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-white/12 px-7 py-4 font-inter text-sm font-semibold text-white/70 transition hover:bg-white/[0.05]"
+              className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-white/[0.12] px-7 py-4 font-inter text-sm font-semibold text-white/70 transition hover:bg-white/[0.05]"
             >
               Accéder à mon espace retraite
             </Link>
