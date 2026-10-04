@@ -1,9 +1,9 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, LogIn, ArrowLeft, AlertCircle, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
@@ -17,17 +17,39 @@ const authClient = () => getBrowserClient() ?? supabase
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function safeNextPath(value: string | null): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+  const isMemberPath =
+    value === '/member/dashboard' ||
+    value?.startsWith('/member/')
+
+  if (
+    !value ||
+    !isMemberPath ||
+    value.startsWith('//') ||
+    value.includes('\\') ||
+    value.includes('..') ||
+    value.includes('://')
+  ) {
     return '/member/dashboard'
   }
+
   return value
 }
 
 export default function LoginPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const nextPath = safeNextPath(searchParams.get('next') ?? searchParams.get('redirect'))
-  const registerHref = `/register?next=${encodeURIComponent(nextPath)}`
+  const [nextPath, setNextPath] = useState('/member/dashboard')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setNextPath(
+      safeNextPath(
+        params.get('next') ?? params.get('redirect'),
+      ),
+    )
+  }, [])
+
+  const registerHref =
+    `/register?next=${encodeURIComponent(nextPath)}`
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
