@@ -3,7 +3,7 @@ import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, LogIn, ArrowLeft, AlertCircle, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
@@ -16,8 +16,18 @@ const authClient = () => getBrowserClient() ?? supabase
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+function safeNextPath(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+    return '/member/dashboard'
+  }
+  return value
+}
+
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextPath = safeNextPath(searchParams.get('next'))
+  const registerHref = `/register?next=${encodeURIComponent(nextPath)}`
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -63,7 +73,7 @@ export default function LoginPage() {
       toast.error(mapped.message)
     } else {
       toast.success('Bienvenue dans la Chapelle ! ✨')
-      router.push('/member/dashboard')
+      router.push(nextPath)
     }
     setLoading(false)
   }
@@ -258,7 +268,7 @@ export default function LoginPage() {
             {/* Register link */}
             <p className="text-center text-sm text-pearl/40 font-inter mt-8">
               Pas encore membre ?{' '}
-              <Link href="/register" className="text-gold hover:text-gold-light font-semibold transition-colors">
+              <Link href={registerHref} className="text-gold hover:text-gold-light font-semibold transition-colors">
                 Rejoindre la Chapelle
               </Link>
             </p>
