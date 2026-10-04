@@ -1,9 +1,8 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, AlertCircle, Mail, MailCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
@@ -17,9 +16,21 @@ const PAYS = [...PAYS_AFRICAINS, ...PAYS_DIASPORA].sort()
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function safeNextPath(value: string | null): string {
-  if (!value || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+  const isMemberPath =
+    value === '/member/dashboard' ||
+    value?.startsWith('/member/')
+
+  if (
+    !value ||
+    !isMemberPath ||
+    value.startsWith('//') ||
+    value.includes('\\') ||
+    value.includes('..') ||
+    value.includes('://')
+  ) {
     return '/member/dashboard'
   }
+
   return value
 }
 
@@ -27,9 +38,15 @@ type Step = 1 | 2 | 3
 type FieldErrs = Record<string, string | null>
 
 export default function RegisterPage() {
-  const searchParams = useSearchParams()
-  const nextPath = safeNextPath(searchParams.get('next'))
-  const loginHref = `/login?next=${encodeURIComponent(nextPath)}`
+  const [nextPath, setNextPath] = useState('/member/dashboard')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setNextPath(safeNextPath(params.get('next')))
+  }, [])
+
+  const loginHref =
+    `/login?next=${encodeURIComponent(nextPath)}`
   const [step, setStep] = useState<Step>(1)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
