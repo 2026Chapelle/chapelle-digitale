@@ -26,7 +26,7 @@ function safeNextPath(value: string | null): string {
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const nextPath = safeNextPath(searchParams.get('next'))
+  const nextPath = safeNextPath(searchParams.get('next') ?? searchParams.get('redirect'))
   const registerHref = `/register?next=${encodeURIComponent(nextPath)}`
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
