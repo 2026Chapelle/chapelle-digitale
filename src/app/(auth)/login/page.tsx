@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, LogIn, ArrowLeft, AlertCircle, Mail } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
@@ -36,7 +35,6 @@ function safeNextPath(value: string | null): string {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const [nextPath, setNextPath] = useState('/member/dashboard')
 
   useEffect(() => {
@@ -95,7 +93,7 @@ export default function LoginPage() {
       toast.error(mapped.message)
     } else {
       toast.success('Bienvenue dans la Chapelle ! ✨')
-      router.push(nextPath)
+      window.location.assign(nextPath)
     }
     setLoading(false)
   }
