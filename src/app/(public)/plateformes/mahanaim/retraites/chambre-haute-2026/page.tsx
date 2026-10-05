@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
@@ -98,7 +99,7 @@ export default function ChambreHautePublicPage() {
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70">
                 <CalendarDays className="h-4 w-4 text-[#D4AF37]" />
-                10–19 octobre 2026
+                10–19 octobre 2026 · Clôture le 20 octobre
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70">
                 <Clock3 className="h-4 w-4 text-[#D4AF37]" />
@@ -135,6 +136,47 @@ export default function ChambreHautePublicPage() {
               un compte Citadelle.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden px-4 pb-12 pt-16 md:pb-14 md:pt-20">
+        <div
+          className="pointer-events-none absolute inset-0"
+          aria-hidden
+          style={{
+            background:
+              'radial-gradient(circle at 50% 45%, rgba(109,40,217,.16), transparent 48%), radial-gradient(circle at 82% 25%, rgba(212,175,55,.10), transparent 30%)',
+          }}
+        />
+
+        <div className="relative mx-auto max-w-6xl">
+          <div className="text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-violet-300">
+              Mahanaïm
+            </p>
+            <h2 className="mt-3 font-cinzel text-2xl font-black md:text-3xl">
+              L’AFFICHE OFFICIELLE
+            </h2>
+          </div>
+
+          <figure className="mx-auto mt-9 max-w-[1200px]">
+            <div className="overflow-hidden rounded-2xl border border-[#D4AF37]/30 bg-[#07030d] p-1 shadow-[0_24px_70px_rgba(0,0,0,.42),0_0_45px_rgba(109,40,217,.12)] md:rounded-3xl">
+              <Image
+                src="/images/mahanaim/chambre-haute-2026-affiche.png"
+                alt="Affiche officielle des 10 Jours dans la Chambre Haute — Revêtus de Puissance — Mahanaïm"
+                width={1672}
+                height={941}
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 92vw, 1200px"
+                className="h-auto w-full object-contain"
+              />
+            </div>
+
+            <figcaption className="mt-5 text-center">
+              <p className="text-sm text-white/65">
+                10 jours de retraite · 10–19 octobre · Clôture le 20 octobre 2026
+              </p>
+            </figcaption>
+          </figure>
         </div>
       </section>
 
@@ -184,7 +226,7 @@ export default function ChambreHautePublicPage() {
             <h2 className="mt-3 font-cinzel text-3xl font-black md:text-4xl">
               Dix jours, une progression
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-white/45">
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-white/55">
               Chaque journée ouvre une étape de la retraite. Le
               contenu du jour devient accessible selon le rythme
               prévu dans Citadelle.
@@ -201,14 +243,14 @@ export default function ChambreHautePublicPage() {
                   {number}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-wider text-[#D4AF37]/75">
+                  <p className="text-xs uppercase tracking-wider text-[#D4AF37]/90">
                     {date}
                   </p>
-                  <p className="mt-1 font-inter text-sm font-semibold text-white/82">
+                  <p className="mt-1 font-inter text-sm font-semibold text-white/90">
                     {title}
                   </p>
                 </div>
-                <CheckCircle2 className="ml-auto h-4 w-4 flex-none text-white/15" />
+                <CheckCircle2 className="ml-auto h-4 w-4 flex-none text-white/25" />
               </article>
             ))}
           </div>
