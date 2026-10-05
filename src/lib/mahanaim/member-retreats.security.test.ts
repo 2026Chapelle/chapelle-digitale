@@ -150,12 +150,12 @@ describe(
           "en.status in ('registered', 'active', 'completed')",
         )
 
-        expect(migration).toContain(
-          "revoke all on function chapelle.member_mahanaim_retreat_day_catalog(text)\nfrom public",
+        expect(migration).toMatch(
+          /revoke all on function chapelle\.member_mahanaim_retreat_day_catalog\(text\)\s+from public/,
         )
 
-        expect(migration).toContain(
-          'grant execute on function chapelle.member_mahanaim_retreat_day_catalog(text)\nto authenticated',
+        expect(migration).toMatch(
+          /grant execute on function chapelle\.member_mahanaim_retreat_day_catalog\(text\)\s+to authenticated/,
         )
 
         expect(migration).not.toMatch(
