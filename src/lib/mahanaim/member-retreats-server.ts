@@ -1,10 +1,6 @@
 import 'server-only'
 
 import {
-  getVerifiedRouteProfile,
-} from '@/lib/member-auth'
-
-import {
   supabaseAdmin,
 } from '@/lib/supabase'
 
@@ -183,17 +179,28 @@ async function verifiedMemberId():
           | 'unavailable'
       }
   > {
-  const profile =
-    await getVerifiedRouteProfile()
-
-  if (!profile?.uid) {
-    return {
-      ok: false,
-      reason: 'identity_required',
-    }
-  }
-
   try {
+    const authClient =
+      createServerClient()
+
+    const {
+      data: {
+        user,
+      },
+      error: userError,
+    } =
+      await authClient.auth.getUser()
+
+    if (
+      userError ||
+      !user?.id
+    ) {
+      return {
+        ok: false,
+        reason: 'identity_required',
+      }
+    }
+
     const db =
       supabaseAdmin.schema('chapelle')
 
@@ -206,7 +213,7 @@ async function verifiedMemberId():
         .select('id')
         .eq(
           'auth_user_id',
-          profile.uid,
+          user.id,
         )
         .maybeSingle()
 
@@ -230,7 +237,7 @@ async function verifiedMemberId():
     return {
       ok: true,
       authUserId:
-        profile.uid,
+        user.id,
       memberId:
         data.id,
     }
@@ -241,7 +248,6 @@ async function verifiedMemberId():
     }
   }
 }
-
 async function adminRetreatBySlug(
   slug: string,
 ): Promise<RetreatRow | null> {
