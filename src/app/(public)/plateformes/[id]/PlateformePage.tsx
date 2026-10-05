@@ -171,6 +171,20 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
                     Rejoindre ce ministère
                     <ArrowRight className="w-4 h-4" />
                   </Link>
+                  {plateforme.id === 'mahanaim' && (
+                    <Link
+                      href="/plateformes/mahanaim/retraites/chambre-haute-2026"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-inter font-semibold text-sm transition-all duration-300 hover:-translate-y-0.5"
+                      style={{
+                        background: 'linear-gradient(135deg, #D4AF37, #B89222)',
+                        color: '#130d02',
+                        boxShadow: '0 8px 28px rgba(212,175,55,0.22)',
+                      }}
+                    >
+                      10 Jours dans la Chambre Haute
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  )}
                   <Link href="/live" className="btn-glass-cinematic">
                     <Play className="w-4 h-4" />
                     Voir un live

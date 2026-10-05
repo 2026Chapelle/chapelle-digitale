@@ -7,6 +7,7 @@
 export const AUTH_CALLBACK_NEXT_ALLOWLIST = [
   '/member/dashboard',
   '/member/dashboard/parametres',
+  '/member/plateformes/mahanaim/retraites/chambre-haute-2026',
   '/admin/update-password',
   '/admin/dashboard',
   '/admin/parametres',

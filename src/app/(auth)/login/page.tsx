@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -16,8 +16,40 @@ const authClient = () => getBrowserClient() ?? supabase
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+function safeNextPath(value: string | null): string {
+  const isMemberPath =
+    value === '/member/dashboard' ||
+    value?.startsWith('/member/')
+
+  if (
+    !value ||
+    !isMemberPath ||
+    value.startsWith('//') ||
+    value.includes('\\') ||
+    value.includes('..') ||
+    value.includes('://')
+  ) {
+    return '/member/dashboard'
+  }
+
+  return value
+}
+
 export default function LoginPage() {
   const router = useRouter()
+  const [nextPath, setNextPath] = useState('/member/dashboard')
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setNextPath(
+      safeNextPath(
+        params.get('next') ?? params.get('redirect'),
+      ),
+    )
+  }, [])
+
+  const registerHref =
+    `/register?next=${encodeURIComponent(nextPath)}`
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -63,7 +95,7 @@ export default function LoginPage() {
       toast.error(mapped.message)
     } else {
       toast.success('Bienvenue dans la Chapelle ! ✨')
-      router.push('/member/dashboard')
+      router.push(nextPath)
     }
     setLoading(false)
   }
@@ -74,7 +106,7 @@ export default function LoginPage() {
     setResending(true)
     try {
       const outcome = await resendGuard.current.run(() =>
-        resendConfirmationEmail(authClient(), email),
+        resendConfirmationEmail(authClient(), email, nextPath),
       )
       if (outcome) outcome.ok ? toast.success(outcome.message) : toast.error(outcome.message)
     } finally {
@@ -258,7 +290,7 @@ export default function LoginPage() {
             {/* Register link */}
             <p className="text-center text-sm text-pearl/40 font-inter mt-8">
               Pas encore membre ?{' '}
-              <Link href="/register" className="text-gold hover:text-gold-light font-semibold transition-colors">
+              <Link href={registerHref} className="text-gold hover:text-gold-light font-semibold transition-colors">
                 Rejoindre la Chapelle
               </Link>
             </p>

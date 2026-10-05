@@ -10,6 +10,7 @@
  * ne révèle rien de plus que ce que le flux Auth expose déjà.
  */
 import { siteUrl } from '@/lib/site-url'
+import { sanitizeAuthNext } from '@/lib/auth/safe-redirect'
 
 /** Destination canonique après confirmation (allowlistée dans /auth/callback). */
 export const CONFIRM_EMAIL_REDIRECT = siteUrl('/auth/callback?next=/member/dashboard')
@@ -82,6 +83,7 @@ export interface ResendCapableClient {
 export async function resendConfirmationEmail(
   client: ResendCapableClient,
   email: string,
+  nextPath?: string,
 ): Promise<ResendOutcome> {
   if (!isValidAuthEmail(email)) {
     return { ok: false, message: 'Entre une adresse email valide pour recevoir le lien.' }
@@ -90,7 +92,15 @@ export async function resendConfirmationEmail(
     const { error } = await client.auth.resend({
       type: 'signup',
       email: email.trim(),
-      options: { emailRedirectTo: CONFIRM_EMAIL_REDIRECT },
+      options: {
+        emailRedirectTo: nextPath
+          ? siteUrl(
+              `/auth/callback?next=${encodeURIComponent(
+                sanitizeAuthNext(nextPath, '/member/dashboard'),
+              )}`,
+            )
+          : CONFIRM_EMAIL_REDIRECT,
+      },
     })
     if (error) {
       return { ok: false, message: mapResendError(error.message, error.status) }
