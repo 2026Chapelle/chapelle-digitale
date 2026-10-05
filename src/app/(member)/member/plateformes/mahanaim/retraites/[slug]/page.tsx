@@ -91,38 +91,66 @@ export default async function MahanaimRetreatPage({
         </div>
       </section>
 
-      <section>
-        <h2 className="text-2xl font-bold">
-          Parcours des 10 jours
-        </h2>
+      {retreat.enrolled ? (
+        <section>
+          <h2 className="text-2xl font-bold">
+            Parcours des 10 jours
+          </h2>
 
-        <div className="mt-5 grid gap-4">
-          {retreat.days.map(
-            day => (
-              <article
-                key={day.id}
-                className="rounded-2xl border border-white/10 bg-white/5 p-5"
-              >
-                <p className="text-sm font-semibold text-violet-300">
-                  Jour {day.dayNumber}
-                  {' · '}
-                  {day.dayDate}
-                </p>
+          <div className="mt-5 grid gap-4">
+            {retreat.days.map(
+              day => (
+                <article
+                  key={day.id}
+                  className={[
+                    'rounded-2xl border p-5',
+                    day.isUnlocked
+                      ? 'border-emerald-400/30 bg-emerald-950/20'
+                      : 'border-white/10 bg-white/5 opacity-75',
+                  ].join(' ')}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-violet-300">
+                      Jour {String(day.dayNumber).padStart(2, '0')}
+                      {' · '}
+                      {day.dayDate}
+                    </p>
 
-                <h3 className="mt-1 text-lg font-semibold">
-                  {day.title}
-                </h3>
+                    <span
+                      className={[
+                        'rounded-full px-3 py-1 text-xs font-semibold',
+                        day.isUnlocked
+                          ? 'bg-emerald-400/15 text-emerald-200'
+                          : 'bg-slate-700/70 text-slate-200',
+                      ].join(' ')}
+                    >
+                      {day.isUnlocked
+                        ? 'Disponible'
+                        : '🔒 Verrouillé'}
+                    </span>
+                  </div>
 
-                {day.scriptureReference ? (
-                  <p className="mt-2 text-sm text-slate-400">
-                    {day.scriptureReference}
-                  </p>
-                ) : null}
-              </article>
-            ),
-          )}
-        </div>
-      </section>
+                  <h3 className="mt-3 text-lg font-semibold">
+                    {day.title}
+                  </h3>
+
+                  {day.scriptureReference ? (
+                    <p className="mt-2 text-sm text-slate-400">
+                      {day.scriptureReference}
+                    </p>
+                  ) : null}
+
+                  {!day.isUnlocked ? (
+                    <p className="mt-3 text-sm text-slate-400">
+                      Disponible le {day.dayDate} à {retreat.dailyStartTime.slice(0, 5)}
+                    </p>
+                  ) : null}
+                </article>
+              ),
+            )}
+          </div>
+        </section>
+      ) : null}
     </main>
   )
 }

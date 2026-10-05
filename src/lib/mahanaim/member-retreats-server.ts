@@ -53,6 +53,7 @@ type DayRow = {
   title: string
   scripture_reference: string | null
   status: string
+  is_unlocked: boolean
 }
 
 type EnrollmentRow = {
@@ -92,6 +93,7 @@ export type MemberRetreatDay = {
   title: string
   scriptureReference: string | null
   status: string
+  isUnlocked: boolean
 }
 
 export type MemberRetreatDetail =
@@ -562,34 +564,18 @@ export async function getMemberRetreatBySlug(
         | null
 
     const {
-      data: days,
-      error: daysError,
+      data: catalogDays,
+      error: catalogError,
     } =
       await db
-        .from(
-          'mahanaim_retreat_days',
-        )
-        .select([
-          'id',
-          'retreat_id',
-          'day_number',
-          'day_date',
-          'title',
-          'scripture_reference',
-          'status',
-        ].join(','))
-        .eq(
-          'retreat_id',
-          retreat.id,
-        )
-        .order(
-          'day_number',
+        .rpc(
+          'member_mahanaim_retreat_day_catalog',
           {
-            ascending: true,
+            p_slug: slug,
           },
         )
 
-    if (daysError) {
+    if (catalogError) {
       return null
     }
 
@@ -601,8 +587,8 @@ export async function getMemberRetreatBySlug(
 
       days:
         (
-          Array.isArray(days)
-            ? days
+          Array.isArray(catalogDays)
+            ? catalogDays
             : []
         ).map(
           raw => {
@@ -628,6 +614,9 @@ export async function getMemberRetreatBySlug(
 
               status:
                 row.status,
+
+              isUnlocked:
+                row.is_unlocked === true,
             }
           },
         ),

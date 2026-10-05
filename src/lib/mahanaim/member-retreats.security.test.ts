@@ -24,6 +24,19 @@ const source =
     'utf8',
   )
 
+const catalogMigrationPath =
+  resolve(
+    process.cwd(),
+    'supabase/migrations/20261005110000_mahanaim_retreat_day_catalog.sql',
+  )
+
+function catalogMigrationSource(): string {
+  return readFileSync(
+    catalogMigrationPath,
+    'utf8',
+  )
+}
+
 function functionSource(
   name: string,
   nextName: string,
@@ -93,7 +106,7 @@ describe(
     )
 
     it(
-      'loads retreat days through the authenticated session so daily unlock RLS cannot be bypassed',
+      'loads the metadata-only day catalog through the authenticated session',
       () => {
         const code =
           functionSource(
@@ -102,7 +115,7 @@ describe(
           )
 
         expect(code).toContain(
-          "'mahanaim_retreat_days'",
+          "'member_mahanaim_retreat_day_catalog'",
         )
 
         expect(code).toContain(
@@ -111,6 +124,58 @@ describe(
 
         expect(code).not.toContain(
           "supabaseAdmin.schema('chapelle')",
+        )
+      },
+    )
+
+    it(
+      'defines a least-privilege catalog without changing full-content RLS',
+      () => {
+        const migration =
+          catalogMigrationSource()
+
+        expect(migration).toContain(
+          'security definer',
+        )
+
+        expect(migration).toContain(
+          "set search_path = chapelle, public, pg_temp",
+        )
+
+        expect(migration).toContain(
+          'auth.uid()',
+        )
+
+        expect(migration).toContain(
+          "en.status in ('registered', 'active', 'completed')",
+        )
+
+        expect(migration).toContain(
+          "revoke all on function chapelle.member_mahanaim_retreat_day_catalog(text)\nfrom public",
+        )
+
+        expect(migration).toContain(
+          'grant execute on function chapelle.member_mahanaim_retreat_day_catalog(text)\nto authenticated',
+        )
+
+        expect(migration).not.toMatch(
+          /(?:create|alter|drop)\s+policy/i,
+        )
+
+        expect(migration).not.toContain(
+          'scripture_text',
+        )
+
+        expect(migration).not.toContain(
+          'meditation',
+        )
+
+        expect(migration).not.toContain(
+          'objective',
+        )
+
+        expect(migration).not.toContain(
+          'member_id uuid',
         )
       },
     )

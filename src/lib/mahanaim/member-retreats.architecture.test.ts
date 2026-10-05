@@ -30,6 +30,9 @@ const paths = {
 
   server:
     'src/lib/mahanaim/member-retreats-server.ts',
+
+  catalogMigration:
+    'supabase/migrations/20261005110000_mahanaim_retreat_day_catalog.sql',
 } as const
 
 function source(path: string): string {
@@ -107,7 +110,7 @@ describe(
         )
 
         expect(code).toContain(
-          "'mahanaim_retreat_days'",
+          "'member_mahanaim_retreat_day_catalog'",
         )
 
         expect(code).toContain(
@@ -152,6 +155,40 @@ describe(
 
         expect(code).toContain(
           'JE PARTICIPE AUX 10 JOURS',
+        )
+      },
+    )
+
+    it(
+      'defines a safe enrolled-member day catalog and uses it for the member journey',
+      () => {
+        const migration =
+          source(paths.catalogMigration)
+
+        const server =
+          source(paths.server)
+
+        const retreat =
+          source(paths.retreat)
+
+        expect(migration).toContain(
+          'member_mahanaim_retreat_day_catalog',
+        )
+
+        expect(server).toContain(
+          "rpc(\n          'member_mahanaim_retreat_day_catalog'",
+        )
+
+        expect(server).toContain(
+          'isUnlocked:',
+        )
+
+        expect(retreat).toContain(
+          'Verrouillé',
+        )
+
+        expect(retreat).toContain(
+          'Disponible',
         )
       },
     )
