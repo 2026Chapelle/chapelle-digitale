@@ -175,8 +175,8 @@ describe(
           'member_mahanaim_retreat_day_catalog',
         )
 
-        expect(server).toContain(
-          "rpc(\n          'member_mahanaim_retreat_day_catalog'",
+        expect(server).toMatch(
+          /\.rpc\(\s*'member_mahanaim_retreat_day_catalog'/,
         )
 
         expect(server).toContain(

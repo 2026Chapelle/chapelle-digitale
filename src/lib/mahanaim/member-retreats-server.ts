@@ -563,20 +563,29 @@ export async function getMemberRetreatBySlug(
         | EnrollmentRow
         | null
 
-    const {
-      data: catalogDays,
-      error: catalogError,
-    } =
-      await db
-        .rpc(
-          'member_mahanaim_retreat_day_catalog',
-          {
-            p_slug: slug,
-          },
-        )
+    let catalogDays: unknown[] = []
 
-    if (catalogError) {
-      return null
+    if (enrollment) {
+      const {
+        data,
+        error: catalogError,
+      } =
+        await db
+          .rpc(
+            'member_mahanaim_retreat_day_catalog',
+            {
+              p_slug: slug,
+            },
+          )
+
+      if (catalogError) {
+        return null
+      }
+
+      catalogDays =
+        Array.isArray(data)
+          ? data
+          : []
     }
 
     return {
