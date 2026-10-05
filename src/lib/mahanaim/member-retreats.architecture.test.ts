@@ -98,7 +98,7 @@ describe(
         )
 
         expect(code).toContain(
-          'getVerifiedRouteProfile',
+          'auth.getUser()',
         )
 
         expect(code).toContain(
