@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+vi.mock('server-only', () => ({}))
+vi.mock('@/lib/supabase-admin', () => ({ supabaseAdmin: { from: vi.fn(), rpc: vi.fn() } }))
 import { dayKey, activeDaysFromSessions, scoreFromSignals, type EngagementSignals } from '@/lib/pastoral/engagement-server'
 
 const ZERO: EngagementSignals = { lives: 0, downloads: 0, prieres: 0, prieres_sans_suivi: 0, formations: 0, formations_abandonnees: 0, events: 0, dons: 0 }

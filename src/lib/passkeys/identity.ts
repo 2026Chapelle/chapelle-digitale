@@ -11,7 +11,8 @@
  * passe), lu via `auth.getUser()` — jamais du client.
  */
 import { createRouteClient } from '@/lib/supabase-server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export interface NominativeAdmin {
   uid: string

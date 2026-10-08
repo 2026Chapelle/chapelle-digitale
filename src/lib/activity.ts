@@ -1,5 +1,6 @@
 import 'server-only'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 /**
  * Journal d'activité — enregistrement serveur (service role) des actions RÉELLES.

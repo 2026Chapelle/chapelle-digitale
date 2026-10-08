@@ -6,7 +6,7 @@ import {
   liveKeyFromState,
 } from '@/lib/live/canonical-server'
 import { getVerifiedRouteProfile } from '@/lib/member-auth'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export const LIVE_HEARTBEAT_INTERVAL_MS = 30_000
 export const LIVE_PRESENCE_TTL_MS = 90_000

@@ -6,7 +6,7 @@
  * Ajouter Email / WhatsApp / Push / SMS plus tard = enregistrer un canal ici,
  * SANS modifier les déclencheurs. Anti-doublon par `dedup_key`.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendEmail, emailLayout } from '@/lib/email'
 import { siteUrl } from '@/lib/site-url'
 

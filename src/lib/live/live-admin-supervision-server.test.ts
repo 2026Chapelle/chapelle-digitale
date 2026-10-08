@@ -33,7 +33,7 @@ vi.mock('@/lib/live/live-reactions-server', () => ({
     mocks.getLiveReactionAdminAggregate,
 }))
 
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/supabase-admin', () => ({
   supabaseAdmin: {
     from: mocks.from,
   },

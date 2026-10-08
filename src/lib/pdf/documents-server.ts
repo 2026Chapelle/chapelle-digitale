@@ -9,7 +9,8 @@
  * réappliquent EXPLICITEMENT le filtre status='published' (ne jamais exposer un
  * brouillon). L'access_level reste ÉDITORIAL en PDF-2 — aucun gate ici (PDF-3).
  */
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   mapMediaRowToDocument,
   buildDocumentLinkRow,

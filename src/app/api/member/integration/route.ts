@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { getSessionProfile } from '@/lib/member-auth'
 import { resolveIntegrationScope, type IntegrationScope } from '@/lib/integration-scope'
 

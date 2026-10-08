@@ -14,8 +14,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
-import { getMemberClient } from '@/lib/supabase-browser'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient, getMemberClient } from '@/lib/supabase-browser'
 import { JoinToListenModal } from '@/components/podcast/JoinToListenModal'
 import { PodcastHero } from '@/components/podcast/PodcastHero'
 import { EpisodeRail, type RailEpisode } from '@/components/podcast/EpisodeRail'
@@ -111,6 +111,8 @@ export default function PodcastPage() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {
@@ -170,6 +172,8 @@ export default function PodcastPage() {
   // Lu via RLS publique (actif=true). Absente ⇒ aucun CTA (message neutre, jamais de faux bouton).
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {

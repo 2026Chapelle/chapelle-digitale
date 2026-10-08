@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 /**
  * Tracker analytics interne Citadelle (présence temps réel + parcours).
@@ -80,6 +81,8 @@ export function AnalyticsTracker() {
   // Identité membre (best-effort, non bloquant).
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let active = true
     supabase.auth.getUser().then(({ data }) => { if (active) CURRENT_USER_ID = data.user?.id || null }).catch(() => {})
     const { data: sub } = supabase.auth.onAuthStateChange((_e, sessionObj) => { CURRENT_USER_ID = sessionObj?.user?.id || null })

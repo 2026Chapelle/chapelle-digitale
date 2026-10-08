@@ -14,6 +14,8 @@ const sendEmail = vi.fn()
 
 vi.mock('@/lib/supabase', () => ({
   IS_DEMO_MODE: false,
+}))
+vi.mock('@/lib/supabase-admin', () => ({
   supabaseAdmin: { from: (...args: unknown[]) => from(...args) },
 }))
 

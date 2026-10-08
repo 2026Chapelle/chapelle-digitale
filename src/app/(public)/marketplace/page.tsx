@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ShoppingBag, BookOpen, GraduationCap, Ticket, Repeat, FileText, Package, ExternalLink, Loader2, Search } from 'lucide-react'
 import Link from 'next/link'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { PremiumImage } from '@/components/ui/PremiumImage'
 import { HERO_IMAGES } from '@/lib/images'
 
@@ -33,6 +34,8 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) { setLoaded(true); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setLoaded(true); return }
     let cancelled = false
     ;(async () => {
       try {

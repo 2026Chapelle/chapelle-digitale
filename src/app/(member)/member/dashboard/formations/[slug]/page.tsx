@@ -3,7 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Clock, Award, CheckCircle, Lock, BookOpen, Loader2, FileText, PlayCircle, Check, Trophy, Download, Send, HelpCircle, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import toast from 'react-hot-toast'
 import { ModuleVideoPlayer } from '@/components/features/member/ModuleVideoPlayer'
 import { WATCH_THRESHOLD, remainingToWatch } from '@/lib/formations/video-validation'
@@ -99,6 +100,8 @@ export default function FormationDetailPage({ params }: { params: { slug: string
 
   useEffect(() => {
     if (isDemo || IS_DEMO_MODE) { setLoading(false); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setLoading(false); return }
     let cancelled = false
     ;(async () => {
       try {
@@ -157,6 +160,8 @@ export default function FormationDetailPage({ params }: { params: { slug: string
   // Certificat réel de la formation (si une URL PDF a été générée).
   useEffect(() => {
     if (isDemo || IS_DEMO_MODE || !formation || !user?.id || progress.progression < 100) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {

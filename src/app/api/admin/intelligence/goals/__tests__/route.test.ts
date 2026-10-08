@@ -18,19 +18,17 @@ const createGoalForOrganization = vi.fn()
 const patchGoalForOrganization = vi.fn()
 const findDuplicateGoal = vi.fn()
 const getGoalForOrganization = vi.fn()
-vi.mock('@/lib/intelligence/goals', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/intelligence/goals')>('@/lib/intelligence/goals')
-  return {
-    ...actual,
-    listGoalsForOrganization: (organizationId: string) => listGoalsForOrganization(organizationId),
-    createGoalForOrganization: (input: unknown) => createGoalForOrganization(input),
-    patchGoalForOrganization: (...args: unknown[]) => patchGoalForOrganization(...args),
-    findDuplicateGoal: (...args: unknown[]) => findDuplicateGoal(...args),
-    getGoalForOrganization: (...args: unknown[]) => getGoalForOrganization(...args),
-    sanitizeGoalForPerformance: (goal: unknown) => goal,
-    toGoalRecord: (row: unknown) => row,
-  }
-})
+vi.mock('@/lib/intelligence/goals/store-server', () => ({
+  listGoalsForOrganization: (organizationId: string) => listGoalsForOrganization(organizationId),
+  createGoalForOrganization: (input: unknown) => createGoalForOrganization(input),
+  patchGoalForOrganization: (...args: unknown[]) => patchGoalForOrganization(...args),
+  findDuplicateGoal: (...args: unknown[]) => findDuplicateGoal(...args),
+  getGoalForOrganization: (...args: unknown[]) => getGoalForOrganization(...args),
+}))
+
+vi.mock('@/lib/intelligence/goals/store', () => ({
+  toGoalRecord: (row: unknown) => row,
+}))
 
 import { GET, PATCH, POST } from '../route'
 

@@ -3,7 +3,7 @@
  * Lecture service role + agrégation JS via les fonctions PURES de metrics.ts.
  * Aucune RPC, aucune migration. Surfaçé dans le cockpit /admin/gouvernement.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { conversionsOverTime, topTransitions, classifyActivity } from '@/lib/pastoral/metrics'
 
 const DAY = 86_400_000

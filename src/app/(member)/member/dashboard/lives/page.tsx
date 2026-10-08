@@ -8,7 +8,8 @@ import {
   Church, Moon, BookOpen, Crown, Flame, Sparkles, Radio as RadioIcon, X,
   type LucideIcon,
 } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import LivePresenceControls from '@/components/live/LivePresenceControls'
 import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
@@ -132,6 +133,8 @@ export default function LivesPage() {
   const [aVenir, setAVenir] = useState<AVenirItem[]>([])
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {

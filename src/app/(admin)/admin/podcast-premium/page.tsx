@@ -7,7 +7,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Loader2, Search, Star, ShieldOff, Check, ExternalLink } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { supabase } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { PODCAST_PREMIUM_ENTITLEMENT_KEY } from '@/lib/podcast/entitlement'
 import { normalizePremiumOffer, type PremiumOffer } from '@/lib/podcast/premium-offer'
 
@@ -36,6 +36,8 @@ export default function AdminPodcastPremiumPage() {
     let cancelled = false
     ;(async () => {
       try {
+        const supabase = getBrowserClient()
+        if (!supabase) return
         const { data } = await supabase.from('marketplace_products')
           .select('lien_achat, titre')
           .eq('entitlement_key', PODCAST_PREMIUM_ENTITLEMENT_KEY)

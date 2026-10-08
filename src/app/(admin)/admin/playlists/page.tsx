@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, Pencil, Trash2, X, ArrowUp, ArrowDown, Check, Loader2, ListMusic } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { supabase } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 type Playlist = { id: string; title: string; description: string | null; cover_url: string | null; visibility: string; sort_order: number; audio_playlist_items?: { count: number }[] }
 type Item = { id: string; podcast_id: string; position: number }
@@ -39,6 +39,8 @@ export default function AdminPlaylistsPage() {
   useEffect(() => {
     (async () => {
       try {
+        const supabase = getBrowserClient()
+        if (!supabase) return
         const { data } = await supabase.from('cms_podcasts').select('id, title, serie').eq('status', 'published').order('published_at', { ascending: false }).limit(300)
         setEps((data as any[])?.map((p) => ({ id: String(p.id), title: p.title || 'Épisode', serie: p.serie || null })) ?? [])
       } catch { /* vide */ }

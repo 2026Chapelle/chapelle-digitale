@@ -11,7 +11,7 @@ import {
 } from '@/lib/pastoral/newcomer-admin-client'
 import { NewcomerRepositoryError } from '@/lib/pastoral/newcomer-intakes-repository'
 import { NewcomerTenantScopeError } from '@/lib/pastoral/newcomer-tenant-scope'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   resolveAdminActorProfile,
   resolveActorUnitContext,

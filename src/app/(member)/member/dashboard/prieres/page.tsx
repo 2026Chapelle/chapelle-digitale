@@ -5,7 +5,7 @@ import { Send, Heart, Users, AlertCircle, EyeOff, CheckCircle, BookOpen } from '
 import { CATEGORIES_PRIERE, CategoriePriere } from '@/lib/mock/prieres'
 import { PageHeader } from '@/components/ui/PageHeader'
 import toast from 'react-hot-toast'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/providers/AuthProvider'
 
@@ -59,7 +59,8 @@ export default function PrieresPage() {
   // de priere_demandes exclut le client anon (sinon « mes demandes » reste vide).
   const reloadMine = async () => {
     if (IS_DEMO_MODE || isDemo || !user?.id) return
-    const db = getBrowserClient() ?? supabase
+    const db = getBrowserClient()
+    if (!db) return
     const { data: mine, error } = await db.from('priere_demandes')
       .select(PRIERE_COLS).eq('user_id', user.id).order('created_at', { ascending: false })
     if (error) { console.warn('[prieres] lecture mes demandes:', error.message); return }
@@ -74,7 +75,9 @@ export default function PrieresPage() {
       try {
         await reloadMine()
         if (cancelled) return
-        const { data: pub } = await supabase.from('priere_demandes')
+        const db = getBrowserClient()
+        if (!db) return
+        const { data: pub } = await db.from('priere_demandes')
           .select(PRIERE_COLS).eq('is_public', true).order('created_at', { ascending: false }).limit(50)
         if (!cancelled && pub) {
           const items = pub.map(mapPriere)
@@ -121,7 +124,13 @@ export default function PrieresPage() {
     setTemSending(true)
     try {
       if (!IS_DEMO_MODE && !isDemo) {
-        const { error } = await supabase.from('temoignages').insert({
+        const db = getBrowserClient()
+        if (!db) {
+          toast.error("L'envoi est indisponible en mode démonstration.")
+          setTemSending(false)
+          return
+        }
+        const { error } = await db.from('temoignages').insert({
           demande_id: p.id,
           user_id: user?.id ?? null,
           auteur: profile ? `${profile.prenom ?? ''} ${profile.nom ?? ''}`.trim() || null : null,

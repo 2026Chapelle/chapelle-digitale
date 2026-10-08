@@ -7,7 +7,7 @@
  * un écran si une table manque. AUCUNE mutation directe : la seule écriture pastorale
  * passe par la RPC `validate_member_canonical_axis` (atomique + auditée).
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { buildMemberCanonicalProjection, type MemberCanonicalProjection } from './member-projection'
 import { buildReviewQueue, countPendingAxes, type ReviewQueueItem, type ReviewQueueRow, type QueueMemberIdentity } from './review-queue'
 import type { ValidatableAxis } from './validation-service'

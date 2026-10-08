@@ -11,7 +11,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Layers, Headphones, ArrowRight } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { PodcastCover } from './PodcastCover'
 
 interface ShowRow { id: string; slug: string; title: string; short_description?: string | null; cover_url?: string | null }
@@ -71,6 +72,8 @@ export function PodcastDiscoverSections() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {

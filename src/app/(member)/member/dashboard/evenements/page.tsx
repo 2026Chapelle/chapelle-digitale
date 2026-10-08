@@ -8,7 +8,7 @@ import {
 import { type EvenementMock } from '@/lib/mock/evenements'
 import { PageHeader } from '@/components/ui/PageHeader'
 import toast from 'react-hot-toast'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/providers/AuthProvider'
 
@@ -104,10 +104,11 @@ export default function EvenementsPage() {
         // Client AUTHENTIFIÉ (cookies) pour lire mes inscriptions : la RLS de
         // event_registrations exige `authenticated` → le client anon renvoie vide
         // (statut perdu au refresh). Fallback anon en mode démo.
-        const db = getBrowserClient() ?? supabase
+        const db = getBrowserClient()
+        if (!db) return
         // select('*') : résilient si une colonne récente (ex. lien_live) n'est pas
         // encore migrée → la requête ne casse pas (sinon liste vide = 0 événement).
-        const { data: evs } = await supabase.from('cms_events')
+        const { data: evs } = await db.from('cms_events')
           .select('*')
           .eq('status', 'published').order('starts_at', { ascending: true })
         let regs: any[] = []

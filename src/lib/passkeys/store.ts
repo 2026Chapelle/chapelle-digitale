@@ -4,7 +4,7 @@
  * On ne stocke que des données cryptographiques (clé PUBLIQUE COSE, credential_id,
  * signCount) et le HASH du challenge — jamais de challenge en clair ni de biométrie.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { hashChallenge } from './crypto'
 import { challengeExpiresAtMs, validateChallenge } from './challenge'
 import type { Ceremony } from './config'

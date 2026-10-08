@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { randomUUID } from 'crypto'
-import { createRouteClient } from '@/lib/supabase-server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { createRouteClient, getVerifiedUser } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 
 /**
  * Profil du membre connecté (espace privé).
@@ -28,8 +29,7 @@ const EDITABLE = [
 async function currentUserId(): Promise<string | null> {
   if (IS_DEMO_MODE) return null
   try {
-    const supabase = createRouteClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getVerifiedUser(createRouteClient())
     return user?.id ?? null
   } catch {
     return null

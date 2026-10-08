@@ -26,6 +26,7 @@ vi.mock('@/lib/supabase', () => ({
   IS_DEMO_MODE: false,
   supabaseAdmin: { from: (...args: unknown[]) => from(...args) },
 }))
+vi.mock('@/lib/supabase-admin', async () => await vi.importMock('@/lib/supabase'))
 
 vi.mock('@/lib/cache', () => ({
   cached: async (_key: string, _ttl: number, producer: () => Promise<unknown>) => producer(),

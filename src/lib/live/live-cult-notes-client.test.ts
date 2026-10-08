@@ -7,6 +7,18 @@ import {
   vi,
 } from 'vitest'
 
+const { getUserMock } = vi.hoisted(() => ({
+  getUserMock: vi.fn(),
+}))
+
+vi.mock('../supabase-browser', () => ({
+  getBrowserClient: () => ({
+    auth: {
+      getUser: getUserMock,
+    },
+  }),
+}))
+
 type Subject = Record<string, any>
 
 let subject: Subject = {}
@@ -276,14 +288,8 @@ describe('LIVE 4C cult notebook member identity', () => {
       typeof subject.getAuthenticatedCultNoteScope,
     ).toBe('function')
 
-    const { supabase } =
-      await import('../supabase')
-
-    const getUser =
-      vi.spyOn(supabase.auth, 'getUser')
-
     try {
-      getUser.mockResolvedValueOnce({
+      getUserMock.mockResolvedValueOnce({
         data: {
           user: {
             id: USER_ID,
@@ -298,7 +304,7 @@ describe('LIVE 4C cult notebook member identity', () => {
         `member:${USER_ID}`,
       )
 
-      getUser.mockResolvedValueOnce({
+      getUserMock.mockResolvedValueOnce({
         data: {
           user: null,
         },
@@ -309,7 +315,7 @@ describe('LIVE 4C cult notebook member identity', () => {
         subject.getAuthenticatedCultNoteScope(),
       ).resolves.toBeNull()
     } finally {
-      getUser.mockRestore()
+      getUserMock.mockReset()
     }
   })
 })

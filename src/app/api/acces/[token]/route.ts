@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 // Jetons valides : UUID v4 (anciens achats) ou hex 32-64 (randomBytes).

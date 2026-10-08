@@ -11,7 +11,8 @@ vi.mock('@/lib/rate-limit', () => ({
 }))
 
 const from = vi.fn()
-vi.mock('@/lib/supabase', () => ({ IS_DEMO_MODE: false, supabaseAdmin: { from: (...a: unknown[]) => from(...a) } }))
+vi.mock('@/lib/supabase', () => ({ IS_DEMO_MODE: false }))
+vi.mock('@/lib/supabase-admin', () => ({ supabaseAdmin: { from: (...a: unknown[]) => from(...a) } }))
 
 const grantEntitlementByAdmin = vi.fn()
 const revokeEntitlementForUser = vi.fn()

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { dispatch } from '@/lib/notifications/channels'
 import { raisePastoralAlert, notifyWelcome, notifyNextStep, notifyCertificatePending } from '@/lib/notifications/events'
 import { reminderKind, dedupKeys, nextEscalation } from '@/lib/notifications/rules'

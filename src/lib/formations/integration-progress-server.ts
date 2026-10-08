@@ -5,7 +5,7 @@
  * (dashboard + déblocage Académie) ET la génération du Certificat d'Intégration.
  */
 import { randomUUID } from 'crypto'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isFormationComplete } from './parcours-gating'
 
 export interface IntegrationParcours {

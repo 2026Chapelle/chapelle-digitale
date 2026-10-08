@@ -2,7 +2,7 @@ import 'server-only'
 
 import {
   supabaseAdmin,
-} from '@/lib/supabase'
+} from '@/lib/supabase-admin'
 
 import {
   createServerClient,
@@ -96,6 +96,24 @@ export type MemberRetreatDetail =
   MemberRetreatSummary & {
     days: MemberRetreatDay[]
   }
+
+export type MemberRetreatLookupResult =
+  | {
+      status: 'ok'
+      retreat: MemberRetreatDetail
+    }
+  | {
+      status: 'identity_required'
+    }
+  | {
+      status: 'member_not_found'
+    }
+  | {
+      status: 'not_found'
+    }
+  | {
+      status: 'unavailable'
+    }
 
 export type EnrollMemberResult =
   | {
@@ -467,16 +485,38 @@ export async function listMemberRetreats():
 
 export async function getMemberRetreatBySlug(
   slug: string,
-): Promise<MemberRetreatDetail | null> {
+): Promise<MemberRetreatLookupResult> {
   if (!validSlug(slug)) {
-    return null
+    return {
+      status: 'not_found',
+    }
   }
 
   const identity =
     await verifiedMemberId()
 
   if (!identity.ok) {
-    return null
+    if (
+      identity.reason ===
+      'identity_required'
+    ) {
+      return {
+        status: 'identity_required',
+      }
+    }
+
+    if (
+      identity.reason ===
+      'member_not_found'
+    ) {
+      return {
+        status: 'member_not_found',
+      }
+    }
+
+    return {
+      status: 'unavailable',
+    }
   }
 
   try {
@@ -515,11 +555,19 @@ export async function getMemberRetreatBySlug(
         )
         .maybeSingle()
 
-    if (
-      retreatError ||
-      !retreatData
-    ) {
-      return null
+    if (retreatError) {
+      console.error(
+        '[mahanaim/retreat] unavailable reason=retreat_read_failed',
+      )
+      return {
+        status: 'unavailable',
+      }
+    }
+
+    if (!retreatData) {
+      return {
+        status: 'not_found',
+      }
     }
 
     const retreat =
@@ -530,7 +578,9 @@ export async function getMemberRetreatBySlug(
         retreat.digital_status,
       )
     ) {
-      return null
+      return {
+        status: 'not_found',
+      }
     }
 
     const {
@@ -561,7 +611,12 @@ export async function getMemberRetreatBySlug(
         .maybeSingle()
 
     if (enrollmentError) {
-      return null
+      console.error(
+        '[mahanaim/retreat] unavailable reason=enrollment_read_failed',
+      )
+      return {
+        status: 'unavailable',
+      }
     }
 
     const enrollment =
@@ -585,7 +640,12 @@ export async function getMemberRetreatBySlug(
           )
 
       if (catalogError) {
-        return null
+        console.error(
+          '[mahanaim/retreat] unavailable reason=day_catalog_failed',
+        )
+        return {
+          status: 'unavailable',
+        }
       }
 
       catalogDays =
@@ -595,49 +655,57 @@ export async function getMemberRetreatBySlug(
     }
 
     return {
-      ...mapRetreat(
-        retreat,
-        Boolean(enrollment),
-      ),
-
-      days:
-        (
-          Array.isArray(catalogDays)
-            ? catalogDays
-            : []
-        ).map(
-          raw => {
-            const row =
-              raw as unknown as DayRow
-
-            return {
-              id:
-                row.id,
-
-              dayNumber:
-                row.day_number,
-
-              dayDate:
-                row.day_date,
-
-              title:
-                row.title,
-
-              scriptureReference:
-                row.scripture_reference ??
-                null,
-
-              status:
-                row.status,
-
-              isUnlocked:
-                row.is_unlocked === true,
-            }
-          },
+      status: 'ok',
+      retreat: {
+        ...mapRetreat(
+          retreat,
+          Boolean(enrollment),
         ),
+
+        days:
+          (
+            Array.isArray(catalogDays)
+              ? catalogDays
+              : []
+          ).map(
+            raw => {
+              const row =
+                raw as unknown as DayRow
+
+              return {
+                id:
+                  row.id,
+
+                dayNumber:
+                  row.day_number,
+
+                dayDate:
+                  row.day_date,
+
+                title:
+                  row.title,
+
+                scriptureReference:
+                  row.scripture_reference ??
+                  null,
+
+                status:
+                  row.status,
+
+                isUnlocked:
+                  row.is_unlocked === true,
+              }
+            },
+          ),
+      },
     }
   } catch {
-    return null
+    console.error(
+      '[mahanaim/retreat] unavailable reason=unexpected_failure',
+    )
+    return {
+      status: 'unavailable',
+    }
   }
 }
 

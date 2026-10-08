@@ -5,7 +5,8 @@ import Image from 'next/image'
 import { Youtube, Facebook, Instagram, Twitter, Send, Check, Loader2 } from 'lucide-react'
 import { SOCIAL_LINKS } from '@/lib/constants'
 import { events } from '@/lib/analytics'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -70,6 +71,8 @@ export function Footer() {
     try {
       events.newsletterSubscribe('footer')
       if (!IS_DEMO_MODE) {
+        const supabase = getBrowserClient()
+        if (!supabase) throw new Error('Supabase client unavailable')
         // Enregistrement réel (clé anon + RLS). Anti-doublon via contrainte unique.
         const { error } = await supabase
           .from('newsletter_subscribers')

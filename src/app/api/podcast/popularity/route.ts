@@ -12,7 +12,8 @@
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { cached } from '@/lib/cache'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { aggregateAudioAnalytics, type AudioEventRow, type EpisodeMeta } from '@/lib/podcast/audio-analytics'

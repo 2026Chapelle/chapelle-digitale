@@ -1,5 +1,6 @@
 import {
   notFound,
+  redirect,
 } from 'next/navigation'
 
 import EnrollRetreatButton from '@/components/mahanaim/EnrollRetreatButton'
@@ -36,14 +37,64 @@ export default async function MahanaimRetreatPage({
     notFound()
   }
 
-  const retreat =
+  const result =
     await getMemberRetreatBySlug(
       params.slug,
     )
 
-  if (!retreat) {
+  if (
+    result.status ===
+    'identity_required'
+  ) {
+    const next =
+      `/member/plateformes/mahanaim/retraites/${params.slug}`
+
+    redirect(
+      `/login?next=${encodeURIComponent(next)}`,
+    )
+  }
+
+  if (
+    result.status ===
+    'member_not_found'
+  ) {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-16 text-white">
+        <section className="rounded-3xl border border-amber-400/20 bg-slate-950 p-8">
+          <h1 className="text-2xl font-bold">
+            Compte membre requis
+          </h1>
+
+          <p className="mt-4 text-slate-300">
+            Votre session est reconnue, mais votre dossier membre n&apos;est pas encore disponible.
+            Contactez l&apos;accueil afin de finaliser votre accès à Mahanaïm.
+          </p>
+        </section>
+      </main>
+    )
+  }
+
+  if (
+    result.status ===
+    'not_found'
+  ) {
     notFound()
   }
+
+  if (
+    result.status ===
+    'unavailable'
+  ) {
+    console.error(
+      '[mahanaim/retreat-page] unavailable',
+    )
+    throw new Error(
+      'mahanaim_retreat_unavailable',
+    )
+  }
+
+  const retreat =
+    result.retreat
 
   return (
     <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">

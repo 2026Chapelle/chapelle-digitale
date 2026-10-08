@@ -2,7 +2,7 @@
  * Lot 6 — appels RPC service_role (atomiques).
  */
 import { createHash, randomBytes } from 'crypto'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export function hashInviteToken(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex')

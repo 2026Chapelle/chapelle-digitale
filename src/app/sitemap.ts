@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next'
 import { PLATEFORMES } from '@/lib/constants'
 import { cmsList, type CmsArticle } from '@/lib/cms'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { listPublishedShows, listPublishedSeries } from '@/lib/podcast/spine-public'
 import { SITE_URL } from '@/lib/site-url'
 

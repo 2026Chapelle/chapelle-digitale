@@ -8,7 +8,7 @@
  *
  * Les parties PURES (dayKey, activeDaysFromSessions, scoreFromSignals) sont testées.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { engagementScore, type MemberIntel } from '@/lib/pastoral-intelligence'
 
 const DAY = 86_400_000

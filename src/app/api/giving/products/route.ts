@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getGivingProducts, getGivingWidgetSettings } from '@/lib/giving'
+import { getGivingProducts, getGivingWidgetSettings } from '@/lib/giving-server'
 
 /**
  * Catalogue public des produits de don (Chariow) + réglages du widget.

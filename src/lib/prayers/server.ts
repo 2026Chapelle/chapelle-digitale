@@ -8,7 +8,8 @@
  * ⚠️ SERVEUR UNIQUEMENT (importe supabaseAdmin). La projection publique n'expose
  * JAMAIS `content`/`guideSteps`/`takeaway`/`pdfUrl`.
  */
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   listPublicPrayerCards, listMemberPrayers, getFullPrayer,
   categoryColor, categoryEmoji,

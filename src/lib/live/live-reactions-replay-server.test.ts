@@ -48,7 +48,7 @@ const mocks = vi.hoisted(() => ({
     vi.fn(),
 }))
 
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/supabase-admin', () => ({
   supabaseCmsRead: {
     from:
       mocks.from,

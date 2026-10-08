@@ -9,8 +9,9 @@
  * Utilisé par /api/member/* et l’acteur Lot 5 (admin ERP).
  * Renvoie null en démo ou si non authentifié.
  */
-import { createRouteClient } from '@/lib/supabase-server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { createRouteClient, getVerifiedUser } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 
 export interface SessionProfile {
   uid: string
@@ -26,12 +27,8 @@ export interface SessionProfile {
 export async function getVerifiedRouteProfile(): Promise<SessionProfile | null> {
   if (IS_DEMO_MODE) return null
   try {
-    const supabase = createRouteClient()
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user?.id) return null
+    const user = await getVerifiedUser(createRouteClient())
+    if (!user) return null
 
     const { data, error } = await supabaseAdmin
       .from('profiles')
@@ -69,10 +66,7 @@ export async function getVerifiedRouteProfile(): Promise<SessionProfile | null> 
 export async function getSessionProfile(): Promise<SessionProfile | null> {
   if (IS_DEMO_MODE) return null
   try {
-    const supabase = createRouteClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getVerifiedUser(createRouteClient())
     if (!user) return null
     const { data } = await supabaseAdmin.from('profiles').select('*').eq('id', user.id).single()
     const profile = (data as Record<string, any>) || { id: user.id, email: user.email }

@@ -4,10 +4,9 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, Mail, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
 
-const authClient = () => getBrowserClient() ?? supabase
+const authClient = () => getBrowserClient()!
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function ForgotPasswordPage() {

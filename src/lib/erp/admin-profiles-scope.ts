@@ -11,7 +11,7 @@
  * - compatible avec supabaseAdmin (flux admin legacy)
  */
 
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   resolveCanonicalOrganizationId,
   type OrganizationId,

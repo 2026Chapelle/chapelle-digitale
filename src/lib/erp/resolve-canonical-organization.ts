@@ -12,7 +12,7 @@
  * - Aucune dépendance vers lib/pastoral.
  */
 
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { CHAPELLE_ORGANIZATION_SLUG, type OrganizationId } from '@/core/erp'
 
 /** Type minimal injectable pour lookup (tests + production). */

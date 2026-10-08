@@ -6,7 +6,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminRequest } from '@/lib/admin-auth'
 import { resolveAdminOrganizationForRequest } from '@/lib/erp/admin-profiles-scope'
-import { IS_DEMO_MODE, supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { cached } from '@/lib/cache'
 import type { ChannelStatus } from '@/lib/intelligence/channels/types'
 import { getYouTubeData } from '@/lib/intelligence/connectors/youtube'
@@ -17,7 +18,7 @@ import { getWhatsAppStatus } from '@/lib/intelligence/connectors/whatsapp'
 import { buildSeoPeriod, parsePeriodKey } from '@/lib/intelligence/seo/period'
 import type { DecisionAvailability, DecisionPeriod } from '@/lib/intelligence/decision/contract'
 import { buildComparableWindows } from '@/lib/intelligence/performance/windows'
-import { buildGoalTrajectoriesForOrganization } from '@/lib/intelligence/goals'
+import { buildGoalTrajectoriesForOrganization } from '@/lib/intelligence/goals/store-server'
 import type { GoalTrajectory } from '@/lib/intelligence/goals'
 import {
   buildPerformanceReadModel,

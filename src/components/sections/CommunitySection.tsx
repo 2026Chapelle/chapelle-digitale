@@ -9,7 +9,8 @@ import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Quote, ArrowRight } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { events } from '@/lib/analytics'
 import {
   HOME_VIEWPORT,
@@ -34,6 +35,8 @@ export function CommunitySection() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {

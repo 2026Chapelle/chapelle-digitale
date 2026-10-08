@@ -9,7 +9,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { PasskeysManager } from './PasskeysManager'
 import { OrganizationEssentialsForm } from './OrganizationEssentialsForm'
 import { UnitHierarchyNav, type HierarchyUnit, type HierarchyActor } from './UnitHierarchyNav'
@@ -450,6 +451,8 @@ function LivretSetting() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) { setLoading(false); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setLoading(false); return }
     let cancelled = false
     ;(async () => {
       try {

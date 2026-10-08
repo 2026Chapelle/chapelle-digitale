@@ -10,7 +10,8 @@
  * /api/cms/[resource] ou /api/admin/cms/[resource]. Les *types* sont importables
  * via `import type`.
  */
-import { supabaseAdmin, supabaseCmsRead, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin, supabaseCmsRead } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 
 // ── Types de contenu ────────────────────────────────────────────────────────
 export type CmsStatus = 'draft' | 'published' | 'scheduled' | 'live' | 'ended' | 'submitted' | 'approved' | 'rejected'

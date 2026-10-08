@@ -11,7 +11,7 @@ import {
 
 import {
   supabaseAdmin,
-} from '@/lib/supabase'
+} from '@/lib/supabase-admin'
 
 import {
   getLiveReactionAdminAggregate,

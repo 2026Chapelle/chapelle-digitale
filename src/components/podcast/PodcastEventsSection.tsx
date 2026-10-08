@@ -10,7 +10,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Calendar, MapPin, ArrowRight, Sparkles, Clock } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { selectHomeEvents } from '@/lib/cms/featured'
 
 interface PodcastEvent {
@@ -65,6 +66,8 @@ export function PodcastEventsSection() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let alive = true
     ;(async () => {
       try {

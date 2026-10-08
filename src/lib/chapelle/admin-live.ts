@@ -10,7 +10,8 @@
  * SERVER-ONLY : utilise `supabaseAdmin` (service role). À n'appeler que depuis
  * des route handlers / server actions (cf. /api/admin/data/[resource]).
  */
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { emptyDashboardStats, type DashboardStats, type DateRange } from '@/lib/admin-analytics'
 import { type FormSubmission, type FormStatus } from '@/lib/admin-data'
 import { type MembreMock } from '@/lib/mock/membres'

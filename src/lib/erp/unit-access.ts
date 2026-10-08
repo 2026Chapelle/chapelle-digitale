@@ -5,7 +5,7 @@
  * L'existence d'un autre owner/admin ne constitue JAMAIS l'autorisation de l'appelant.
  */
 
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getVerifiedRouteProfile } from '@/lib/member-auth'
 import {
   isPathDescendantOrSelf,

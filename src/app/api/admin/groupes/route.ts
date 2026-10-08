@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { IS_DEMO_MODE, supabaseAdmin } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isAdminRequest } from '@/lib/admin-auth'
 import { validateGroupInput } from '@/lib/community/groups-access'
 import {

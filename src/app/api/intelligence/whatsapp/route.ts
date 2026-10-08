@@ -13,7 +13,8 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { isAdminRequest } from '@/lib/admin-auth'
-import { IS_DEMO_MODE, supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { cached } from '@/lib/cache'
 import { buildSeoPeriod, parsePeriodKey } from '@/lib/intelligence/seo/period'
 import {

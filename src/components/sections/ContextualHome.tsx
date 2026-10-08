@@ -7,7 +7,7 @@ import { useAuth } from '@/components/providers/AuthProvider'
 import { INTENTS, resolveFirstStep, resolveHeroGreeting, selectTodayPrimary, type HomeIntent, type LiveState, type TodayPrimaryCandidate } from '@/lib/home/contextual'
 import { resolveMemberNextAction, type MemberNextAction } from '@/lib/member-home/next-action'
 import { track } from '@/lib/analytics'
-import { supabase } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
 
 const dateLabel = (value?: string) => value ? new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(value)) : 'Préparé pour le prochain direct'
@@ -36,6 +36,8 @@ export function ContextualHome({ liveState }: { liveState: LiveState }) {
   }, [authenticated])
 
   useEffect(() => {
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     Promise.resolve(fetchPublishedPodcasts(cols => supabase.from('cms_podcasts').select(cols).eq('status', 'published').order('published_at', { ascending: false }).limit(1)))
       .then(({ rows }) => {
@@ -46,6 +48,8 @@ export function ContextualHome({ liveState }: { liveState: LiveState }) {
   }, [])
 
   useEffect(() => {
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     Promise.resolve(supabase.from('formations').select('slug,titre,contenu_court,description,image_couverture').eq('statut', 'publie').in('slug', ['visiteur', 'nouveau-croyant', 'salut', 'je-decouvre-la-maison']))
       .then(({ data }) => { if (!cancelled && data) setFormations(data as FormationRow[]) }).catch(() => {})
