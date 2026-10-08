@@ -15,6 +15,7 @@ const NAV_ITEMS: Item[] = [
   { icon: Newspaper,       label: 'Articles',      href: '/admin/articles',      color: '#34D399' },
   { icon: Film,            label: 'Médias',        href: '/admin/medias',        color: '#EF4444' },
   { icon: Radio,           label: 'Lives',         href: '/admin/lives',         color: '#F43F5E' },
+  { icon: Calendar, label: 'Mahanaïm', href: '/admin/mahanaim/retraites/chambre-haute-2026', color: '#D4AF37' },
   { icon: Mic,             label: 'Podcasts',      href: '/admin/podcasts',      color: '#A855F7' },
   { icon: BookOpen,        label: 'Enseignements', href: '/admin/enseignements', color: '#8B5CF6' },
   { icon: GraduationCap,   label: 'Formations',    href: '/admin/formations',    color: '#0EA5E9' },
