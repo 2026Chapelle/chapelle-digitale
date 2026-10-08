@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertCircle, CheckCircle2, Loader2, Save } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
+import RetreatDayResourcesEditor from './RetreatDayResourcesEditor'
 import { getMissingRetreatDayFields, RETREAT_DAY_CONTENT_FIELDS, type RetreatDayContent } from '@/lib/mahanaim/admin-retreat-days-shared'
 
 type EditableField = (typeof RETREAT_DAY_CONTENT_FIELDS)[number]
@@ -100,6 +101,7 @@ export default function RetreatDaysEditor() {
             <label className="block"><span className="mb-1.5 block text-sm font-medium text-pearl/85">Déclarations prophétiques <span className="text-pearl/40">(une par ligne)</span></span><textarea rows={6} value={listText(draft.declarations)} disabled={saving} onChange={(event) => updateText('declarations', event.target.value.split('\n'))} className="w-full rounded-xl border border-white/15 bg-black/20 p-3 text-sm leading-relaxed text-pearl outline-none focus:border-gold/60" /></label>
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5"><p className="text-xs text-pearl/45">Brouillon · {changedFields.length} champ{changedFields.length === 1 ? '' : 's'} modifié{changedFields.length === 1 ? '' : 's'}</p><button type="button" onClick={saveDraft} disabled={saving || changedFields.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-abyss transition hover:bg-gold/90 disabled:cursor-not-allowed disabled:opacity-45">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{saving ? 'Enregistrement…' : 'Enregistrer ce brouillon'}</button></div>
+          <RetreatDayResourcesEditor key={selected.id} dayId={selected.id} />
         </section>}
       </div>}
   </div></div>
