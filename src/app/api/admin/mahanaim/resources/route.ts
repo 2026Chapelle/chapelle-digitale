@@ -304,10 +304,57 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (resource.storage_path) {
+      const storagePath = resource.storage_path
+      const expectedPrefix = `mahanaim/${RETREAT_SLUG}/${dayId}/`
+
+      if (resource.resource_type !== 'pdf' ||
+          !storagePath.startsWith(expectedPrefix) ||
+          !storagePath.endsWith('.pdf')) {
+        return NextResponse.json({
+          ok: false,
+          message: 'Chemin du document privé invalide.',
+        }, { status: 400 })
+      }
+
+      // Retirer d'abord la référence accessible aux membres.
+      const { data: deleted, error: deleteError } = await db()
+        .from('mahanaim_day_resources')
+        .delete()
+        .eq('id', resourceId)
+        .eq('day_id', dayId)
+        .eq('storage_path', storagePath)
+        .select('id')
+        .maybeSingle()
+
+      if (deleteError) throw deleteError
+
+      if (!deleted) {
+        return NextResponse.json({
+          ok: false,
+          message: 'Document déjà retiré ou introuvable.',
+        }, { status: 404 })
+      }
+
+      // Nettoyer ensuite le stockage. En cas d'échec, le fichier
+      // n'est plus référençable depuis l'API membre.
+      try {
+        const { error: storageError } = await supabaseAdmin.storage
+          .from('documents')
+          .remove([storagePath])
+
+        if (storageError) throw storageError
+      } catch {
+        return NextResponse.json({
+          ok: true,
+          cleanupRequired: true,
+          message: 'Document retiré des ressources. Nettoyage du stockage à vérifier.',
+        }, { status: 202 })
+      }
+
       return NextResponse.json({
-        ok: false,
-        message: 'Suppression des fichiers privés à traiter par le gestionnaire sécurisé.',
-      }, { status: 400 })
+        ok: true,
+        cleanupRequired: false,
+      })
     }
 
     const { error } = await db()

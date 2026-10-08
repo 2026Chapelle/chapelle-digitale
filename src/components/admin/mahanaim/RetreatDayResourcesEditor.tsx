@@ -150,13 +150,19 @@ export default function RetreatDayResourcesEditor({ dayId }: { dayId: string }) 
     }
   }
 
-  async function deletePdf(id: string) {
-    if (!window.confirm('Retirer ce lien PDF de cette journée ?')) return
+  async function deletePdf(id: string, isPrivate: boolean) {
+    const question = isPrivate
+      ? 'Supprimer ce PDF privé de la journée et du stockage ?'
+      : 'Retirer ce lien PDF de cette journée ?'
+
+    if (!window.confirm(question)) return
     setBusy(true); setError(''); setNotice('')
     try {
-      await request('DELETE', { dayId, resourceId: id })
+      const result = await request('DELETE', { dayId, resourceId: id })
       await refresh()
-      setNotice('Lien PDF retiré.')
+      setNotice(result.cleanupRequired
+        ? 'Document retiré. Attention : nettoyage du stockage à vérifier.'
+        : 'Document PDF retiré.')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Suppression impossible.')
     } finally {
@@ -211,7 +217,7 @@ export default function RetreatDayResourcesEditor({ dayId }: { dayId: string }) 
 
           <div className="space-y-3 rounded-xl border border-white/10 p-4">
             <h4 className="font-semibold text-white">Documents PDF</h4>
-            <p className="text-xs text-white/60">Ajout par lien externe. Téléversement privé à venir.</p>
+            <p className="text-xs text-white/60">Ajoutez un lien HTTPS ou téléversez directement un PDF privé.</p>
             <input className={inputClass} disabled={busy} placeholder="Titre du PDF"
               value={pdfTitle} onChange={e => setPdfTitle(e.target.value)} />
             <input type="url" className={inputClass} disabled={busy}
@@ -253,16 +259,22 @@ export default function RetreatDayResourcesEditor({ dayId }: { dayId: string }) 
               {resources.filter(r => r.resource_type === 'pdf').map(pdf => (
                 <li key={pdf.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/5 p-3 text-sm">
                   <span className="text-white">{pdf.title}</span>
-                  {pdf.storage_path ? <span className="text-white/60">Fichier privé</span> : (
-                    <div className="flex gap-3">
-                      {pdf.resource_url && <a className="text-amber-300 underline"
-                        href={pdf.resource_url} target="_blank" rel="noopener noreferrer">Vérifier</a>}
-                      <button type="button" disabled={busy}
-                        className="text-red-300 underline" onClick={() => void deletePdf(pdf.id)}>
-                        Retirer
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {pdf.storage_path ? (
+                      <span className="text-white/60">Fichier privé</span>
+                    ) : (
+                      pdf.resource_url && <a className="text-amber-300 underline"
+                        href={pdf.resource_url} target="_blank" rel="noopener noreferrer">Vérifier</a>
+                    )}
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="text-red-300 underline disabled:opacity-50"
+                      onClick={() => void deletePdf(pdf.id, Boolean(pdf.storage_path))}
+                    >
+                      Retirer
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
