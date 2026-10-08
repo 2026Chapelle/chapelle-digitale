@@ -84,8 +84,24 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) {
-    await supabaseAdmin.storage.from(BUCKET).remove([path])
-    return NextResponse.json({ ok: false, message: 'Enregistrement du document impossible.' }, { status: 500 })
+    let cleanupRequired = false
+    try {
+      const { error: cleanupError } = await supabaseAdmin.storage
+        .from(BUCKET)
+        .remove([path])
+      cleanupRequired = Boolean(cleanupError)
+    } catch {
+      cleanupRequired = true
+    }
+
+    return NextResponse.json({
+      ok: false,
+      cleanupRequired,
+      ...(cleanupRequired ? { storagePath: path } : {}),
+      message: cleanupRequired
+        ? `Enregistrement impossible. Nettoyage Storage requis pour le chemin : ${path}`
+        : 'Enregistrement du document impossible.',
+    }, { status: 500 })
   }
 
   return NextResponse.json({ ok: true, data }, { status: 201 })

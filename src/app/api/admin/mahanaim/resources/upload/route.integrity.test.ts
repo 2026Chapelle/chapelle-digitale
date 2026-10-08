@@ -140,4 +140,27 @@ describe('Mahanaïm - intégrité du téléversement PDF', () => {
     const path = mocks.upload.mock.calls[0][0]
     expect(mocks.remove).toHaveBeenCalledWith([path])
   })
+
+  it('signale le chemin à nettoyer si la compensation Storage échoue', async () => {
+    mocks.insertResult.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'database insert failed' },
+    })
+    mocks.remove.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Storage unavailable' },
+    })
+
+    const response = await POST(request())
+    const body = await response.json()
+    const path = mocks.upload.mock.calls[0][0]
+
+    expect(response.status).toBe(500)
+    expect(body).toMatchObject({
+      ok: false,
+      cleanupRequired: true,
+      storagePath: path,
+    })
+    expect(mocks.remove).toHaveBeenCalledWith([path])
+  })
 })
