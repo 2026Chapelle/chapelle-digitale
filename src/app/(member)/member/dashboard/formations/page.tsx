@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import { BookOpen, Clock, Award, ChevronRight, Trophy, Zap, BookOpenCheck, GraduationCap, Plus } from 'lucide-react'
 import { FORMATIONS } from '@/lib/mock/formations'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import toast from 'react-hot-toast'
 import { AcademieFormationBlock } from '@/components/academie/AcademieFormationBlock'
 
@@ -95,6 +96,7 @@ export default function FormationsPage() {
         if (rc.ok) { const jc = await rc.json(); if (!cancelled && jc.ok) setCertificats(jc.certificats || []) }
         // Formations publiées disponibles (découverte / inscription)
         if (!IS_DEMO_MODE) {
+          const supabase = getBrowserClient()!
           const { data } = await supabase.from('formations')
             .select('id, titre, slug, niveau, certifiant, instructeur_nom, contenu_court')
             .eq('statut', 'publie').order('created_at', { ascending: false })

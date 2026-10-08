@@ -8,7 +8,8 @@ import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowRight, Headphones, Play, Pause, Lock } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { events } from '@/lib/analytics'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
 import { PremiumBadge } from '@/components/podcast/PremiumBadge'
@@ -115,6 +116,11 @@ export function PodcastHomeSection() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) {
+      setLoaded(true)
+      return
+    }
+    const supabase = getBrowserClient()
+    if (!supabase) {
       setLoaded(true)
       return
     }

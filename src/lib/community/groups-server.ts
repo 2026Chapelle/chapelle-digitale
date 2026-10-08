@@ -6,7 +6,7 @@
  * Reflète exactement les triggers SQL du Lot 1 (is_primary unique, membres_count,
  * sync responsable_id↔leader_id, sync groupe_cellule_id).
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { notifyUser } from '@/lib/notify'
 import type { GroupScope } from '@/lib/group-scope'
 import { pickAllowedInfos, type NormalizedGroup } from './groups-access'

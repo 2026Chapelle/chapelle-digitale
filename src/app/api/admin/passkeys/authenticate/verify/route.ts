@@ -15,7 +15,8 @@
  */
 import { NextResponse, type NextRequest } from 'next/server'
 import { verifyAuthenticationResponse } from '@simplewebauthn/server'
-import { IS_DEMO_MODE, supabaseAdmin } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { ADMIN_SESSION_TOKEN } from '@/lib/admin-auth'
 import { isAdminCapable } from '@/lib/admin/admin-access'
 import { RP_ID, RP_ORIGIN } from '@/lib/passkeys/rp'

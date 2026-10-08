@@ -5,7 +5,7 @@
  * domaine est isolé (try/catch) : une table absente ou vide ne casse pas le reste.
  * Aucune donnée fictive — uniquement le réel.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getIntegrationProgress } from '@/lib/formations/integration-progress-server'
 import { engagementBand } from '@/lib/pastoral/metrics'
 import { getPermissions } from '@/lib/permissions'

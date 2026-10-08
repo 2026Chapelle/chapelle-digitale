@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { supabaseAdmin, supabaseCmsRead } from '@/lib/supabase'
+import { supabaseAdmin, supabaseCmsRead } from '@/lib/supabase-admin'
 import { getCanonicalLiveState, liveKeyFromState } from './canonical-server'
 import { resolveLiveReactionActor } from './live-reaction-identity-server'
 import { REACTION_TYPES, type ReactionCounts, type ReactionType, parseReactionCounts } from './live-reactions'

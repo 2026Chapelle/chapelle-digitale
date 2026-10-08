@@ -14,7 +14,7 @@
  * Le fallback historique /lecture/pdf?src=&title= (PDF-1) reste inchangé.
  */
 import Link from 'next/link'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getServerProfile } from '@/lib/supabase-server'
 import { getDocumentDelivery } from '@/lib/documents/document-delivery-server'
 import { isMemberStatus, hasBooksPremiumAccess } from '@/lib/documents/document-delivery'

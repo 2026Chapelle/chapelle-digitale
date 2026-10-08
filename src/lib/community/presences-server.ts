@@ -3,7 +3,7 @@
  * réunions/présences, partagée par /api/member/reunions et /api/admin/reunions.
  * Réutilise groupes (membres_groupe) + le moteur de notifications/alertes pastorales.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { notifyUser } from '@/lib/notify'
 import { raisePastoralAlert } from '@/lib/notifications/events'
 import { absenceStreak, aggregateAttendance, computeAttendanceStats, shouldAlertAbsence, type AttendanceStatut, type NormalizedReunion } from './attendance'

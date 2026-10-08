@@ -7,7 +7,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { track } from '@/lib/analytics'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -67,6 +68,7 @@ export default function ContactPage() {
     try {
       if (!IS_DEMO_MODE) {
         // Enregistrement réel du message (clé anon + RLS insert public).
+        const supabase = getBrowserClient()!
         const { error } = await supabase.from('contact_messages').insert({
           nom: nom.trim(), email: email.trim(), sujet, message: message.trim(),
         })

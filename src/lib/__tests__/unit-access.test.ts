@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase', () => ({ supabaseAdmin: { from: vi.fn() } }))
+vi.mock('@/lib/supabase-admin', async () => await vi.importMock('@/lib/supabase'))
 vi.mock('@/lib/supabase-server', () => ({ getServerProfile: vi.fn() }))
 
 import {

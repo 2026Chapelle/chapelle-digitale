@@ -13,8 +13,10 @@ import { join } from 'node:path'
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase', () => ({
-  supabaseAdmin: { from: vi.fn() },
   IS_DEMO_MODE: false,
+}))
+vi.mock('@/lib/supabase-admin', () => ({
+  supabaseAdmin: { from: vi.fn() },
 }))
 vi.mock('@/lib/admin-auth', () => ({
   isAdminRequest: vi.fn(),
@@ -23,7 +25,7 @@ vi.mock('@/lib/admin-auth', () => ({
 // Import after mocks
 import * as santeRoute from '@/app/api/admin/sante/route'
 import { isAdminRequest } from '@/lib/admin-auth'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 function req(method: string, body?: any) {
   const r = new NextRequest('http://localhost/api/admin/sante', {

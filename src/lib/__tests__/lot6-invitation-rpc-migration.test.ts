@@ -137,6 +137,7 @@ vi.mock('@/lib/supabase', () => ({
   },
   IS_DEMO_MODE: false,
 }))
+vi.mock('@/lib/supabase-admin', async () => await vi.importMock('@/lib/supabase'))
 
 import { rpcCreateInvitation, rpcRevokeInvitation } from '@/lib/erp/unit-governance-rpc'
 import { createInvitation, revokeInvitation } from '@/lib/erp/unit-governance-repository'

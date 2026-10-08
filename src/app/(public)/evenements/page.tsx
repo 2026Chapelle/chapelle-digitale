@@ -6,7 +6,8 @@ import {
   MapPin, Clock, ChevronRight, ChevronLeft, LayoutGrid, CalendarDays,
   ArrowRight, Globe, Video, X, MessageCircle, Loader2, Sparkles,
 } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import ShareButtons from '@/components/ui/ShareButtons'
 import { EventRegisterButton } from '@/components/conversion/EventRegisterButton'
 
@@ -92,6 +93,8 @@ export default function EvenementsPage() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) { setLoading(false); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setLoading(false); return }
     let cancelled = false
     ;(async () => {
       try {

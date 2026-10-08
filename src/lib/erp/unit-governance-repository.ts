@@ -2,7 +2,7 @@
  * Lot 6 — lectures memberships / invitations / events (service_role).
  * Mutations invite = RPC only (jamais INSERT/UPDATE direct invitations).
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { INVITATION_TTL_MS, normalizeEmail } from '@/lib/erp/unit-governance-rules'
 import {
   generateInviteToken,

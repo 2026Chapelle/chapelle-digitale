@@ -11,7 +11,7 @@ vi.mock('@/lib/member-auth', () => ({
   getVerifiedRouteProfile: mocks.profile,
 }))
 
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/supabase-admin', () => ({
   supabaseAdmin: { from: mocks.from },
 }))
 

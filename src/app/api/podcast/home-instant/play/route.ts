@@ -20,7 +20,9 @@
  * signés à courte durée (aucune URL permanente exposée).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getPublicServerClient } from '@/lib/supabase-server'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { parsePodcastSlotConfig } from '@/lib/podcast/home-slots'
 import { normalizeAccessLevel, normalizeDestinations } from '@/lib/podcast/editorial'
 import { authorizeHomeInstantPlayback, type HomeInstantReason } from '@/lib/podcast/home-instant'
@@ -59,7 +61,7 @@ export async function GET(req: NextRequest) {
         .eq('status', 'published')
         .order('published_at', { ascending: false })
         .limit(200),
-      supabase.from('cms_homepage_blocks').select('data').eq('block_key', 'podcast').maybeSingle(),
+      getPublicServerClient().from('cms_homepage_blocks').select('data').eq('block_key', 'podcast').maybeSingle(),
     ])
 
     const rows = episodesRes.data

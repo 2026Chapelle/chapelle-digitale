@@ -5,7 +5,7 @@
  * existantes `parcours_formations`, `formation_modules`, `module_completions`.
  * Réutilisé par l'API modules (affichage) et l'API enroll (refus d'inscription).
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { computeParcoursLock, isFormationComplete, type ParcoursSequenceItem } from './parcours-gating'
 
 export interface ParcoursGateResult {

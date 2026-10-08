@@ -13,7 +13,8 @@ import { LiveReplayPlayer } from '@/components/live/LiveReplayPlayer'
 import type { LiveReplayPlayerHandle } from '@/components/live/LiveReplayPlayer'
 import LiveCultNotebook from '@/components/live/LiveCultNotebook'
 import { LIVE_PUBLIC_URL, LIVE_SHARE_TEXT, recordSuccessfulLiveShare } from '@/lib/live/live-share-client'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { resolveLiveState } from '@/lib/home/contextual'
 
 /** Extrait l'ID YouTube d'une URL ou ID brut (source unique avec l'espace membre). */
@@ -48,6 +49,8 @@ export default function LivePage() {
   const [upcoming, setUpcoming] = useState<UpcomingLive[]>([])
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {

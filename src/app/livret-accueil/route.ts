@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { siteUrl } from '@/lib/site-url'
 import { getSessionProfile } from '@/lib/member-auth'
 import { logActivity } from '@/lib/activity'

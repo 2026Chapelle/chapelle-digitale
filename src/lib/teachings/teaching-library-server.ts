@@ -1,7 +1,7 @@
 import {
   IS_DEMO_MODE,
-  supabaseCmsRead,
 } from '@/lib/supabase'
+import { supabaseCmsRead } from '@/lib/supabase-admin'
 
 import {
   listPublishedTeachingCatalog,

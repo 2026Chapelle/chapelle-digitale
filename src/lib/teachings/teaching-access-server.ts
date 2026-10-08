@@ -16,8 +16,8 @@
 import {
   supabaseAdmin,
   supabaseCmsRead,
-  IS_DEMO_MODE,
-} from '@/lib/supabase'
+} from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 
 import {
   classifyMediaSource,

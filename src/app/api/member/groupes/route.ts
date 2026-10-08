@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { IS_DEMO_MODE, supabaseAdmin } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getSessionProfile } from '@/lib/member-auth'
 import { can } from '@/lib/permissions'
 import { resolveGroupScope, type GroupScope } from '@/lib/group-scope'

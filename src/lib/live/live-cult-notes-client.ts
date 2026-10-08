@@ -5,7 +5,7 @@ import {
   type LiveCultNoteWrite,
 } from './live-cult-notes'
 
-import { supabase } from '../supabase'
+import { getBrowserClient } from '../supabase-browser'
 
 export type CultNoteLocalScope =
   | 'guest'
@@ -326,6 +326,8 @@ export function mergeCultNotes(
 export async function getAuthenticatedCultNoteScope():
   Promise<CultNoteLocalScope | null> {
   try {
+    const supabase = getBrowserClient()
+    if (!supabase) return null
     const {
       data: { user },
       error,

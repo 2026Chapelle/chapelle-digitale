@@ -16,7 +16,7 @@ vi.mock('./canonical-server', () => ({
       : null,
 }))
 vi.mock('./live-reaction-identity-server', () => ({ resolveLiveReactionActor: mocks.identity }))
-vi.mock('@/lib/supabase', () => ({ supabaseAdmin: { rpc: mocks.rpc } }))
+vi.mock('@/lib/supabase-admin', () => ({ supabaseAdmin: { rpc: mocks.rpc } }))
 
 import {
   getLiveReactionAdminAggregate,

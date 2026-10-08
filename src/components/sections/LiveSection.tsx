@@ -9,7 +9,8 @@ import {
 } from 'lucide-react'
 import { PremiumImage } from '@/components/ui/PremiumImage'
 import { HERO_IMAGES } from '@/lib/images'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { events } from '@/lib/analytics'
 
 /* ============================================================
@@ -87,6 +88,8 @@ export function LiveSection() {
   const [liveNow, setLiveNow] = useState<{ titre: string; url: string; thumbnail: string } | null>(null)
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {

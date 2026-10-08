@@ -40,7 +40,7 @@ export async function middleware(req: NextRequest) {
 
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user }, error } = await supabase.auth.getUser()
 
   const { pathname } = req.nextUrl
 
@@ -50,11 +50,13 @@ export async function middleware(req: NextRequest) {
   // Ici, seul l'espace membre est protégé par la session Supabase.
   const isMemberProtected = pathname.startsWith('/member')
 
-  if (isMemberProtected && !session) {
+  if (isMemberProtected && (error || !user)) {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(url)
+    const redirectResponse = NextResponse.redirect(url)
+    res.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie))
+    return redirectResponse
   }
 
   return res

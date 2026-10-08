@@ -9,11 +9,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 // Mocks
 vi.mock('server-only', () => ({}))
-vi.mock('@/lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({ IS_DEMO_MODE: false }))
+vi.mock('@/lib/supabase-admin', () => ({
   supabaseAdmin: {
     from: vi.fn(),
   },
-  IS_DEMO_MODE: false,
 }))
 vi.mock('@/lib/admin-auth', () => ({
   isAdminRequest: vi.fn(),
@@ -60,7 +60,7 @@ import {
   resolveActorUnitContext,
   listAccessibleUnitIds,
 } from '@/lib/erp/unit-access'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getMemberDossier } from '@/lib/pastoral/member-360-server'
 
 const ORG_ID = 'org-canon-uuid'

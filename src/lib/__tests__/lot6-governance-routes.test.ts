@@ -9,6 +9,7 @@ vi.mock('@/lib/supabase', () => ({
   supabaseAdmin: { from: (...args: unknown[]) => supabaseFrom(...args), rpc: vi.fn() },
   IS_DEMO_MODE: false,
 }))
+vi.mock('@/lib/supabase-admin', async () => await vi.importMock('@/lib/supabase'))
 vi.mock('@/lib/admin-auth', () => ({ isAdminRequest: vi.fn(() => true) }))
 vi.mock('@/lib/member-auth', () => ({
   getVerifiedRouteProfile: vi.fn(),

@@ -8,7 +8,8 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { Plateforme } from '@/types'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { PremiumImage } from '@/components/ui/PremiumImage'
 import { getPlatformImage } from '@/lib/images'
 
@@ -70,6 +71,8 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
 
   useEffect(() => {
     if (IS_DEMO_MODE) { setLoaded(true); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setLoaded(true); return }
     let cancelled = false
     const id = plateforme.id.toLowerCase()
     const nom = plateforme.nom.toLowerCase()

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createRouteClient, getPublicServerClient } from '@/lib/supabase-server'
 import type { ApiResponse } from '@/types'
 
 export async function GET(request: NextRequest) {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const statut = searchParams.get('statut')
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    let query = supabase
+    let query = getPublicServerClient()
       .from('live_streams')
       .select('*')
       .limit(limit)
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { data, error } = await supabase
+    const { data, error } = await createRouteClient()
       .from('live_streams')
       .insert(body)
       .select()
@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json()
     const { id, ...updates } = body
-    const { data, error } = await supabase
+    const { data, error } = await createRouteClient()
       .from('live_streams')
       .update(updates)
       .eq('id', id)

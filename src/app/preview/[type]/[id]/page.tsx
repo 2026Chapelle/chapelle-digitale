@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import Image from 'next/image'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { isValidAdminToken } from '@/lib/admin-auth'
 import { getDocumentDelivery } from '@/lib/documents/document-delivery-server'
 

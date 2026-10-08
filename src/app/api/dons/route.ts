@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
-import { getGivingProducts } from '@/lib/giving'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getGivingProducts } from '@/lib/giving-server'
 
 /**
  * DONS & OFFRANDES — Chariow (remplace l'ancienne intégration Stripe).

@@ -4,7 +4,8 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ChevronRight, Clock, BookOpen, Award } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { FormationEnrollButton } from '@/components/conversion/FormationEnrollButton'
 
 /** Type d'affichage dérivé du champ ADMINISTRABLE `formations.type`. Fallback propre. */
@@ -36,6 +37,8 @@ export default function FormationPublicDetailPage({ params }: { params: { slug: 
 
   useEffect(() => {
     if (IS_DEMO_MODE) { setLoading(false); setNotFound(true); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setLoading(false); setNotFound(true); return }
     let cancelled = false
     ;(async () => {
       try {

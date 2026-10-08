@@ -4,7 +4,7 @@
  * Centralise titres/href/type → aucun string éparpillé dans les routes.
  * Tous NON bloquants (l'action métier ne doit jamais échouer à cause d'une notif).
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { dispatch } from './channels'
 import { alertLevel, dedupKeys, monthBucket } from './rules'
 

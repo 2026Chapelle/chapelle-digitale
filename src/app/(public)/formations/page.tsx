@@ -7,7 +7,8 @@ import {
   BookOpen, Clock, Award, ChevronRight, Search, Star, Zap,
   GraduationCap, Sparkles, Play,
 } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 /**
  * Type d'affichage dérivé du champ ADMINISTRABLE `formations.type` (ENUM existant :
@@ -65,6 +66,8 @@ export default function FormationsPublicPage() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) { setLoading(false); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setLoading(false); return }
     let cancelled = false
     ;(async () => {
       try {

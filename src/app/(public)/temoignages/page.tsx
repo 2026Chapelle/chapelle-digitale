@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Heart, Send, CheckCircle, ArrowRight, Quote } from 'lucide-react'
 import Link from 'next/link'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 type Temoignage = {
   id: string
@@ -47,6 +48,8 @@ export default function TemoignagesPage() {
   //  • temoignages (issus du workflow de prière, statut validé + public)
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     const knownCats = new Set(CATEGORIES.map((c) => c.id))
     ;(async () => {
@@ -97,6 +100,7 @@ export default function TemoignagesPage() {
     // Enregistrement réel : soumission en modération (statut 'submitted').
     try {
       if (!IS_DEMO_MODE && temoignage.trim()) {
+        const supabase = getBrowserClient()!
         await supabase.from('cms_testimonies').insert({
           author_name: nom.trim() || 'Anonyme',
           body: temoignage.trim(),

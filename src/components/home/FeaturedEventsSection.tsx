@@ -9,7 +9,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Calendar, MapPin, ArrowRight, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { selectHomeEvents } from '@/lib/cms/featured'
 
 interface HomeEvent {
@@ -40,6 +41,8 @@ export function FeaturedEventsSection() {
     let alive = true
     async function run() {
       if (IS_DEMO_MODE) { setLoaded(true); return }
+      const supabase = getBrowserClient()
+      if (!supabase) { setLoaded(true); return }
       try {
         const nowIso = new Date().toISOString()
         // Publiés & futurs (filtre préservé). On récupère un pool puis on applique la

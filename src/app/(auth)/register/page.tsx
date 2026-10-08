@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, AlertCircle, Mail, MailCheck } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import { PAYS_AFRICAINS, PAYS_DIASPORA, PLATEFORMES } from '@/lib/constants'
 import { siteUrl } from '@/lib/site-url'
@@ -118,7 +117,14 @@ export default function RegisterPage() {
     setErrs({})
     setLoading(true)
 
-    const { data, error } = await (getBrowserClient() ?? supabase).auth.signUp({
+    const client = getBrowserClient()
+    if (!client) {
+      toast.error('Inscription indisponible en mode démonstration.')
+      setLoading(false)
+      return
+    }
+
+    const { data, error } = await client.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
@@ -159,7 +165,12 @@ export default function RegisterPage() {
     setResending(true)
     try {
       const outcome = await resendGuard.current.run(() =>
-        resendConfirmationEmail(getBrowserClient() ?? supabase, form.email, nextPath),
+        (() => {
+          const client = getBrowserClient()
+          return client
+            ? resendConfirmationEmail(client, form.email, nextPath)
+            : Promise.resolve(null)
+        })(),
       )
       if (outcome) outcome.ok ? toast.success(outcome.message) : toast.error(outcome.message)
     } finally {

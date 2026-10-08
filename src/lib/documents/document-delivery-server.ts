@@ -8,7 +8,8 @@
  * → si autorisé, résoudre la source et SIGNER (objet Storage privé) → sinon ne
  * JAMAIS renvoyer d'URL. Fail-closed sur toute erreur.
  */
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   decideDocumentAccess,
   normalizeAccessLevel,

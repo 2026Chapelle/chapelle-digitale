@@ -5,7 +5,7 @@
  * (membre_statut_history + purs), alertes (pastoral_alerts), croissance (bucketGrowth).
  * JS V1, aucune nouvelle table/RPC. Optionnellement borné à un pays (scope national).
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { PLATFORMS, platformLabel, aggregatePlatformMembers } from '@/lib/platforms'
 import { bucketGrowth, conversionsOverTime, topTransitions, classifyActivity } from '@/lib/pastoral/metrics'
 import { presenceOverview } from '@/lib/community/presences-server'

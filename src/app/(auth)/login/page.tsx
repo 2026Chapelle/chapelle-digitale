@@ -4,14 +4,10 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, EyeOff, LogIn, ArrowLeft, AlertCircle, Mail } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import toast from 'react-hot-toast'
 import { events } from '@/lib/analytics'
 import { mapLoginError, resendConfirmationEmail, createPendingGuard } from '@/lib/auth/confirm-email'
-
-/** Client cookie-based (session SSR réelle). */
-const authClient = () => getBrowserClient() ?? supabase
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -84,7 +80,13 @@ export default function LoginPage() {
     setLoading(true)
     events.signInStarted('email')
 
-    const { error } = await authClient().auth.signInWithPassword({ email, password })
+    const client = getBrowserClient()
+    if (!client) {
+      setFormError('Connexion indisponible en mode démonstration.')
+      setLoading(false)
+      return
+    }
+    const { error } = await client.auth.signInWithPassword({ email, password })
 
     if (error) {
       const mapped = mapLoginError(error.message)
@@ -104,7 +106,12 @@ export default function LoginPage() {
     setResending(true)
     try {
       const outcome = await resendGuard.current.run(() =>
-        resendConfirmationEmail(authClient(), email, nextPath),
+        (() => {
+          const client = getBrowserClient()
+          return client
+            ? resendConfirmationEmail(client, email, nextPath)
+            : Promise.resolve(null)
+        })(),
       )
       if (outcome) outcome.ok ? toast.success(outcome.message) : toast.error(outcome.message)
     } finally {

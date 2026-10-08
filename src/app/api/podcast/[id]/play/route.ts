@@ -15,7 +15,8 @@
  * d'URL/token : uniquement podcast_id + reason.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { isAdminRequest } from '@/lib/admin-auth'
 import { getSessionProfile } from '@/lib/member-auth'
 import {

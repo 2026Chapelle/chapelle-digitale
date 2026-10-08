@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getPublicServerClient } from '@/lib/supabase-server'
 import type { ApiResponse } from '@/types'
 import { sendEmail } from '@/lib/email'
 import { prayerReceivedEmail } from '@/lib/email-templates'
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = (page - 1) * limit
 
-    const { data, error, count } = await supabase
+    const { data, error, count } = await getPublicServerClient()
       .from('priere_demandes')
       .select('*', { count: 'exact' })
       .eq('is_public', true)
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getPublicServerClient()
       .from('priere_demandes')
       .insert({
         nom: displayName || null,

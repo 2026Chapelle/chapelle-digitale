@@ -6,9 +6,8 @@ import {
   getGoalForOrganization,
   listGoalsForOrganization,
   patchGoalForOrganization,
-  sanitizeGoalForPerformance,
-  toGoalRecord,
-} from '@/lib/intelligence/goals'
+} from '@/lib/intelligence/goals/store-server'
+import { toGoalRecord } from '@/lib/intelligence/goals/store'
 import { SUPPORTED_GOAL_METRICS, type GoalMetricKey, type GoalStatus } from '@/lib/intelligence/goals'
 
 export const runtime = 'nodejs'

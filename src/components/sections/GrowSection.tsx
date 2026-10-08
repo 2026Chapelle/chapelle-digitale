@@ -5,7 +5,8 @@ import Link from 'next/link'
 import {
   BookOpen, Clock, ArrowRight, Lock, Play, Pause, GraduationCap, Mic, Headphones, ChevronRight,
 } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { useAudioPlayer, type AudioTrack } from '@/components/providers/AudioPlayerProvider'
 import { resolvePlayback, isResolved } from '@/lib/podcast/playback-client'
 import { events } from '@/lib/analytics'
@@ -44,6 +45,8 @@ export function GrowSection() {
 
   useEffect(() => {
     if (IS_DEMO_MODE) { setFLoaded(true); setPLoaded(true); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setFLoaded(true); setPLoaded(true); return }
     let cancelled = false
     ;(async () => {
       try {

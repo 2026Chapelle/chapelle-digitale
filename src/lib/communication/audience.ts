@@ -2,7 +2,7 @@
  * CIBLAGE DES COMMUNICATIONS — réutilisé par campagnes ET annonces.
  * Partie PURE (matchesAudience, renderTemplate) testable + résolution serveur.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export interface AudienceTarget {
   roles?: string[]

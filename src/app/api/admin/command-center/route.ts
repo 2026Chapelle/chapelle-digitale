@@ -10,7 +10,8 @@
 // Réponses { ok, data | message }. Convention Citadelle stricte.
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { isAdminRequest } from '@/lib/admin-auth'
 import {
   buildKpiTiles, clampContext, parseContext,

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { getVerifiedRouteProfile } from '@/lib/member-auth'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import {
   type LiveCultNote,
   type LiveCultNoteKind,

@@ -7,7 +7,7 @@
  * biométriques, cookies, tokens, clés privées, `clientDataJSON`/`authenticatorData` bruts.
  * `credential_id` est un identifiant PUBLIC (non secret) → autorisé.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export type SecurityEvent =
   | 'passkey_enroll_start'

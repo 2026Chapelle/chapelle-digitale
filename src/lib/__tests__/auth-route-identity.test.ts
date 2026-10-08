@@ -11,16 +11,22 @@ import {
 
 vi.mock('@/lib/supabase', () => ({
   IS_DEMO_MODE: false,
+}))
+vi.mock('@/lib/supabase-admin', () => ({
   supabaseAdmin: { from: vi.fn() },
 }))
 vi.mock('@/lib/supabase-server', () => ({
   createRouteClient: vi.fn(),
   createServerClient: vi.fn(),
   getServerProfile: vi.fn(),
+  getVerifiedUser: async (client: { auth: { getUser: () => Promise<any> } }) => {
+    const { data, error } = await client.auth.getUser()
+    return error || !data?.user?.id ? null : data.user
+  },
 }))
 
 import { createRouteClient } from '@/lib/supabase-server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getVerifiedRouteProfile } from '@/lib/member-auth'
 import { resolveAdminActorProfile, UnitAccessError } from '@/lib/erp/unit-access'
 

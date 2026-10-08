@@ -12,7 +12,8 @@
 // poussée) n'interrompt pas la console. Réponses { ok, data | message }.
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { supabaseAdmin, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { isAdminRequest } from '@/lib/admin-auth'
 import {
   worldHealthIndex, rollupAlerts, globalPulse, toSeverite,

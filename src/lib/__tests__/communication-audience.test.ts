@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+vi.mock('server-only', () => ({}))
+vi.mock('@/lib/supabase-admin', () => ({ supabaseAdmin: { from: vi.fn() } }))
 import { matchesAudience, renderTemplate } from '@/lib/communication/audience'
 
 const P = { role: 'membre', membre_statut: 'disciple', pays: 'France', plateforme_principale: 'cier' }

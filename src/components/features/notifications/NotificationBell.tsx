@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { AnimatePresence, motion } from 'framer-motion'
-import { supabase } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { isLiveType, getLiveSoundEnabled, playLiveChime } from '@/lib/live-sound'
 import {
   Bell, BookOpen, Calendar, Radio, Play, GraduationCap, Sparkles, Heart,
@@ -84,10 +84,11 @@ export function NotificationBell({ endpoint, storageKey, realtimeTable, markEndp
     }
     fetchRef.current = fetchNotifs
     fetchNotifs()
+    const supabase = getBrowserClient()
     // Temps réel : abonnement Supabase Realtime si une table est fournie (push instantané) ;
     // sinon repli polling. Le poll reste comme filet (contenu dérivé / déconnexion WS).
-    let channel: ReturnType<typeof supabase.channel> | null = null
-    if (realtimeTable) {
+    let channel: ReturnType<NonNullable<typeof supabase>['channel']> | null = null
+    if (realtimeTable && supabase) {
       try {
         channel = supabase
           .channel(`notif-${realtimeTable}`)
@@ -100,7 +101,7 @@ export function NotificationBell({ endpoint, storageKey, realtimeTable, markEndp
     document.addEventListener('visibilitychange', onVisible)
     return () => {
       cancelled = true; clearInterval(interval); document.removeEventListener('visibilitychange', onVisible)
-      if (channel) { try { supabase.removeChannel(channel) } catch { /* */ } }
+      if (channel && supabase) { try { supabase.removeChannel(channel) } catch { /* */ } }
     }
   }, [endpoint, storageKey, realtimeTable])
 

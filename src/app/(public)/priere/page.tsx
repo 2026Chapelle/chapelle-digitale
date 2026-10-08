@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { Heart, Send, Shield, Filter, Search, Clock, Globe, Users, ArrowRight, Flame, AlertCircle, CheckCircle2, Sparkles, BookOpen, Lock } from 'lucide-react'
 import { CATEGORIES_PRIERE, type CategoriePriere } from '@/lib/mock/prieres'
 import { events } from '@/lib/analytics'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 import { useAuth } from '@/components/providers/AuthProvider'
 
 // Repères qualitatifs (aucun chiffre fictif).
@@ -65,6 +66,7 @@ export default function PrierePage() {
     events.prayerSubmitted({ categorie, urgente, anonyme: !nom })
     try {
       if (!IS_DEMO_MODE) {
+        const supabase = getBrowserClient()!
         const { error } = await supabase.from('priere_demandes').insert({
           nom: nom.trim() || null, sujet: sujet.trim(), description: description.trim(),
           categorie, urgence: urgente ? 'elevee' : 'normale', anonyme: !nom.trim(),
@@ -84,6 +86,8 @@ export default function PrierePage() {
   const [temoignages, setTemoignages] = useState<any[]>([])
   useEffect(() => {
     if (IS_DEMO_MODE) return
+    const supabase = getBrowserClient()
+    if (!supabase) return
     let cancelled = false
     ;(async () => {
       try {
@@ -103,6 +107,8 @@ export default function PrierePage() {
   const [wallLoaded, setWallLoaded] = useState(false)
   useEffect(() => {
     if (IS_DEMO_MODE) { setWallLoaded(true); return }
+    const supabase = getBrowserClient()
+    if (!supabase) { setWallLoaded(true); return }
     let cancelled = false
     ;(async () => {
       try {

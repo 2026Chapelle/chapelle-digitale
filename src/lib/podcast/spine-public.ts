@@ -10,7 +10,8 @@
  * sélectionnés. La lecture réelle passe par /api/podcast/[id]/play.
  */
 import 'server-only'
-import { supabaseCmsRead, IS_DEMO_MODE } from '@/lib/supabase'
+import { supabaseCmsRead } from '@/lib/supabase-admin'
+import { IS_DEMO_MODE } from '@/lib/supabase'
 import { cmsList } from '@/lib/cms'
 import { toSpineEpisode, type SpineEpisode, type PublicShow, type PublicSeries, type PublicSeason } from './spine-helpers'
 
