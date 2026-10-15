@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertCircle, CheckCircle2, Loader2, Save } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { getMissingRetreatDayFields, RETREAT_DAY_CONTENT_FIELDS, type RetreatDayContent } from '@/lib/mahanaim/admin-retreat-days-shared'
+import { mahanaimRetreatDayImageSlug } from '@/lib/mahanaim/retreat-day-images'
+import RetreatDayMediaEditor from './RetreatDayMediaEditor'
 
 type EditableField = (typeof RETREAT_DAY_CONTENT_FIELDS)[number]
 type DayDraft = Pick<RetreatDayContent, EditableField>
@@ -30,6 +32,7 @@ export default function RetreatDaysEditor() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const selected = days.find((day) => day.id === selectedId) ?? null
+  const imageSlug = selected ? mahanaimRetreatDayImageSlug('chambre-haute-2026', selected.day_number) : null
   const missingFields = useMemo(() => selected ? getMissingRetreatDayFields(draft ?? selected) : [], [draft, selected])
   const changedFields = useMemo(() => {
     if (!selected || !draft) return []
@@ -95,6 +98,8 @@ export default function RetreatDaysEditor() {
         {selected && draft && <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-6" aria-label={`Contenu du jour ${selected.day_number}`}>
           <div className="mb-6 flex flex-wrap items-start justify-between gap-3 border-b border-white/10 pb-4"><div><h2 className="font-cinzel text-xl font-bold text-pearl">Jour {selected.day_number}</h2><p className="mt-1 text-sm text-pearl/55">{selected.day_date} · Statut existant : <span className="text-pearl/80">{selected.status}</span></p></div><span className="rounded-full border border-amber-300/20 px-3 py-1 text-xs text-amber-100/80">{missingFields.length} champ{missingFields.length === 1 ? '' : 's'} manquant{missingFields.length === 1 ? '' : 's'}</span></div>
           {missingFields.length > 0 && <p className="mb-5 text-sm text-amber-100/80">À renseigner : {missingFields.join(' · ')}</p>}
+          {imageSlug ? <aside className="mb-5 rounded-xl border border-sky-300/20 bg-sky-300/5 p-4 text-sm text-pearl/80"><strong className="text-pearl">Illustration de la carte</strong><p className="mt-1">Dans Médias, publiez une image avec le slug <code className="text-sky-200">{imageSlug}</code>. Sans image publiée, la journée conservera automatiquement son visuel de repli ; aucune migration n’est nécessaire.</p></aside> : null}
+          <RetreatDayMediaEditor dayId={selected.id} />
           <div className="grid gap-4 md:grid-cols-2">{TEXT_FIELDS.map(({ key, label, rows }) => <label key={key} className={`block ${key === 'meditation' ? 'md:col-span-2' : ''}`}><span className="mb-1.5 block text-sm font-medium text-pearl/85">{label}</span><textarea rows={rows} value={draft[key] ?? ''} disabled={saving} onChange={(event) => updateText(key, event.target.value)} className="w-full rounded-xl border border-white/15 bg-black/20 p-3 text-sm leading-relaxed text-pearl outline-none focus:border-gold/60" /></label>)}
             <label className="block"><span className="mb-1.5 block text-sm font-medium text-pearl/85">Prières <span className="text-pearl/40">(une par ligne)</span></span><textarea rows={6} value={listText(draft.prayers)} disabled={saving} onChange={(event) => updateText('prayers', event.target.value.split('\n'))} className="w-full rounded-xl border border-white/15 bg-black/20 p-3 text-sm leading-relaxed text-pearl outline-none focus:border-gold/60" /></label>
             <label className="block"><span className="mb-1.5 block text-sm font-medium text-pearl/85">Déclarations prophétiques <span className="text-pearl/40">(une par ligne)</span></span><textarea rows={6} value={listText(draft.declarations)} disabled={saving} onChange={(event) => updateText('declarations', event.target.value.split('\n'))} className="w-full rounded-xl border border-white/15 bg-black/20 p-3 text-sm leading-relaxed text-pearl outline-none focus:border-gold/60" /></label>

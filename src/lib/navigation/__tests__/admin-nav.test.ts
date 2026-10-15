@@ -15,6 +15,7 @@ const LEGACY_HREFS = [
   '/admin/homepage-blocks', '/admin/chapelle-home', '/admin/contenus-en-vedette', '/admin/pages', '/admin/articles', '/admin/medias', '/admin/lives', '/admin/podcasts', '/admin/podcast-shows', '/admin/podcast-series', '/admin/podcast-seasons', '/admin/playlists', '/admin/podcast-analytics', '/admin/podcast-premium',
   '/admin/enseignements', '/admin/teaching-series', '/admin/teaching-seasons', '/admin/teaching-comments', '/admin/formations', '/admin/modules', '/admin/parcours', '/admin/questions-formations',
   '/admin/evenements', '/admin/inscriptions', '/admin/temoignages', '/admin/dons', '/admin/transactions',
+  '/admin/mahanaim/retraites/chambre-haute-2026',
   '/admin/marketplace', '/admin/notifications', '/admin/prieres', '/admin/prieres-guides', '/admin/temoignages-prieres',
   '/admin/delivrance', '/admin/groupes', '/admin/reunions', '/admin/messages', '/admin/newsletter', '/admin/formulaires',
   '/admin/statistiques', '/admin/analytics', '/admin/parametres', '/admin/aide',

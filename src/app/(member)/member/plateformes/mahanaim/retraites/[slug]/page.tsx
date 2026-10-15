@@ -4,6 +4,7 @@ import {
 } from 'next/navigation'
 
 import EnrollRetreatButton from '@/components/mahanaim/EnrollRetreatButton'
+import MahanaimRetreatJourney from '@/components/mahanaim/MahanaimRetreatJourney'
 
 import {
   CHAMBRE_HAUTE_SLUG,
@@ -147,59 +148,7 @@ export default async function MahanaimRetreatPage({
           <h2 className="text-2xl font-bold">
             Parcours des 10 jours
           </h2>
-
-          <div className="mt-5 grid gap-4">
-            {retreat.days.map(
-              day => (
-                <article
-                  key={day.id}
-                  className={[
-                    'rounded-2xl border p-5',
-                    day.isUnlocked
-                      ? 'border-emerald-400/30 bg-emerald-950/20'
-                      : 'border-white/10 bg-white/5 opacity-75',
-                  ].join(' ')}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-violet-300">
-                      Jour {String(day.dayNumber).padStart(2, '0')}
-                      {' · '}
-                      {day.dayDate}
-                    </p>
-
-                    <span
-                      className={[
-                        'rounded-full px-3 py-1 text-xs font-semibold',
-                        day.isUnlocked
-                          ? 'bg-emerald-400/15 text-emerald-200'
-                          : 'bg-slate-700/70 text-slate-200',
-                      ].join(' ')}
-                    >
-                      {day.isUnlocked
-                        ? 'Disponible'
-                        : '🔒 Verrouillé'}
-                    </span>
-                  </div>
-
-                  <h3 className="mt-3 text-lg font-semibold">
-                    {day.title}
-                  </h3>
-
-                  {day.scriptureReference ? (
-                    <p className="mt-2 text-sm text-slate-400">
-                      {day.scriptureReference}
-                    </p>
-                  ) : null}
-
-                  {!day.isUnlocked ? (
-                    <p className="mt-3 text-sm text-slate-400">
-                      Disponible le {day.dayDate} à {retreat.dailyStartTime.slice(0, 5)}
-                    </p>
-                  ) : null}
-                </article>
-              ),
-            )}
-          </div>
+          <div className="mt-5"><MahanaimRetreatJourney days={retreat.days} /></div>
         </section>
       ) : null}
     </main>

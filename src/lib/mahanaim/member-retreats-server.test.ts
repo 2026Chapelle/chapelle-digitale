@@ -8,11 +8,13 @@ const rpc = vi.fn()
 let memberResult: { data: unknown; error: unknown }
 let retreatResult: { data: unknown; error: unknown }
 let enrollmentResult: { data: unknown; error: unknown }
+let dayContentResult: { data: unknown; error: unknown }
 
 function query(result: { data: unknown; error: unknown }) {
   const builder = {
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    order: vi.fn(async () => result),
     maybeSingle: vi.fn(async () => result),
   }
   return builder
@@ -30,6 +32,7 @@ const sessionSchema = {
 const adminSchema = {
   from: vi.fn((table: string) => {
     if (table === 'members') return query(memberResult)
+    if (table === 'mahanaim_retreat_days') return query(dayContentResult)
     throw new Error(`unexpected admin table: ${table}`)
   }),
 }
@@ -69,10 +72,12 @@ const retreat = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  rpc.mockReset()
   getUser.mockResolvedValue({ data: { user: { id: 'auth-user-1' } }, error: null })
   memberResult = { data: { id: 'member-1' }, error: null }
   retreatResult = { data: retreat, error: null }
   enrollmentResult = { data: null, error: null }
+  dayContentResult = { data: [], error: null }
   rpc.mockResolvedValue({ data: [], error: null })
 })
 
@@ -98,7 +103,7 @@ describe('getMemberRetreatBySlug result contract', () => {
   it.each([
     ['the retreat read', () => { retreatResult = { data: null, error: { message: 'read failed' } } }],
     ['the enrollment read', () => { enrollmentResult = { data: null, error: { message: 'RLS denied' } } }],
-    ['the day catalog RPC', () => { enrollmentResult = { data: { id: 'enrollment-1' }, error: null }; rpc.mockResolvedValueOnce({ data: null, error: { message: 'rpc failed' } }) }],
+    ['the day catalog RPC', () => { enrollmentResult = { data: { id: 'enrollment-1', status: 'active' }, error: null }; rpc.mockResolvedValueOnce({ data: null, error: { message: 'rpc failed' } }) }],
   ])('returns unavailable when %s fails instead of hiding the failure as a 404', async (_name, arrange) => {
     arrange()
 
@@ -110,5 +115,15 @@ describe('getMemberRetreatBySlug result contract', () => {
       status: 'ok',
       retreat: { slug: 'chambre-haute-2026', enrolled: false, days: [] },
     })
+  })
+
+  it('returns spiritual content only for an enrolled and unlocked catalog day', async () => {
+    enrollmentResult = { data: { id: 'enrollment-1', status: 'active' }, error: null }
+    rpc.mockResolvedValueOnce({ data: [{ id: 'day-1', day_number: 1, day_date: '2026-08-01', title: 'Jour 1', scripture_reference: 'Actes 1:8', status: 'published' }], error: null })
+    dayContentResult = { data: [{ id: 'day-1', retreat_id: 'retreat-1', day_number: 1, day_date: '2026-08-01', title: 'Jour 1', scripture_reference: 'Actes 1:8', scripture_text: 'Vous recevrez une puissance.', objective: 'Prier', meditation: 'Méditer', prayers: ['Prière'], declarations: ['Déclaration'], action: 'Agir', status: 'published' }], error: null }
+
+    const result = await getMemberRetreatBySlug('chambre-haute-2026')
+
+    expect(result).toMatchObject({ status: 'ok', retreat: { days: [{ id: 'day-1', isUnlocked: true, content: { meditation: 'Méditer', prayers: ['Prière'], declarations: ['Déclaration'] } }] } })
   })
 })

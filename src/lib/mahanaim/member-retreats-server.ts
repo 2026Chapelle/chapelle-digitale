@@ -7,6 +7,8 @@ import {
 import {
   createServerClient,
 } from '@/lib/supabase-server'
+import { isMahanaimDayUnlocked } from './unlock'
+import { mahanaimRetreatDayImageSlug, resolveMahanaimDayImageUrl } from './retreat-day-images'
 
 const CHAMBRE_HAUTE_SLUG =
   'chambre-haute-2026'
@@ -48,6 +50,12 @@ type DayRow = {
   day_date: string
   title: string
   scripture_reference: string | null
+  scripture_text?: string | null
+  objective?: string | null
+  meditation?: string | null
+  prayers?: string[] | null
+  declarations?: string[] | null
+  action?: string | null
   status: string
   is_unlocked: boolean
 }
@@ -90,6 +98,15 @@ export type MemberRetreatDay = {
   scriptureReference: string | null
   status: string
   isUnlocked: boolean
+  imageUrl: string | null
+  content: null | {
+    scriptureText: string | null
+    objective: string | null
+    meditation: string | null
+    prayers: string[]
+    declarations: string[]
+    action: string | null
+  }
 }
 
 export type MemberRetreatDetail =
@@ -179,6 +196,34 @@ function mapRetreat(
     featured:
       row.is_featured === true,
     enrolled,
+  }
+}
+
+async function retreatDayImages(retreatSlug: string, dayNumbers: number[]) {
+  const slugToDay = new Map<string, number>()
+  for (const dayNumber of dayNumbers) {
+    const slug = mahanaimRetreatDayImageSlug(retreatSlug, dayNumber)
+    if (slug) slugToDay.set(slug, dayNumber)
+  }
+
+  if (slugToDay.size === 0) return new Map<number, string>()
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('cms_media')
+      .select('slug,url')
+      .in('slug', Array.from(slugToDay.keys()))
+      .eq('type', 'image')
+      .eq('status', 'published')
+
+    if (error || !Array.isArray(data)) return new Map<number, string>()
+
+    return new Map(data.flatMap((row: { slug?: unknown, url?: unknown }) => {
+      const dayNumber = typeof row.slug === 'string' ? slugToDay.get(row.slug) : undefined
+      return dayNumber && typeof row.url === 'string' && row.url.trim() ? [[dayNumber, row.url]] : []
+    }))
+  } catch {
+    return new Map<number, string>()
   }
 }
 
@@ -626,7 +671,9 @@ export async function getMemberRetreatBySlug(
 
     let catalogDays: unknown[] = []
 
-    if (enrollment) {
+    const isEnrolled = Boolean(enrollment && ['registered', 'active', 'completed'].includes(enrollment.status))
+
+    if (isEnrolled) {
       const {
         data,
         error: catalogError,
@@ -654,12 +701,33 @@ export async function getMemberRetreatBySlug(
           : []
     }
 
+    let contentByNumber = new Map<number, DayRow>()
+
+    if (isEnrolled) {
+      const { data, error } = await supabaseAdmin
+        .schema('chapelle')
+        .from('mahanaim_retreat_days')
+        .select('id,retreat_id,day_number,day_date,title,scripture_reference,scripture_text,objective,meditation,prayers,declarations,action,status')
+        .eq('retreat_id', retreat.id)
+        .order('day_number', { ascending: true })
+
+      if (error) {
+        console.error('[mahanaim/retreat] unavailable reason=day_content_read_failed')
+        return { status: 'unavailable' }
+      }
+
+      contentByNumber = new Map((Array.isArray(data) ? data as unknown as DayRow[] : []).map((row) => [row.day_number, row]))
+    }
+
+    const now = new Date()
+    const imagesByDay = await retreatDayImages(retreat.slug, (Array.isArray(catalogDays) ? catalogDays : []).map((raw) => (raw as DayRow).day_number))
+
     return {
       status: 'ok',
       retreat: {
         ...mapRetreat(
           retreat,
-          Boolean(enrollment),
+          isEnrolled,
         ),
 
         days:
@@ -671,6 +739,9 @@ export async function getMemberRetreatBySlug(
             raw => {
               const row =
                 raw as unknown as DayRow
+
+              const contentRow = contentByNumber.get(row.day_number)
+              const isUnlocked = isMahanaimDayUnlocked(row.day_date, row.day_number, now, retreat.timezone)
 
               return {
                 id:
@@ -692,8 +763,16 @@ export async function getMemberRetreatBySlug(
                 status:
                   row.status,
 
-                isUnlocked:
-                  row.is_unlocked === true,
+                isUnlocked,
+                imageUrl: resolveMahanaimDayImageUrl(row.day_number, imagesByDay.get(row.day_number) ?? null),
+                content: isUnlocked && contentRow ? {
+                  scriptureText: contentRow.scripture_text ?? null,
+                  objective: contentRow.objective ?? null,
+                  meditation: contentRow.meditation ?? null,
+                  prayers: Array.isArray(contentRow.prayers) ? contentRow.prayers : [],
+                  declarations: Array.isArray(contentRow.declarations) ? contentRow.declarations : [],
+                  action: contentRow.action ?? null,
+                } : null,
               }
             },
           ),

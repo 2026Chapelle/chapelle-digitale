@@ -25,6 +25,9 @@ const paths = {
   retreat:
     'src/app/(member)/member/plateformes/mahanaim/retraites/[slug]/page.tsx',
 
+  journey:
+    'src/components/mahanaim/MahanaimRetreatJourney.tsx',
+
   enrollApi:
     'src/app/api/member/mahanaim/retreats/[slug]/enroll/route.ts',
 
@@ -168,8 +171,8 @@ describe(
         const server =
           source(paths.server)
 
-        const retreat =
-          source(paths.retreat)
+        const journey =
+          source(paths.journey)
 
         expect(migration).toContain(
           'member_mahanaim_retreat_day_catalog',
@@ -183,11 +186,11 @@ describe(
           'isUnlocked:',
         )
 
-        expect(retreat).toContain(
+        expect(journey).toContain(
           'Verrouillé',
         )
 
-        expect(retreat).toContain(
+        expect(journey).toContain(
           'Disponible',
         )
       },
