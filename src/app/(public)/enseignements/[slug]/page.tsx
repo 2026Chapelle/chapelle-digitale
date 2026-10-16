@@ -88,13 +88,14 @@ function youtubeEmbedUrl(
   }
 }
 
-export default async function TeachingReadingPage({
-  params,
-}: {
-  params: {
-    slug: string
+export default async function TeachingReadingPage(
+  props: {
+    params: Promise<{
+      slug: string
+    }>
   }
-}) {
+) {
+  const params = await props.params;
   const session =
     await getSessionProfile()
 

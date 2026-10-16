@@ -19,13 +19,15 @@ async function getArticle(slug: string): Promise<CmsArticle | null> {
   return rows?.[0] ?? null
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const a = await getArticle(params.slug)
   if (!a) return { title: 'Article introuvable' }
   return { title: `${a.title} — Citadelle du Royaume`, description: a.excerpt || undefined }
 }
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
+export default async function ArticlePage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const a = await getArticle(params.slug)
   if (!a) notFound()
 

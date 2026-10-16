@@ -17,19 +17,19 @@ import { isUuid } from '@/lib/erp/unit-governance-rules'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const guarded = await requireGuardedAdminUnit(req)
   if (guarded instanceof NextResponse) return guarded
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   try {
-    if (!isUuid(ctx.params.id)) {
+    if (!isUuid((await ctx.params).id)) {
       return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
     }
     const body = await req.json().catch(() => ({}))
     if ('organization_id' in body || 'user_id' in body || 'organization_unit_id' in body) {
       return NextResponse.json({ ok: false, message: 'Champs non modifiables.' }, { status: 400 })
     }
-    const mem = await getMembershipById(guarded.organizationId, ctx.params.id)
+    const mem = await getMembershipById(guarded.organizationId, (await ctx.params).id)
     if (!mem) return NextResponse.json({ ok: false, message: 'Affectation introuvable.' }, { status: 404 })
     await assertUnitAccess(guarded.actor, mem.organization_unit_id as string, { write: true })
 
@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
         return NextResponse.json({ ok: false, message: 'Statut invalide.' }, { status: 400 })
       }
       const { id, error } = await rpcSetStatus({
-        membershipId: ctx.params.id,
+        membershipId: (await ctx.params).id,
         status,
         actorId: guarded.userId,
         notes: typeof body.notes === 'string' ? body.notes : null,
@@ -61,7 +61,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { id: string } }) {
         return NextResponse.json({ ok: false, message: 'Rôle non attribuable.' }, { status: 403 })
       }
       const { id, error } = await rpcChangeRole({
-        membershipId: ctx.params.id,
+        membershipId: (await ctx.params).id,
         newRole: body.unit_role,
         actorId: guarded.userId,
       })

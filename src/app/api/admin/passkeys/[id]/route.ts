@@ -19,7 +19,8 @@ import { clientIp } from '@/lib/rate-limit'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Indisponible en mode démonstration.' }, { status: 503 })
 
   const admin = await getNominativeAdmin()
@@ -37,7 +38,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Indisponible en mode démonstration.' }, { status: 503 })
 
   const admin = await getNominativeAdmin()

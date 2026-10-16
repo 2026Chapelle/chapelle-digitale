@@ -15,14 +15,16 @@ import { buildGuidePayload } from '@/lib/prayers/admin-payload'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
   const guide = await adminGetGuide(params.id)
   if (!guide) return NextResponse.json({ ok: false, message: 'Prière introuvable.' }, { status: 404 })
   return NextResponse.json({ ok: true, data: { guide } })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
@@ -44,7 +46,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const res = await adminArchiveGuide(params.id)

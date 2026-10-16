@@ -35,7 +35,8 @@ async function logAction(memberId: string | null, action: string, detail: Record
   try { await supabaseAdmin.from('pastoral_actions_log').insert({ member_id: memberId, admin_nom: 'Admin', action, detail }) } catch { /* non bloquant */ }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const id = params.id

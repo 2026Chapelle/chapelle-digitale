@@ -20,10 +20,8 @@ export const runtime = 'nodejs'
 
 import { isAdminRequest } from '@/lib/admin-auth'
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { resource: string } },
-) {
+export async function GET(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
   // Garde : cookie admin obligatoire
   if (!isAdminRequest(req)) {
     return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })

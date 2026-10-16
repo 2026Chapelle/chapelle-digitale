@@ -255,7 +255,7 @@ describe('Lot 6 — transfer route', () => {
         organization_id: 'evil-org',
         actor_user_id: 'evil-actor',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(200)
     expect(getMembershipById).toHaveBeenCalledWith(ORG, MEM1)
@@ -280,7 +280,7 @@ describe('Lot 6 — transfer route', () => {
       mockReq('POST', "http://localhost/api/admin/organization-unit-memberships/" + MEM1 + "/transfer", {
         to_unit_id: EU99,
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(403)
     expect(rpcTransfer).not.toHaveBeenCalled()
@@ -299,7 +299,7 @@ describe('Lot 6 — change role / status route', () => {
         organization_id: 'evil',
         unit_role: 'member',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(400)
     expect(rpcChangeRole).not.toHaveBeenCalled()
@@ -320,7 +320,7 @@ describe('Lot 6 — change role / status route', () => {
         unit_role: 'staff',
         actor_user_id: 'evil',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(200)
     expect(rpcChangeRole).toHaveBeenCalledWith({
@@ -342,7 +342,7 @@ describe('Lot 6 — change role / status route', () => {
       mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         unit_role: 'zone_admin',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(403)
     expect(rpcChangeRole).not.toHaveBeenCalled()
@@ -361,7 +361,7 @@ describe('Lot 6 — change role / status route', () => {
       mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         status: 'suspended',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(200)
     expect(rpcSetStatus).toHaveBeenCalledWith({
@@ -385,7 +385,7 @@ describe('Lot 6 — change role / status route', () => {
       mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         status: 'active',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(200)
     expect(rpcSetStatus).toHaveBeenCalledWith(
@@ -406,7 +406,7 @@ describe('Lot 6 — change role / status route', () => {
       mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         status: 'removed',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(200)
     expect(rpcSetStatus).toHaveBeenCalledWith(
@@ -434,7 +434,7 @@ describe('Lot 6 — change role / status route', () => {
       mockReq('PATCH', "http://localhost/api/admin/organization-unit-memberships/" + MEM1, {
         status: 'removed',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(400)
     const body = await res.json()
@@ -640,7 +640,7 @@ describe('Lot 6 — invitations list/create/revoke', () => {
         organization_id: 'evil',
         actor_user_id: 'evil',
       }),
-      { params: { id: INV1 } },
+      { params: Promise.resolve({ id: INV1 }) },
     )
     expect(res.status).toBe(200)
     expect(revokeInvitation).toHaveBeenCalledWith({
@@ -662,7 +662,7 @@ describe('Lot 6 — invitations list/create/revoke', () => {
     })
     const res = await revokeRoute.POST(
       mockReq('POST', "http://localhost/api/admin/organization-unit-invitations/" + INV_MISSING + "/revoke", {}),
-      { params: { id: INV_MISSING } },
+      { params: Promise.resolve({ id: INV_MISSING }) },
     )
     expect(res.status).toBe(404)
     expect(revokeInvitation).not.toHaveBeenCalled()
@@ -803,7 +803,7 @@ describe('Lot 6 — UUID invalide → 400 avant Supabase/RPC', () => {
       mockReq('PATCH', 'http://localhost/api/admin/organization-unit-memberships/not-a-uuid', {
         status: 'suspended',
       }),
-      { params: { id: 'not-a-uuid' } },
+      { params: Promise.resolve({ id: 'not-a-uuid' }) },
     )
     expect(res.status).toBe(400)
     expect(getMembershipById).not.toHaveBeenCalled()
@@ -815,7 +815,7 @@ describe('Lot 6 — UUID invalide → 400 avant Supabase/RPC', () => {
       mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships/' + MEM1 + '/transfer', {
         to_unit_id: 'not-a-uuid',
       }),
-      { params: { id: MEM1 } },
+      { params: Promise.resolve({ id: MEM1 }) },
     )
     expect(res.status).toBe(400)
     expect(getMembershipById).not.toHaveBeenCalled()
@@ -827,7 +827,7 @@ describe('Lot 6 — UUID invalide → 400 avant Supabase/RPC', () => {
       mockReq('POST', 'http://localhost/api/admin/organization-unit-memberships/bad-id/transfer', {
         to_unit_id: CI2,
       }),
-      { params: { id: 'bad-id' } },
+      { params: Promise.resolve({ id: 'bad-id' }) },
     )
     expect(res.status).toBe(400)
     expect(getMembershipById).not.toHaveBeenCalled()
@@ -837,7 +837,7 @@ describe('Lot 6 — UUID invalide → 400 avant Supabase/RPC', () => {
   it('revoke invitation id invalide → 400, pas de from() Supabase', async () => {
     const res = await revokeRoute.POST(
       mockReq('POST', 'http://localhost/api/admin/organization-unit-invitations/not-uuid/revoke', {}),
-      { params: { id: 'not-uuid' } },
+      { params: Promise.resolve({ id: 'not-uuid' }) },
     )
     expect(res.status).toBe(400)
     expect(supabaseFrom).not.toHaveBeenCalled()

@@ -21,14 +21,13 @@ const CTA_LABEL =
   'JE PARTICIPE AUX 10 JOURS'
 
 type Props = {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
-export default async function MahanaimRetreatPage({
-  params,
-}: Props) {
+export default async function MahanaimRetreatPage(props: Props) {
+  const params = await props.params;
   if (
     params.slug !==
       FIRST_RETREAT_SLUG &&

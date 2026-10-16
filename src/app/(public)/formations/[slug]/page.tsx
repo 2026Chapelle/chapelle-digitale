@@ -1,4 +1,5 @@
 'use client'
+import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -29,7 +30,8 @@ interface PubFormation {
 }
 interface PubModule { id: string; ordre: number; titre: string; duree_minutes?: number }
 
-export default function FormationPublicDetailPage({ params }: { params: { slug: string } }) {
+export default function FormationPublicDetailPage() {
+  const params = useParams<{ slug: string }>()
   const [formation, setFormation] = useState<PubFormation | null>(null)
   const [modules, setModules] = useState<PubModule[]>([])
   const [loading, setLoading] = useState(true)

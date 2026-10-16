@@ -1,4 +1,5 @@
 'use client'
+import { useParams } from 'next/navigation'
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Eye, ShieldX } from 'lucide-react'
@@ -18,7 +19,8 @@ function sample(code: string): Credential | null {
   return null
 }
 
-export default function CertificatPage({ params }: { params: { code: string } }) {
+export default function CertificatPage() {
+  const params = useParams<{ code: string }>()
   const isPreview = params.code.startsWith('apercu')
   const cred = useMemo(() => (isPreview ? sample(params.code) : getCredential(params.code)), [params.code, isPreview])
 

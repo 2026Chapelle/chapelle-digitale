@@ -36,7 +36,8 @@ function deny(reason: PlaybackReason) {
   return NextResponse.json({ allowed: false, reason }, { status: reasonToStatus(reason) })
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const podcastId = (params?.id || '').trim()
   if (!podcastId) return deny('not_found')
   if (IS_DEMO_MODE) return deny('not_found')

@@ -11,7 +11,8 @@ import { IS_DEMO_MODE } from '@/lib/supabase'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(_req: NextRequest, { params }: { params: { reference: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ reference: string }> }) {
+  const params = await props.params;
   const reference = decodeURIComponent(params.reference || '').trim()
   if (!reference) return NextResponse.json({ ok: false, message: 'Référence requise.' }, { status: 400 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, valide: false, demo: true })

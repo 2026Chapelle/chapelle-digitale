@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Loader2, Mail, Phone, MapPin, CalendarDays, Clock, ShieldCheck, UserCog,
   GraduationCap, Award, HandHeart, BookOpen, Bell, MessageSquare, Users as UsersIcon,
@@ -24,7 +24,8 @@ function fmt(iso?: string | null, withTime = false) {
   try { return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}) }) } catch { return '—' }
 }
 
-export default function MemberFichePage({ params }: { params: { id: string } }) {
+export default function MemberFichePage() {
+  const params = useParams<{ id: string }>()
   const router = useRouter()
   const [d, setD] = useState<any>(null)
   const [loading, setLoading] = useState(true)

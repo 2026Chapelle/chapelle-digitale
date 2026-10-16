@@ -17,7 +17,8 @@ const TOKEN_RE = /^[a-f0-9-]{20,80}$/i
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   // Anti-brute-force : 10 tentatives / min / IP (le jeton est le seul facteur d'accès).
   if (!rateLimit(`acces:${clientIp(req)}`, { limit: 10, windowMs: 60 * 1000 }).ok) {
     return NextResponse.json({ ok: false, message: 'Trop de tentatives.' }, { status: 429 })

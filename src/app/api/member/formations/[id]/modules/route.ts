@@ -44,7 +44,8 @@ const RANK: Record<string, number> = {
 }
 const levelOf = (s?: string) => RANK[s || ''] ?? 1
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, demo: true }, { status: 401 })
   const sp = await getSessionProfile()
   if (!sp) return NextResponse.json({ ok: false, message: 'Non authentifié.' }, { status: 401 })

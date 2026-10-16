@@ -1,4 +1,5 @@
 'use client'
+import { useParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -20,7 +21,8 @@ function ytId(url?: string): string | null {
   return m ? m[1] : null
 }
 
-export default function AcademieModulePage({ params }: { params: { module: string } }) {
+export default function AcademieModulePage() {
+  const params = useParams<{ module: string }>()
   const mod = useMemo(() => getModuleBySlug(params.module), [params.module])
   const { loading: authLoading } = useAuth()
   const [integrationComplete, setIntegrationComplete] = useState<boolean | null>(null)

@@ -15,7 +15,8 @@ export const dynamic = 'force-dynamic'
 
 const plural = (n: number, s: string) => `${n} ${s}${n > 1 ? 's' : ''}`
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const show = await getShowBySlug(params.slug)
   if (!show) return { title: 'Émission introuvable | La Voix du Royaume' }
   const title = `${show.title} | La Voix du Royaume`
@@ -31,7 +32,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function EmissionPage({ params }: { params: { slug: string } }) {
+export default async function EmissionPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const show = await getShowBySlug(params.slug)
   if (!show) notFound()
 

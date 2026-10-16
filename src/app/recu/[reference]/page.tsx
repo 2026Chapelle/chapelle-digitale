@@ -1,11 +1,13 @@
 'use client'
+import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Loader2, Printer, ArrowLeft, ShieldCheck, ShieldX } from 'lucide-react'
 import Link from 'next/link'
 
 interface Recu { nom: string; montant: number; devise: string; reference: string; date: string; methode: string }
 
-export default function RecuPage({ params }: { params: { reference: string } }) {
+export default function RecuPage() {
+  const params = useParams<{ reference: string }>()
   const reference = decodeURIComponent(params.reference || '')
   const [recu, setRecu] = useState<Recu | null>(null)
   const [valide, setValide] = useState<boolean | null>(null)

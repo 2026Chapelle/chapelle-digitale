@@ -49,8 +49,9 @@ function normalize(table: string, body: Record<string, any>): Record<string, any
   return out
 }
 
-export async function GET(req: NextRequest, { params }: { params: { resource: string } }) {
-  const denied = guard(req); if (denied) return denied
+export async function GET(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const denied = guard(req);if (denied) return denied
   const table = resolveTable(params.resource)
   if (!table) return NextResponse.json({ ok: false, message: 'Ressource inconnue.' }, { status: 404 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true })
@@ -64,8 +65,9 @@ export async function GET(req: NextRequest, { params }: { params: { resource: st
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { resource: string } }) {
-  const denied = guard(req); if (denied) return denied
+export async function POST(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const denied = guard(req);if (denied) return denied
   const table = resolveTable(params.resource)
   if (!table) return NextResponse.json({ ok: false, message: 'Ressource inconnue.' }, { status: 404 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis (poussez la migration academy).' }, { status: 400 })
@@ -80,8 +82,9 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { resource: string } }) {
-  const denied = guard(req); if (denied) return denied
+export async function PATCH(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const denied = guard(req);if (denied) return denied
   const table = resolveTable(params.resource)
   if (!table) return NextResponse.json({ ok: false, message: 'Ressource inconnue.' }, { status: 404 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
@@ -98,8 +101,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { resource: string } }) {
-  const denied = guard(req); if (denied) return denied
+export async function DELETE(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const denied = guard(req);if (denied) return denied
   const table = resolveTable(params.resource)
   if (!table) return NextResponse.json({ ok: false, message: 'Ressource inconnue.' }, { status: 404 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })

@@ -8,14 +8,15 @@ import { listPublishedTeachingLibrary } from '@/lib/teachings/teaching-library-s
 
 export const dynamic = 'force-dynamic'
 
-export default async function TeachingSeasonPage({
-  params,
-}: {
-  params: {
-    seriesSlug: string
-    seasonKey: string
+export default async function TeachingSeasonPage(
+  props: {
+    params: Promise<{
+      seriesSlug: string
+      seasonKey: string
+    }>
   }
-}) {
+) {
+  const params = await props.params;
   const match = params.seasonKey.match(/^saison-(\d+)$/)
   if (!match) notFound()
 

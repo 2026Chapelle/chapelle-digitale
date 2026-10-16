@@ -1,4 +1,5 @@
 'use client'
+import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Clock, Award, CheckCircle, Lock, BookOpen, Loader2, FileText, PlayCircle, Check, Trophy, Download, Send, HelpCircle, ChevronDown } from 'lucide-react'
@@ -46,7 +47,8 @@ function deriveDisplayType(type?: string | null): DisplayType {
   }
 }
 
-export default function FormationDetailPage({ params }: { params: { slug: string } }) {
+export default function FormationDetailPage() {
+  const params = useParams<{ slug: string }>()
   const { isDemo, user, profile } = useAuth()
   const [formation, setFormation] = useState<any>(null)
   const [modules, setModules] = useState<Module[]>([])

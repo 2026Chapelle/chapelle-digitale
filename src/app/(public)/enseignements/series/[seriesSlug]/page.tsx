@@ -14,11 +14,12 @@ import { listPublishedTeachingLibrary } from '@/lib/teachings/teaching-library-s
 
 export const dynamic = 'force-dynamic'
 
-export default async function TeachingSeriesPage({
-  params,
-}: {
-  params: { seriesSlug: string }
-}) {
+export default async function TeachingSeriesPage(
+  props: {
+    params: Promise<{ seriesSlug: string }>
+  }
+) {
+  const params = await props.params;
   const library = await listPublishedTeachingLibrary()
   const series = library.series.find((item) => item.slug === params.seriesSlug)
 

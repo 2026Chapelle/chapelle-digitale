@@ -16,11 +16,11 @@ function parseBody(body: unknown): Record<string, unknown> | null {
   return body as Record<string, unknown>
 }
 
-export async function GET(req: NextRequest, ctx: { params: { recommendationId: string } }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ recommendationId: string }> }) {
   const access = await resolveEditorialWorkspaceAccess(req, 'read')
   if (access instanceof NextResponse) return access
 
-  const recommendation = await getEditorialRecommendation(access.organizationId, ctx.params.recommendationId)
+  const recommendation = await getEditorialRecommendation(access.organizationId, (await ctx.params).recommendationId)
   if (!recommendation) {
     return NextResponse.json({ ok: false, message: 'Recommandation introuvable.' }, { status: 404 })
   }
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, ctx: { params: { recommendationId: s
   })
 }
 
-export async function PATCH(req: NextRequest, ctx: { params: { recommendationId: string } }) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ recommendationId: string }> }) {
   const access = await resolveEditorialWorkspaceAccess(req, 'write')
   if (access instanceof NextResponse) return access
 
@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, ctx: { params: { recommendationId:
     return NextResponse.json({ ok: false, message: 'Payload invalide.' }, { status: 400 })
   }
 
-  const current = await getEditorialRecommendation(access.organizationId, ctx.params.recommendationId)
+  const current = await getEditorialRecommendation(access.organizationId, (await ctx.params).recommendationId)
   if (!current) {
     return NextResponse.json({ ok: false, message: 'Recommandation introuvable.' }, { status: 404 })
   }

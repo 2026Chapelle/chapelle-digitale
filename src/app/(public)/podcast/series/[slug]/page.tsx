@@ -15,7 +15,8 @@ export const dynamic = 'force-dynamic'
 
 const plural = (n: number, s: string) => `${n} ${s}${n > 1 ? 's' : ''}`
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const series = await getSeriesBySlug(params.slug)
   if (!series) return { title: 'Série introuvable | La Voix du Royaume' }
   const show = series.show_id ? await getShowById(series.show_id) : null
@@ -33,12 +34,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function SeriesPage({
-  params, searchParams,
-}: {
-  params: { slug: string }
-  searchParams: { saison?: string }
-}) {
+export default async function SeriesPage(
+  props: {
+    params: Promise<{ slug: string }>
+    searchParams: Promise<{ saison?: string }>
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const series = await getSeriesBySlug(params.slug)
   if (!series) notFound()
 

@@ -1,4 +1,5 @@
 'use client'
+import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import QRCode from 'react-qr-code'
 import { Loader2, Printer, ShieldCheck, ShieldX, ArrowLeft, Share2, Check } from 'lucide-react'
@@ -26,7 +27,8 @@ const PAPER = '#FBF8F0'
 const INK = '#1A1A2E'
 const PURPLE = '#4B0082'
 
-export default function CertificatPage({ params }: { params: { reference: string } }) {
+export default function CertificatPage() {
+  const params = useParams<{ reference: string }>()
   const reference = decodeURIComponent(params.reference || '')
   const [cert, setCert] = useState<Certificat | null>(null)
   const [valide, setValide] = useState<boolean | null>(null)

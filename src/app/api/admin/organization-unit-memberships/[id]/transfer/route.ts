@@ -16,12 +16,12 @@ import { isUuid } from '@/lib/erp/unit-governance-rules'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const guarded = await requireGuardedAdminUnit(req)
   if (guarded instanceof NextResponse) return guarded
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   try {
-    if (!isUuid(ctx.params.id)) {
+    if (!isUuid((await ctx.params).id)) {
       return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
     }
     const body = await req.json().catch(() => ({}))
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
     if (!isUuid(toUnitId)) {
       return NextResponse.json({ ok: false, message: 'Identifiant invalide.' }, { status: 400 })
     }
-    const mem = await getMembershipById(guarded.organizationId, ctx.params.id)
+    const mem = await getMembershipById(guarded.organizationId, (await ctx.params).id)
     if (!mem) return NextResponse.json({ ok: false, message: 'Affectation introuvable.' }, { status: 404 })
     await assertUnitAccess(guarded.actor, mem.organization_unit_id as string, { write: true })
     const toUnit = await assertUnitAccess(guarded.actor, toUnitId, { write: true })
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, ctx: { params: { id: string } }) {
       role = body.unit_role
     }
     const { id, error } = await rpcTransfer({
-      membershipId: ctx.params.id,
+      membershipId: (await ctx.params).id,
       toUnitId,
       actorId: guarded.userId,
       role,

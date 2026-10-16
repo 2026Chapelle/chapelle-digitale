@@ -21,7 +21,8 @@ import {
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!isAdminRequest(req)) return NextResponse.json({ ok: false, message: 'Non autorisé.' }, { status: 401 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true })
   try {

@@ -23,19 +23,21 @@ function guard(req: NextRequest, resource: string): NextResponse | null {
 }
 const orderCol = (r: string) => (r === 'certificats' ? 'delivre_le' : 'ordre')
 
-export async function GET(req: NextRequest, { params }: { params: { resource: string } }) {
-  const d = guard(req, params.resource); if (d) return d
+export async function GET(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const d = guard(req, params.resource);if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true })
   const { data, error } = await supabaseAdmin.from(params.resource).select('*').order(orderCol(params.resource), { ascending: true })
   if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 500 })
   return NextResponse.json({ ok: true, data: data ?? [] })
 }
 
-export async function POST(req: NextRequest, { params }: { params: { resource: string } }) {
-  const d = guard(req, params.resource); if (d) return d
+export async function POST(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const d = guard(req, params.resource);if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
-  delete body.id; delete body.created_at; delete body.updated_at
+  delete body.id;delete body.created_at;delete body.updated_at
   // Nettoie les champs vides optionnels (UUID/dates) pour éviter les erreurs de type.
   for (const k of Object.keys(body)) if (body[k] === '') body[k] = null
   const { data, error } = await supabaseAdmin.from(params.resource).insert(body).select().single()
@@ -44,12 +46,13 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
   return NextResponse.json({ ok: true, data })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { resource: string } }) {
-  const d = guard(req, params.resource); if (d) return d
+export async function PATCH(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const d = guard(req, params.resource);if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
   if (!body.id) return NextResponse.json({ ok: false, message: 'id requis.' }, { status: 400 })
-  const patch = { ...body }; delete patch.id; delete patch.created_at; delete patch.updated_at
+  const patch = { ...body };delete patch.id;delete patch.created_at;delete patch.updated_at
   for (const k of Object.keys(patch)) if (patch[k] === '') patch[k] = null
   // Détection transition brouillon → publié (formations) pour notifier les membres.
   let before: Record<string, any> | null = null
@@ -63,8 +66,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
   return NextResponse.json({ ok: true, data })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { resource: string } }) {
-  const d = guard(req, params.resource); if (d) return d
+export async function DELETE(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const d = guard(req, params.resource);if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
   if (!body.id) return NextResponse.json({ ok: false, message: 'id requis.' }, { status: 400 })

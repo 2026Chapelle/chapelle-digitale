@@ -89,8 +89,9 @@ function check(req: NextRequest, resource: string) {
   return { err: null as NextResponse | null }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { resource: string } }) {
-  const { err } = check(req, params.resource); if (err) return err
+export async function GET(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const { err } = check(req, params.resource);if (err) return err
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true, data: [] })
   const query =
     params.resource === 'cms_teaching_comments'
@@ -108,12 +109,13 @@ export async function GET(req: NextRequest, { params }: { params: { resource: st
   return NextResponse.json({ ok: true, data: data ?? [] })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { resource: string } }) {
-  const { err } = check(req, params.resource); if (err) return err
+export async function PATCH(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const { err } = check(req, params.resource);if (err) return err
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
   if (!body.id) return NextResponse.json({ ok: false, message: 'id requis.' }, { status: 400 })
-  const patch = { ...body }; delete patch.id
+  const patch = { ...body };delete patch.id
   // Témoignage validé → rendre public + horodater, sinon il reste invisible
   // (la lecture publique exige statut='valide' ET is_public=true).
   if (params.resource === 'temoignages' && patch.statut === 'valide') {
@@ -127,8 +129,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { resource: string } }) {
-  const { err } = check(req, params.resource); if (err) return err
+export async function DELETE(req: NextRequest, props: { params: Promise<{ resource: string }> }) {
+  const params = await props.params;
+  const { err } = check(req, params.resource);if (err) return err
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
   if (!body.id) return NextResponse.json({ ok: false, message: 'id requis.' }, { status: 400 })

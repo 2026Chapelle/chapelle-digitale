@@ -13,9 +13,9 @@ export const dynamic =
   'force-dynamic'
 
 type RouteContext = {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
 export async function POST(
@@ -24,7 +24,7 @@ export async function POST(
 ) {
   const result =
     await enrollMemberInRetreat(
-      context.params.slug,
+      (await context.params).slug,
     )
 
   if (result.ok) {
