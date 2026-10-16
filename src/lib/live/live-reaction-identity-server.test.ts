@@ -8,7 +8,7 @@ vi.mock('@/lib/supabase', () => ({ get IS_DEMO_MODE() { return mocks.demo } }))
 import { resolveLiveReactionActor } from './live-reaction-identity-server'
 const GUEST = '11111111-1111-4111-8111-111111111111'
 describe('LIVE 4B.2 reaction server identity', () => {
-  beforeEach(() => { vi.clearAllMocks(); mocks.demo = false; mocks.cookies.mockReturnValue({ getAll: () => [] }); mocks.headers.mockReturnValue({ get: () => null }); mocks.getUser.mockResolvedValue({ data: { user: null }, error: null }); mocks.profile.mockResolvedValue(null) })
+  beforeEach(() => { vi.clearAllMocks(); mocks.demo = false; mocks.cookies.mockResolvedValue({ getAll: () => [] }); mocks.headers.mockResolvedValue({ get: () => null }); mocks.getUser.mockResolvedValue({ data: { user: null }, error: null }); mocks.profile.mockResolvedValue(null) })
   it('uses verified matching members, otherwise only valid guests, without leaking raw actor input', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'member-1' } }, error: null }); mocks.profile.mockResolvedValue({ uid: 'member-1' })
     await expect(resolveLiveReactionActor()).resolves.toEqual({ ok: true, actorKey: 'member:member-1' })
@@ -17,9 +17,9 @@ describe('LIVE 4B.2 reaction server identity', () => {
     await expect(resolveLiveReactionActor('invalid')).resolves.toEqual({ ok: false, reason: 'identity_required' })
   })
   it('fails closed for presented invalid sessions, auth failures, profile mismatch and demo mode', async () => {
-    mocks.cookies.mockReturnValue({ getAll: () => [{ name: 'sb-nvyuyffywnuollaxguen-auth-token' }] })
+    mocks.cookies.mockResolvedValue({ getAll: () => [{ name: 'sb-nvyuyffywnuollaxguen-auth-token' }] })
     await expect(resolveLiveReactionActor(GUEST)).resolves.toEqual({ ok: false, reason: 'identity_required' })
-    mocks.cookies.mockReturnValue({ getAll: () => [] }); mocks.headers.mockReturnValue({ get: (name: string) => name === 'authorization' ? 'Bearer unverified' : null })
+    mocks.cookies.mockResolvedValue({ getAll: () => [] }); mocks.headers.mockResolvedValue({ get: (name: string) => name === 'authorization' ? 'Bearer unverified' : null })
     await expect(resolveLiveReactionActor(GUEST)).resolves.toEqual({ ok: false, reason: 'identity_required' })
     mocks.getUser.mockRejectedValue(new Error('network')); await expect(resolveLiveReactionActor(GUEST)).resolves.toEqual({ ok: false, reason: 'unavailable' })
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'a' } }, error: null }); mocks.profile.mockResolvedValue({ uid: 'b' }); await expect(resolveLiveReactionActor()).resolves.toEqual({ ok: false, reason: 'unavailable' })
@@ -28,11 +28,11 @@ describe('LIVE 4B.2 reaction server identity', () => {
 
   // LIVE_4B9A_GUEST_NO_SESSION_RED
   it('falls back to guest when no auth was presented and Supabase reports no session', async () => {
-    mocks.cookies.mockReturnValue({
+    mocks.cookies.mockResolvedValue({
       getAll: () => [],
     })
 
-    mocks.headers.mockReturnValue({
+    mocks.headers.mockResolvedValue({
       get: () => null,
     })
 

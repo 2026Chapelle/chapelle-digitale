@@ -36,17 +36,19 @@ function youtubeId(url?: string): string | null {
 
 const fmt = (s?: string) => { if (!s) return ''; try { return new Date(s).toLocaleString('fr-FR') } catch { return s } }
 
-export default async function PreviewPage({ params, searchParams }: { params: { type: string; id: string }; searchParams?: { vue?: string } }) {
-  const mobile = searchParams?.vue === 'mobile'
+export default async function PreviewPage({ params, searchParams }: { params: Promise<{ type: string; id: string }>; searchParams?: Promise<{ vue?: string }> }) {
+  const resolvedParams = await params
+  const resolvedSearchParams = await searchParams
+  const mobile = resolvedSearchParams?.vue === 'mobile'
   // Garde : admin uniquement.
-  if (!isValidAdminToken(cookies().get('cier_admin')?.value)) {
+  if (!isValidAdminToken((await cookies()).get('cier_admin')?.value)) {
     return <Centered title="Accès réservé" text="Cet aperçu est réservé à l'administration connectée." />
   }
-  const table = TABLE_MAP[params.type]
-  if (!table) return <Centered title="Type inconnu" text={`Aucun aperçu pour « ${params.type} ».`} />
+  const table = TABLE_MAP[resolvedParams.type]
+  if (!table) return <Centered title="Type inconnu" text={`Aucun aperçu pour « ${resolvedParams.type} ».`} />
   if (IS_DEMO_MODE) return <Centered title="Mode démo" text="Connectez Supabase pour prévisualiser les contenus réels." />
 
-  const { data: row, error } = await supabaseAdmin.from(table).select('*').eq('id', params.id).single()
+  const { data: row, error } = await supabaseAdmin.from(table).select('*').eq('id', resolvedParams.id).single()
   if (error || !row) return <Centered title="Contenu introuvable" text="Cet élément n'existe pas (ou a été supprimé)." />
 
   const title = row.title || row.titre || row.public_title || row.author_name || 'Sans titre'
@@ -75,8 +77,8 @@ export default async function PreviewPage({ params, searchParams }: { params: { 
         style={{ background: published ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.18)', color: published ? '#22C55E' : '#F59E0B' }}>
         <span>APERÇU ADMIN — {published ? 'Contenu publié' : 'Brouillon (non visible du public)'}</span>
         <span className="inline-flex gap-1 rounded-lg overflow-hidden border border-white/10">
-          <a href={`/preview/${params.type}/${params.id}`} className="px-2 py-0.5" style={{ background: mobile ? 'transparent' : 'rgba(255,255,255,0.12)', color: '#fff' }}>Desktop</a>
-          <a href={`/preview/${params.type}/${params.id}?vue=mobile`} className="px-2 py-0.5" style={{ background: mobile ? 'rgba(255,255,255,0.12)' : 'transparent', color: '#fff' }}>Mobile</a>
+          <a href={`/preview/${resolvedParams.type}/${resolvedParams.id}`} className="px-2 py-0.5" style={{ background: mobile ? 'transparent' : 'rgba(255,255,255,0.12)', color: '#fff' }}>Desktop</a>
+          <a href={`/preview/${resolvedParams.type}/${resolvedParams.id}?vue=mobile`} className="px-2 py-0.5" style={{ background: mobile ? 'rgba(255,255,255,0.12)' : 'transparent', color: '#fff' }}>Mobile</a>
         </span>
       </div>
 
