@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { getMemberRetreatBySlug } from '@/lib/mahanaim/member-retreats-server'
 
@@ -37,11 +39,16 @@ export async function GET(request: NextRequest) {
     const body = await pdf.embedFont(StandardFonts.Helvetica)
     const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
     const W = 595.28, H = 841.89, margin = 50, right = W - margin
+    const ink = rgb(.13, .16, .25), gold = rgb(.64, .43, .18)
+    const purple = rgb(.30, .08, .34)
+    // The logo is a versioned public asset, not a remote URL or user input.
+    const logoBytes = await readFile(join(process.cwd(), 'public', 'branding', 'mahanaim', 'logo-cier.png'))
+    const logo = await pdf.embedPng(logoBytes)
     let page = pdf.addPage([W, H])
-    let y = H - 65
-    const ink = rgb(.13, .16, .25), gold = rgb(.60, .41, .13)
+    let y = H - 158
 
-    function newPage() { page = pdf.addPage([W, H]); y = H - 55 }
+    function newPage() { page = pdf.addPage([W, H]); y = H - 58 }
+    function ensureSpace(space: number) { if (y - space < 76) newPage() }
     function line(text: string, size = 11, heading = false) {
       const font = heading ? bold : body
       const maxW = right - margin
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
         const words = para.split(/\s+/).filter(Boolean)
         let current = ''
         function emit() {
-          if (y < 60) newPage()
+          if (y < 76) newPage()
           page.drawText(current, { x: margin, y, size, font, color: heading ? gold : ink })
           y -= lh
         }
@@ -75,13 +82,17 @@ export async function GET(request: NextRequest) {
     }
     function section(label: string, value: string | null | undefined) {
       if (!value?.trim()) return
-      y -= 10; line(label.toUpperCase(), 12, true); y -= 4; line(value)
+      ensureSpace(70); y -= 14; line(label.toUpperCase(), 12, true); y -= 5; line(value)
     }
 
-    line('CITADELLE  |  MAHANAÏM', 14, true)
-    y -= 12
-    line(`CARNET SPIRITUEL - JOUR ${day.dayNumber}`, 20, true)
-    line(day.title, 15, true)
+    // Premium violet / gold header, with the Chapelle's official supplied logo.
+    page.drawRectangle({ x: 0, y: H - 142, width: W, height: 142, color: purple })
+    page.drawRectangle({ x: 0, y: H - 146, width: W, height: 4, color: gold })
+    page.drawImage(logo, { x: margin, y: H - 118, width: 100, height: 100 * logo.height / logo.width })
+    page.drawText('CITADELLE  |  MAHANAÏM', { x: 165, y: H - 53, size: 13, font: bold, color: rgb(.96, .83, .53) })
+    page.drawText(`CARNET SPIRITUEL - JOUR ${day.dayNumber}`, { x: 165, y: H - 77, size: 13, font: bold, color: rgb(1, 1, 1) })
+    // Long titles remain in the content area rather than overflowing the header.
+    line(day.title, 17, true)
     line(day.dayDate, 10)
     section('Référence biblique', day.scriptureReference)
     section('Texte biblique', day.content.scriptureText)
@@ -90,13 +101,21 @@ export async function GET(request: NextRequest) {
     section('Prières', day.content.prayers.map((p, i) => `${i + 1}. ${p}`).join('\n'))
     section('Déclarations prophétiques', day.content.declarations.map((p, i) => `${i + 1}. ${p}`).join('\n'))
     section('Action pratique', day.content.action)
-    y -= 14; line('MES NOTES ET SUJETS DE PRIÈRE', 12, true)
+    ensureSpace(110); y -= 18; line('MES NOTES ET SUJETS DE PRIÈRE', 12, true)
     for (let i = 0; i < 9; i++) {
-      if (y < 65) newPage()
+      if (y < 76) newPage()
       page.drawLine({ start: { x: margin, y }, end: { x: right, y }, thickness: .4, color: rgb(.75, .76, .80) })
       y -= 25
     }
 
+    // Add the URL and pagination after the final page count is known.
+    const pages = pdf.getPages()
+    for (const [index, current] of pages.entries()) {
+      current.drawLine({ start: { x: margin, y: 54 }, end: { x: right, y: 54 }, thickness: .6, color: rgb(.80, .72, .56) })
+      current.drawText('https://citadelle.chapelleduroyaume.org/', { x: margin, y: 37, size: 8.5, font: body, color: purple })
+      const count = `Page ${index + 1} / ${pages.length}`
+      current.drawText(count, { x: right - body.widthOfTextAtSize(count, 8.5), y: 37, size: 8.5, font: body, color: ink })
+    }
     const bytes = await pdf.save()
     return new NextResponse(Buffer.from(bytes), {
       status: 200,

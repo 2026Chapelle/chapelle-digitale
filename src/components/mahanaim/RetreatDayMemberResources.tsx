@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Download, FileText, MoonStar, Sunrise, ExternalLink } from 'lucide-react'
 
 type Resource = { id: string; resourceType: 'video' | 'pdf'; sessionType: 'morning' | 'evening' | null; title: string; scheduledTime: string | null; url: string | null; isPrivate: boolean }
 type ResourceSlot = { key: 'morning-video' | 'evening-video' | 'day-pdf'; label: string; resources: Resource[] }
@@ -21,6 +22,9 @@ export default function RetreatDayMemberResources({ dayId }: { dayId: string }) 
 
   useEffect(() => {
     let active = true
+    setLoading(true)
+    setUnavailable(false)
+    setResources([])
     fetch(`/api/member/mahanaim/resources?dayId=${encodeURIComponent(dayId)}`, { credentials: 'same-origin', cache: 'no-store' })
       .then(async (response) => ({ response, json: await response.json() }))
       .then(({ response, json }) => { if (!active) return; if (response.ok && json.ok && Array.isArray(json.data)) { setResources(json.data); setUnavailable(false) } else setUnavailable(true) })
@@ -29,6 +33,41 @@ export default function RetreatDayMemberResources({ dayId }: { dayId: string }) 
     return () => { active = false }
   }, [dayId])
 
-  if (loading) return <p className="mt-3 text-sm text-slate-400">Chargement des ressources…</p>
-  return <section className="rounded-2xl border border-amber-300/20 bg-amber-300/5 p-4"><h3 className="text-sm font-bold uppercase tracking-wider text-amber-200">Ressources multimédias</h3><div className="mt-3 grid gap-3 md:grid-cols-3">{buildResourceSlots(resources).map((slot) => <div key={slot.key} className="rounded-xl border border-white/10 bg-slate-950/60 p-3"><h4 className="text-sm font-semibold">{slot.label}</h4>{slot.key === 'day-pdf' ? <a href={`/api/member/mahanaim/carnet?dayId=${encodeURIComponent(dayId)}`} className="mt-2 inline-flex rounded-lg border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-300/20">Télécharger mon carnet PDF ↓</a> : slot.resources.length ? slot.resources.map((resource) => <a key={resource.id} href={resource.url ?? `/api/member/mahanaim/resources?dayId=${encodeURIComponent(dayId)}&resourceId=${encodeURIComponent(resource.id)}`} target="_blank" rel="noopener noreferrer" className="mt-2 block text-sm text-amber-100 underline"><span className="mr-1 text-emerald-200 no-underline">Disponible ·</span>{resource.title}</a>) : <p className={`mt-2 text-sm ${unavailable ? 'text-red-200' : 'text-slate-400'}`}>{unavailable ? 'Indisponible' : 'À venir'}</p>}</div>)}</div></section>
+  const slots = buildResourceSlots(resources)
+  const videoSlots = slots.filter((slot) => slot.key !== 'day-pdf')
+
+  return (
+    <section aria-label="Vos ressources du jour" className="rounded-2xl border border-amber-300/25 bg-[#080e23] p-4 sm:p-5 text-slate-100">
+      <h3 className="text-base font-semibold text-amber-200">Vos ressources du jour</h3>
+      <p className="mt-1 text-xs text-slate-400">Vidéos et carnet spirituel de la journée</p>
+      <div className="mt-4 divide-y divide-white/10">
+        {videoSlots.map((slot) => {
+          const morning = slot.key === 'morning-video'
+          const Icon = morning ? Sunrise : MoonStar
+          return (
+            <div key={slot.key} className="flex min-w-0 items-center gap-3 py-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.07] text-amber-200"><Icon className="h-5 w-5" aria-hidden="true" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-100">{slot.label}</p>
+                <p className="text-xs text-slate-400">{morning ? 'Méditation matinale' : 'Enseignement et prière'}</p>
+              </div>
+              {loading ? <span className="shrink-0 text-xs text-slate-400">Chargement…</span> : slot.resources.length ? (
+                <div className="max-w-[45%] text-right">
+                  {slot.resources.map((resource) => <a key={resource.id} href={resource.url ?? `/api/member/mahanaim/resources?dayId=${encodeURIComponent(dayId)}&resourceId=${encodeURIComponent(resource.id)}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-end gap-1 rounded-lg border border-amber-300/40 px-2.5 py-2 text-xs font-semibold text-amber-100 hover:bg-amber-300/10"><span className="truncate">Regarder</span><ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /></a>)}
+                </div>
+              ) : <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-400">{unavailable ? 'Indisponible' : 'À venir'}</span>}
+            </div>
+          )
+        })}
+        <div className="flex min-w-0 flex-wrap items-center gap-3 py-3 sm:flex-nowrap">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-300/10 text-amber-200"><FileText className="h-5 w-5" aria-hidden="true" /></div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-100">Mon carnet spirituel</p>
+            <p className="text-xs text-slate-400">PDF généré pour cette journée</p>
+          </div>
+          <a href={`/api/member/mahanaim/carnet?dayId=${encodeURIComponent(dayId)}`} className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-amber-300/50 bg-amber-300/10 px-3 py-2.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-300/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-200 sm:w-auto"><Download className="h-4 w-4" aria-hidden="true" />Télécharger le PDF</a>
+        </div>
+      </div>
+    </section>
+  )
 }
