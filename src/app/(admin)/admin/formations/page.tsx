@@ -1,5 +1,6 @@
 'use client'
 import { CmsManager } from '@/components/features/admin/CmsManager'
+import { PLATFORMS } from '@/lib/platforms'
 
 const NIVEAUX = [
   { value: 'debutant', label: 'Débutant' },
@@ -41,6 +42,7 @@ export default function AdminFormationsPage() {
         { name: 'description', label: 'Description', type: 'textarea', hideInTable: true },
         { name: 'instructeur_nom', label: 'Instructeur', default: '' },
         { name: 'instructeur_id', label: 'Formateur responsable (ID profil)', hideInTable: true, placeholder: 'UUID du profil — visible dans l’URL /admin/membres/<id>' },
+        { name: 'plateforme_id', label: 'Plateforme', type: 'select', options: PLATFORMS.map((platform) => ({ value: platform.slug, label: platform.label })), default: 'cier' },
         { name: 'niveau', label: 'Niveau', type: 'select', options: NIVEAUX, default: 'debutant' },
         { name: 'type', label: 'Type', type: 'select', options: TYPES, default: 'cours', hideInTable: true },
         { name: 'image_couverture', label: 'Image de couverture', type: 'file', accept: 'image/*', hideInTable: true },

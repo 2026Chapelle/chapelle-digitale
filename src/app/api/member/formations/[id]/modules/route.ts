@@ -7,6 +7,7 @@ import { parcoursGate } from '@/lib/formations/parcours-gate-server'
 import { resolveVideoSource, hasPlayableVideo, resolveYouTubeId, youtubeThumbnail } from '@/lib/formations/video-validation'
 import { evaluateDailyLock, DAILY_LOCK_REASON } from '@/lib/formations/module-daily-unlock'
 import { can } from '@/lib/permissions'
+import { isSentinellesFormation } from '@/lib/formations/sentinelles'
 
 /**
  * URL signée d'une vidéo interne (bucket privé media-videos). Repli sur le
@@ -122,6 +123,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       const hasVideo = hasPlayableVideo(m)
       const hasPdf = !!m.pdf_url
       const isDone = done.has(m.id)
+      const sentinelles = isSentinellesFormation(formation?.slug)
       // Verrouillé si : parcours précédent non terminé, non inscrit, statut
       // insuffisant, prérequis non validé, ou attente minuit (Option C).
       // L'override (berger/admin) lève tout, y compris le verrou quotidien.
@@ -149,14 +151,15 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
         // donc jamais exposée pour un module verrouillé (anti-contournement).
         thumbnail_url: reveal ? youtubeThumbnail(m) : null,
         // PDF déverrouillé UNIQUEMENT après validation du module (visionnage ≥ 90 %).
-        pdf_url: (reveal && isDone) ? m.pdf_url : null,
+        pdf_url: (reveal && (sentinelles || isDone)) ? m.pdf_url : null,
+        audio_url: reveal ? (m.audio_url || null) : null,
         contenu_texte: reveal ? m.contenu_texte : null,
         duree_minutes: m.duree_minutes,
         acces_min_statut: m.acces_min_statut,
         // Métadonnées non sensibles.
         has_video: hasVideo,
         has_pdf: hasPdf,
-        pdf_locked: hasPdf && reveal && !isDone,           // PDF présent mais module non validé
+        pdf_locked: hasPdf && reveal && !isDone && !sentinelles,
         video_percent: reveal ? (v?.percent_watched ?? 0) : 0,
         video_last_position: reveal ? (v?.last_position ?? 0) : 0,
         completed: isDone,

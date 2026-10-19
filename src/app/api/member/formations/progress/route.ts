@@ -10,6 +10,7 @@ import { ensureIntegrationCertificate } from '@/lib/formations/integration-progr
 import { WATCH_THRESHOLD, hasPlayableVideo } from '@/lib/formations/video-validation'
 import { evaluateDailyLock } from '@/lib/formations/module-daily-unlock'
 import { can } from '@/lib/permissions'
+import { canDeclareSentinellesModuleComplete } from '@/lib/formations/sentinelles'
 import { notifyModuleCompleted, notifyParcoursCompleted, notifyCertificate, notifyAcademieUnlocked } from '@/lib/notifications/events'
 
 /**
@@ -64,12 +65,18 @@ export async function POST(req: NextRequest) {
 
     // 3) Module valide, publié, avec contenu vidéo (pas « en préparation »), prérequis fait.
     const { data: mod } = await supabaseAdmin.from('formation_modules')
-      .select('id, titre, status, prerequis_module_id, youtube_id, video_url, source_video, video_path')
+      .select('id, titre, status, prerequis_module_id, youtube_id, video_url, source_video, video_path, audio_url, pdf_url')
       .eq('id', module_id).eq('formation_id', formation_id).maybeSingle()
     if (!mod || mod.status !== 'published') return NextResponse.json({ ok: false, message: 'Module introuvable.' }, { status: 404 })
-    if (!hasPlayableVideo(mod)) return NextResponse.json({ ok: false, message: 'Module en préparation : validation indisponible.' }, { status: 403 })
     // Métadonnées formation (slug pour Option C + notifs / certificats).
     const { data: f } = await supabaseAdmin.from('formations').select('titre, certifiant, slug').eq('id', formation_id).maybeSingle()
+    const canDeclare = canDeclareSentinellesModuleComplete({
+      slug: f?.slug,
+      hasVideo: hasPlayableVideo(mod),
+      hasAudio: !!mod.audio_url,
+      hasPdf: !!mod.pdf_url,
+    })
+    if (!hasPlayableVideo(mod) && !canDeclare) return NextResponse.json({ ok: false, message: 'Module en préparation : validation indisponible.' }, { status: 403 })
 
     if (mod.prerequis_module_id && !override) {
       const { data: prereqDone } = await supabaseAdmin.from('module_completions')
@@ -90,14 +97,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4) VALIDATION RÉELLE : visionnage ≥ 90 % (anti-contournement serveur).
-    let okWatched = false
-    try {
-      const { data: vp } = await supabaseAdmin.from('video_progress')
-        .select('percent_watched, completed').eq('user_id', sp.uid).eq('module_id', module_id).maybeSingle()
-      okWatched = !!vp && (vp.completed || (vp.percent_watched ?? 0) >= WATCH_THRESHOLD)
-    } catch { okWatched = false }
-    if (!okWatched) return NextResponse.json({ ok: false, message: `Visionnez la vidéo à au moins ${WATCH_THRESHOLD}% pour valider ce module.` }, { status: 403 })
+    // Sentinelles : progression déclarative avec au moins un support publié.
+    // Toutes les autres formations gardent la validation vidéo ≥ 90 %.
+    if (!canDeclare) {
+      let okWatched = false
+      try {
+        const { data: vp } = await supabaseAdmin.from('video_progress')
+          .select('percent_watched, completed').eq('user_id', sp.uid).eq('module_id', module_id).maybeSingle()
+        okWatched = !!vp && (vp.completed || (vp.percent_watched ?? 0) >= WATCH_THRESHOLD)
+      } catch { okWatched = false }
+      if (!okWatched) return NextResponse.json({ ok: false, message: `Visionnez la vidéo à au moins ${WATCH_THRESHOLD}% pour valider ce module.` }, { status: 403 })
+    }
 
     await supabaseAdmin.from('module_completions')
       .upsert({ user_id: sp.uid, module_id, formation_id }, { onConflict: 'user_id,module_id', ignoreDuplicates: true })

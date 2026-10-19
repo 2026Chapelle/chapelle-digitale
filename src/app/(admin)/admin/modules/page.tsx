@@ -4,7 +4,9 @@ import { CmsManager } from '@/components/features/admin/CmsManager'
 const TYPES = [
   { value: 'youtube', label: 'Vidéo YouTube (non répertoriée)' },
   { value: 'video', label: 'Vidéo (URL)' },
+  { value: 'audio', label: 'Audio' },
   { value: 'pdf', label: 'PDF' },
+  { value: 'mixte', label: 'Supports multiples' },
   { value: 'texte', label: 'Texte' },
   { value: 'quiz', label: 'Quiz (à venir)' },
 ]
@@ -70,6 +72,16 @@ export default function AdminModulesPage() {
         { name: 'youtube_id', label: 'ID vidéo YouTube (si source YouTube)', placeholder: 'ex: dQw4w9WgXcQ', hideInTable: true },
         { name: 'video_path', label: 'Vidéo interne — chemin bucket privé media-videos', placeholder: 'videos/mon-fichier.mp4', hideInTable: true },
         { name: 'video_url', label: 'URL vidéo (alternative / interne directe)', type: 'url', hideInTable: true },
+        { name: '__audio', label: 'Audio depuis la médiathèque', hideInTable: true, type: 'media-select',
+          refResource: 'media', refApiBase: '/api/admin/cms',
+          mediaFilter: (m) => String(m.type || '').toLowerCase() === 'audio',
+          mediaApply: (m, ed) => ({
+            audio_url: m.url || '',
+            type: ed.type === 'video' || ed.type === 'pdf' ? 'mixte' : 'audio',
+            ...(ed.titre || !m.title ? {} : { titre: m.title }),
+          }),
+        },
+        { name: 'audio_url', label: 'URL audio', type: 'url', hideInTable: true },
         { name: 'pdf_url', label: 'PDF attaché', type: 'file', accept: 'application/pdf', hideInTable: true },
         { name: 'contenu_texte', label: 'Contenu texte', type: 'textarea', hideInTable: true },
         { name: 'duree_minutes', label: 'Durée (minutes)', type: 'number', default: 0, hideInTable: true },

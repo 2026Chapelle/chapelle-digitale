@@ -2,7 +2,7 @@
 import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Clock, Award, CheckCircle, Lock, BookOpen, Loader2, FileText, PlayCircle, Check, Trophy, Download, Send, HelpCircle, ChevronDown } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock, Award, CheckCircle, Lock, BookOpen, Loader2, FileText, PlayCircle, Check, Trophy, Download, Send, HelpCircle, ChevronDown, Music } from 'lucide-react'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
@@ -11,10 +11,11 @@ import { ModuleVideoPlayer } from '@/components/features/member/ModuleVideoPlaye
 import { WATCH_THRESHOLD, remainingToWatch } from '@/lib/formations/video-validation'
 import { DAILY_LOCK_MESSAGE, formatRemainingUntil, isDailyUnlockParcours } from '@/lib/formations/module-daily-unlock'
 import { PdfReaderLauncher } from '@/components/pdf'
+import { isSentinellesFormation } from '@/lib/formations/sentinelles'
 
 interface Module {
   id: string; ordre: number; titre: string; description?: string; type: string
-  youtube_id?: string; video_url?: string; pdf_url?: string; contenu_texte?: string
+  youtube_id?: string; video_url?: string; audio_url?: string; pdf_url?: string; contenu_texte?: string
   thumbnail_url?: string | null
   duree_minutes: number; acces_min_statut: string
   completed: boolean; locked: boolean; lock_reason?: string | null
@@ -67,6 +68,10 @@ export default function FormationDetailPage() {
   const [question, setQuestion] = useState('')
   const [qSending, setQSending] = useState(false)
   const [qSent, setQSent] = useState(false)
+  const [engagement, setEngagement] = useState<{ declaration: string; engaged_at: string } | null>(null)
+  const [engagementText, setEngagementText] = useState('')
+  const [engagementConsent, setEngagementConsent] = useState(false)
+  const [engagementSending, setEngagementSending] = useState(false)
   const [questions, setQuestions] = useState<Array<{ id: string; question: string; reponse: string | null; statut: string; auteur: string | null; user_id: string | null; created_at: string }>>([])
   // Accordéon des vidéos (P3) : modules dépliés dans la liste du parcours.
   const [openModuleIds, setOpenModuleIds] = useState<Set<string>>(new Set())
@@ -119,6 +124,19 @@ export default function FormationDetailPage() {
     return () => { cancelled = true }
   }, [params.slug, isDemo, loadModules, loadQuestions])
 
+  useEffect(() => {
+    if (!formation || !isSentinellesFormation(formation.slug) || progress.progression < 100) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const response = await fetch(`/api/member/formations/${formation.id}/engagement`, { credentials: 'same-origin' })
+        const json = await response.json()
+        if (!cancelled && json.ok) setEngagement(json.data.engagement)
+      } catch { /* non bloquant */ }
+    })()
+    return () => { cancelled = true }
+  }, [formation, progress.progression])
+
   async function markComplete(m: Module) {
     if (!formation || m.completed) return
     try {
@@ -157,6 +175,24 @@ export default function FormationDetailPage() {
       else toast.error(j.message || 'Inscription impossible')
     } catch { toast.error('Erreur réseau') }
     setEnrolling(false)
+  }
+
+  async function submitEngagement() {
+    if (!formation || !engagementConsent || !engagementText.trim()) return
+    setEngagementSending(true)
+    try {
+      const response = await fetch(`/api/member/formations/${formation.id}/engagement`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ declaration: engagementText, consent: engagementConsent }),
+      })
+      const json = await response.json()
+      if (!json.ok) { toast.error(json.message || 'Impossible d’enregistrer votre engagement.'); return }
+      setEngagement(json.data)
+      setEngagementText('')
+      setEngagementConsent(false)
+      toast.success('Votre engagement a été enregistré.')
+    } catch { toast.error('Erreur réseau') }
+    finally { setEngagementSending(false) }
   }
 
   // Certificat réel de la formation (si une URL PDF a été générée).
@@ -293,6 +329,34 @@ export default function FormationDetailPage() {
                 )}
               </div>
             )}
+
+            {isSentinellesFormation(formation.slug) && (
+              <div className="mt-5 pt-5 border-t border-white/5 text-left max-w-xl mx-auto">
+                <h3 className="font-cinzel text-base font-bold text-pearl text-center">Mon engagement de sentinelle</h3>
+                <p className="font-inter text-sm text-pearl/55 mt-2 text-center">
+                  Cette déclaration personnelle n’entraîne ni rôle, ni accès supplémentaire, ni notification.
+                </p>
+                {engagement && (
+                  <div className="mt-4 rounded-xl border border-green-400/20 bg-green-400/[0.06] p-4">
+                    <p className="font-inter text-sm text-pearl/80 whitespace-pre-wrap">{engagement.declaration}</p>
+                    <p className="font-inter text-xs text-green-300/75 mt-2">Dernière déclaration confirmée le {new Date(engagement.engaged_at).toLocaleDateString('fr-FR')}</p>
+                  </div>
+                )}
+                <div className="mt-4 space-y-3">
+                    <textarea value={engagementText} onChange={(event) => setEngagementText(event.target.value)} rows={4}
+                      placeholder={engagement ? 'Ajouter une nouvelle déclaration…' : 'J’exprime librement mon engagement…'}
+                      className="input-royal w-full resize-y" maxLength={2000} />
+                    <label className="flex items-start gap-2 text-sm font-inter text-pearl/65 cursor-pointer">
+                      <input type="checkbox" checked={engagementConsent} onChange={(event) => setEngagementConsent(event.target.checked)} className="mt-1" />
+                      <span>Je confirme que cette déclaration est personnelle et volontaire.</span>
+                    </label>
+                    <button type="button" onClick={submitEngagement} disabled={engagementSending || !engagementConsent || !engagementText.trim()}
+                      className="btn-gold text-sm px-5 py-2.5 inline-flex items-center gap-2 disabled:opacity-50">
+                      {engagementSending ? <><Loader2 className="w-4 h-4 animate-spin" /> Enregistrement…</> : <><CheckCircle className="w-4 h-4" /> Confirmer mon engagement</>}
+                    </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -351,7 +415,7 @@ export default function FormationDetailPage() {
                       : `Accès réservé (statut requis : ${active.acces_min_statut}).`}
                   </p>
                 </div>
-              ) : !active.has_video ? (
+              ) : !active.has_video && !active.audio_url && !active.pdf_url ? (
                 /* Module en préparation : aucune vidéo → pas de validation, pas de PDF */
                 <div className="card-royal">
                   <h2 className="font-cinzel font-bold text-pearl text-base mb-3">{active.titre}</h2>
@@ -369,7 +433,7 @@ export default function FormationDetailPage() {
                 </div>
               ) : (
                 <>
-                  <ModuleVideoPlayer
+                  {active.has_video && <ModuleVideoPlayer
                     key={active.id}
                     moduleId={active.id}
                     formationId={formation.id}
@@ -379,12 +443,19 @@ export default function FormationDetailPage() {
                     initialPercent={active.video_percent || 0}
                     completed={active.completed}
                     onPercent={setWatchPct}
-                  />
+                  />}
                   <div className="card-royal">
                     <h2 className="font-cinzel font-bold text-pearl text-base mb-1">{active.titre}</h2>
                     {active.duree_minutes > 0 && <p className="text-xs text-pearl/40 font-inter mb-3 inline-flex items-center gap-1"><Clock className="w-3 h-3" /> {active.duree_minutes} min</p>}
                     {active.description && <p className="text-pearl/60 text-sm font-inter whitespace-pre-wrap mb-3">{active.description}</p>}
                     {active.contenu_texte && <div className="max-w-none text-pearl/70 text-sm font-inter whitespace-pre-wrap mb-3">{active.contenu_texte}</div>}
+
+                    {active.audio_url && (
+                      <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                        <div className="mb-2 flex items-center gap-2 text-sm font-inter text-pearl/75"><Music className="w-4 h-4 text-gold" /> Écouter le support audio</div>
+                        <audio controls preload="metadata" className="w-full" src={active.audio_url}>Votre navigateur ne prend pas en charge l’audio.</audio>
+                      </div>
+                    )}
 
                     {/* PDF : déverrouillé UNIQUEMENT après validation du module (≥ 90 %) */}
                     {active.pdf_url ? (
@@ -406,7 +477,7 @@ export default function FormationDetailPage() {
 
                     {/* Validation par visionnage RÉEL ≥ 90 % */}
                     <div className="pt-3 border-t border-white/5">
-                      {!active.completed && (
+                      {!active.completed && active.has_video && !isSentinellesFormation(formation.slug) && (
                         <div className="mb-3">
                           <div className="flex justify-between text-xs text-pearl/45 mb-1 font-inter">
                             <span>Visionnage</span><span>{Math.min(100, Math.round(watchPct))}%</span>
@@ -419,9 +490,9 @@ export default function FormationDetailPage() {
                           )}
                         </div>
                       )}
-                      <button onClick={() => markComplete(active)} disabled={active.completed || watchPct < WATCH_THRESHOLD}
+                      <button onClick={() => markComplete(active)} disabled={active.completed || (!isSentinellesFormation(formation.slug) && watchPct < WATCH_THRESHOLD)}
                         className={(active.completed ? 'btn-royal' : 'btn-gold') + ' text-sm px-5 py-2.5 inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'}>
-                        {active.completed ? <><Check className="w-4 h-4" /> Terminé</> : <><CheckCircle className="w-4 h-4" /> Marquer terminé</>}
+                        {active.completed ? <><Check className="w-4 h-4" /> Terminé</> : isSentinellesFormation(formation.slug) ? <><CheckCircle className="w-4 h-4" /> Déclarer ce module terminé</> : <><CheckCircle className="w-4 h-4" /> Marquer terminé</>}
                       </button>
                     </div>
                   </div>
@@ -510,7 +581,7 @@ export default function FormationDetailPage() {
                                 : m.lock_reason === 'parcours' ? 'Terminez le parcours précédent pour débloquer cette vidéo.'
                                 : `Accès réservé (statut requis : ${m.acces_min_statut}).`}</span>
                             </div>
-                          ) : m.has_video ? (
+                          ) : (m.has_video || m.audio_url || m.pdf_url) ? (
                             <div className="space-y-2.5">
                               {/* Miniature ENTIÈREMENT visible (object-contain), aucun texte sur l'image */}
                               {m.thumbnail_url ? (
@@ -520,7 +591,7 @@ export default function FormationDetailPage() {
                                 </div>
                               ) : (
                                 <div className="w-full rounded-lg border border-white/10 flex items-center justify-center" style={{ aspectRatio: '16/9', background: 'rgba(255,255,255,0.02)' }}>
-                                  <PlayCircle className="w-8 h-8 text-gold/40" />
+                                  {m.audio_url ? <Music className="w-8 h-8 text-gold/40" /> : <PlayCircle className="w-8 h-8 text-gold/40" />}
                                 </div>
                               )}
                               {m.description && <p className="text-xs text-pearl/60 font-inter whitespace-pre-wrap break-words">{m.description}</p>}
@@ -531,7 +602,7 @@ export default function FormationDetailPage() {
                               )}
                               <button type="button" onClick={() => setActive(m)}
                                 className="btn-gold text-xs px-4 py-2 inline-flex items-center gap-1.5 w-full justify-center">
-                                <PlayCircle className="w-3.5 h-3.5" /> {watchLabel}
+                                {m.has_video ? <PlayCircle className="w-3.5 h-3.5" /> : m.audio_url ? <Music className="w-3.5 h-3.5" /> : <FileText className="w-3.5 h-3.5" />} {m.has_video ? watchLabel : 'Ouvrir les supports'}
                               </button>
                             </div>
                           ) : (

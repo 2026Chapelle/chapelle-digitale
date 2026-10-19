@@ -19,12 +19,18 @@ export default function MahanaimMemberPage() {
           Retraites, intercession, consécration et rendez-vous de prière.
         </p>
 
-        <div className="mt-8">
+        <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/member/plateformes/mahanaim/retraites"
             className="inline-flex rounded-xl bg-violet-500 px-5 py-3 font-semibold text-white transition hover:bg-violet-400"
           >
             Découvrir les retraites
+          </Link>
+          <Link
+            href="/member/dashboard/formations"
+            className="inline-flex rounded-xl border border-violet-300/30 px-5 py-3 font-semibold text-violet-100 transition hover:border-violet-200/60"
+          >
+            École des Sentinelles
           </Link>
         </div>
       </section>

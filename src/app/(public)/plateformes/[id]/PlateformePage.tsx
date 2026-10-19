@@ -87,7 +87,7 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
           supabase.from('cms_events')
             .select('id, title, starts_at, location, is_online, platform, status')
             .eq('status', 'published').order('starts_at', { ascending: true }),
-          supabase.from('formations').select('*').limit(100),
+          supabase.from('formations').select('id, titre, slug, niveau, plateforme_id, statut').eq('statut', 'publie').limit(100),
         ])
         if (cancelled) return
         const now = Date.now()
@@ -98,8 +98,7 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
             heure: e.starts_at ? new Date(e.starts_at).toTimeString().slice(0, 5) : '',
             lieu: e.location || (e.is_online ? 'En ligne' : ''), enLigne: !!e.is_online,
           })))
-        setFormations((forms || []).filter((f: any) =>
-          matches(f.plateforme) || matches(f.platform) || matches(f.categorie) || matches(f.ministere))
+        setFormations((forms || []).filter((f: any) => f.plateforme_id === plateforme.id)
           .slice(0, 6).map((f: any) => ({ id: f.id, titre: f.titre || f.title || 'Formation', slug: f.slug, niveau: f.niveau })))
       } catch (e) { console.error('[plateforme] chargement contenu échoué', e) }
       finally { if (!cancelled) setLoaded(true) }
