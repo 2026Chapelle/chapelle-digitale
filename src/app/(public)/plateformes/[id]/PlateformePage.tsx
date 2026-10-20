@@ -50,7 +50,7 @@ const FEATURES_MAP: Record<string, string[]> = {
 }
 
 interface PlatEvent { id: string; titre: string; date: string; heure: string; lieu: string; enLigne: boolean }
-interface PlatFormation { id: string; titre: string; slug: string; niveau?: string }
+interface PlatFormation { id: string; titre: string; slug: string; niveau?: string; image_couverture?: string | null }
 
 export default function PlateformePage({ plateforme }: { plateforme: Plateforme }) {
   const features = FEATURES_MAP[plateforme.id] || FEATURES_MAP.cier
@@ -87,7 +87,7 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
           supabase.from('cms_events')
             .select('id, title, starts_at, location, is_online, platform, status')
             .eq('status', 'published').order('starts_at', { ascending: true }),
-          supabase.from('formations').select('id, titre, slug, niveau, plateforme_id, statut').eq('statut', 'publie').limit(100),
+          supabase.from('formations').select('id, titre, slug, niveau, image_couverture, plateforme_id, statut').eq('statut', 'publie').limit(100),
         ])
         if (cancelled) return
         const now = Date.now()
@@ -99,7 +99,7 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
             lieu: e.location || (e.is_online ? 'En ligne' : ''), enLigne: !!e.is_online,
           })))
         setFormations((forms || []).filter((f: any) => f.plateforme_id === plateforme.id)
-          .slice(0, 6).map((f: any) => ({ id: f.id, titre: f.titre || f.title || 'Formation', slug: f.slug, niveau: f.niveau })))
+          .slice(0, 6).map((f: any) => ({ id: f.id, titre: f.titre || f.title || 'Formation', slug: f.slug, niveau: f.niveau, image_couverture: f.image_couverture })))
       } catch (e) { console.error('[plateforme] chargement contenu échoué', e) }
       finally { if (!cancelled) setLoaded(true) }
     })()
@@ -224,6 +224,74 @@ export default function PlateformePage({ plateforme }: { plateforme: Plateforme 
         </div>
       </section>
 
+      {/* École des Sentinelles */}
+      {plateforme.id === 'mahanaim' && formations.some((f) => f.slug === 'ecole-des-sentinelles') && (
+        <section className="px-4 py-12" aria-labelledby="sentinelles-title">
+          <div className="max-w-6xl mx-auto overflow-hidden rounded-3xl border border-purple-500/30 bg-gradient-to-br from-purple-950/50 to-charbon">
+            <div className="grid grid-cols-1 lg:grid-cols-2 items-center">
+              {formations.find((f) => f.slug === 'ecole-des-sentinelles')?.image_couverture && (
+                <Link href="/formations/ecole-des-sentinelles" className="block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={formations.find((f) => f.slug === 'ecole-des-sentinelles')!.image_couverture!}
+                    alt="École des Sentinelles — Veiller, intercéder et bâtir"
+                    width={1672}
+                    height={941}
+                    loading="lazy"
+                    className="w-full h-auto"
+                  />
+                </Link>
+              )}
+              <div className="p-7 md:p-10">
+                <div className="section-label-dark">Formation Mahanaïm · 6 modules</div>
+                <h2 id="sentinelles-title" className="font-cinzel text-2xl md:text-3xl font-bold text-white mb-4">
+                  École des Sentinelles
+                </h2>
+                <p className="font-inter text-base leading-relaxed text-white/70 mb-4">
+                  Un parcours en six modules pour apprendre à veiller, intercéder et bâtir.
+                  Grandissez dans la prière, le discernement et le service, à votre rythme.
+                </p>
+                <p className="font-inter text-sm text-white/60 mb-6">
+                  Avec le Révérend Doxa Salomon · Enseignements et supports PDF
+                </p>
+                <Link
+                  href="/formations/ecole-des-sentinelles"
+                  className="inline-flex items-center gap-2 rounded-full px-6 py-3 font-inter text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-yellow-400"
+                  style={{ background: 'linear-gradient(135deg, #D4AF37, #B89222)', color: '#130d02' }}
+                >
+                  Découvrir l’École des Sentinelles
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+      {plateforme.id === 'mahanaim' && (
+        <section id="batisseurs-access" className="px-4 py-12" aria-labelledby="batisseurs-heading">
+          <div className="max-w-6xl mx-auto rounded-3xl border border-purple-500/30 bg-gradient-to-br from-purple-950/50 to-charbon p-7 md:p-10">
+            <div className="section-label-dark">La communauté de prière Mahanaïm</div>
+            <h2 id="batisseurs-heading" className="font-cinzel text-2xl md:text-3xl font-bold text-white mb-4">
+              Les Bâtisseurs de la Chambre Haute
+            </h2>
+            <p className="font-inter text-white/70 leading-relaxed max-w-3xl mb-6">
+              Retrouvez votre communauté pour prier ensemble, consulter les sujets de prière,
+              recevoir les annonces et partager ressources et témoignages.
+            </p>
+            <Link
+              href="/member/dashboard/groupes"
+              className="inline-flex items-center gap-2 rounded-full px-6 py-3 font-inter text-sm font-semibold"
+              style={{ background: 'linear-gradient(135deg, #D4AF37, #B89222)', color: '#130d02' }}
+            >
+              Accéder à mes groupes
+              <ArrowRight className="w-4 h-4" aria-hidden="true" />
+            </Link>
+            <p className="font-inter text-sm text-white/50 mt-4">
+              Connectez-vous pour accéder à votre groupe ou demander à le rejoindre.
+            </p>
+          </div>
+        </section>
+      )}
       {/* Features */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">

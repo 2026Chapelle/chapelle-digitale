@@ -162,6 +162,15 @@ export default function MesGroupesPage() {
                                   <Star className="w-3.5 h-3.5" /> Définir comme principal
                                 </button>
                               )}
+                              {m.statut === 'actif' && (
+                                <Link
+                                  href={`/member/dashboard/groupes/${m.groupe_id}`}
+                                  data-testid="group-space-entry"
+                                  className="btn-gold text-xs py-2 px-3 inline-flex items-center gap-1.5"
+                                >
+                                  Ouvrir mon groupe
+                                </Link>
+                              )}
                               <Link href="/member/dashboard/messages" className="btn-ghost text-xs py-2 px-3 inline-flex items-center gap-1.5">
                                 <MessageCircle className="w-3.5 h-3.5" /> Message
                               </Link>

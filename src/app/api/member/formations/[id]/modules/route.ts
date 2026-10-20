@@ -57,10 +57,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     // ouvert aux visiteurs connectés (le parcours d'accueil ne doit jamais être verrouillé).
     const { data: formation } = await supabaseAdmin
       .from('formations')
-      .select('id, slug, type, niveau, categorie')
+      .select('id, slug, type, niveau')
       .eq('id', params.id)
       .maybeSingle()
-    const haystack = [formation?.type, formation?.niveau, formation?.categorie, formation?.slug]
+    const haystack = [formation?.type, formation?.niveau, formation?.slug]
       .filter(Boolean).join(' ').toLowerCase()
     const isIntegration = /int[ée]gration|accueil|nouveau|premiers?\s*pas|d[ée]couv/.test(haystack)
 
