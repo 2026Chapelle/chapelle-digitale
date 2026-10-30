@@ -37,7 +37,13 @@ jobs:
           mkdir -p release/runtime/.next
           cp -a .next/standalone/. release/runtime/
           cp -a .next/static release/runtime/.next/static
-          cp -a public release/runtime/public
+          mkdir -p release/runtime/public
+          cp -a public/. release/runtime/public/
+          test ! -e release/runtime/public/public
+          test -f release/runtime/public/branding/logo-cier.png
+          test -f release/runtime/public/academie/fondements/m1/manuel.pdf
+          cmp public/branding/logo-cier.png release/runtime/public/branding/logo-cier.png
+          cmp public/academie/fondements/m1/manuel.pdf release/runtime/public/academie/fondements/m1/manuel.pdf
           cp -a app.js release/runtime/app.js
           find release/runtime -type f \( -name '.env' -o -name '.env.*' \) -delete
           rm -rf release/runtime/.git release/runtime/logs
@@ -52,6 +58,12 @@ jobs:
           grep -q '^server\.js$' release/archive-contents.txt
           grep -q '^app\.js$' release/archive-contents.txt
           grep -q '^public/' release/archive-contents.txt
+          if grep -q '^public/public/' release/archive-contents.txt; then
+            echo 'NESTED_PUBLIC_ARCHIVE_REJECTED'
+            exit 1
+          fi
+          grep -q '^public/branding/logo-cier.png$' release/archive-contents.txt
+          grep -q '^public/academie/fondements/m1/manuel.pdf$' release/archive-contents.txt
           grep -q '^\.next/static/' release/archive-contents.txt
           if grep -E '(^|/)(\.env([^/]*))$|(^|/)\.git/|(^|/)logs/' release/archive-contents.txt; then exit 1; fi
           (cd release && sha256sum -c citadelle-n0c-runtime.zip.sha256)
