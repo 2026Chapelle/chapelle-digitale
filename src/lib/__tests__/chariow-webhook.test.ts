@@ -206,6 +206,42 @@ describe('POST /api/webhook/chariow', () => {
     expect(res.status).toBe(401)
   })
 
+  it('journalise la devise exacte de sale.amount', async () => {
+    vi.stubEnv('NODE_ENV', 'test')
+    vi.stubEnv('CHARIOW_WEBHOOK_SECRET', 's')
+    const logInsert = vi.fn().mockResolvedValue({ error: null })
+    from.mockImplementation((table: string) => {
+      if (table === 'giving_transactions_log') return { insert: logInsert }
+      if (table === 'profiles') return {
+        select: vi.fn().mockReturnThis(), ilike: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      }
+      if (table === 'dons') return {
+        select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: { id: 'don-1', recu_envoye: true }, error: null }),
+          }),
+        }),
+        update: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+      }
+      return {
+        select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      }
+    })
+
+    const payload = validSalePayload({ sale: {
+      id: 'sale-xof-190884', status: 'completed', amount: { value: 190884, currency: 'XOF' },
+    } })
+    const res = await POST(makeReq(payload, { 'x-chariow-secret': 's' }))
+
+    expect(res.status).toBe(200)
+    expect(logInsert).toHaveBeenCalledWith(expect.objectContaining({ amount: 190884, currency: 'XOF' }))
+  })
+
   it('HMAC invalide => 401', async () => {
     vi.stubEnv('NODE_ENV', 'test')
     vi.stubEnv('CHARIOW_WEBHOOK_HMAC_SECRET', 'hmac-secret')

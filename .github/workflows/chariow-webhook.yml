@@ -1,0 +1,25 @@
+name: Chariow webhook regression
+
+on:
+  pull_request:
+    paths:
+      - 'src/app/api/webhook/chariow/route.ts'
+      - 'src/lib/__tests__/chariow-webhook.test.ts'
+      - '.github/workflows/chariow-webhook.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chariow-webhook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm test -- src/lib/__tests__/chariow-webhook.test.ts

@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('giving_transactions_log').insert({
         provider: 'chariow', event_type: 'webhook',
         status: saleStatus || event || 'received',
-        amount: amount > 0 ? amount : null, email: email || null,
+        amount: amount > 0 ? amount : null, currency, email: email || null,
         chariow_product_id: productId,
         source: pick(body, ['metadata.source', 'source']) ?? null,
         meta: body,
