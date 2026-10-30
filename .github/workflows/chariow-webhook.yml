@@ -1,4 +1,4 @@
-name: Chariow webhook regression
+name: Chariow Linux N0C build
 
 on:
   push:
@@ -11,12 +11,54 @@ permissions:
 jobs:
   chariow-webhook:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: '2c85beaae8a6990f11b4d157133aca24f7d56e69'
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
+      - name: Set production public build configuration
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=https://nvyuyffywnuollaxguen.supabase.co" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> "$GITHUB_ENV"
       - run: npm ci
       - run: npm test -- src/lib/__tests__/chariow-webhook.test.ts
+      - run: npm run type-check
+      - run: npm run build
+      - name: Package standalone Linux runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .next/standalone/server.js
+          test -f .next/BUILD_ID
+          mkdir -p release/runtime/.next
+          cp -a .next/standalone/. release/runtime/
+          cp -a .next/static release/runtime/.next/static
+          cp -a public release/runtime/public
+          cp -a app.js release/runtime/app.js
+          find release/runtime -type f \( -name '.env' -o -name '.env.*' \) -delete
+          rm -rf release/runtime/.git release/runtime/logs
+          printf 'SOURCE_SHA=%s\nBUILD_ID=%s\nNODE_VERSION=%s\nNPM_VERSION=%s\nNEXT_PUBLIC_SUPABASE_URL=%s\nNEXT_PUBLIC_SUPABASE_PROJECT_REF=%s\n' \
+            '2c85beaae8a6990f11b4d157133aca24f7d56e69' \
+            "$(cat .next/BUILD_ID)" "$(node --version)" "$(npm --version)" \
+            'https://nvyuyffywnuollaxguen.supabase.co' 'nvyuyffywnuollaxguen' \
+            > release/manifest.txt
+          (cd release/runtime && zip -qr ../citadelle-n0c-runtime.zip .)
+          sha256sum release/citadelle-n0c-runtime.zip | awk '{print $1}' > release/citadelle-n0c-runtime.zip.sha256
+          unzip -Z1 release/citadelle-n0c-runtime.zip | grep -q '^server.js$'
+          unzip -Z1 release/citadelle-n0c-runtime.zip | grep -q '^app.js$'
+          unzip -Z1 release/citadelle-n0c-runtime.zip | grep -q '^public/'
+          unzip -Z1 release/citadelle-n0c-runtime.zip | grep -q '^.next/static/'
+          if unzip -Z1 release/citadelle-n0c-runtime.zip | grep -E '(^|/)(\.env([^/]*))$|(^|/)\.git/|(^|/)logs/'; then exit 1; fi
+          (cd release && sha256sum -c citadelle-n0c-runtime.zip.sha256)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: citadelle-n0c-linux-${{ github.run_id }}
+          path: |
+            release/citadelle-n0c-runtime.zip
+            release/manifest.txt
+            release/citadelle-n0c-runtime.zip.sha256
+          if-no-files-found: error
