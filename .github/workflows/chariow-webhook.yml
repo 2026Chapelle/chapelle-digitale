@@ -47,12 +47,33 @@ jobs:
             'https://nvyuyffywnuollaxguen.supabase.co' 'nvyuyffywnuollaxguen' \
             > release/manifest.txt
           (cd release/runtime && zip -qr ../citadelle-n0c-runtime.zip .)
-          sha256sum release/citadelle-n0c-runtime.zip | awk '{print $1}' > release/citadelle-n0c-runtime.zip.sha256
-          unzip -Z1 release/citadelle-n0c-runtime.zip | grep -q '^server.js$'
-          unzip -Z1 release/citadelle-n0c-runtime.zip | grep -q '^app.js$'
-          unzip -Z1 release/citadelle-n0c-runtime.zip | grep -q '^public/'
-          unzip -Z1 release/citadelle-n0c-runtime.zip | grep -q '^.next/static/'
-          if unzip -Z1 release/citadelle-n0c-runtime.zip | grep -E '(^|/)(\.env([^/]*))$|(^|/)\.git/|(^|/)logs/'; then exit 1; fi
+          (cd release && sha256sum citadelle-n0c-runtime.zip > citadelle-n0c-runtime.zip.sha256)
+          unzip -Z1 release/citadelle-n0c-runtime.zip > release/archive-contents.txt
+          grep -q '^server\.js
+          (cd release && sha256sum -c citadelle-n0c-runtime.zip.sha256)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: citadelle-n0c-linux-${{ github.run_id }}
+          path: |
+            release/citadelle-n0c-runtime.zip
+            release/manifest.txt
+            release/citadelle-n0c-runtime.zip.sha256
+          if-no-files-found: error
+ release/archive-contents.txt
+          grep -q '^app\.js
+          (cd release && sha256sum -c citadelle-n0c-runtime.zip.sha256)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: citadelle-n0c-linux-${{ github.run_id }}
+          path: |
+            release/citadelle-n0c-runtime.zip
+            release/manifest.txt
+            release/citadelle-n0c-runtime.zip.sha256
+          if-no-files-found: error
+ release/archive-contents.txt
+          grep -q '^public/' release/archive-contents.txt
+          grep -q '^\.next/static/' release/archive-contents.txt
+          if grep -E '(^|/)(\.env([^/]*))$|(^|/)\.git/|(^|/)logs/' release/archive-contents.txt; then exit 1; fi
           (cd release && sha256sum -c citadelle-n0c-runtime.zip.sha256)
       - uses: actions/upload-artifact@v4
         with:
