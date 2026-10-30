@@ -4,6 +4,11 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "regions": ["cdg1", "iad1"],
+  "git": {
+    "deploymentEnabled": {
+      "fix/chariow-currency-batisseurs": false
+    }
+  },
   "headers": [
     {
       "source": "/fonts/(.*)",
