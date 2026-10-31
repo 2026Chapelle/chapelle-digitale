@@ -5,38 +5,39 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight, BookOpen, HeartHandshake, Users, Shield, Sparkles, Compass } from 'lucide-react'
-import { supabase, IS_DEMO_MODE } from '@/lib/supabase'
+import { IS_DEMO_MODE } from '@/lib/supabase'
+import { getBrowserClient } from '@/lib/supabase-browser'
 
 const pillars = [
-  { title: 'Se lever', text: 'Quitter l’immobilisme et répondre à l’appel de Dieu.' },
-  { title: 'S’équiper', text: 'Grandir dans la Parole, la prière et le discernement.' },
-  { title: 'S’engager', text: 'Mettre ses dons au service des autres et de la mission.' },
-  { title: 'Conquérir', text: 'Avancer avec foi, sagesse et persévérance.' },
+  { title: 'Se lever', text: 'Quitter lâ€™immobilisme et rÃ©pondre Ã  lâ€™appel de Dieu.' },
+  { title: 'Sâ€™Ã©quiper', text: 'Grandir dans la Parole, la priÃ¨re et le discernement.' },
+  { title: 'Sâ€™engager', text: 'Mettre ses dons au service des autres et de la mission.' },
+  { title: 'ConquÃ©rir', text: 'Avancer avec foi, sagesse et persÃ©vÃ©rance.' },
 ]
 const territories = [
   { title: 'Vie spirituelle', text: 'Fortifier sa foi et sa communion avec Dieu.', icon: Sparkles },
-  { title: 'Famille', text: 'Bâtir des relations solides, aimantes et responsables.', icon: HeartHandshake },
-  { title: 'Destinée', text: 'Identifier ses dons et avancer dans sa vocation.', icon: Compass },
-  { title: 'Projets', text: 'Passer des intentions aux actions concrètes.', icon: Shield },
-  { title: 'Mission', text: 'Servir, témoigner et édifier la communauté.', icon: Users },
+  { title: 'Famille', text: 'BÃ¢tir des relations solides, aimantes et responsables.', icon: HeartHandshake },
+  { title: 'DestinÃ©e', text: 'Identifier ses dons et avancer dans sa vocation.', icon: Compass },
+  { title: 'Projets', text: 'Passer des intentions aux actions concrÃ¨tes.', icon: Shield },
+  { title: 'Mission', text: 'Servir, tÃ©moigner et Ã©difier la communautÃ©.', icon: Users },
 ]
 const journeys = [
-  { title: 'Je veux grandir', text: 'Découvrir les enseignements et parcours de formation.', href: '/formations', label: 'Explorer les formations', icon: BookOpen },
-  { title: 'Je veux appartenir', text: 'Découvrir la communauté et commencer un parcours d’intégration.', href: '/integration', label: 'Rejoindre la communauté', icon: Users },
-  { title: 'Je veux servir', text: 'Découvrir les possibilités de service dans la vision.', href: '/servir', label: 'Découvrir les équipes', icon: HeartHandshake },
+  { title: 'Je veux grandir', text: 'DÃ©couvrir les enseignements et parcours de formation.', href: '/formations', label: 'Explorer les formations', icon: BookOpen },
+  { title: 'Je veux appartenir', text: 'DÃ©couvrir la communautÃ© et commencer un parcours dâ€™intÃ©gration.', href: '/integration', label: 'Rejoindre la communautÃ©', icon: Users },
+  { title: 'Je veux servir', text: 'DÃ©couvrir les possibilitÃ©s de service dans la vision.', href: '/servir', label: 'DÃ©couvrir les Ã©quipes', icon: HeartHandshake },
 ]
 
 const faqs = [
-  { question: 'À qui s’adresse Le Réveil des Vaillants ?', answer: 'À toute personne qui souhaite grandir dans la foi, découvrir la vision de la Chapelle Royale ou s’engager dans une démarche de service.' },
-  { question: 'Comment participer au culte du dimanche ?', answer: 'Consultez la rubrique Cultes de Citadelle pour découvrir les rendez-vous et les modalités de participation disponibles.' },
-  { question: 'Dois-je être membre pour découvrir les formations ?', answer: 'Vous pouvez explorer les formations présentées sur Citadelle. Les conditions d’accès dépendent de chaque parcours.' },
-  { question: 'Comment rejoindre la communauté ?', answer: 'Le parcours d’intégration vous permet de découvrir la communauté et les prochaines étapes pour la rejoindre.' },
-  { question: 'Comment proposer mon aide ?', answer: 'Rendez-vous dans la rubrique Servir pour découvrir les possibilités d’engagement et les démarches proposées.' },
+  { question: 'Ã€ qui sâ€™adresse Le RÃ©veil des Vaillants ?', answer: 'Ã€ toute personne qui souhaite grandir dans la foi, dÃ©couvrir la vision de la Chapelle Royale ou sâ€™engager dans une dÃ©marche de service.' },
+  { question: 'Comment participer au culte du dimanche ?', answer: 'Consultez la rubrique Cultes de Citadelle pour dÃ©couvrir les rendez-vous et les modalitÃ©s de participation disponibles.' },
+  { question: 'Dois-je Ãªtre membre pour dÃ©couvrir les formations ?', answer: 'Vous pouvez explorer les formations prÃ©sentÃ©es sur Citadelle. Les conditions dâ€™accÃ¨s dÃ©pendent de chaque parcours.' },
+  { question: 'Comment rejoindre la communautÃ© ?', answer: 'Le parcours dâ€™intÃ©gration vous permet de dÃ©couvrir la communautÃ© et les prochaines Ã©tapes pour la rejoindre.' },
+  { question: 'Comment proposer mon aide ?', answer: 'Rendez-vous dans la rubrique Servir pour dÃ©couvrir les possibilitÃ©s dâ€™engagement et les dÃ©marches proposÃ©es.' },
 ]
 
 const fallbackCulte = {
-  title: 'Sors de ta cachette, vaillant héros !',
-  description: 'Juges 6:12-16 · Avec le Pasteur Zorobabel. Culte de Célébration Royale.',
+  title: 'Sors de ta cachette, vaillant hÃ©ros !',
+  description: 'Juges 6:12-16 Â· Avec le Pasteur Zorobabel. Culte de CÃ©lÃ©bration Royale.',
   starts_at: '2026-11-01T10:30:00Z',
   cover_url: '/images/reveil-vaillants/culte-2026-11-01.png',
   slug: null,
@@ -55,7 +56,9 @@ export function ReveilVaillantsLanding() {
     if (IS_DEMO_MODE) return
     let active = true
     const load = async () => {
-      const { data, error } = await supabase.from('cms_events')
+      const client = getBrowserClient()
+      if (!client) return
+      const { data, error } = await client.from('cms_events')
         .select('title, description, starts_at, cover_url, slug, cta_href')
         .eq('status', 'published')
         .like('slug', 'reveil-vaillants-2026-11-%')
@@ -89,13 +92,13 @@ export function ReveilVaillantsLanding() {
         <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-abyss via-transparent to-abyss/25" />
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-12">
           <div className="max-w-3xl">
-            <motion.p {...enter()} className="mb-5 text-xs font-semibold uppercase tracking-[0.25em] text-gold-light sm:text-sm">Novembre 2026 <span aria-hidden="true">✦</span> Josué 1:11</motion.p>
-            <motion.h1 {...enter(0.08)} id="vaillants-title" className="font-cinzel text-[clamp(2.2rem,6vw,5.5rem)] font-black leading-[1.07] tracking-tight text-white drop-shadow-xl">LE RÉVEIL <span className="block text-gold-light">DES VAILLANTS</span></motion.h1>
-            <motion.p {...enter(0.16)} className="mt-6 max-w-2xl font-cormorant text-2xl italic leading-snug text-[#F5E6A7] sm:text-4xl">Le temps de prendre possession est arrivé !</motion.p>
-            <motion.p {...enter(0.22)} className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-white/90 sm:text-sm">Se lever · S’équiper · S’engager · Conquérir</motion.p>
+            <motion.p {...enter()} className="mb-5 text-xs font-semibold uppercase tracking-[0.25em] text-gold-light sm:text-sm">Novembre 2026 <span aria-hidden="true">âœ¦</span> JosuÃ© 1:11</motion.p>
+            <motion.h1 {...enter(0.08)} id="vaillants-title" className="font-cinzel text-[clamp(2.2rem,6vw,5.5rem)] font-black leading-[1.07] tracking-tight text-white drop-shadow-xl">LE RÃ‰VEIL <span className="block text-gold-light">DES VAILLANTS</span></motion.h1>
+            <motion.p {...enter(0.16)} className="mt-6 max-w-2xl font-cormorant text-2xl italic leading-snug text-[#F5E6A7] sm:text-4xl">Le temps de prendre possession est arrivÃ© !</motion.p>
+            <motion.p {...enter(0.22)} className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-white/90 sm:text-sm">Se lever Â· Sâ€™Ã©quiper Â· Sâ€™engager Â· ConquÃ©rir</motion.p>
             <motion.div {...enter(0.3)} className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a href="#prendre-ma-place" className="inline-flex min-h-12 items-center justify-center gap-3 rounded-md bg-gradient-gold px-6 py-3 font-semibold text-abyss shadow-gold transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">Prendre ma place <ArrowRight size={18} aria-hidden="true" /></a>
-              <a href="#vision" className="inline-flex min-h-12 items-center justify-center rounded-md border border-gold/70 bg-abyss/60 px-6 py-3 font-semibold text-white backdrop-blur-sm transition-colors hover:bg-royal/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">Découvrir la vision</a>
+              <a href="#vision" className="inline-flex min-h-12 items-center justify-center rounded-md border border-gold/70 bg-abyss/60 px-6 py-3 font-semibold text-white backdrop-blur-sm transition-colors hover:bg-royal/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">DÃ©couvrir la vision</a>
             </motion.div>
           </div>
         </div>
@@ -104,9 +107,9 @@ export function ReveilVaillantsLanding() {
       <section id="vision" className="relative scroll-mt-28 overflow-hidden px-5 py-16 sm:px-8 sm:py-24" aria-labelledby="vision-title">
         <div aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 h-56 w-96 -translate-x-1/2 rounded-full bg-royal/20 blur-3xl" />
         <motion.div {...enter()} className="relative mx-auto max-w-3xl text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-gold">Un appel à se lever</p>
-          <h2 id="vision-title" className="mt-4 font-cinzel text-3xl font-bold text-white sm:text-4xl">Le courage de répondre à l’appel</h2>
-          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/75 sm:text-base">Le Réveil des Vaillants est une invitation à sortir de l’immobilisme, à grandir dans la foi et à prendre sa place dans une communauté qui prie, apprend, sert et partage l’Évangile.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-gold">Un appel Ã  se lever</p>
+          <h2 id="vision-title" className="mt-4 font-cinzel text-3xl font-bold text-white sm:text-4xl">Le courage de rÃ©pondre Ã  lâ€™appel</h2>
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/75 sm:text-base">Le RÃ©veil des Vaillants est une invitation Ã  sortir de lâ€™immobilisme, Ã  grandir dans la foi et Ã  prendre sa place dans une communautÃ© qui prie, apprend, sert et partage lâ€™Ã‰vangile.</p>
         </motion.div>
         <div className="relative mx-auto mt-9 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {pillars.map((p, i) => (
@@ -122,18 +125,18 @@ export function ReveilVaillantsLanding() {
 
       <section className="relative overflow-hidden bg-gradient-royal px-5 py-16 sm:px-8 sm:py-20" aria-labelledby="david-title">
         <motion.div {...enter()} className="mx-auto max-w-5xl border-l-2 border-gold pl-6 sm:pl-9">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold-light">1 Samuel 22:1-2 · 1 Chroniques 12</p>
-          <h2 id="david-title" className="mt-3 font-cinzel text-3xl font-bold sm:text-4xl">De la caverne à la destinée</h2>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-white/80 sm:text-base">Autour de David se sont rassemblés des hommes aux parcours difficiles. Leur histoire nous rappelle qu’un point de départ ne détermine pas toute une destinée. Chacun peut grandir, se former et devenir une bénédiction pour les autres.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold-light">1 Samuel 22:1-2 Â· 1 Chroniques 12</p>
+          <h2 id="david-title" className="mt-3 font-cinzel text-3xl font-bold sm:text-4xl">De la caverne Ã  la destinÃ©e</h2>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-white/80 sm:text-base">Autour de David se sont rassemblÃ©s des hommes aux parcours difficiles. Leur histoire nous rappelle quâ€™un point de dÃ©part ne dÃ©termine pas toute une destinÃ©e. Chacun peut grandir, se former et devenir une bÃ©nÃ©diction pour les autres.</p>
         </motion.div>
       </section>
 
       <section className="px-5 py-16 sm:px-8 sm:py-24" aria-labelledby="territoires-title">
         <div className="mx-auto max-w-5xl">
           <motion.div {...enter()} className="max-w-3xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold">Des progrès visibles</p>
-            <h2 id="territoires-title" className="mt-3 font-cinzel text-3xl font-bold sm:text-4xl">Les territoires de la conquête</h2>
-            <p className="mt-4 text-sm leading-7 text-white/70">Avancer dans la foi, développer ses capacités et agir avec responsabilité, dans chaque domaine de la vie.</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold">Des progrÃ¨s visibles</p>
+            <h2 id="territoires-title" className="mt-3 font-cinzel text-3xl font-bold sm:text-4xl">Les territoires de la conquÃªte</h2>
+            <p className="mt-4 text-sm leading-7 text-white/70">Avancer dans la foi, dÃ©velopper ses capacitÃ©s et agir avec responsabilitÃ©, dans chaque domaine de la vie.</p>
           </motion.div>
           <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {territories.map((t, i) => (
@@ -160,21 +163,21 @@ export function ReveilVaillantsLanding() {
                 <span className="font-cinzel text-xs uppercase tracking-[0.24em] text-gold">Rendez-vous royal</span>
                 <p className="font-cinzel text-3xl font-bold text-white">Dimanche</p>
                 <p className="font-cormorant text-5xl italic text-gold-light">10h30</p>
-                <p className="text-sm text-white/70">Louange · Enseignement · PriÃ¨re · Communion</p>
+                <p className="text-sm text-white/70">Louange Â· Enseignement Â· PriÃƒÂ¨re Â· Communion</p>
               </div>
             )}
           </div>
           <div className="culte-content-enter flex flex-col justify-center">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold-light">Culte de Célébration Royale · Chapelle Royale</p>
-            <h2 id="culte-title" className="culte-title-enter mt-5 font-cinzel text-3xl font-bold leading-[1.2] text-white sm:text-4xl lg:text-[2.5rem]">{displayCulte?.title || 'Culte de Célébration Royale'}</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold-light">Culte de CÃ©lÃ©bration Royale Â· Chapelle Royale</p>
+            <h2 id="culte-title" className="culte-title-enter mt-5 font-cinzel text-3xl font-bold leading-[1.2] text-white sm:text-4xl lg:text-[2.5rem]">{displayCulte?.title || 'Culte de CÃ©lÃ©bration Royale'}</h2>
             <div className="mt-5 h-px w-24 bg-gradient-to-r from-gold to-transparent" aria-hidden="true" />
             {displayCulte?.starts_at ? (
-              <p className="mt-5 text-sm font-semibold leading-7 text-gold-light sm:text-base">{new Intl.DateTimeFormat('fr-FR', { timeZone: 'Africa/Abidjan', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(displayCulte.starts_at))} · Heure de Côte d’Ivoire</p>
+              <p className="mt-5 text-sm font-semibold leading-7 text-gold-light sm:text-base">{new Intl.DateTimeFormat('fr-FR', { timeZone: 'Africa/Abidjan', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(displayCulte.starts_at))} Â· Heure de CÃ´te dâ€™Ivoire</p>
             ) : (
-              <p className="mt-5 text-sm font-semibold text-gold-light sm:text-base">Chaque dimanche · 10h30 · Heure de Côte d’Ivoire</p>
+              <p className="mt-5 text-sm font-semibold text-gold-light sm:text-base">Chaque dimanche Â· 10h30 Â· Heure de CÃ´te dâ€™Ivoire</p>
             )}
-            <p className="mt-4 max-w-xl whitespace-pre-line text-sm leading-7 text-white/85 sm:text-base">{displayCulte?.description || 'Un rendez-vous pour célébrer Jésus-Christ, recevoir la Parole, prier ensemble et avancer dans la foi. Prenez part Ã  ce temps de communion avec la Chapelle Royale.'}</p>
-            <Link href={displayCulte?.slug ? `/evenements/${displayCulte.slug}` : '/evenements'} className="mt-7 inline-flex min-h-11 items-center gap-2 self-start rounded-md border border-gold/60 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold-light transition-all duration-300 hover:-translate-y-1 hover:bg-gold/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">{displayCulte ? 'Voir les événements' : 'Découvrir les cultes'} <ArrowRight size={17} aria-hidden="true" /></Link>
+            <p className="mt-4 max-w-xl whitespace-pre-line text-sm leading-7 text-white/85 sm:text-base">{displayCulte?.description || 'Un rendez-vous pour cÃ©lÃ©brer JÃ©sus-Christ, recevoir la Parole, prier ensemble et avancer dans la foi. Prenez part ÃƒÂ  ce temps de communion avec la Chapelle Royale.'}</p>
+            <Link href={displayCulte?.slug ? `/evenements/${displayCulte.slug}` : '/evenements'} className="mt-7 inline-flex min-h-11 items-center gap-2 self-start rounded-md border border-gold/60 bg-gold/10 px-5 py-2.5 text-sm font-semibold text-gold-light transition-all duration-300 hover:-translate-y-1 hover:bg-gold/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold">{displayCulte ? 'Voir les Ã©vÃ©nements' : 'DÃ©couvrir les cultes'} <ArrowRight size={17} aria-hidden="true" /></Link>
           </div>
         </div>
         <style jsx>{`
@@ -191,7 +194,7 @@ export function ReveilVaillantsLanding() {
         <motion.div {...enter()} className="mx-auto max-w-3xl text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-gold">Votre prochain pas</p>
           <h2 id="engagement-title" className="mt-3 font-cinzel text-3xl font-bold sm:text-4xl">Quelle place souhaitez-vous prendre ?</h2>
-          <p className="mt-4 text-sm leading-7 text-white/75">Choisissez le chemin qui correspond à votre besoin actuel. Vous pourrez avancer à votre rythme.</p>
+          <p className="mt-4 text-sm leading-7 text-white/75">Choisissez le chemin qui correspond Ã  votre besoin actuel. Vous pourrez avancer Ã  votre rythme.</p>
         </motion.div>
         <div className="mx-auto mt-8 grid max-w-5xl gap-3 md:grid-cols-3">
           {journeys.map((j, i) => (
@@ -203,15 +206,15 @@ export function ReveilVaillantsLanding() {
             </motion.article>
           ))}
         </div>
-        <p className="mx-auto mt-5 max-w-3xl text-center text-xs leading-6 text-white/50">Prototype visuel : les liens conduisent aux parcours existants. Aucun formulaire de campagne ni création automatique de membre n’est activé ici.</p>
+        <p className="mx-auto mt-5 max-w-3xl text-center text-xs leading-6 text-white/50">Prototype visuel : les liens conduisent aux parcours existants. Aucun formulaire de campagne ni crÃ©ation automatique de membre nâ€™est activÃ© ici.</p>
       </section>
 
       <section id="questions" className="border-t border-gold/15 bg-gradient-royal px-5 py-16 sm:px-8 sm:py-24" aria-labelledby="faq-title">
         <div className="mx-auto max-w-3xl">
           <motion.div {...enter()} className="text-center">
             <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-gold-light">Tout savoir</p>
-            <h2 id="faq-title" className="mt-3 font-cinzel text-3xl font-bold sm:text-4xl">Questions fréquentes</h2>
-            <p className="mt-4 text-sm text-white/70">Quelques réponses pour vous aider à faire votre premier pas.</p>
+            <h2 id="faq-title" className="mt-3 font-cinzel text-3xl font-bold sm:text-4xl">Questions frÃ©quentes</h2>
+            <p className="mt-4 text-sm text-white/70">Quelques rÃ©ponses pour vous aider Ã  faire votre premier pas.</p>
           </motion.div>
           <div className="mt-8 divide-y divide-gold/20 border-y border-gold/20">
             {faqs.map((faq, i) => (
