@@ -8,6 +8,12 @@ const SUPA_ORIGIN = (() => {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Le flag de démonstration n'est pas sensible. Le dériver explicitement pour
+  // le navigateur garde le rendu initial (AuthProvider inclus) identique au
+  // serveur, sans exposer les variables Supabase privées.
+  env: {
+    NEXT_PUBLIC_CITADELLE_DEMO_MODE: process.env.CITADELLE_DEMO_MODE === '1' ? '1' : '0',
+  },
   // Build portable auto-suffisant pour PlanetHoster / N0C (Passenger, sans
   // build serveur) : génère .next/standalone avec un server.js + node_modules
   // minimal. Voir app.js (point d'entrée Passenger) et le dossier deploy-citadelle.
