@@ -4,7 +4,9 @@
  * et l'auth simule un utilisateur. Voir SUPABASE_SETUP.md pour activer le réel.
  */
 const missingPublicSupabase = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const explicitDemoMode = process.env.CITADELLE_DEMO_MODE === '1'
+// Dans un bundle client, Next.js n'expose que les variables NEXT_PUBLIC_*.
+// next.config.js dérive ce booléen non sensible depuis CITADELLE_DEMO_MODE.
+const explicitDemoMode = process.env.NEXT_PUBLIC_CITADELLE_DEMO_MODE === '1'
 if (process.env.NODE_ENV === 'production' && missingPublicSupabase) {
   throw new Error('CITADELLE_PROD_ENV_GUARD=FAIL MISSING=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
