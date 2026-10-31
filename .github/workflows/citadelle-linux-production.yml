@@ -1,0 +1,70 @@
+name: Citadelle Linux Production Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_ENV: production
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_APP_URL: https://citadelle.chapelleduroyaume.org
+      NEXT_PUBLIC_SITE_URL: https://citadelle.chapelleduroyaume.org
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run type-check
+
+      - name: Build production
+        run: npm run build
+
+      - name: Assemble Linux standalone
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .next/standalone/server.js
+          test -f app.js
+          mkdir -p deploy-citadelle/.next
+          cp -a .next/standalone/. deploy-citadelle/
+          cp -a .next/static deploy-citadelle/.next/
+          cp -a public deploy-citadelle/
+          cp app.js deploy-citadelle/app.js
+          test -f deploy-citadelle/server.js
+          test -f deploy-citadelle/app.js
+          test -f deploy-citadelle/.next/BUILD_ID
+          test -d deploy-citadelle/node_modules
+          test ! -e deploy-citadelle/.env
+          test ! -e deploy-citadelle/.env.local
+          node scripts/assert-production-bundle.mjs --assets-dir deploy-citadelle/.next/static
+          tar -czf citadelle-linux-production.tar.gz -C deploy-citadelle .
+          sha256sum citadelle-linux-production.tar.gz > citadelle-linux-production.tar.gz.sha256
+          echo "BUILD_ID=$(cat deploy-citadelle/.next/BUILD_ID)"
+          echo "PACKAGE_SHA256=$(cut -d' ' -f1 citadelle-linux-production.tar.gz.sha256)"
+
+      - name: Upload production package
+        uses: actions/upload-artifact@v4
+        with:
+          name: citadelle-linux-production
+          path: |
+            citadelle-linux-production.tar.gz
+            citadelle-linux-production.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 7
