@@ -2,6 +2,7 @@ import { cmsList } from '@/lib/cms'
 import { ContextualHome } from '@/components/sections/ContextualHome'
 import { resolveLiveState, type CmsLiveLike, type LiveState } from '@/lib/home/contextual'
 import { detectYouTubeLive } from '@/lib/home/youtube-live'
+import { selectFeaturedHomeEvent, type FeaturedHomeEvent } from '@/lib/home/featured-event'
 
 export async function HomeSections() {
   const liveRows = await cmsList<CmsLiveLike>('cms_lives', {
@@ -11,6 +12,15 @@ export async function HomeSections() {
     ascending: false,
     limit: 12,
   })
+  // Explicit CMS editorial selection only; use uncached reads for admin changes.
+  const featuredRows = await cmsList<FeaturedHomeEvent>('cms_events', {
+    publicOnly: true,
+    filter: { is_featured: true },
+    noStore: true,
+    orderBy: 'sort_order',
+    ascending: true,
+  })
+  const featuredEvent = selectFeaturedHomeEvent(featuredRows)
   const testMode = process.env.CITADELLE_TEST_MODE === '1'
   const testState = process.env.CITADELLE_TEST_LIVE_STATE?.trim().toUpperCase()
 
@@ -41,5 +51,5 @@ export async function HomeSections() {
     (await detectYouTubeLive()) ||
     resolveLiveState(liveRows)
 
-  return <ContextualHome liveState={liveState} />
+  return <ContextualHome liveState={liveState} featuredEvent={featuredEvent} />
 }
