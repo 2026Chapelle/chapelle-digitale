@@ -1,0 +1,51 @@
+name: Citadelle Featured Event V1 Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/components/home/FeaturedEvent.tsx"
+      - "src/components/sections/ContextualHome.tsx"
+      - "src/components/sections/HomeSections.tsx"
+      - "src/components/conversion/EventRegisterButton.tsx"
+      - "src/lib/home/featured-event.ts"
+      - "src/lib/home/featured-event.test.ts"
+      - ".github/workflows/featured-event-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Featured Event - Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run type-check
+
+      - name: Featured Event tests
+        run: npx vitest run src/lib/home/featured-event.test.ts src/components/sections/__tests__/contextual-home-layout.test.ts
+
+      - name: Git diff check
+        run: git diff --check
+
+      - name: Validation summary
+        run: |
+          echo "FEATURED_EVENT_VALIDATION=PASS"
+          echo "BUILD=NOT_RUN"
+          echo "DEPLOY=NOT_RUN"
