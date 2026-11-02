@@ -46,12 +46,15 @@ export function FeaturedEvent({ event }: { event: FeaturedHomeEvent | null }) {
 
   return (
     <section aria-labelledby="featured-event-heading" className="relative isolate overflow-hidden border-y border-white/[.06] bg-[#0b0c14]">
-      <div className="container-cinematic relative max-w-5xl py-10 md:py-14">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_20%_50%,rgba(212,175,55,0.07),transparent_55%)]" />
+      <div className="container-cinematic relative max-w-6xl py-10 md:py-14">
         <p className="mb-5 font-inter text-[10px] uppercase tracking-[.25em] text-[#D4AF37]/75 lg:sr-only">
           {labels.featured}
         </p>
-        <div className="grid items-center gap-6 lg:grid-cols-[1fr_1fr] lg:gap-10">
-          <div className="min-w-0 overflow-hidden rounded-2xl border border-[#D4AF37]/30 bg-[#0b0c14] p-1.5 shadow-[0_18px_50px_rgba(0,0,0,0.35)] sm:p-2">
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:gap-12">
+          <div className="relative min-w-0">
+            <div aria-hidden="true" className="pointer-events-none absolute -inset-4 rounded-[28px] bg-[radial-gradient(ellipse_at_50%_50%,rgba(212,175,55,0.14),transparent_70%)]" />
+            <div className="relative overflow-hidden rounded-2xl border border-[#D4AF37]/50 bg-[#0b0c14] p-1.5 shadow-[0_30px_80px_rgba(0,0,0,0.6),0_0_0_1px_rgba(212,175,55,0.12),0_0_60px_rgba(212,175,55,0.10)] ring-1 ring-inset ring-[#F5E6A7]/10 sm:p-2">
             {event.cover_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -65,27 +68,31 @@ export function FeaturedEvent({ event }: { event: FeaturedHomeEvent | null }) {
                 <CalendarDays aria-hidden="true" className="h-12 w-12 text-[#D4AF37]/50" />
               </div>
             )}
+            </div>
           </div>
 
           <div className="flex min-w-0 flex-col justify-center py-1">
-            <p className="mb-3 font-inter text-[10px] uppercase tracking-[.25em] text-[#D4AF37]/75">
+            <p className="mb-3 break-words font-inter text-[10px] uppercase tracking-[.25em] text-[#D4AF37]/75">
               {event.is_online ? labels.online : (event.location || labels.inPerson)}
               <span className="px-2" aria-hidden="true">·</span>
               {labels.brand}
             </p>
-            <h2 id="featured-event-heading" className="font-cinzel text-2xl leading-tight text-white md:text-3xl">
+            <h2 id="featured-event-heading" className="break-words font-cinzel text-2xl leading-tight text-white md:text-3xl">
               {event.title}
             </h2>
-            <div aria-hidden="true" className="my-5 h-px w-24 bg-gradient-to-r from-[#D4AF37]/60 to-transparent" />
-            <p className="font-inter text-sm font-medium leading-6 text-[#F5E6A7] md:text-base">
+            <div aria-hidden="true" className="my-5 flex items-center gap-2">
+              <span className="h-px w-20 bg-gradient-to-r from-[#D4AF37]/70 to-[#D4AF37]/10" />
+              <span className="h-1 w-1 rotate-45 bg-[#D4AF37]/70" />
+            </div>
+            <p className="break-words font-inter text-sm font-medium leading-6 text-[#F5E6A7]">
               {eventDate} · {labels.timezone}
             </p>
             {event.description && (
-              <p className="mt-4 max-w-prose font-inter text-sm leading-relaxed text-white/60">
+              <p className="mt-5 max-w-prose whitespace-pre-line break-words font-inter text-sm leading-relaxed text-white/70">
                 {event.description}
               </p>
             )}
-            <div className="mt-6 [&>button]:min-h-[48px] [&>button]:w-full [&>button]:justify-center sm:[&>button]:w-auto">
+            <div className="mt-7 [&>button]:min-h-[48px] [&>button]:w-full [&>button]:justify-center sm:[&>button]:w-auto">
               {safeHref ? (
                 <Link href={safeHref} className="btn-gold-cinematic inline-flex min-h-[48px] w-full items-center justify-center gap-2 sm:w-auto">
                   {event.cta_label || labels.discover}
