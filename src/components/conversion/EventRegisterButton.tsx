@@ -84,7 +84,7 @@ export function EventRegisterButton({
 
   return (
     <div className="w-full rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(212,175,55,0.2)' }}>
-      <p className="font-inter text-sm font-semibold mb-3" style={{ color: 'rgba(245,230,216,0.85)' }}>Réservez votre place — c&apos;est gratuit</p>
+      <p className="font-inter text-sm font-semibold mb-3" style={{ color: 'rgba(245,230,216,0.85)' }}>Réservez votre place</p>
       <div className="flex flex-col sm:flex-row gap-2">
         <input value={prenom} onChange={(e) => setPrenom(e.target.value)} placeholder="Votre prénom" maxLength={60} className="input-cinematic flex-1" />
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Votre email" maxLength={120} className="input-cinematic flex-1" />
