@@ -107,7 +107,7 @@ export function FeaturedPodcastAdmin() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
           Enregistrer le podcast de l’accueil
         </button>
-        <button type="button" className="rounded-xl border border-white/20 px-4 py-2 text-sm font-inter text-pearl/75 disabled:opacity-40" disabled={!canSave || selected === null} onClick={() => { setDraft(null); setMessage('') }}>
+        <button type="button" className="rounded-xl border border-white/20 px-4 py-2 text-sm font-inter text-pearl/75 disabled:opacity-40" disabled={demo || !blockAvailable || saving || selected === null || draft === null} onClick={() => { setDraft(null); setMessage('') }}>
           Choix automatique
         </button>
       </div>
