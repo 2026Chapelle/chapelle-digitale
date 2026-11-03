@@ -9,6 +9,7 @@ import { resolveMemberNextAction, type MemberNextAction } from '@/lib/member-hom
 import { track } from '@/lib/analytics'
 import { getBrowserClient } from '@/lib/supabase-browser'
 import { fetchPublishedPodcasts } from '@/lib/podcast/fetch-episodes'
+import { readTodayPodcastId, selectTodayPodcast } from '@/lib/podcast/home-featured'
 import { FeaturedEvent } from '@/components/home/FeaturedEvent'
 import type { FeaturedHomeEvent } from '@/lib/home/featured-event'
 
@@ -40,13 +41,82 @@ export function ContextualHome({ liveState, featuredEvent }: { liveState: LiveSt
   useEffect(() => {
     const supabase = getBrowserClient()
     if (!supabase) return
+
     let cancelled = false
-    Promise.resolve(fetchPublishedPodcasts(cols => supabase.from('cms_podcasts').select(cols).eq('status', 'published').order('published_at', { ascending: false }).limit(1)))
-      .then(({ rows }) => {
-        const row = rows[0]
-        if (!cancelled && typeof row?.title === 'string' && row.title.trim()) setPodcast({ title: row.title.trim(), cover: typeof row.cover_url === 'string' && row.cover_url.trim() ? row.cover_url : undefined })
-      }).catch(() => {})
-    return () => { cancelled = true }
+
+    ;(async () => {
+      try {
+        const [latestResult, blockResult] = await Promise.all([
+          fetchPublishedPodcasts(cols =>
+            supabase
+              .from('cms_podcasts')
+              .select(cols)
+              .eq('status', 'published')
+              .order('published_at', { ascending: false })
+              .limit(1)
+          ),
+          supabase
+            .from('cms_homepage_blocks')
+            .select('data')
+            .eq('block_key', 'podcast')
+            .maybeSingle(),
+        ])
+
+        const selectedId = blockResult.error
+          ? null
+          : readTodayPodcastId(blockResult.data?.data)
+
+        let selectedRows: typeof latestResult.rows = []
+
+        if (selectedId) {
+          const selectedResult = await fetchPublishedPodcasts(cols =>
+            supabase
+              .from('cms_podcasts')
+              .select(cols)
+              .eq('id', selectedId)
+              .eq('status', 'published')
+              .limit(1)
+          )
+
+          selectedRows = selectedResult.rows
+        }
+
+        const candidates = [...selectedRows, ...latestResult.rows]
+          .map(row => ({
+            ...row,
+            id: String(row.id || ''),
+            title: typeof row.title === 'string' ? row.title : '',
+            status: 'published',
+            published_at: typeof row.published_at === 'string'
+              ? row.published_at
+              : null,
+            cover_url: typeof row.cover_url === 'string'
+              ? row.cover_url
+              : null,
+          }))
+
+        const chosen = selectTodayPodcast(candidates, selectedId)
+
+        if (cancelled) return
+
+        if (chosen) {
+          setPodcast({
+            title: chosen.title || '',
+            cover: typeof chosen.cover_url === 'string' && chosen.cover_url.trim()
+              ? chosen.cover_url
+              : undefined,
+          })
+        } else {
+          setPodcast(null)
+        }
+      } catch {
+        if (!cancelled) setPodcast(null)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {

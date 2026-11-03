@@ -13,8 +13,9 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Star, Loader2, Check, ExternalLink, AlertTriangle, Search, Info } from 'lucide-react'
 import { deriveDisplayType, isParcoursType, FEATURED_LIMITS } from '@/lib/cms/featured'
+import { FeaturedPodcastAdmin } from '@/components/features/admin/FeaturedPodcastAdmin'
 
-type Tab = 'formations' | 'parcours' | 'evenements'
+type Tab = 'formations' | 'parcours' | 'evenements' | 'podcasts'
 type Resource = 'formations' | 'cms_events'
 
 interface Item {
@@ -121,8 +122,8 @@ export default function ContenusEnVedettePage() {
     events: events.filter((e) => e.is_featured).length,
   }), [formations, events])
 
-  const group: Record<Tab, 'formations' | 'parcours' | 'events'> = { formations: 'formations', parcours: 'parcours', evenements: 'events' }
-  const limitFor: Record<Tab, number> = { formations: FEATURED_LIMITS.formations, parcours: FEATURED_LIMITS.parcours, evenements: FEATURED_LIMITS.events }
+  const group: Record<Tab, 'formations' | 'parcours' | 'events'> = { formations: 'formations', parcours: 'parcours', evenements: 'events', podcasts: 'events' }
+  const limitFor: Record<Tab, number> = { formations: FEATURED_LIMITS.formations, parcours: FEATURED_LIMITS.parcours, evenements: FEATURED_LIMITS.events, podcasts: 1 }
 
   const rows = useMemo(() => {
     let base: Item[] =
@@ -168,7 +169,7 @@ export default function ContenusEnVedettePage() {
   }
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: 'formations', label: 'Formations' }, { id: 'parcours', label: 'Parcours' }, { id: 'evenements', label: 'Événements' },
+    { id: 'formations', label: 'Formations' }, { id: 'parcours', label: 'Parcours' }, { id: 'evenements', label: 'Événements' }, { id: 'podcasts', label: 'Podcasts' },
   ]
 
   return (
@@ -200,11 +201,12 @@ export default function ContenusEnVedettePage() {
           {TABS.map((t) => (
             <button key={t.id} onClick={() => { setTab(t.id); setStatusFilter('all'); setSearch('') }}
               className={`px-4 py-2 rounded-xl text-sm font-inter font-medium whitespace-nowrap transition-all ${tab === t.id ? 'bg-gold text-black' : 'bg-pearl/5 text-pearl/50 hover:bg-pearl/10 hover:text-pearl/80'}`}>
-              {t.label} <span className="opacity-70">· {counts[group[t.id]]}/{limitFor[t.id]}</span>
+              {t.label} {t.id !== 'podcasts' && <span className="opacity-70">· {counts[group[t.id]]}/{limitFor[t.id]}</span>}
             </button>
           ))}
         </div>
 
+        {tab === 'podcasts' ? <FeaturedPodcastAdmin /> : (<>
         {/* Recherche + filtre statut */}
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="relative flex-1 min-w-[200px]">
@@ -290,6 +292,7 @@ export default function ContenusEnVedettePage() {
             })}
           </div>
         )}
+        </>)}
       </div>
     </div>
   )
