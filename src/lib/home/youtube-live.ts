@@ -104,8 +104,11 @@ export function classifyBroadcast(item: YouTubeItem, now = new Date()): Kind | n
   const upcomingLife = ['ready', 'created', 'testStarting', 'testing'].includes(life || '')
   if ((privacy === 'public' || privacy === 'unlisted') && !t.actualStart && upcomingLife) {
     const scheduled = parse(t.scheduledStart)
+    // Sans date : impossible d'afficher « Prochain direct » avec sa date ni de l'ordonner → ignorée
+    // (elle redevient visible dès qu'elle démarre, via la classification LIVE ci-dessus).
+    if (scheduled === undefined) return null
     // Programmé mais jamais démarré depuis trop longtemps : ne plus l'afficher.
-    if (scheduled !== undefined && scheduled < now.getTime() - UPCOMING_GRACE_MS) return 'ENDED'
+    if (scheduled < now.getTime() - UPCOMING_GRACE_MS) return 'ENDED'
     return 'UPCOMING'
   }
   return null

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { countLifecycleStates, durationSeconds, planYouTubeSync, replayVerdict, videoIdsToVerify, COMPLETED_WINDOW_MS, REPLAY_PENDING_STATUS, type CmsLiveSyncRow } from './youtube-sync'
+import { countLifecycleStates, durationSeconds, planYouTubeSync, replayVerdict, videoIdsToVerify, COMPLETED_WINDOW_MS, REPLAY_PENDING_STATUS, STALE_SCHEDULE_GRACE_MS, type CmsLiveSyncRow } from './youtube-sync'
+import { UPCOMING_GRACE_MS } from '@/lib/home/youtube-live'
 
 const now = new Date('2026-11-15T10:00:00Z')
 const ID = 'culte123456'
@@ -117,5 +118,42 @@ describe('planYouTubeSync — cycle PROGRAMMÉ → EN DIRECT → TERMINÉ → RE
     expect(planYouTubeSync({ ...empty, upcoming: [b()], rows: [row({ is_live: true })] }).operations).toEqual([])
     // Date modifiée par l'admin : YouTube reste la vérité horaire (seul champ non éditorial réaligné).
     expect(planYouTubeSync({ ...empty, upcoming: [b()], rows: [row({ scheduled_at: '2026-11-16T10:00:00Z' })] }).operations).toEqual([{ kind: 'update', videoId: ID, lifecycle: 'scheduled', id: 'row-1', patch: { scheduled_at: '2026-11-16T09:00:00Z' } }])
+  })
+
+  describe('N0C anomalies (p900Q_e1Y2U undated, j-RGU6Q84CE scheduled on 5 November)', () => {
+    const undated = { id: 'p900Q_e1Y2U', snippet: { title: 'Diffusion sans date' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' } }
+    const pastScheduled = { id: 'j-RGU6Q84CE', snippet: { title: 'Culte du 5 novembre', scheduledStartTime: '2026-11-05T09:00:00Z' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' } }
+
+    it('creates no cms_lives row for either broadcast and reports why', () => {
+      const plan = planYouTubeSync({ ...empty, upcoming: [undated, pastScheduled] })
+      expect(plan.operations).toEqual([])
+      expect(plan.skipped).toEqual([{ videoId: 'p900Q_e1Y2U', reason: 'undated_schedule' }, { videoId: 'j-RGU6Q84CE', reason: 'stale_schedule' }])
+    })
+
+    it('never modifies nor deletes an existing row for these broadcasts', () => {
+      const rows = [
+        row({ id: 'row-undated', youtube_url: 'https://www.youtube.com/watch?v=p900Q_e1Y2U', scheduled_at: null, title: 'Titre admin' }),
+        row({ id: 'row-past', youtube_url: 'https://youtu.be/j-RGU6Q84CE', scheduled_at: '2026-11-05T09:00:00Z' }),
+      ]
+      const plan = planYouTubeSync({ ...empty, upcoming: [undated, pastScheduled], rows })
+      expect(plan.operations).toEqual([])
+      expect(plan.operations.some(op => op.kind !== 'insert' && op.kind !== 'update')).toBe(false)
+    })
+
+    it('does not attach a past schedule to a manual row of the same time', () => {
+      const manual = row({ id: 'manual', youtube_url: null, scheduled_at: '2026-11-05T09:15:00Z' })
+      expect(planYouTubeSync({ ...empty, upcoming: [pastScheduled], rows: [manual] }).operations).toEqual([])
+    })
+
+    it('tolerates a short delay (still within the grace) and follows the broadcast once it really starts', () => {
+      const late = { ...pastScheduled, snippet: { ...pastScheduled.snippet, scheduledStartTime: new Date(now.getTime() - STALE_SCHEDULE_GRACE_MS + 60_000).toISOString() } }
+      expect(planYouTubeSync({ ...empty, upcoming: [late] }).operations).toMatchObject([{ kind: 'insert', lifecycle: 'scheduled' }])
+      const started = { ...undated, status: { lifeCycleStatus: 'live', privacyStatus: 'public' }, snippet: { ...undated.snippet, actualStartTime: '2026-11-15T09:58:00Z' } }
+      expect(planYouTubeSync({ ...empty, active: [started] }).operations).toMatchObject([{ kind: 'insert', videoId: 'p900Q_e1Y2U', lifecycle: 'live', row: { status: 'live', is_live: true } }])
+    })
+
+    it('uses the same grace as the home page detector', () => {
+      expect(STALE_SCHEDULE_GRACE_MS).toBe(UPCOMING_GRACE_MS)
+    })
   })
 })

@@ -28,6 +28,8 @@ export const SYNC_PLATFORM = 'YouTube'
 export const COMPLETED_WINDOW_MS = 14 * 24 * 60 * 60_000
 /** Un live programmé manuellement sans URL est rattaché si son horaire est à moins de 60 min. */
 export const SCHEDULE_MATCH_TOLERANCE_MS = 60 * 60_000
+/** Une diffusion programmée jamais démarrée et en retard de plus de 6 h n'est plus synchronisée (même règle que l'accueil). */
+export const STALE_SCHEDULE_GRACE_MS = 6 * 60 * 60_000
 
 export type CmsLiveSyncRow = {
   id: string
@@ -49,7 +51,7 @@ export type SyncLifecycle = 'scheduled' | 'live' | 'replay_pending' | 'replay_av
 export type SyncOperation =
   | { kind: 'insert'; videoId: string; lifecycle: SyncLifecycle; row: CmsLivePatch & { title: string; youtube_url: string; status: string } }
   | { kind: 'update'; videoId: string; lifecycle: SyncLifecycle; id: string; patch: CmsLivePatch }
-export type SyncSkip = { videoId: string; reason: 'draft_row' | 'already_replay' | 'unavailable' | 'private' | 'processing' | 'uncertain' | 'outside_window' | 'no_title' }
+export type SyncSkip = { videoId: string; reason: 'draft_row' | 'already_replay' | 'unavailable' | 'private' | 'processing' | 'uncertain' | 'outside_window' | 'no_title' | 'undated_schedule' | 'stale_schedule' }
 export type SyncPlan = { operations: SyncOperation[]; skipped: SyncSkip[]; pendingVideoIds: string[] }
 
 export type SyncInput = {
@@ -177,6 +179,11 @@ export function planYouTubeSync(input: SyncInput): SyncPlan {
     const id = videoIdOf(item); if (!id || seen.has(id)) continue; seen.add(id)
     const privacy = item.status?.privacyStatus
     if (privacy !== 'public' && privacy !== 'unlisted') { skipped.push({ videoId: id, reason: 'private' }); continue }
+    // Diffusion sans date ou dont la date est dépassée : ni création ni mise à jour de fiche (aucune
+    // pollution de « À venir » ; les fiches existantes ne sont jamais modifiées ni supprimées).
+    const scheduledStart = parse(item.snippet?.scheduledStartTime)
+    if (scheduledStart === undefined) { skipped.push({ videoId: id, reason: 'undated_schedule' }); continue }
+    if (scheduledStart < nowMs - STALE_SCHEDULE_GRACE_MS) { skipped.push({ videoId: id, reason: 'stale_schedule' }); continue }
     // `is_live` n'est jamais forcé à false sur une ligne existante « programmée » : un admin peut l'activer
     // à la main (diffusion démarrée ailleurs). Il n'est posé qu'à la création.
     const existingRow = byId.get(id)
