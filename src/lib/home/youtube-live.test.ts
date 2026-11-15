@@ -1,5 +1,5 @@
 import {describe,expect,it,beforeEach,afterEach} from 'vitest'
-import {__resetYouTubeLiveCache,detectYouTubeLive,detectYouTubeLiveDetailed,revalidationSeconds,classifyOwnedBroadcasts,classifyBroadcast,filterOwnedChannel,verifyYouTubeVideoLive,getYouTubeLiveDiagnostics,UPCOMING_GRACE_MS,ERROR_RETRY_SECONDS,VERIFY_TTL_SECONDS} from './youtube-live'
+import {__resetYouTubeLiveCache,detectYouTubeLive,detectYouTubeLiveDetailed,revalidationSeconds,classifyOwnedBroadcasts,classifyBroadcast,filterOwnedChannel,verifyYouTubeVideoLive,getYouTubeLiveDiagnostics,UPCOMING_GRACE_MS,ERROR_RETRY_SECONDS,VERIFY_TTL_SECONDS,fetchVideoDetails,YOUTUBE_REQUEST_TIMEOUT_MS} from './youtube-live'
 import {resolveLiveState} from './contextual'
 const original={key:process.env.YOUTUBE_API_KEY,channel:process.env.YOUTUBE_CHANNEL_ID,clientId:process.env.YOUTUBE_OAUTH_CLIENT_ID,clientSecret:process.env.YOUTUBE_OAUTH_CLIENT_SECRET,refreshToken:process.env.YOUTUBE_OAUTH_REFRESH_TOKEN}
 const response=(items:unknown[])=>new Response(JSON.stringify({items,access_token:'access-test',expires_in:3600}),{status:200})
@@ -233,5 +233,28 @@ it('fails safely when OAuth configuration is incomplete',async()=>{process.env.Y
     for (const secret of ['test-secret', 'test-refresh', 'test-client']) expect(serialized).not.toContain(secret)
     delete process.env.YOUTUBE_OAUTH_REFRESH_TOKEN
     expect(getYouTubeLiveDiagnostics().oauthConfigured).toBe(false)
+  })
+
+  it('bounds every YouTube API call with a 15 s abort signal', async () => {
+    const signals: Array<AbortSignal | undefined> = []
+    const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (!String(input).includes('oauth2.googleapis.com/token')) signals.push(init?.signal ?? undefined)
+      return response([])
+    }
+    const now = new Date('2026-11-15T10:00:00Z')
+    await detectYouTubeLiveDetailed({ now, fetchImpl })
+    await fetchVideoDetails(['abcdefghijk'], { now, fetchImpl })
+    await verifyYouTubeVideoLive('abcdefghijk', { now, fetchImpl })
+    expect(signals).toHaveLength(4)
+    expect(signals.every(sig => sig instanceof AbortSignal)).toBe(true)
+    expect(YOUTUBE_REQUEST_TIMEOUT_MS).toBe(15_000)
+  })
+
+  it('reports a timed-out YouTube call as youtube_timeout', async () => {
+    const fetchImpl = async (input: RequestInfo | URL) => {
+      if (String(input).includes('oauth2.googleapis.com/token')) return response([])
+      throw new DOMException('The operation was aborted due to timeout', 'TimeoutError')
+    }
+    await expect(detectYouTubeLiveDetailed({ now: new Date('2026-11-15T10:00:00Z'), fetchImpl })).resolves.toMatchObject({ state: null, error: 'youtube_timeout' })
   })
 })

@@ -59,16 +59,49 @@ export type YouTubeSyncStatus = {
   states: SyncStateCounts | null
 }
 
-type SyncOptions = { now?: Date; fetchImpl?: typeof fetch; trigger?: 'cron' | 'admin' }
+type SyncOptions = {
+  now?: Date
+  fetchImpl?: typeof fetch
+  trigger?: 'cron' | 'admin'
+  /** Horloge réelle (ms) pour le budget de temps ; injectable pour les tests. */
+  clock?: () => number
+  /** Délai maximal d'un appel Supabase ; injectable pour les tests. */
+  callTimeoutMs?: number
+}
+
+/**
+ * PROTECTION DE DURÉE DU BAIL (240 s).
+ * Sans délais, un appel réseau bloqué pouvait durer jusqu'à 300 s (défaut Node/undici) et dépasser le bail.
+ * Bornes : chaque appel YouTube 15 s (AbortSignal), chaque appel Supabase 15 s, jeton OAuth 12 s ;
+ * aucune nouvelle étape (lot videos.list, écriture, recomptage) ne démarre après SYNC_WORK_BUDGET_MS ;
+ * le bail est renouvelé (même owner) au moins toutes les SYNC_LOCK_RENEW_EVERY_MS avant d'écrire, et
+ * toute perte du bail arrête immédiatement les écritures (`sync_lock_lost`).
+ */
+export const SUPABASE_CALL_TIMEOUT_MS = 15_000
+export const SYNC_WORK_BUDGET_MS = 120_000
+export const SYNC_LOCK_RENEW_EVERY_MS = 60_000
+/**
+ * Pire cas théorique d'un passage : budget + écriture en cours (insertion + relecture) + renouvellement
+ * + journal + libération. Doit rester inférieur au bail ; vérifié par test.
+ */
+export const SYNC_WORST_CASE_MS = SYNC_WORK_BUDGET_MS + 2 * SUPABASE_CALL_TIMEOUT_MS + SUPABASE_CALL_TIMEOUT_MS + SUPABASE_CALL_TIMEOUT_MS + SUPABASE_CALL_TIMEOUT_MS
+
+let callTimeoutMs = SUPABASE_CALL_TIMEOUT_MS
+/** Borne un appel Supabase (thenable) : au-delà du délai, l'attente cesse avec un code non sensible. */
+function withTimeout<T>(call: PromiseLike<T>, code: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(code)), callTimeoutMs) })
+  return Promise.race([Promise.resolve(call), deadline]).finally(() => { if (timer) clearTimeout(timer) })
+}
 
 async function loadRows(now: Date): Promise<CmsLiveSyncRow[]> {
   const since = new Date(now.getTime() - ROWS_WINDOW_MS).toISOString()
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await withTimeout(supabaseAdmin
     .from('cms_lives')
     .select('id,title,description,youtube_url,video_url,cover_url,scheduled_at,is_live,platform,status,created_at,updated_at')
     .or(`youtube_url.not.is.null,status.in.(scheduled,live,${REPLAY_PENDING_STATUS}),created_at.gte.${since}`)
     .order('created_at', { ascending: false })
-    .limit(ROWS_LIMIT)
+    .limit(ROWS_LIMIT), 'cms_lives_read_timeout')
   if (error) throw new Error('cms_lives_read_failed')
   return (data as CmsLiveSyncRow[]) || []
 }
@@ -79,10 +112,10 @@ async function loadRows(now: Date): Promise<CmsLiveSyncRow[]> {
  * un doublon détecté est remonté dans `summary.duplicates` pour arbitrage administrateur.
  */
 async function insertDetected(op: Extract<SyncOperation, { kind: 'insert' }>, duplicates: string[]): Promise<void> {
-  const { error } = await supabaseAdmin.from('cms_lives').insert({ ...op.row, sort_order: 0 })
+  const { error } = await withTimeout(supabaseAdmin.from('cms_lives').insert({ ...op.row, sort_order: 0 }), 'cms_lives_insert_timeout')
   if (error) throw new Error('cms_lives_insert_failed')
   try {
-    const { data: twins } = await supabaseAdmin.from('cms_lives').select('id,youtube_url,created_at').ilike('youtube_url', `%${op.videoId}%`).order('created_at', { ascending: true }).limit(10)
+    const { data: twins } = await withTimeout(supabaseAdmin.from('cms_lives').select('id,youtube_url,created_at').ilike('youtube_url', `%${op.videoId}%`).order('created_at', { ascending: true }).limit(10), 'cms_lives_read_timeout')
     const exact = ((twins as Array<{ id: string; youtube_url?: string | null }> | null) || []).filter(t => youtubeVideoIdFrom(t.youtube_url) === op.videoId)
     if (exact.length > 1) duplicates.push(op.videoId)
   } catch { /* détection best-effort */ }
@@ -90,7 +123,7 @@ async function insertDetected(op: Extract<SyncOperation, { kind: 'insert' }>, du
 
 async function applyOperation(op: SyncOperation, nowIso: string, duplicates: string[]): Promise<'inserted' | 'updated'> {
   if (op.kind === 'insert') { await insertDetected(op, duplicates); return 'inserted' }
-  const { error } = await supabaseAdmin.from('cms_lives').update({ ...op.patch, updated_at: nowIso }).eq('id', op.id)
+  const { error } = await withTimeout(supabaseAdmin.from('cms_lives').update({ ...op.patch, updated_at: nowIso }).eq('id', op.id), 'cms_lives_update_timeout')
   if (error) throw new Error('cms_lives_update_failed')
   return 'updated'
 }
@@ -103,7 +136,7 @@ type LockOutcome = 'acquired' | 'busy' | 'unavailable'
  */
 async function acquireLock(owner: string): Promise<LockOutcome> {
   try {
-    const { data, error } = await supabaseAdmin.rpc('acquire_sync_lock', { p_name: SYNC_LOCK_NAME, p_owner: owner, p_ttl_seconds: SYNC_LOCK_TTL_SECONDS })
+    const { data, error } = await withTimeout(supabaseAdmin.rpc('acquire_sync_lock', { p_name: SYNC_LOCK_NAME, p_owner: owner, p_ttl_seconds: SYNC_LOCK_TTL_SECONDS }), 'sync_lock_timeout')
     if (error) return 'unavailable'
     return data === true ? 'acquired' : 'busy'
   } catch {
@@ -112,12 +145,12 @@ async function acquireLock(owner: string): Promise<LockOutcome> {
 }
 
 async function releaseLock(owner: string): Promise<void> {
-  try { await supabaseAdmin.rpc('release_sync_lock', { p_name: SYNC_LOCK_NAME, p_owner: owner }) } catch { /* le bail expire seul (TTL) */ }
+  try { await withTimeout(supabaseAdmin.rpc('release_sync_lock', { p_name: SYNC_LOCK_NAME, p_owner: owner }), 'sync_lock_timeout') } catch { /* le bail expire seul (TTL) */ }
 }
 
 async function openRun(startedAt: string): Promise<string | null> {
   try {
-    const { data } = await supabaseAdmin.from('cron_runs').insert({ job: SYNC_JOB, started_at: startedAt }).select('id').single()
+    const { data } = await withTimeout(supabaseAdmin.from('cron_runs').insert({ job: SYNC_JOB, started_at: startedAt }).select('id').single(), 'cron_runs_timeout')
     return (data as { id?: string } | null)?.id ?? null
   } catch {
     return null // table absente → pas de journal, jamais bloquant
@@ -127,11 +160,11 @@ async function openRun(startedAt: string): Promise<string | null> {
 async function journal(runId: string | null, summary: YouTubeSyncSummary, trigger: string): Promise<void> {
   if (!runId) return
   try {
-    await supabaseAdmin.from('cron_runs').update({
+    await withTimeout(supabaseAdmin.from('cron_runs').update({
       finished_at: new Date().toISOString(),
       ok: summary.ok,
       summary: { trigger, error: summary.error, inserted: summary.inserted, updated: summary.updated, duplicates: summary.duplicates, lifecycle: summary.lifecycle, pending: summary.pendingVideoIds.length, skipped: summary.skipped.length, writeErrors: summary.writeErrors },
-    }).eq('id', runId)
+    }).eq('id', runId), 'cron_runs_timeout')
   } catch { /* journal best-effort : jamais bloquant */ }
 }
 
@@ -150,6 +183,11 @@ async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
   if (IS_DEMO_MODE) return { ...summary, ok: true, error: 'demo_mode' }
   if (!loadYouTubeConfig()) return { ...summary, error: 'youtube_oauth_not_configured' }
 
+  const clock = options.clock || Date.now
+  const t0 = clock()
+  const overBudget = () => clock() - t0 > SYNC_WORK_BUDGET_MS
+  callTimeoutMs = options.callTimeoutMs || SUPABASE_CALL_TIMEOUT_MS
+
   const owner = `${process.pid}:${randomUUID()}`
   const lock = await acquireLock(owner)
   if (lock === 'busy') return { ...summary, ok: true, error: 'sync_already_running' }
@@ -164,10 +202,23 @@ async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
       (['active', 'upcoming', 'completed'] as const).map(status => fetchOwnedBroadcasts(status, options)),
     )
     const rows = await loadRows(now)
-    const videos = await fetchVideoDetails(videoIdsToVerify({ completed, rows, now }), options)
+    let stopReason: 'sync_deadline_exceeded' | 'sync_lock_lost' | null = null
+    const ids = videoIdsToVerify({ completed, rows, now })
+    const videos: Awaited<ReturnType<typeof fetchVideoDetails>> = []
+    for (let i = 0; i < ids.length; i += 50) {
+      if (overBudget()) { stopReason = 'sync_deadline_exceeded'; break }
+      videos.push(...await fetchVideoDetails(ids.slice(i, i + 50), options))
+    }
     const plan = planYouTubeSync({ active, upcoming, completed, videos, rows, now })
 
-    for (const op of plan.operations) {
+    let lastRenewal = clock()
+    for (const op of stopReason ? [] : plan.operations) {
+      if (overBudget()) { stopReason = 'sync_deadline_exceeded'; break }
+      if (clock() - lastRenewal >= SYNC_LOCK_RENEW_EVERY_MS) {
+        // Renouvellement par le MÊME owner : true seulement si le bail nous appartient encore (ou a expiré sans repreneur).
+        if (await acquireLock(owner) !== 'acquired') { stopReason = 'sync_lock_lost'; break }
+        lastRenewal = clock()
+      }
       try {
         const outcome = await applyOperation(op, startedAt, summary.duplicates)
         if (outcome === 'inserted') summary.inserted++; else summary.updated++
@@ -178,13 +229,14 @@ async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
     }
     summary.pendingVideoIds = plan.pendingVideoIds
     summary.skipped = plan.skipped
-    summary.ok = summary.writeErrors === 0
-    summary.error = summary.ok ? null : 'cms_lives_write_failed'
+    summary.ok = summary.writeErrors === 0 && stopReason === null
+    summary.error = stopReason ?? (summary.writeErrors === 0 ? null : 'cms_lives_write_failed')
+    if (stopReason) console.warn(`[youtube-sync] stopped: ${stopReason} (remaining work resumes on the next pass)`)
     if (summary.inserted + summary.updated > 0) __resetYouTubeLiveCache()
-    try { summary.states = countLifecycleStates(await loadRows(now)) } catch { summary.states = null }
+    if (!overBudget()) { try { summary.states = countLifecycleStates(await loadRows(now)) } catch { summary.states = null } }
   } catch (err) {
     const code = youtubeErrorCode(err)
-    summary.error = code === 'youtube_live_error' && err instanceof Error && /^cms_lives_/.test(err.message) ? err.message : code
+    summary.error = code === 'youtube_live_error' && err instanceof Error && /^(cms_lives|cron_runs|sync_lock)_/.test(err.message) ? err.message : code
     console.warn(`[youtube-sync] run failed: ${summary.error}`)
   } finally {
     await journal(runId, summary, options.trigger || 'cron')

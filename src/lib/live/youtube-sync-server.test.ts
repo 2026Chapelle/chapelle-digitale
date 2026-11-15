@@ -13,7 +13,7 @@ vi.mock('@/lib/home/youtube-live', () => ({
   youtubeErrorCode: (err: unknown) => (err instanceof Error && /^youtube_[a-z0-9_]+$/.test(err.message) ? err.message : 'youtube_live_error'),
 }))
 
-import { __resetYouTubeSyncLock, getYouTubeSyncStatus, syncYouTubeLives, SYNC_JOB } from './youtube-sync-server'
+import { __resetYouTubeSyncLock, getYouTubeSyncStatus, syncYouTubeLives, SYNC_JOB, SYNC_LOCK_TTL_SECONDS, SYNC_WORST_CASE_MS, SYNC_WORK_BUDGET_MS, SYNC_LOCK_RENEW_EVERY_MS, SUPABASE_CALL_TIMEOUT_MS } from './youtube-sync-server'
 
 const ID = 'culte123456'
 const upcoming = { id: ID, snippet: { title: 'Culte', scheduledStartTime: '2026-11-16T09:00:00Z', channelId: 'UCtest' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' } }
@@ -218,5 +218,92 @@ describe('syncYouTubeLives', () => {
     const status = await getYouTubeSyncStatus()
     expect(status).toEqual({ configured: true, lastRun: { startedAt: '2026-11-15T09:55:00Z', finishedAt: '2026-11-15T09:55:02Z', ok: false, summary: { error: 'youtube_live_403' } }, states: { scheduled: 1, live: 0, replayPending: 1, replayAvailable: 0 } })
     expect(SYNC_JOB).toBe('youtube-live-sync')
+  })
+
+})
+
+describe('lease duration protection (240 s)', () => {
+  const second = { ...upcoming, id: 'culte654321', snippet: { ...upcoming.snippet, title: 'Culte 2' } }
+  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }); mocks.fetchVideoDetails.mockResolvedValue([]) })
+
+  /** Fait avancer l'horloge simulée à chaque insertion cms_lives. */
+  function advanceOnInsert(stepMs: number, clockRef: { t: number }, onInsert?: (n: number) => void) {
+    const original = mocks.from.getMockImplementation()!
+    let n = 0
+    mocks.from.mockImplementation((table: string) => {
+      const api = original(table)
+      if (table === 'cms_lives') {
+        const insert = api.insert
+        api.insert = (row: Record<string, unknown>) => { n++; onInsert?.(n); clockRef.t += stepMs; return insert(row) }
+      }
+      return api
+    })
+  }
+
+  it('keeps the theoretical worst case of a pass below the lease', () => {
+    expect(SYNC_WORST_CASE_MS).toBe(195_000)
+    expect(SYNC_WORST_CASE_MS).toBeLessThan(SYNC_LOCK_TTL_SECONDS * 1000)
+    expect(SYNC_LOCK_RENEW_EVERY_MS).toBeLessThan(SYNC_LOCK_TTL_SECONDS * 1000 / 2)
+    expect(SYNC_WORK_BUDGET_MS + SUPABASE_CALL_TIMEOUT_MS).toBeLessThan(SYNC_LOCK_TTL_SECONDS * 1000)
+  })
+
+  it('stops writing once the work budget is exceeded, releases the lock and leaves the rest for the next pass', async () => {
+    const locks = lockStore()
+    const calls = database([], {}, locks)
+    const clockRef = { t: 0 }
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => { clockRef.t = SYNC_WORK_BUDGET_MS + 1; return status === 'upcoming' ? [upcoming, second] : [] })
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z'), clock: () => clockRef.t })
+    expect(summary).toMatchObject({ ok: false, error: 'sync_deadline_exceeded', inserted: 0, states: null })
+    expect(calls.inserts).toHaveLength(0)
+    expect(calls.lock.release).toEqual(calls.lock.acquire)
+    expect(locks.state.until).toBe(0)
+  })
+
+  it('renews the lease with the same owner before writing after 60 s', async () => {
+    const locks = lockStore()
+    const calls = database([], {}, locks)
+    const clockRef = { t: 0 }
+    advanceOnInsert(61_000, clockRef)
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming, second] : []))
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z'), clock: () => clockRef.t })
+    expect(summary).toMatchObject({ ok: true, error: null, inserted: 2 })
+    expect(calls.lock.acquire).toHaveLength(2)
+    expect(new Set(calls.lock.acquire).size).toBe(1)
+  })
+
+  it('stops all writes as soon as the lease has been lost to another process', async () => {
+    const locks = lockStore()
+    const calls = database([], {}, locks)
+    const clockRef = { t: 0 }
+    advanceOnInsert(61_000, clockRef, (n) => { if (n === 1) { locks.state.owner = 'intruder'; locks.state.until = Date.now() + 600_000 } })
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming, second] : []))
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z'), clock: () => clockRef.t })
+    expect(summary).toMatchObject({ ok: false, error: 'sync_lock_lost', inserted: 1 })
+    expect(calls.inserts).toHaveLength(1)
+    expect(locks.state.owner).toBe('intruder')
+    expect(locks.state.until).toBeGreaterThan(Date.now())
+  })
+
+  it('bounds a hanging Supabase write (counted as a write error, no wait beyond the timeout)', async () => {
+    database([])
+    const original = mocks.from.getMockImplementation()!
+    mocks.from.mockImplementation((table: string) => {
+      const api = original(table)
+      if (table === 'cms_lives') api.insert = () => new Promise(() => {})
+      return api
+    })
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming] : []))
+    const started = Date.now()
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z'), callTimeoutMs: 30 })
+    expect(Date.now() - started).toBeLessThan(2_000)
+    expect(summary).toMatchObject({ ok: false, error: 'cms_lives_write_failed', writeErrors: 1 })
+  })
+
+  it('refuses to run when the lock RPC hangs (timeout → sync_lock_unavailable, no YouTube call)', async () => {
+    database([])
+    mocks.rpc.mockImplementation(() => new Promise(() => {}))
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z'), callTimeoutMs: 30 })
+    expect(summary).toMatchObject({ ok: false, error: 'sync_lock_unavailable' })
+    expect(mocks.fetchOwnedBroadcasts).not.toHaveBeenCalled()
   })
 })

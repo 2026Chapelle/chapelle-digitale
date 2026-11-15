@@ -44,6 +44,8 @@ export const UPCOMING_GRACE_MS = 6 * 60 * 60_000
 /** Après une erreur YouTube, on attend avant de réessayer (évite de marteler OAuth). */
 export const ERROR_RETRY_SECONDS = 60
 const BROADCASTS_URL = 'https://www.googleapis.com/youtube/v3/liveBroadcasts'
+/** Délai maximal d'un appel YouTube Data API (sans lui, Node attend jusqu'à 300 s par défaut). */
+export const YOUTUBE_REQUEST_TIMEOUT_MS = 15_000
 
 const channelId = () => process.env.YOUTUBE_CHANNEL_ID?.trim() || ''
 let cached: { state: LiveState; error: string | null; expiresAt: number } | null = null
@@ -153,7 +155,7 @@ async function listBroadcasts(broadcastStatus: BroadcastStatusFilter, nowMs: num
   // pagination de `mine=true` (50 diffusions max, anciennes incluses). `broadcastType=all`
   // couvre les diffusions persistantes (« Diffuser maintenant ») et les événements programmés.
   url.search = new URLSearchParams({ part: 'id,snippet,status', broadcastStatus, broadcastType: 'all', maxResults: '50' }).toString()
-  const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+  const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', signal: AbortSignal.timeout(YOUTUBE_REQUEST_TIMEOUT_MS) })
   if (!response.ok) throw new Error(`youtube_live_${response.status}`)
   return ((await response.json()) as { items?: YouTubeItem[] }).items || []
 }
@@ -168,6 +170,7 @@ async function resolveOwnedState(now: Date, fetchImpl: typeof fetch): Promise<Li
 }
 
 const errorCode = (err: unknown): string => {
+  if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) return 'youtube_timeout'
   const message = err instanceof Error ? err.message : ''
   return /^youtube_[a-z0-9_]+$/.test(message) ? message : 'youtube_live_error'
 }
@@ -213,7 +216,7 @@ export async function verifyYouTubeVideoLive(videoIdValue: string, options: Dete
   try {
     const token = await bearerToken(nowMs, fetchImpl), url = new URL(VIDEOS_URL)
     url.search = new URLSearchParams({ part: 'snippet,liveStreamingDetails', id: videoIdValue }).toString()
-    const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+    const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', signal: AbortSignal.timeout(YOUTUBE_REQUEST_TIMEOUT_MS) })
     if (!response.ok) throw new Error(`youtube_videos_${response.status}`)
     const item = (((await response.json()) as { items?: Array<{ snippet?: { liveBroadcastContent?: string }; liveStreamingDetails?: { actualStartTime?: string; actualEndTime?: string } }> }).items || [])[0]
     if (!item) verdict = 'NOT_LIVE'
@@ -253,7 +256,7 @@ export async function fetchVideoDetails(ids: string[], options: DetectorOptions 
   for (let i = 0; i < unique.length; i += 50) {
     const token = await bearerToken(nowMs, fetchImpl), url = new URL(VIDEOS_URL)
     url.search = new URLSearchParams({ part: 'snippet,status,contentDetails,liveStreamingDetails', id: unique.slice(i, i + 50).join(','), maxResults: '50' }).toString()
-    const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+    const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', signal: AbortSignal.timeout(YOUTUBE_REQUEST_TIMEOUT_MS) })
     if (!response.ok) throw new Error(`youtube_videos_${response.status}`)
     out.push(...(((await response.json()) as { items?: YouTubeVideoDetails[] }).items || []))
   }
