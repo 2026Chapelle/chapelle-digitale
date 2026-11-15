@@ -286,4 +286,19 @@ it('fails safely when OAuth configuration is incomplete',async()=>{process.env.Y
     expect(classifyOwnedBroadcasts([startedUndated], n0cNow)).toMatchObject({ status: 'LIVE', youtubeVideoId: 'p900Q_e1Y2U' })
     expect(classifyOwnedBroadcasts([startedLate], n0cNow)).toMatchObject({ status: 'LIVE', youtubeVideoId: 'j-RGU6Q84CE' })
   })
+
+  it('stops proposing a scheduled broadcast as soon as the API confirms it was deleted (next refresh)', async () => {
+    let deleted = false
+    const scheduled = { id: 'p900Q_e1Y2U', snippet: { title: 'Prochain culte', scheduledStartTime: '2026-11-20T09:00:00Z' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' } }
+    const fetchImpl = async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('oauth2.googleapis.com/token')) return response([])
+      return response(!deleted && new URL(url).searchParams.get('broadcastStatus') === 'upcoming' ? [scheduled] : [])
+    }
+    const t0 = new Date('2026-11-15T10:00:00Z')
+    await expect(detectYouTubeLive({ now: t0, fetchImpl })).resolves.toMatchObject({ status: 'UPCOMING', youtubeVideoId: 'p900Q_e1Y2U' })
+    deleted = true
+    // Au plus une fenêtre de cache (900 s pour un direct lointain) avant la nouvelle lecture YouTube.
+    await expect(detectYouTubeLive({ now: new Date(t0.getTime() + 900_001), fetchImpl })).resolves.toBeNull()
+  })
 })

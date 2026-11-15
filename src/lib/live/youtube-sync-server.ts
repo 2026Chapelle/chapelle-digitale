@@ -46,7 +46,7 @@ export type YouTubeSyncSummary = {
   updated: number
   /** Identifiants vidéo pour lesquels plusieurs lignes cms_lives coexistent (jamais supprimées, à arbitrer). */
   duplicates: string[]
-  lifecycle: Record<'scheduled' | 'live' | 'replay_pending' | 'replay_available', number>
+  lifecycle: Record<'scheduled' | 'live' | 'replay_pending' | 'replay_available' | 'cancelled', number>
   pendingVideoIds: string[]
   skipped: SyncSkip[]
   writeErrors: number
@@ -178,7 +178,7 @@ export async function syncYouTubeLives(options: SyncOptions = {}): Promise<YouTu
 async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
   const now = options.now || new Date()
   const startedAt = now.toISOString()
-  const summary: YouTubeSyncSummary = { ok: false, error: null, checkedAt: startedAt, inserted: 0, updated: 0, duplicates: [], lifecycle: { scheduled: 0, live: 0, replay_pending: 0, replay_available: 0 }, pendingVideoIds: [], skipped: [], writeErrors: 0, states: null }
+  const summary: YouTubeSyncSummary = { ok: false, error: null, checkedAt: startedAt, inserted: 0, updated: 0, duplicates: [], lifecycle: { scheduled: 0, live: 0, replay_pending: 0, replay_available: 0, cancelled: 0 }, pendingVideoIds: [], skipped: [], writeErrors: 0, states: null }
 
   if (IS_DEMO_MODE) return { ...summary, ok: true, error: 'demo_mode' }
   if (!loadYouTubeConfig()) return { ...summary, error: 'youtube_oauth_not_configured' }
@@ -203,13 +203,17 @@ async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
     )
     const rows = await loadRows(now)
     let stopReason: 'sync_deadline_exceeded' | 'sync_lock_lost' | null = null
-    const ids = videoIdsToVerify({ completed, rows, now })
+    const ids = videoIdsToVerify({ active, upcoming, completed, rows, now })
     const videos: Awaited<ReturnType<typeof fetchVideoDetails>> = []
+    const verifiedIds: string[] = []
     for (let i = 0; i < ids.length; i += 50) {
       if (overBudget()) { stopReason = 'sync_deadline_exceeded'; break }
-      videos.push(...await fetchVideoDetails(ids.slice(i, i + 50), options))
+      const batch = ids.slice(i, i + 50)
+      videos.push(...await fetchVideoDetails(batch, options))
+      verifiedIds.push(...batch)
     }
-    const plan = planYouTubeSync({ active, upcoming, completed, videos, rows, now })
+    // Seuls les identifiants réellement interrogés peuvent être déclarés supprimés.
+    const plan = planYouTubeSync({ active, upcoming, completed, videos, verifiedIds, rows, now })
 
     let lastRenewal = clock()
     for (const op of stopReason ? [] : plan.operations) {

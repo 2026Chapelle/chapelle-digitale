@@ -23,6 +23,8 @@ import type { YouTubeItem, YouTubeVideoDetails } from '@/lib/home/youtube-live'
 import { youtubeVideoIdFrom } from '@/lib/home/contextual'
 
 export const REPLAY_PENDING_STATUS = 'replay_pending'
+/** Programmation YouTube annulée ou supprimée sans jamais avoir été diffusée (invisible du public, ligne conservée). */
+export const CANCELLED_STATUS = 'cancelled'
 export const SYNC_PLATFORM = 'YouTube'
 /** Un direct terminé depuis plus longtemps n'est plus réconcilié automatiquement (quota / bruit). */
 export const COMPLETED_WINDOW_MS = 14 * 24 * 60 * 60_000
@@ -47,11 +49,11 @@ export type CmsLiveSyncRow = {
 }
 
 export type CmsLivePatch = Partial<Pick<CmsLiveSyncRow, 'title' | 'description' | 'youtube_url' | 'cover_url' | 'scheduled_at' | 'is_live' | 'platform' | 'status'>>
-export type SyncLifecycle = 'scheduled' | 'live' | 'replay_pending' | 'replay_available'
+export type SyncLifecycle = 'scheduled' | 'live' | 'replay_pending' | 'replay_available' | 'cancelled'
 export type SyncOperation =
   | { kind: 'insert'; videoId: string; lifecycle: SyncLifecycle; row: CmsLivePatch & { title: string; youtube_url: string; status: string } }
   | { kind: 'update'; videoId: string; lifecycle: SyncLifecycle; id: string; patch: CmsLivePatch }
-export type SyncSkip = { videoId: string; reason: 'draft_row' | 'already_replay' | 'unavailable' | 'private' | 'processing' | 'uncertain' | 'outside_window' | 'no_title' | 'undated_schedule' | 'stale_schedule' }
+export type SyncSkip = { videoId: string; reason: 'draft_row' | 'already_replay' | 'unavailable' | 'private' | 'processing' | 'uncertain' | 'outside_window' | 'no_title' | 'undated_schedule' | 'stale_schedule' | 'never_aired' | 'deleted' }
 export type SyncPlan = { operations: SyncOperation[]; skipped: SyncSkip[]; pendingVideoIds: string[] }
 
 export type SyncInput = {
@@ -60,6 +62,11 @@ export type SyncInput = {
   completed: YouTubeItem[]
   /** Détails `videos.list` des identifiants en attente de replay (candidats `completed` + lignes `replay_pending`). */
   videos: YouTubeVideoDetails[]
+  /**
+   * Identifiants réellement interrogés via `videos.list`. Une vidéo absente de la réponse n'est considérée
+   * comme SUPPRIMÉE que si elle figure ici (sinon : non vérifiée, aucune décision). Défaut : tous.
+   */
+  verifiedIds?: string[]
   rows: CmsLiveSyncRow[]
   now: Date
 }
@@ -103,6 +110,25 @@ export function replayVerdict(video: YouTubeVideoDetails | undefined): ReplayVer
 }
 
 const isReplayStatus = (status?: string | null) => status === 'ended' || status === 'published'
+
+export type AiringVerdict = 'aired' | 'never_aired' | 'still_scheduled' | 'deleted' | 'unverified'
+/**
+ * Distingue un direct RÉELLEMENT diffusé d'une programmation annulée ou supprimée :
+ *  - deleted      : interrogée via videos.list et absente de la réponse (supprimée sur YouTube) ;
+ *  - never_aired  : existe, jamais démarrée (`actualStartTime` absent) et n'est plus ni à venir ni en direct ;
+ *  - still_scheduled : YouTube la considère toujours à venir ou en direct ;
+ *  - aired        : a réellement démarré (seul cas pouvant mener à un replay).
+ */
+export function airingVerdict(video: YouTubeVideoDetails | undefined, queried: boolean): AiringVerdict {
+  if (!video) return queried ? 'deleted' : 'unverified'
+  const content = video.snippet?.liveBroadcastContent
+  if (content === 'upcoming' || content === 'live') return 'still_scheduled'
+  const details = video.liveStreamingDetails
+  if (details?.actualStartTime || details?.actualEndTime) return 'aired'
+  // Sans liveStreamingDetails ni contenu explicite : information insuffisante → aucune décision d'annulation.
+  if (!details || content !== 'none') return 'unverified'
+  return 'never_aired'
+}
 
 /** Index des lignes CMS par identifiant vidéo (première ligne rencontrée = la plus récente). */
 function indexRows(rows: CmsLiveSyncRow[]): Map<string, CmsLiveSyncRow> {
@@ -149,6 +175,8 @@ export function planYouTubeSync(input: SyncInput): SyncPlan {
   const pendingVideoIds: string[] = []
   const byId = indexRows(input.rows)
   const videos = new Map(input.videos.map(v => [v.id || '', v]))
+  const queriedSet = input.verifiedIds ? new Set(input.verifiedIds) : null
+  const wasQueried = (id: string) => (queriedSet ? queriedSet.has(id) : true)
   const claimed = new Set<string>()
   const seen = new Set<string>()
 
@@ -205,23 +233,45 @@ export function planYouTubeSync(input: SyncInput): SyncPlan {
   }
   for (const { id, item } of completedCandidates) {
     const video = videos.get(id)
+    const airing = airingVerdict(video, wasQueried(id))
+    const existing = byId.get(id)
+    // Programmation jamais diffusée : JAMAIS de replay. Fiche existante → « annulé » ; sinon aucune fiche.
+    if (airing === 'never_aired' || (airing === 'deleted' && !existing)) {
+      skipped.push({ videoId: id, reason: airing })
+      if (existing) emit(id, 'cancelled', video || item, { status: CANCELLED_STATUS, is_live: false })
+      continue
+    }
+    if (airing === 'still_scheduled') continue
     const verdict = replayVerdict(video)
     const source = video || item
     const scheduled = video?.liveStreamingDetails?.scheduledStartTime || item?.snippet?.scheduledStartTime
     const base: CmsLivePatch = { is_live: false, ...(scheduled ? { scheduled_at: scheduled } : {}) }
     if (verdict === 'available') { emit(id, 'replay_available', source, { ...base, status: 'ended' }); continue }
     pendingVideoIds.push(id)
-    skipped.push({ videoId: id, reason: verdict })
+    skipped.push({ videoId: id, reason: airing === 'deleted' ? 'deleted' : verdict })
     // Jamais de publication tant que l'accessibilité n'est pas CONFIRMÉE (absent, privé, en traitement, incertain).
     emit(id, 'replay_pending', source, { ...base, status: REPLAY_PENDING_STATUS })
+  }
+
+  // 4) PROGRAMMÉ côté Citadelle mais disparu des listes YouTube : vérifié via videos.list.
+  // Supprimé ou annulé sans diffusion → « annulé » (ligne conservée, plus jamais proposée comme prochain direct).
+  for (const row of input.rows) {
+    const id = youtubeVideoIdFrom(row.youtube_url)
+    if (!id || seen.has(id) || row.status !== 'scheduled') continue
+    seen.add(id)
+    const airing = airingVerdict(videos.get(id), wasQueried(id))
+    if (airing !== 'deleted' && airing !== 'never_aired') continue
+    skipped.push({ videoId: id, reason: airing })
+    emit(id, 'cancelled', videos.get(id), { status: CANCELLED_STATUS, is_live: false })
   }
 
   return { operations, skipped, pendingVideoIds }
 }
 
 /** Identifiants dont il faut interroger `videos.list` (terminés récents + lignes en attente / live). */
-export function videoIdsToVerify(input: Pick<SyncInput, 'completed' | 'rows' | 'now'>): string[] {
+export function videoIdsToVerify(input: Pick<SyncInput, 'completed' | 'rows' | 'now'> & Partial<Pick<SyncInput, 'active' | 'upcoming'>>): string[] {
   const ids = new Set<string>()
+  const listed = new Set([...(input.active || []), ...(input.upcoming || [])].map(videoIdOf).filter(Boolean))
   const nowMs = input.now.getTime()
   for (const item of input.completed) {
     const id = videoIdOf(item)
@@ -231,11 +281,13 @@ export function videoIdsToVerify(input: Pick<SyncInput, 'completed' | 'rows' | '
   for (const row of input.rows) {
     const id = youtubeVideoIdFrom(row.youtube_url)
     if (id && (row.status === REPLAY_PENDING_STATUS || row.status === 'live')) ids.add(id)
+    // Fiche programmée dont la diffusion n'apparaît plus dans les listes YouTube : vérifier sa disparition.
+    if (id && row.status === 'scheduled' && !listed.has(id)) ids.add(id)
   }
   return Array.from(ids)
 }
 
-export type SyncStateCounts = { scheduled: number; live: number; replayPending: number; replayAvailable: number }
+export type SyncStateCounts = { scheduled: number; live: number; replayPending: number; replayAvailable: number; cancelled: number }
 /** Comptage des états pour l'administration (« Live programmé », « En direct », « Replay en attente », « Replay disponible »). */
 export function countLifecycleStates(rows: CmsLiveSyncRow[]): SyncStateCounts {
   return rows.reduce<SyncStateCounts>((acc, r) => {
@@ -243,6 +295,7 @@ export function countLifecycleStates(rows: CmsLiveSyncRow[]): SyncStateCounts {
     else if (r.status === 'live' || r.is_live === true) acc.live++
     else if (r.status === REPLAY_PENDING_STATUS) acc.replayPending++
     else if (isReplayStatus(r.status) && (clean(r.youtube_url) || clean(r.video_url))) acc.replayAvailable++
+    else if (r.status === CANCELLED_STATUS) acc.cancelled++
     return acc
-  }, { scheduled: 0, live: 0, replayPending: 0, replayAvailable: 0 })
+  }, { scheduled: 0, live: 0, replayPending: 0, replayAvailable: 0, cancelled: 0 })
 }

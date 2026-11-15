@@ -216,10 +216,40 @@ describe('syncYouTubeLives', () => {
   it('exposes the last run and lifecycle counts for the admin panel', async () => {
     database([{ id: 'a', status: 'scheduled', youtube_url: `https://youtu.be/${ID}` }, { id: 'b', status: 'replay_pending', youtube_url: 'https://youtu.be/abcdefghijk' }], { lastRun: { started_at: '2026-11-15T09:55:00Z', finished_at: '2026-11-15T09:55:02Z', ok: false, summary: { error: 'youtube_live_403' } } })
     const status = await getYouTubeSyncStatus()
-    expect(status).toEqual({ configured: true, lastRun: { startedAt: '2026-11-15T09:55:00Z', finishedAt: '2026-11-15T09:55:02Z', ok: false, summary: { error: 'youtube_live_403' } }, states: { scheduled: 1, live: 0, replayPending: 1, replayAvailable: 0 } })
+    expect(status).toEqual({ configured: true, lastRun: { startedAt: '2026-11-15T09:55:00Z', finishedAt: '2026-11-15T09:55:02Z', ok: false, summary: { error: 'youtube_live_403' } }, states: { scheduled: 1, live: 0, replayPending: 1, replayAvailable: 0, cancelled: 0 } })
     expect(SYNC_JOB).toBe('youtube-live-sync')
   })
 
+})
+
+describe('deleted YouTube schedules (p900Q_e1Y2U, j-RGU6Q84CE)', () => {
+  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }) })
+
+  it('verifies scheduled rows missing from YouTube lists and cancels them when videos.list confirms deletion (no delete)', async () => {
+    const calls = database([
+      { id: 'row-p900', title: 'Diffusion', youtube_url: 'https://www.youtube.com/watch?v=p900Q_e1Y2U', status: 'scheduled', is_live: false, cover_url: 'c', description: 'd', platform: 'YouTube', scheduled_at: '2026-11-20T09:00:00Z' },
+      { id: 'row-jrgu', title: 'Culte', youtube_url: 'https://youtu.be/j-RGU6Q84CE', status: 'scheduled', is_live: false, cover_url: 'c', description: 'd', platform: 'YouTube', scheduled_at: '2026-11-05T09:00:00Z' },
+    ])
+    mocks.fetchOwnedBroadcasts.mockResolvedValue([])
+    mocks.fetchVideoDetails.mockResolvedValue([])
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z') })
+    expect(mocks.fetchVideoDetails).toHaveBeenCalledWith(['p900Q_e1Y2U', 'j-RGU6Q84CE'], expect.anything())
+    expect(calls.updates.map(u => [u.id, u.patch.status])).toEqual([['row-p900', 'cancelled'], ['row-jrgu', 'cancelled']])
+    expect(calls.deletes).toEqual([])
+    expect(calls.inserts).toEqual([])
+    expect(summary).toMatchObject({ ok: true, updated: 2, lifecycle: { cancelled: 2, replay_available: 0 } })
+  })
+
+  it('cancels nothing when the videos.list verification could not run (budget reached before it)', async () => {
+    const calls = database([{ id: 'row-p900', title: 'Diffusion', youtube_url: 'https://youtu.be/p900Q_e1Y2U', status: 'scheduled', is_live: false }])
+    const clockRef = { t: 0 }
+    mocks.fetchOwnedBroadcasts.mockImplementation(async () => { clockRef.t = 121_000; return [] })
+    mocks.fetchVideoDetails.mockResolvedValue([])
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z'), clock: () => clockRef.t })
+    expect(mocks.fetchVideoDetails).not.toHaveBeenCalled()
+    expect(calls.updates).toEqual([])
+    expect(summary).toMatchObject({ ok: false, error: 'sync_deadline_exceeded' })
+  })
 })
 
 describe('lease duration protection (240 s)', () => {

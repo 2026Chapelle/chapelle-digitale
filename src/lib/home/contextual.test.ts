@@ -22,4 +22,10 @@ describe('contextual home',()=>{it('resolves live states',()=>{const n=new Date(
     // Un direct programmé dans le passé n'est jamais « prochain ».
     expect(resolveLiveState([{ title: 'Passé', status: 'scheduled', scheduled_at: '2026-11-05T09:00:00Z' }], now)).toEqual({ status: 'OFFLINE' })
   })
+
+  it('never proposes a cancelled or pending CMS row as next or current live', () => {
+    const now = new Date('2026-11-15T10:00:00Z')
+    expect(resolveLiveState([{ title: 'Annulé', status: 'cancelled', youtube_url: 'https://youtu.be/p900Q_e1Y2U', scheduled_at: '2026-11-20T09:00:00Z' }], now)).toEqual({ status: 'OFFLINE' })
+    expect(resolveLiveState([{ title: 'En attente', status: 'replay_pending', youtube_url: 'https://youtu.be/j-RGU6Q84CE', scheduled_at: '2026-11-20T09:00:00Z' }], now)).toEqual({ status: 'OFFLINE' })
+  })
 })

@@ -21,10 +21,10 @@ describe('LIVE & REPLAY V1 — administration', () => {
 
   it('offers the replay_pending status in the lives CMS without removing existing statuses', () => {
     const lives = read('src/app/(admin)/admin/lives/page.tsx')
-    for (const value of ['draft', 'scheduled', 'live', 'replay_pending', 'ended', 'published']) expect(lives).toContain(`value: '${value}'`)
+    for (const value of ['draft', 'scheduled', 'live', 'replay_pending', 'ended', 'published', 'cancelled']) expect(lives).toContain(`value: '${value}'`)
   })
 
-  it('keeps replay_pending out of the public statuses (cmsList + RLS policy)', () => {
+  it('keeps replay_pending and cancelled out of the public statuses (cmsList + RLS policy)', () => {
     expect(read('src/lib/cms.ts')).toContain("cms_lives: ['scheduled', 'live', 'ended', 'published']")
     expect(read('supabase/migrations/20260530100000_cms_core.sql')).toContain("using (status in ('scheduled','live','ended','published'))")
   })

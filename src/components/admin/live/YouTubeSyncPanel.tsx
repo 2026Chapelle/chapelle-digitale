@@ -5,7 +5,7 @@ import { AlertCircle, CheckCircle, Clock, RefreshCw, Youtube } from 'lucide-reac
 type SyncStatus = {
   configured: boolean
   lastRun: { startedAt: string; finishedAt: string | null; ok: boolean | null; summary: Record<string, unknown> } | null
-  states: { scheduled: number; live: number; replayPending: number; replayAvailable: number } | null
+  states: { scheduled: number; live: number; replayPending: number; replayAvailable: number; cancelled?: number } | null
 }
 
 const fmt = (iso?: string | null) => iso ? new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'
@@ -57,6 +57,7 @@ export default function YouTubeSyncPanel() {
     { label: 'En direct', value: status?.states?.live },
     { label: 'Replay en attente', value: status?.states?.replayPending },
     { label: 'Replay disponible', value: status?.states?.replayAvailable },
+    { label: 'Annulé', value: status?.states?.cancelled },
   ]
 
   return (
@@ -80,7 +81,7 @@ export default function YouTubeSyncPanel() {
 
       {!unavailable && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {cards.map(card => (
               <div key={card.label} className="rounded-2xl border border-white/10 bg-white/[.03] p-4">
                 <p className="font-inter text-[10px] uppercase tracking-[.18em] text-pearl/40">{card.label}</p>

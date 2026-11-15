@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countLifecycleStates, durationSeconds, planYouTubeSync, replayVerdict, videoIdsToVerify, COMPLETED_WINDOW_MS, REPLAY_PENDING_STATUS, STALE_SCHEDULE_GRACE_MS, type CmsLiveSyncRow } from './youtube-sync'
+import { countLifecycleStates, durationSeconds, planYouTubeSync, replayVerdict, videoIdsToVerify, COMPLETED_WINDOW_MS, REPLAY_PENDING_STATUS, STALE_SCHEDULE_GRACE_MS, CANCELLED_STATUS, airingVerdict, type CmsLiveSyncRow } from './youtube-sync'
 import { UPCOMING_GRACE_MS } from '@/lib/home/youtube-live'
 
 const now = new Date('2026-11-15T10:00:00Z')
@@ -67,7 +67,7 @@ describe('planYouTubeSync — cycle PROGRAMMÉ → EN DIRECT → TERMINÉ → RE
     expect(uncertain.skipped).toEqual([{ videoId: ID, reason: 'uncertain' }])
     const plan = planYouTubeSync({ ...empty, completed: [complete()], videos: [], rows: [row({ status: 'live', is_live: true })] })
     expect(plan.operations).toMatchObject([{ patch: { status: REPLAY_PENDING_STATUS, is_live: false } }])
-    expect(plan.skipped).toEqual([{ videoId: ID, reason: 'unavailable' }])
+    expect(plan.skipped).toEqual([{ videoId: ID, reason: 'deleted' }])
     const priv = planYouTubeSync({ ...empty, completed: [complete()], videos: [video({ status: { uploadStatus: 'processed', privacyStatus: 'private' } })], rows: [row({ status: REPLAY_PENDING_STATUS })] })
     expect(priv.operations).toEqual([])
     expect(priv.skipped).toEqual([{ videoId: ID, reason: 'private' }])
@@ -103,7 +103,7 @@ describe('planYouTubeSync — cycle PROGRAMMÉ → EN DIRECT → TERMINÉ → RE
   })
 
   it('counts lifecycle states for the admin panel', () => {
-    expect(countLifecycleStates([row(), row({ status: 'live' }), row({ status: REPLAY_PENDING_STATUS }), row({ status: 'ended' }), row({ status: 'published', youtube_url: null, video_url: 'https://cdn/x.mp4' }), row({ status: 'draft' })])).toEqual({ scheduled: 1, live: 1, replayPending: 1, replayAvailable: 2 })
+    expect(countLifecycleStates([row(), row({ status: 'live' }), row({ status: REPLAY_PENDING_STATUS }), row({ status: 'ended' }), row({ status: 'published', youtube_url: null, video_url: 'https://cdn/x.mp4' }), row({ status: 'draft' })])).toEqual({ scheduled: 1, live: 1, replayPending: 1, replayAvailable: 2, cancelled: 0 })
   })
 
   it('preserves administrators’ editorial choices on synced rows', () => {
@@ -154,6 +154,73 @@ describe('planYouTubeSync — cycle PROGRAMMÉ → EN DIRECT → TERMINÉ → RE
 
     it('uses the same grace as the home page detector', () => {
       expect(STALE_SCHEDULE_GRACE_MS).toBe(UPCOMING_GRACE_MS)
+    })
+  })
+
+  describe('cancelled or deleted schedules vs really finished broadcasts', () => {
+    const neverAired = (id: string) => ({ id, snippet: { title: 'Programmation annulée', liveBroadcastContent: 'none' }, status: { uploadStatus: 'processed', privacyStatus: 'public', embeddable: true }, contentDetails: { duration: 'P0D' }, liveStreamingDetails: { scheduledStartTime: '2026-11-05T09:00:00Z' } })
+    const revoked = (id: string) => ({ id, snippet: { title: 'Programmation annulée', scheduledStartTime: '2026-11-05T09:00:00Z' }, status: { lifeCycleStatus: 'revoked', privacyStatus: 'public' } })
+
+    it('classifies airing evidence explicitly', () => {
+      expect(airingVerdict(undefined, true)).toBe('deleted')
+      expect(airingVerdict(undefined, false)).toBe('unverified')
+      expect(airingVerdict(neverAired('p900Q_e1Y2U'), true)).toBe('never_aired')
+      expect(airingVerdict({ ...neverAired('p900Q_e1Y2U'), liveStreamingDetails: undefined }, true)).toBe('unverified')
+      expect(airingVerdict({ ...neverAired('p900Q_e1Y2U'), snippet: { liveBroadcastContent: 'upcoming' } }, true)).toBe('still_scheduled')
+      expect(airingVerdict(video(), true)).toBe('aired')
+      expect(airingVerdict(video({ liveStreamingDetails: { actualEndTime: '2026-11-16T11:00:00Z' } }), true)).toBe('aired')
+    })
+
+    it('never turns a never-aired schedule into a replay and creates no row for it', () => {
+      const plan = planYouTubeSync({ ...empty, completed: [revoked('j-RGU6Q84CE')], videos: [neverAired('j-RGU6Q84CE')] })
+      expect(plan.operations).toEqual([])
+      expect(plan.skipped).toEqual([{ videoId: 'j-RGU6Q84CE', reason: 'never_aired' }])
+      expect(plan.pendingVideoIds).toEqual([])
+    })
+
+    it('marks an existing scheduled, live or pending row of a never-aired schedule as cancelled (status only, row kept)', () => {
+      for (const status of ['scheduled', 'live', REPLAY_PENDING_STATUS]) {
+        const plan = planYouTubeSync({ ...empty, completed: [revoked('j-RGU6Q84CE')], videos: [neverAired('j-RGU6Q84CE')], rows: [row({ id: 'r', status, is_live: status === 'live', youtube_url: 'https://youtu.be/j-RGU6Q84CE', title: 'Titre admin' })] })
+        expect(plan.operations).toEqual([{ kind: 'update', videoId: 'j-RGU6Q84CE', lifecycle: 'cancelled', id: 'r', patch: { status: CANCELLED_STATUS, ...(status === 'live' ? { is_live: false } : {}) } }])
+      }
+    })
+
+    it('cancels a Citadelle scheduled row once the API confirms the YouTube schedule was deleted', () => {
+      const rows = [row({ id: 'row-p900', youtube_url: 'https://www.youtube.com/watch?v=p900Q_e1Y2U', scheduled_at: '2026-11-20T09:00:00Z' }), row({ id: 'row-jRGU', youtube_url: 'https://youtu.be/j-RGU6Q84CE', scheduled_at: '2026-11-05T09:00:00Z' })]
+      expect(videoIdsToVerify({ completed: [], rows, now })).toEqual(['p900Q_e1Y2U', 'j-RGU6Q84CE'])
+      const plan = planYouTubeSync({ ...empty, videos: [], verifiedIds: ['p900Q_e1Y2U', 'j-RGU6Q84CE'], rows })
+      expect(plan.operations).toEqual([
+        { kind: 'update', videoId: 'p900Q_e1Y2U', lifecycle: 'cancelled', id: 'row-p900', patch: { status: CANCELLED_STATUS } },
+        { kind: 'update', videoId: 'j-RGU6Q84CE', lifecycle: 'cancelled', id: 'row-jRGU', patch: { status: CANCELLED_STATUS } },
+      ])
+      expect(plan.skipped).toEqual([{ videoId: 'p900Q_e1Y2U', reason: 'deleted' }, { videoId: 'j-RGU6Q84CE', reason: 'deleted' }])
+    })
+
+    it('makes no decision for a video that was not actually queried (budget reached) or is still scheduled on YouTube', () => {
+      const rows = [row({ id: 'row-p900', youtube_url: 'https://youtu.be/p900Q_e1Y2U' })]
+      expect(planYouTubeSync({ ...empty, videos: [], verifiedIds: [], rows }).operations).toEqual([])
+      expect(planYouTubeSync({ ...empty, videos: [{ ...neverAired('p900Q_e1Y2U'), snippet: { liveBroadcastContent: 'upcoming' } }], rows }).operations).toEqual([])
+      expect(videoIdsToVerify({ completed: [], upcoming: [b({ id: 'p900Q_e1Y2U' })], rows, now })).toEqual([])
+    })
+
+    it('keeps a really aired broadcast whose video was deleted in replay_pending, never published', () => {
+      const plan = planYouTubeSync({ ...empty, videos: [], verifiedIds: [ID], rows: [row({ status: 'live', is_live: true })] })
+      expect(plan.operations).toEqual([{ kind: 'update', videoId: ID, lifecycle: 'replay_pending', id: 'row-1', patch: { status: REPLAY_PENDING_STATUS, is_live: false } }])
+      expect(plan.skipped).toEqual([{ videoId: ID, reason: 'deleted' }])
+    })
+
+    it('invariant: no combination ever publishes a replay (ended) without proof of airing', () => {
+      const variants = [neverAired(ID), { ...neverAired(ID), liveStreamingDetails: undefined }, { ...neverAired(ID), snippet: { liveBroadcastContent: 'upcoming' } }, undefined]
+      for (const v of variants) for (const status of ['scheduled', 'live', REPLAY_PENDING_STATUS, undefined]) for (const listed of [true, false]) {
+        const plan = planYouTubeSync({ ...empty, completed: listed ? [complete()] : [], videos: v ? [v] : [], rows: status ? [row({ status })] : [] })
+        const ended = plan.operations.filter(op => (op.kind === 'insert' ? op.row.status : op.patch.status) === 'ended')
+        expect(ended).toEqual([])
+      }
+    })
+
+    it('a rescheduled broadcast that reappears in the upcoming list is scheduled again (no resurrection without YouTube)', () => {
+      const plan = planYouTubeSync({ ...empty, upcoming: [b()], rows: [row({ status: CANCELLED_STATUS })] })
+      expect(plan.operations).toEqual([{ kind: 'update', videoId: ID, lifecycle: 'scheduled', id: 'row-1', patch: { status: 'scheduled' } }])
     })
   })
 })

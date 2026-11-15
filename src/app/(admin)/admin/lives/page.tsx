@@ -8,6 +8,8 @@ const STATUS = [
   // LIVE & REPLAY V1 : direct terminé dont l'archive YouTube n'est pas encore consultable (invisible du public).
   { value: 'replay_pending', label: 'Replay en attente' },
   { value: 'ended', label: 'Terminé (replay disponible)' },
+  // Programmation YouTube annulée ou supprimée sans jamais avoir été diffusée (invisible du public).
+  { value: 'cancelled', label: 'Annulé (jamais diffusé)' },
   { value: 'published', label: 'Publié' },
 ]
 
