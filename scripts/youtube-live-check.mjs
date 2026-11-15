@@ -7,7 +7,8 @@
  *
  * Imprime UNIQUEMENT : des codes d'erreur (`youtube_*`), des identifiants publics de chaîne/vidéo,
  * des titres, des statuts et des horaires. Jamais de client_secret, refresh_token ni access_token.
- * Lecture seule : aucune mutation YouTube, Supabase ou fichier.
+ * Lecture seule : aucune mutation YouTube, Supabase, fichier ni configuration. Toute valeur secrète est
+ * rédigée ([redacted]) avant impression, même en cas d'erreur inattendue.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -30,7 +31,17 @@ if (envIdx !== -1 && args[envIdx + 1]) {
 
 const present = (name) => Boolean((process.env[name] ?? '').trim())
 const report = { configured: { YOUTUBE_OAUTH_CLIENT_ID: present('YOUTUBE_OAUTH_CLIENT_ID'), YOUTUBE_OAUTH_CLIENT_SECRET: present('YOUTUBE_OAUTH_CLIENT_SECRET'), YOUTUBE_OAUTH_REFRESH_TOKEN: present('YOUTUBE_OAUTH_REFRESH_TOKEN'), YOUTUBE_CHANNEL_ID: present('YOUTUBE_CHANNEL_ID') } }
-const print = (obj) => console.log(JSON.stringify(obj, null, 2))
+const SECRET_NAMES = ['YOUTUBE_OAUTH_CLIENT_ID', 'YOUTUBE_OAUTH_CLIENT_SECRET', 'YOUTUBE_OAUTH_REFRESH_TOKEN', 'SUPABASE_SERVICE_ROLE_KEY', 'ADMIN_SESSION_TOKEN', 'CRON_SECRET']
+let issuedAccessToken = ''
+/** Garde-fou : toute valeur secrète (env ou access_token émis) est remplacée avant impression. */
+const redact = (text) => {
+  let out = text
+  for (const value of [...SECRET_NAMES.map((n) => (process.env[n] ?? '').trim()), issuedAccessToken].filter((v) => v.length >= 6)) {
+    out = out.split(value).join('[redacted]')
+  }
+  return out
+}
+const print = (obj) => console.log(redact(JSON.stringify(obj, null, 2)))
 
 if (!report.configured.YOUTUBE_OAUTH_CLIENT_ID || !report.configured.YOUTUBE_OAUTH_CLIENT_SECRET || !report.configured.YOUTUBE_OAUTH_REFRESH_TOKEN) {
   print({ ...report, error: 'youtube_oauth_not_configured' })
@@ -46,7 +57,8 @@ async function token() {
     throw new Error(code)
   }
   const j = await res.json()
-  return { accessToken: j.access_token, scope: typeof j.scope === 'string' ? j.scope.split(' ') : [] }
+  issuedAccessToken = typeof j.access_token === 'string' ? j.access_token : ''
+  return { accessToken: issuedAccessToken, scope: typeof j.scope === 'string' ? j.scope.split(' ') : [] }
 }
 
 async function api(accessToken, resource, params) {
@@ -76,3 +88,4 @@ try {
   print({ ...report, error: /^youtube_[a-z0-9_]+$/.test(message) ? message : 'youtube_live_error' })
   process.exit(1)
 }
+process.on('uncaughtException', () => { console.error(redact('Erreur inattendue (détails masqués).')); process.exit(1) })

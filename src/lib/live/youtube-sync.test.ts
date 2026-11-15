@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countLifecycleStates, planYouTubeSync, replayVerdict, videoIdsToVerify, COMPLETED_WINDOW_MS, REPLAY_PENDING_STATUS, type CmsLiveSyncRow } from './youtube-sync'
+import { countLifecycleStates, durationSeconds, planYouTubeSync, replayVerdict, videoIdsToVerify, COMPLETED_WINDOW_MS, REPLAY_PENDING_STATUS, type CmsLiveSyncRow } from './youtube-sync'
 
 const now = new Date('2026-11-15T10:00:00Z')
 const ID = 'culte123456'
@@ -42,11 +42,28 @@ describe('planYouTubeSync — cycle PROGRAMMÉ → EN DIRECT → TERMINÉ → RE
     expect(videoIdsToVerify({ completed: [], rows: [row({ status: REPLAY_PENDING_STATUS })], now })).toEqual([ID])
   })
 
-  it('never publishes a private, deleted or non-embeddable archive', () => {
+  it('never publishes a private, deleted, non-embeddable or UNCERTAIN archive', () => {
+    expect(replayVerdict(video())).toBe('available')
     expect(replayVerdict(video({ status: { uploadStatus: 'processed', privacyStatus: 'private' } }))).toBe('private')
     expect(replayVerdict(undefined)).toBe('unavailable')
     expect(replayVerdict(video({ status: { uploadStatus: 'processed', privacyStatus: 'public', embeddable: false } }))).toBe('unavailable')
+    expect(replayVerdict(video({ status: { uploadStatus: 'rejected', privacyStatus: 'public', embeddable: true } }))).toBe('unavailable')
     expect(replayVerdict(video({ snippet: { liveBroadcastContent: 'live' } }))).toBe('processing')
+    expect(replayVerdict(video({ status: { uploadStatus: 'uploaded', privacyStatus: 'public', embeddable: true } }))).toBe('processing')
+    // Informations absentes ou incomplètes → incertain → jamais publié
+    expect(replayVerdict(video({ status: { uploadStatus: 'processed', embeddable: true } }))).toBe('uncertain')
+    expect(replayVerdict(video({ status: { privacyStatus: 'public', embeddable: true } }))).toBe('uncertain')
+    expect(replayVerdict(video({ status: { uploadStatus: 'processed', privacyStatus: 'public' } }))).toBe('uncertain')
+    expect(replayVerdict(video({ snippet: { thumbnails: {} } }))).toBe('uncertain')
+    expect(replayVerdict(video({ liveStreamingDetails: { actualStartTime: '2026-11-16T09:02:00Z' } }))).toBe('uncertain')
+    expect(replayVerdict(video({ contentDetails: {} }))).toBe('uncertain')
+    expect(replayVerdict(video({ contentDetails: { duration: 'P0D' } }))).toBe('uncertain')
+    expect(durationSeconds('PT1H58M')).toBe(7_080)
+    expect(durationSeconds('P1DT2S')).toBe(86_402)
+    expect(durationSeconds('nope')).toBeUndefined()
+    const uncertain = planYouTubeSync({ ...empty, completed: [complete()], videos: [video({ status: { uploadStatus: 'processed', privacyStatus: 'public' } })], rows: [row({ status: 'live', is_live: true })] })
+    expect(uncertain.operations).toMatchObject([{ patch: { status: REPLAY_PENDING_STATUS, is_live: false } }])
+    expect(uncertain.skipped).toEqual([{ videoId: ID, reason: 'uncertain' }])
     const plan = planYouTubeSync({ ...empty, completed: [complete()], videos: [], rows: [row({ status: 'live', is_live: true })] })
     expect(plan.operations).toMatchObject([{ patch: { status: REPLAY_PENDING_STATUS, is_live: false } }])
     expect(plan.skipped).toEqual([{ videoId: ID, reason: 'unavailable' }])
@@ -86,5 +103,19 @@ describe('planYouTubeSync — cycle PROGRAMMÉ → EN DIRECT → TERMINÉ → RE
 
   it('counts lifecycle states for the admin panel', () => {
     expect(countLifecycleStates([row(), row({ status: 'live' }), row({ status: REPLAY_PENDING_STATUS }), row({ status: 'ended' }), row({ status: 'published', youtube_url: null, video_url: 'https://cdn/x.mp4' }), row({ status: 'draft' })])).toEqual({ scheduled: 1, live: 1, replayPending: 1, replayAvailable: 2 })
+  })
+
+  it('preserves administrators’ editorial choices on synced rows', () => {
+    const edited = row({ title: 'Titre choisi par l’admin', description: 'Résumé rédigé par l’admin', cover_url: 'https://cdn.citadelle/cover-admin.jpg', platform: 'Chapelle Royale TV', scheduled_at: '2026-11-16T09:00:00Z' })
+    // Programmé : aucun champ éditorial réécrit, même si YouTube a d'autres valeurs.
+    expect(planYouTubeSync({ ...empty, upcoming: [b({ snippet: { ...b().snippet, title: 'Titre YouTube', description: 'Description YouTube' } })], rows: [edited] }).operations).toEqual([])
+    // Passage en direct : seul le statut change.
+    expect(planYouTubeSync({ ...empty, active: [live()], rows: [edited] }).operations).toEqual([{ kind: 'update', videoId: ID, lifecycle: 'live', id: 'row-1', patch: { status: 'live', is_live: true } }])
+    // Replay disponible : seul le statut change, titre/description/couverture/plateforme intacts.
+    expect(planYouTubeSync({ ...empty, completed: [complete()], videos: [video()], rows: [{ ...edited, status: REPLAY_PENDING_STATUS }] }).operations).toEqual([{ kind: 'update', videoId: ID, lifecycle: 'replay_available', id: 'row-1', patch: { status: 'ended' } }])
+    // `is_live` activé à la main sur un direct programmé : non forcé à false par la synchronisation.
+    expect(planYouTubeSync({ ...empty, upcoming: [b()], rows: [row({ is_live: true })] }).operations).toEqual([])
+    // Date modifiée par l'admin : YouTube reste la vérité horaire (seul champ non éditorial réaligné).
+    expect(planYouTubeSync({ ...empty, upcoming: [b()], rows: [row({ scheduled_at: '2026-11-16T10:00:00Z' })] }).operations).toEqual([{ kind: 'update', videoId: ID, lifecycle: 'scheduled', id: 'row-1', patch: { scheduled_at: '2026-11-16T09:00:00Z' } }])
   })
 })

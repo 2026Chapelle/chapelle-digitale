@@ -49,7 +49,7 @@ export type SyncLifecycle = 'scheduled' | 'live' | 'replay_pending' | 'replay_av
 export type SyncOperation =
   | { kind: 'insert'; videoId: string; lifecycle: SyncLifecycle; row: CmsLivePatch & { title: string; youtube_url: string; status: string } }
   | { kind: 'update'; videoId: string; lifecycle: SyncLifecycle; id: string; patch: CmsLivePatch }
-export type SyncSkip = { videoId: string; reason: 'draft_row' | 'already_replay' | 'unavailable' | 'private' | 'processing' | 'outside_window' | 'no_title' }
+export type SyncSkip = { videoId: string; reason: 'draft_row' | 'already_replay' | 'unavailable' | 'private' | 'processing' | 'uncertain' | 'outside_window' | 'no_title' }
 export type SyncPlan = { operations: SyncOperation[]; skipped: SyncSkip[]; pendingVideoIds: string[] }
 
 export type SyncInput = {
@@ -69,15 +69,34 @@ export const watchUrlFor = (videoId: string) => `https://www.youtube.com/watch?v
 export const thumbnailFor = (videoId: string, item?: { snippet?: { thumbnails?: { maxres?: { url?: string }; high?: { url?: string }; medium?: { url?: string } } } }) =>
   item?.snippet?.thumbnails?.maxres?.url || item?.snippet?.thumbnails?.high?.url || item?.snippet?.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
 
-export type ReplayVerdict = 'available' | 'processing' | 'private' | 'unavailable'
-/** Une archive est publiable uniquement si elle est traitée, publique/non listée, et n'est plus un direct. */
+export type ReplayVerdict = 'available' | 'processing' | 'private' | 'unavailable' | 'uncertain'
+/** Durée ISO 8601 (`PT1H2M3S`) → secondes ; undefined si absente ou illisible. */
+export function durationSeconds(iso?: string): number | undefined {
+  const m = typeof iso === 'string' ? iso.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/) : null
+  if (!m) return undefined
+  return Number(m[1] || 0) * 86_400 + Number(m[2] || 0) * 3_600 + Number(m[3] || 0) * 60 + Number(m[4] || 0)
+}
+/**
+ * Une archive est publiable UNIQUEMENT si toutes les informations d'accessibilité sont présentes et
+ * positives : traitée (`uploadStatus=processed`), publique ou non listée, intégrable (`embeddable=true`
+ * explicite), plus un direct (`liveBroadcastContent='none'` explicite), direct réellement terminé
+ * (`actualEndTime`) et durée connue > 0. Toute information absente → 'uncertain' → jamais publiée.
+ */
 export function replayVerdict(video: YouTubeVideoDetails | undefined): ReplayVerdict {
   if (!video) return 'unavailable'
   const privacy = video.status?.privacyStatus
+  if (!privacy) return 'uncertain'
   if (privacy !== 'public' && privacy !== 'unlisted') return 'private'
-  if (video.snippet?.liveBroadcastContent && video.snippet.liveBroadcastContent !== 'none') return 'processing'
-  if (video.status?.uploadStatus && video.status.uploadStatus !== 'processed') return 'processing'
+  const broadcast = video.snippet?.liveBroadcastContent
+  if (broadcast === 'live' || broadcast === 'upcoming') return 'processing'
+  const upload = video.status?.uploadStatus
+  if (upload === 'uploaded') return 'processing'
+  if (upload === 'rejected' || upload === 'failed' || upload === 'deleted') return 'unavailable'
   if (video.status?.embeddable === false) return 'unavailable'
+  if (broadcast !== 'none' || upload !== 'processed' || video.status?.embeddable !== true) return 'uncertain'
+  if (!video.liveStreamingDetails?.actualEndTime) return 'uncertain'
+  const seconds = durationSeconds(video.contentDetails?.duration)
+  if (seconds === undefined || seconds <= 0) return 'uncertain'
   return 'available'
 }
 
@@ -158,7 +177,10 @@ export function planYouTubeSync(input: SyncInput): SyncPlan {
     const id = videoIdOf(item); if (!id || seen.has(id)) continue; seen.add(id)
     const privacy = item.status?.privacyStatus
     if (privacy !== 'public' && privacy !== 'unlisted') { skipped.push({ videoId: id, reason: 'private' }); continue }
-    emit(id, 'scheduled', item, { status: 'scheduled', is_live: false, ...(item.snippet?.scheduledStartTime ? { scheduled_at: item.snippet.scheduledStartTime } : {}) })
+    // `is_live` n'est jamais forcé à false sur une ligne existante « programmée » : un admin peut l'activer
+    // à la main (diffusion démarrée ailleurs). Il n'est posé qu'à la création.
+    const existingRow = byId.get(id)
+    emit(id, 'scheduled', item, { status: 'scheduled', ...(existingRow ? {} : { is_live: false }), ...(item.snippet?.scheduledStartTime ? { scheduled_at: item.snippet.scheduledStartTime } : {}) })
   }
 
   // 3) TERMINÉ → replay en attente / disponible (fenêtre récente + lignes déjà en attente)
@@ -183,6 +205,7 @@ export function planYouTubeSync(input: SyncInput): SyncPlan {
     if (verdict === 'available') { emit(id, 'replay_available', source, { ...base, status: 'ended' }); continue }
     pendingVideoIds.push(id)
     skipped.push({ videoId: id, reason: verdict })
+    // Jamais de publication tant que l'accessibilité n'est pas CONFIRMÉE (absent, privé, en traitement, incertain).
     emit(id, 'replay_pending', source, { ...base, status: REPLAY_PENDING_STATUS })
   }
 
