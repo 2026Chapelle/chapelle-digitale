@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
+import { selectUpcomingLives } from '@/lib/live/upcoming-lives'
 import LiveOffering from '@/components/features/giving/LiveOffering'
 import LivePresenceControls from '@/components/live/LivePresenceControls'
 import LiveReactionsProvider from '@/components/live/LiveReactionsProvider'
@@ -157,7 +158,7 @@ export default function LivesPage() {
           } catch { /* non bloquant */ }
         }
         setReplays(data.filter((d: any) => d.status === 'ended' || (d.status === 'published' && (d.youtube_url || d.video_url))).map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), duree: '', plateforme: d.platform || '', emoji: '🎬', couleur: '#D4AF37', youtube_url: d.youtube_url || '', video_url: d.video_url || '', cover: d.cover_url || '' })))
-        setAVenir(data.filter((d: any) => d.status === 'scheduled').map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), heure: hhmm(d.scheduled_at), plateforme: d.platform || '', emoji: '📅', couleur: '#8B5CF6' })))
+        setAVenir(selectUpcomingLives(data).map((d: any) => ({ id: d.id, titre: d.title, date: fmt(d.scheduled_at), heure: hhmm(d.scheduled_at), plateforme: d.platform || '', emoji: '📅', couleur: '#8B5CF6' })))
       } catch { /* listes vides */ }
     })()
     return () => { cancelled = true }
