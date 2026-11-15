@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ from: vi.fn(), fetchOwnedBroadcasts: vi.fn(), fetchVideoDetails: vi.fn(), reset: vi.fn(), config: vi.fn() }))
+const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), fetchOwnedBroadcasts: vi.fn(), fetchVideoDetails: vi.fn(), reset: vi.fn(), config: vi.fn() }))
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase', () => ({ IS_DEMO_MODE: false }))
-vi.mock('@/lib/supabase-admin', () => ({ supabaseAdmin: { from: mocks.from } }))
+vi.mock('@/lib/supabase-admin', () => ({ supabaseAdmin: { from: mocks.from, rpc: mocks.rpc } }))
 vi.mock('@/lib/intelligence/connectors/youtube/config', () => ({ loadYouTubeConfig: mocks.config }))
 vi.mock('@/lib/home/youtube-live', () => ({
   fetchOwnedBroadcasts: mocks.fetchOwnedBroadcasts,
@@ -18,36 +18,56 @@ import { __resetYouTubeSyncLock, getYouTubeSyncStatus, syncYouTubeLives, SYNC_JO
 const ID = 'culte123456'
 const upcoming = { id: ID, snippet: { title: 'Culte', scheduledStartTime: '2026-11-16T09:00:00Z', channelId: 'UCtest' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' } }
 
-type Calls = { inserts: Array<Record<string, unknown>>; updates: Array<{ patch: Record<string, unknown>; id: string }>; deletes: string[]; cronInserts: number; cronUpdates: Array<Record<string, unknown>> }
-type DbOptions = { failWrites?: boolean; lastRun?: Record<string, unknown> | null; running?: boolean; twins?: Array<Record<string, unknown>> }
+type Calls = { inserts: Array<Record<string, unknown>>; updates: Array<{ patch: Record<string, unknown>; id: string }>; deletes: string[]; cronInserts: number; cronUpdates: Array<Record<string, unknown>>; lock: { acquire: string[]; release: string[] } }
+type DbOptions = { failWrites?: boolean; lastRun?: Record<string, unknown> | null; twins?: Array<Record<string, unknown>>; lockMissing?: boolean }
 
-/** Mock Supabase chaîné : chaque opération résout selon la table et l'intention (lecture, insertion, mise à jour, suppression, bail). */
-function database(rows: Array<Record<string, unknown>>, opts: DbOptions = {}): Calls {
-  const calls: Calls = { inserts: [], updates: [], deletes: [], cronInserts: 0, cronUpdates: [] }
+/**
+ * Faux magasin de verrou reproduisant la sémantique ATOMIQUE de `acquire_sync_lock` : un seul détenteur
+ * tant que le bail n'a pas expiré ou n'a pas été libéré par son propriétaire (JS mono-thread ⇒ atomique).
+ */
+function lockStore() {
+  const state: { owner: string | null; until: number } = { owner: null, until: 0 }
+  return {
+    state,
+    acquire(owner: string, ttl: number, nowMs = Date.now()) {
+      if (state.owner === null || state.until <= nowMs || state.owner === owner) { state.owner = owner; state.until = nowMs + ttl * 1000; return true }
+      return false
+    },
+    release(owner: string) { if (state.owner === owner) { state.until = 0; return true } return false },
+  }
+}
+
+/** Mock Supabase chaîné : chaque opération résout selon la table et l'intention (lecture, insertion, mise à jour, journal, RPC). */
+function database(rows: Array<Record<string, unknown>>, opts: DbOptions = {}, locks = lockStore()): Calls {
+  const calls: Calls = { inserts: [], updates: [], deletes: [], cronInserts: 0, cronUpdates: [], lock: { acquire: [], release: [] } }
   const chain = (resolve: () => Promise<unknown>) => {
     const node: Record<string, unknown> = {}
     for (const m of ['select', 'or', 'order', 'limit', 'eq', 'is', 'gte', 'ilike', 'maybeSingle', 'single']) node[m] = () => node
     node.then = (ok: (v: unknown) => unknown, ko?: (e: unknown) => unknown) => resolve().then(ok, ko)
     return node
   }
+  mocks.rpc.mockImplementation(async (fn: string, args: Record<string, unknown>) => {
+    if (opts.lockMissing) return { data: null, error: { code: 'PGRST202', message: 'function not found' } }
+    if (fn === 'acquire_sync_lock') { calls.lock.acquire.push(String(args.p_owner)); return { data: locks.acquire(String(args.p_owner), Number(args.p_ttl_seconds)), error: null } }
+    if (fn === 'release_sync_lock') { calls.lock.release.push(String(args.p_owner)); return { data: locks.release(String(args.p_owner)), error: null } }
+    throw new Error(`unexpected rpc ${fn}`)
+  })
   mocks.from.mockImplementation((table: string) => {
     if (table === 'cms_lives') {
       return {
         select: (cols: string) => cols.startsWith('id,youtube_url,created_at')
           ? chain(async () => ({ data: opts.twins ?? [], error: null }))
           : chain(async () => ({ data: rows, error: null })),
-        insert: (row: Record<string, unknown>) => chain(async () => { if (opts.failWrites) return { error: { message: 'boom' } }; calls.inserts.push(row); return { data: { id: 'new-1', created_at: '2026-11-15T10:00:00Z' }, error: null } }),
+        insert: (row: Record<string, unknown>) => chain(async () => { if (opts.failWrites) return { error: { message: 'boom' } }; calls.inserts.push(row); return { data: null, error: null } }),
         update: (patch: Record<string, unknown>) => ({ eq: async (_k: string, id: string) => { if (opts.failWrites) return { error: { message: 'boom' } }; calls.updates.push({ patch, id }); return { error: null } } }),
-        delete: () => ({ eq: (_k: string, id: string) => ({ eq: () => ({ eq: async () => { calls.deletes.push(id); return { error: null } } }) }) }),
+        delete: () => { throw new Error('cms_lives rows must never be deleted') },
       }
     }
     if (table === 'cron_runs') {
       return {
         insert: () => chain(async () => { calls.cronInserts++; return { data: { id: 'run-1' }, error: null } }),
         update: (patch: Record<string, unknown>) => ({ eq: async () => { calls.cronUpdates.push(patch); return { error: null } } }),
-        select: (cols: string) => cols === 'id'
-          ? chain(async () => ({ data: opts.running ? [{ id: 'run-0' }] : [], error: null }))
-          : chain(async () => ({ data: opts.lastRun ?? null, error: null })),
+        select: () => chain(async () => ({ data: opts.lastRun ?? null, error: null })),
       }
     }
     throw new Error(`unexpected table ${table}`)
@@ -65,7 +85,9 @@ describe('syncYouTubeLives', () => {
     expect(summary).toMatchObject({ ok: true, error: null, inserted: 1, updated: 0, lifecycle: { scheduled: 1 } })
     expect(calls.inserts[0]).toMatchObject({ title: 'Culte', status: 'scheduled', youtube_url: `https://www.youtube.com/watch?v=${ID}`, platform: 'YouTube', sort_order: 0 })
     expect(calls.cronInserts).toBe(1)
-    expect(calls.cronUpdates[0]).toMatchObject({ ok: true, summary: { trigger: 'cron', inserted: 1, deduplicated: 0 } })
+    expect(calls.cronUpdates[0]).toMatchObject({ ok: true, summary: { trigger: 'cron', inserted: 1, duplicates: [] } })
+    expect(calls.lock.acquire).toHaveLength(1)
+    expect(calls.lock.release).toEqual(calls.lock.acquire)
     expect(mocks.reset).toHaveBeenCalled()
     expect(JSON.stringify(summary)).not.toMatch(/refresh|secret/i)
   })
@@ -117,39 +139,72 @@ describe('syncYouTubeLives', () => {
     expect(mocks.fetchOwnedBroadcasts).toHaveBeenCalledTimes(3)
   })
 
-  it('skips the pass when another run holds the cron_runs lease (other process)', async () => {
-    const calls = database([], { running: true })
+  it('refuses to run when the atomic lock function is unavailable (migration not applied) — never a non-atomic fallback', async () => {
+    const calls = database([], { lockMissing: true })
     mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming] : []))
     const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z') })
-    expect(summary).toMatchObject({ ok: true, error: 'sync_already_running', inserted: 0 })
+    expect(summary).toMatchObject({ ok: false, error: 'sync_lock_unavailable', inserted: 0 })
     expect(mocks.fetchOwnedBroadcasts).not.toHaveBeenCalled()
     expect(calls.inserts).toHaveLength(0)
     expect(calls.cronInserts).toBe(0)
   })
 
-  it('removes its own freshly inserted row when a race already created the same video (keeps the oldest)', async () => {
+  it('reports as busy when another process holds the lock, without reading YouTube or writing', async () => {
+    const locks = lockStore(); locks.acquire('other-process:1', 240)
+    const calls = database([], {}, locks)
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming] : []))
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z') })
+    expect(summary).toMatchObject({ ok: true, error: 'sync_already_running', inserted: 0 })
+    expect(mocks.fetchOwnedBroadcasts).not.toHaveBeenCalled()
+    expect(calls.inserts).toHaveLength(0)
+    expect(calls.lock.release).toEqual([])
+  })
+
+  it('releases the lock even when the pass fails, and a later pass can acquire it', async () => {
+    const locks = lockStore()
+    const calls = database([], {}, locks)
+    mocks.fetchOwnedBroadcasts.mockRejectedValue(new Error('youtube_live_503'))
+    await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z') })
+    expect(calls.lock.release).toHaveLength(1)
+    expect(locks.state.until).toBe(0)
+    __resetYouTubeSyncLock()
+    mocks.fetchOwnedBroadcasts.mockResolvedValue([])
+    await expect(syncYouTubeLives({ now: new Date('2026-11-15T10:05:00Z') })).resolves.toMatchObject({ ok: true, error: null })
+  })
+
+  it('two concurrent synchronisations in DIFFERENT processes: exactly one runs, no duplicate row, no deletion', async () => {
+    const locks = lockStore()
+    const calls = database([], {}, locks)
+    let release: () => void = () => {}
+    const gate = new Promise<void>(resolve => { release = resolve })
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => { await gate; return status === 'upcoming' ? [upcoming] : [] })
+    // Deux instances de module = deux processus Passenger (aucun verrou intra-processus partagé).
+    vi.resetModules()
+    const processA = await import('./youtube-sync-server')
+    vi.resetModules()
+    const processB = await import('./youtube-sync-server')
+    const runA = processA.syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z'), trigger: 'cron' })
+    const runB = processB.syncYouTubeLives({ now: new Date('2026-11-15T10:00:00.500Z'), trigger: 'admin' })
+    await new Promise(r => setTimeout(r, 10))
+    release()
+    const [a, b] = await Promise.all([runA, runB])
+    const results = [a, b].sort((x, y) => (x.error === null ? -1 : 1) - (y.error === null ? -1 : 1))
+    expect(results[0]).toMatchObject({ ok: true, error: null, inserted: 1 })
+    expect(results[1]).toMatchObject({ ok: true, error: 'sync_already_running', inserted: 0 })
+    expect(calls.lock.acquire).toHaveLength(2)
+    expect(calls.lock.release).toHaveLength(1)
+    expect(calls.inserts).toHaveLength(1)
+    expect(calls.deletes).toEqual([])
+    expect(mocks.fetchOwnedBroadcasts).toHaveBeenCalledTimes(3)
+  })
+
+  it('never deletes a cms_lives row: a detected duplicate is only reported', async () => {
     const calls = database([], { twins: [{ id: 'older', youtube_url: `https://www.youtube.com/watch?v=${ID}`, created_at: '2026-11-15T09:59:59Z' }, { id: 'new-1', youtube_url: `https://www.youtube.com/watch?v=${ID}`, created_at: '2026-11-15T10:00:00Z' }] })
     mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming] : []))
     const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z') })
-    expect(calls.inserts).toHaveLength(1)
-    expect(calls.deletes).toEqual(['new-1'])
-    expect(summary).toMatchObject({ ok: true, inserted: 0, deduplicated: 1, lifecycle: { scheduled: 0 } })
-    expect(mocks.reset).not.toHaveBeenCalled()
-  })
-
-  it('keeps its row when the ilike pre-filter matches a different video id', async () => {
-    const calls = database([], { twins: [{ id: 'other', youtube_url: 'https://youtu.be/zzzzzzzzzzz', created_at: '2026-11-15T09:00:00Z' }, { id: 'new-1', youtube_url: `https://www.youtube.com/watch?v=${ID}`, created_at: '2026-11-15T10:00:00Z' }] })
-    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming] : []))
-    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z') })
     expect(calls.deletes).toEqual([])
-    expect(summary).toMatchObject({ inserted: 1, deduplicated: 0 })
-  })
-
-  it('counts write failures without aborting the whole pass', async () => {
-    database([], { failWrites: true })
-    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming] : []))
-    const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z') })
-    expect(summary).toMatchObject({ ok: false, error: 'cms_lives_write_failed', writeErrors: 1 })
+    expect(summary).toMatchObject({ ok: true, inserted: 1, duplicates: [ID] })
+    expect(calls.cronUpdates[0]).toMatchObject({ summary: { duplicates: [ID] } })
   })
 
   it('refuses to run without OAuth configuration', async () => {

@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { randomUUID } from 'node:crypto'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 import { fetchOwnedBroadcasts, fetchVideoDetails, youtubeErrorCode, __resetYouTubeLiveCache } from '@/lib/home/youtube-live'
@@ -21,17 +22,20 @@ import {
  *
  * Lit YouTube (lecture seule, OAuth propriétaire), planifie (module pur) puis écrit `cms_lives`
  * via le service role. Journalisé dans `cron_runs` (job `youtube-live-sync`, table existante).
- * Idempotent : relançable à volonté. Concurrence : verrou intra-processus + bail `cron_runs` (120 s) +
- * insertion vérifiée (anti-doublon inter-processus). Coût quota par passage : 3 appels liveBroadcasts.list
+ * Idempotent : relançable à volonté. Concurrence : exclusion mutuelle ATOMIQUE inter-processus par la
+ * fonction SQL `acquire_sync_lock` (INSERT ... ON CONFLICT DO UPDATE ... WHERE, migration 20261115120000) ;
+ * sans cette fonction la synchronisation REFUSE de s'exécuter (jamais de repli non atomique). Coût quota par passage : 3 appels liveBroadcasts.list
  * (active, upcoming, completed) + 1 appel videos.list par lot de 50 identifiants ≈ 4 unités.
  * Aucune donnée n'est jamais supprimée ; les lignes `ended`/`published`/`draft` ne sont jamais réécrites.
  */
 export const SYNC_JOB = 'youtube-live-sync'
 const ROWS_LIMIT = 300
 const ROWS_WINDOW_MS = 90 * 24 * 60 * 60_000
-/** Bail d'exécution : un passage démarré depuis moins longtemps et non terminé bloque les suivants. */
-export const SYNC_LEASE_MS = 120_000
-/** Verrou intra-processus : deux appels simultanés dans le même processus Passenger sont sérialisés. */
+/** Nom du verrou distribué (table `sync_locks`, migration 20261115120000). */
+export const SYNC_LOCK_NAME = 'youtube-live-sync'
+/** Durée du bail : couvre largement un passage (quelques secondes) et expire seul si le processus meurt. */
+export const SYNC_LOCK_TTL_SECONDS = 240
+/** Verrou intra-processus (optimisation) : deux appels simultanés dans le même processus partagent l'exécution. */
 let inflight: Promise<YouTubeSyncSummary> | null = null
 
 export type YouTubeSyncSummary = {
@@ -40,8 +44,8 @@ export type YouTubeSyncSummary = {
   checkedAt: string
   inserted: number
   updated: number
-  /** Lignes créées puis retirées parce qu'une course avait déjà créé la même vidéo. */
-  deduplicated: number
+  /** Identifiants vidéo pour lesquels plusieurs lignes cms_lives coexistent (jamais supprimées, à arbitrer). */
+  duplicates: string[]
   lifecycle: Record<'scheduled' | 'live' | 'replay_pending' | 'replay_available', number>
   pendingVideoIds: string[]
   skipped: SyncSkip[]
@@ -70,42 +74,53 @@ async function loadRows(now: Date): Promise<CmsLiveSyncRow[]> {
 }
 
 /**
- * Insertion VÉRIFIÉE : après création, on relit toutes les lignes portant le même identifiant vidéo.
- * S'il en existe plusieurs (course entre deux cron/relances sur des processus différents), la ligne que
- * nous venons de créer est retirée (elle n'a encore ni réaction ni progression) et la plus ancienne reste.
- * Renvoie true si notre ligne a été conservée.
+ * Insertion puis DÉTECTION de doublon (jamais de suppression : une ligne `cms_lives` peut porter des
+ * réactions, commentaires ou historiques). Avec le verrou atomique, aucune course ne doit en créer ;
+ * un doublon détecté est remonté dans `summary.duplicates` pour arbitrage administrateur.
  */
-async function insertVerified(op: Extract<SyncOperation, { kind: 'insert' }>): Promise<boolean> {
-  const { data, error } = await supabaseAdmin.from('cms_lives').insert({ ...op.row, sort_order: 0 }).select('id,created_at').single()
+async function insertDetected(op: Extract<SyncOperation, { kind: 'insert' }>, duplicates: string[]): Promise<void> {
+  const { error } = await supabaseAdmin.from('cms_lives').insert({ ...op.row, sort_order: 0 })
   if (error) throw new Error('cms_lives_insert_failed')
-  const ours = (data as { id: string; created_at?: string } | null)
-  if (!ours?.id) return true
-  const { data: twins } = await supabaseAdmin.from('cms_lives').select('id,youtube_url,created_at').ilike('youtube_url', `%${op.videoId}%`).order('created_at', { ascending: true }).limit(10)
-  const exact = ((twins as Array<{ id: string; youtube_url?: string | null; created_at?: string }> | null) || []).filter(t => youtubeVideoIdFrom(t.youtube_url) === op.videoId)
-  if (exact.length > 1 && exact[0].id !== ours.id) {
-    await supabaseAdmin.from('cms_lives').delete().eq('id', ours.id).eq('youtube_url', op.row.youtube_url).eq('status', op.row.status)
-    return false
-  }
-  return true
+  try {
+    const { data: twins } = await supabaseAdmin.from('cms_lives').select('id,youtube_url,created_at').ilike('youtube_url', `%${op.videoId}%`).order('created_at', { ascending: true }).limit(10)
+    const exact = ((twins as Array<{ id: string; youtube_url?: string | null }> | null) || []).filter(t => youtubeVideoIdFrom(t.youtube_url) === op.videoId)
+    if (exact.length > 1) duplicates.push(op.videoId)
+  } catch { /* détection best-effort */ }
 }
 
-async function applyOperation(op: SyncOperation, nowIso: string): Promise<'inserted' | 'updated' | 'deduplicated'> {
-  if (op.kind === 'insert') return (await insertVerified(op)) ? 'inserted' : 'deduplicated'
+async function applyOperation(op: SyncOperation, nowIso: string, duplicates: string[]): Promise<'inserted' | 'updated'> {
+  if (op.kind === 'insert') { await insertDetected(op, duplicates); return 'inserted' }
   const { error } = await supabaseAdmin.from('cms_lives').update({ ...op.patch, updated_at: nowIso }).eq('id', op.id)
   if (error) throw new Error('cms_lives_update_failed')
   return 'updated'
 }
 
-/** Prend le bail : refuse si un autre passage a démarré depuis moins de SYNC_LEASE_MS sans se terminer. */
-async function acquireLease(startedAt: string, nowMs: number): Promise<{ runId: string | null; busy: boolean }> {
+type LockOutcome = 'acquired' | 'busy' | 'unavailable'
+/**
+ * Acquisition ATOMIQUE du bail inter-processus via `acquire_sync_lock` (une seule instruction SQL,
+ * condition évaluée sous verrou de ligne). 'unavailable' = fonction absente ou erreur → la
+ * synchronisation refuse de s'exécuter plutôt que de risquer un doublon.
+ */
+async function acquireLock(owner: string): Promise<LockOutcome> {
   try {
-    const since = new Date(nowMs - SYNC_LEASE_MS).toISOString()
-    const { data: running } = await supabaseAdmin.from('cron_runs').select('id').eq('job', SYNC_JOB).is('finished_at', null).gte('started_at', since).limit(1)
-    if (Array.isArray(running) && running.length) return { runId: null, busy: true }
-    const { data } = await supabaseAdmin.from('cron_runs').insert({ job: SYNC_JOB, started_at: startedAt }).select('id').single()
-    return { runId: (data as { id?: string } | null)?.id ?? null, busy: false }
+    const { data, error } = await supabaseAdmin.rpc('acquire_sync_lock', { p_name: SYNC_LOCK_NAME, p_owner: owner, p_ttl_seconds: SYNC_LOCK_TTL_SECONDS })
+    if (error) return 'unavailable'
+    return data === true ? 'acquired' : 'busy'
   } catch {
-    return { runId: null, busy: false } // table absente → pas de bail distribué, le verrou processus reste actif
+    return 'unavailable'
+  }
+}
+
+async function releaseLock(owner: string): Promise<void> {
+  try { await supabaseAdmin.rpc('release_sync_lock', { p_name: SYNC_LOCK_NAME, p_owner: owner }) } catch { /* le bail expire seul (TTL) */ }
+}
+
+async function openRun(startedAt: string): Promise<string | null> {
+  try {
+    const { data } = await supabaseAdmin.from('cron_runs').insert({ job: SYNC_JOB, started_at: startedAt }).select('id').single()
+    return (data as { id?: string } | null)?.id ?? null
+  } catch {
+    return null // table absente → pas de journal, jamais bloquant
   }
 }
 
@@ -115,7 +130,7 @@ async function journal(runId: string | null, summary: YouTubeSyncSummary, trigge
     await supabaseAdmin.from('cron_runs').update({
       finished_at: new Date().toISOString(),
       ok: summary.ok,
-      summary: { trigger, error: summary.error, inserted: summary.inserted, updated: summary.updated, deduplicated: summary.deduplicated, lifecycle: summary.lifecycle, pending: summary.pendingVideoIds.length, skipped: summary.skipped.length, writeErrors: summary.writeErrors },
+      summary: { trigger, error: summary.error, inserted: summary.inserted, updated: summary.updated, duplicates: summary.duplicates, lifecycle: summary.lifecycle, pending: summary.pendingVideoIds.length, skipped: summary.skipped.length, writeErrors: summary.writeErrors },
     }).eq('id', runId)
   } catch { /* journal best-effort : jamais bloquant */ }
 }
@@ -130,14 +145,20 @@ export async function syncYouTubeLives(options: SyncOptions = {}): Promise<YouTu
 async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
   const now = options.now || new Date()
   const startedAt = now.toISOString()
-  const summary: YouTubeSyncSummary = { ok: false, error: null, checkedAt: startedAt, inserted: 0, updated: 0, deduplicated: 0, lifecycle: { scheduled: 0, live: 0, replay_pending: 0, replay_available: 0 }, pendingVideoIds: [], skipped: [], writeErrors: 0, states: null }
+  const summary: YouTubeSyncSummary = { ok: false, error: null, checkedAt: startedAt, inserted: 0, updated: 0, duplicates: [], lifecycle: { scheduled: 0, live: 0, replay_pending: 0, replay_available: 0 }, pendingVideoIds: [], skipped: [], writeErrors: 0, states: null }
 
   if (IS_DEMO_MODE) return { ...summary, ok: true, error: 'demo_mode' }
   if (!loadYouTubeConfig()) return { ...summary, error: 'youtube_oauth_not_configured' }
 
-  const lease = await acquireLease(startedAt, now.getTime())
-  if (lease.busy) return { ...summary, ok: true, error: 'sync_already_running' }
+  const owner = `${process.pid}:${randomUUID()}`
+  const lock = await acquireLock(owner)
+  if (lock === 'busy') return { ...summary, ok: true, error: 'sync_already_running' }
+  if (lock === 'unavailable') {
+    console.warn('[youtube-sync] refused: sync lock unavailable (migration 20261115120000_sync_locks not applied?)')
+    return { ...summary, error: 'sync_lock_unavailable' }
+  }
 
+  const runId = await openRun(startedAt)
   try {
     const [active, upcoming, completed] = await Promise.all(
       (['active', 'upcoming', 'completed'] as const).map(status => fetchOwnedBroadcasts(status, options)),
@@ -148,11 +169,9 @@ async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
 
     for (const op of plan.operations) {
       try {
-        const outcome = await applyOperation(op, startedAt)
-        if (outcome === 'inserted') summary.inserted++
-        else if (outcome === 'updated') summary.updated++
-        else summary.deduplicated++
-        if (outcome !== 'deduplicated') summary.lifecycle[op.lifecycle]++
+        const outcome = await applyOperation(op, startedAt, summary.duplicates)
+        if (outcome === 'inserted') summary.inserted++; else summary.updated++
+        summary.lifecycle[op.lifecycle]++
       } catch {
         summary.writeErrors++
       }
@@ -167,9 +186,10 @@ async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
     const code = youtubeErrorCode(err)
     summary.error = code === 'youtube_live_error' && err instanceof Error && /^cms_lives_/.test(err.message) ? err.message : code
     console.warn(`[youtube-sync] run failed: ${summary.error}`)
+  } finally {
+    await journal(runId, summary, options.trigger || 'cron')
+    await releaseLock(owner)
   }
-
-  await journal(lease.runId, summary, options.trigger || 'cron')
   return summary
 }
 
