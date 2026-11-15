@@ -10,11 +10,14 @@ describe('LIVE 4A.1 canonical architecture', () => {
     const route = readFileSync(routePath, 'utf8')
     const helper = existsSync(helperPath) ? readFileSync(helperPath, 'utf8') : ''
 
-    expect(route).toContain(
-      "import { getCanonicalLiveState } from '@/lib/live/canonical-server'",
+    expect(route).toMatch(
+      /import \{[^}]*getCanonicalLiveState[^}]*\} from '@\/lib\/live\/canonical-server'/,
     )
 
     expect(route).not.toContain("import { cmsList }")
+    // Les diagnostics techniques restent hors du payload public.
+    expect(route).not.toContain('youtubeError')
+    expect(route).not.toContain('getCanonicalLiveDiagnostics')
     expect(route).not.toContain("import { detectYouTubeLive }")
 
     expect(helper).toContain(

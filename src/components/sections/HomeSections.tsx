@@ -1,17 +1,10 @@
 import { cmsList } from '@/lib/cms'
 import { ContextualHome } from '@/components/sections/ContextualHome'
-import { resolveLiveState, type CmsLiveLike, type LiveState } from '@/lib/home/contextual'
-import { detectYouTubeLive } from '@/lib/home/youtube-live'
+import type { LiveState } from '@/lib/home/contextual'
+import { getCanonicalLiveState } from '@/lib/live/canonical-server'
 import { selectFeaturedHomeEvent, type FeaturedHomeEvent } from '@/lib/home/featured-event'
 
 export async function HomeSections() {
-  const liveRows = await cmsList<CmsLiveLike>('cms_lives', {
-    publicOnly: true,
-    noStore: true,
-    orderBy: 'created_at',
-    ascending: false,
-    limit: 12,
-  })
   // Explicit CMS editorial selection only; use uncached reads for admin changes.
   const featuredRows = await cmsList<FeaturedHomeEvent>('cms_events', {
     publicOnly: true,
@@ -46,10 +39,9 @@ export async function HomeSections() {
     testLiveState = { status: 'OFFLINE' }
   }
 
-  const liveState =
-    testLiveState ||
-    (await detectYouTubeLive()) ||
-    resolveLiveState(liveRows)
+  // Source unique : même résolveur canonique que /api/live/canonical (YouTube prioritaire,
+  // fallback CMS borné dans le temps). Plus de sélection dupliquée côté accueil.
+  const liveState = testLiveState || (await getCanonicalLiveState())
 
   return <ContextualHome liveState={liveState} featuredEvent={featuredEvent} />
 }
