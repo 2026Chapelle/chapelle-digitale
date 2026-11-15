@@ -146,7 +146,8 @@ async function bearerToken(nowMs: number, fetchImpl: typeof fetch): Promise<stri
   return token.accessToken
 }
 
-async function listBroadcasts(broadcastStatus: 'active' | 'upcoming', nowMs: number, fetchImpl: typeof fetch): Promise<YouTubeItem[]> {
+export type BroadcastStatusFilter = 'active' | 'upcoming' | 'completed'
+async function listBroadcasts(broadcastStatus: BroadcastStatusFilter, nowMs: number, fetchImpl: typeof fetch): Promise<YouTubeItem[]> {
   const token = await bearerToken(nowMs, fetchImpl), url = new URL(BROADCASTS_URL)
   // `broadcastStatus` cible les diffusions du compte authentifié sans dépendre de la
   // pagination de `mine=true` (50 diffusions max, anciennes incluses). `broadcastType=all`
@@ -228,6 +229,39 @@ export async function verifyYouTubeVideoLive(videoIdValue: string, options: Dete
   verified.set(videoIdValue, { verdict, expiresAt: nowMs + VERIFY_TTL_SECONDS * 1000 })
   return verdict
 }
+
+/** Détails vidéo (ressource `videos`) utilisés par la synchronisation des replays. */
+export type YouTubeVideoDetails = {
+  id?: string
+  snippet?: { title?: string; description?: string; publishedAt?: string; channelId?: string; liveBroadcastContent?: string; thumbnails?: { maxres?: { url?: string }; high?: { url?: string }; medium?: { url?: string } } }
+  status?: { uploadStatus?: string; privacyStatus?: string; embeddable?: boolean }
+  contentDetails?: { duration?: string }
+  liveStreamingDetails?: { scheduledStartTime?: string; actualStartTime?: string; actualEndTime?: string }
+}
+
+/** Diffusions du compte autorisé (filtrées sur la chaîne attendue). Lève des codes `youtube_*`. */
+export async function fetchOwnedBroadcasts(status: BroadcastStatusFilter, options: DetectorOptions = {}): Promise<YouTubeItem[]> {
+  const now = options.now || new Date(), fetchImpl = options.fetchImpl || fetch
+  return filterOwnedChannel(await listBroadcasts(status, now.getTime(), fetchImpl))
+}
+
+/** `videos.list` par lots de 50 identifiants (1 unité de quota par lot). Lève des codes `youtube_*`. */
+export async function fetchVideoDetails(ids: string[], options: DetectorOptions = {}): Promise<YouTubeVideoDetails[]> {
+  const now = options.now || new Date(), nowMs = now.getTime(), fetchImpl = options.fetchImpl || fetch
+  const unique = Array.from(new Set(ids.filter(id => /^[\w-]{11}$/.test(id))))
+  const out: YouTubeVideoDetails[] = []
+  for (let i = 0; i < unique.length; i += 50) {
+    const token = await bearerToken(nowMs, fetchImpl), url = new URL(VIDEOS_URL)
+    url.search = new URLSearchParams({ part: 'snippet,status,contentDetails,liveStreamingDetails', id: unique.slice(i, i + 50).join(','), maxResults: '50' }).toString()
+    const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+    if (!response.ok) throw new Error(`youtube_videos_${response.status}`)
+    out.push(...(((await response.json()) as { items?: YouTubeVideoDetails[] }).items || []))
+  }
+  return out
+}
+
+/** Code d'erreur non sensible (`youtube_*`) ou `youtube_live_error`. */
+export const youtubeErrorCode = (err: unknown): string => errorCode(err)
 
 /** Diagnostic NON sensible (aucune valeur de secret) pour la route admin. */
 export function getYouTubeLiveDiagnostics(): YouTubeLiveDiagnostics {

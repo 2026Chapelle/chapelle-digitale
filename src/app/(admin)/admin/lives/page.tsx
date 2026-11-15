@@ -5,7 +5,9 @@ const STATUS = [
   { value: 'draft', label: 'Brouillon' },
   { value: 'scheduled', label: 'Programmé' },
   { value: 'live', label: 'En direct' },
-  { value: 'ended', label: 'Terminé' },
+  // LIVE & REPLAY V1 : direct terminé dont l'archive YouTube n'est pas encore consultable (invisible du public).
+  { value: 'replay_pending', label: 'Replay en attente' },
+  { value: 'ended', label: 'Terminé (replay disponible)' },
   { value: 'published', label: 'Publié' },
 ]
 
@@ -15,7 +17,7 @@ export default function AdminLivesPage() {
       resource="lives"
       itemLabel="live"
       title={<>Lives & <span className="text-cinematic-gold">Cultes</span></>}
-      description="Programmez les diffusions en direct et les cultes (YouTube / vidéo)."
+      description="Programmez les diffusions en direct et les cultes (YouTube / vidéo). Les directs de la chaîne YouTube autorisée sont synchronisés automatiquement (programmé → en direct → replay)."
       statusField="status"
       fields={[
         { name: 'title', label: 'Titre', required: true },

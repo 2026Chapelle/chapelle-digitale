@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import LiveAdminSupervision from '@/components/admin/live/LiveAdminSupervision'
+import YouTubeSyncPanel from '@/components/admin/live/YouTubeSyncPanel'
 
 type LiveStatut = 'en_cours' | 'planifie' | 'termine' | 'brouillon'
 
@@ -322,7 +323,10 @@ export default function AdminLivePage() {
         )}
 
         {tab === 'stats' && (
-          <LiveAdminSupervision />
+          <div className="space-y-6">
+            <LiveAdminSupervision />
+            <YouTubeSyncPanel />
+          </div>
         )}
         {/* New live modal */}
         {showForm && (
