@@ -52,8 +52,9 @@ chmod +x "$W/shim/curl"; export PATH="$W/shim:$PATH"
 export -f 2>/dev/null
 
 echo "== Analyse statique"
-code_only() { for f in "$@"; do grep -v '^[[:space:]]*#' "$f" | sed 's/[[:space:]]#.*$//'; done; }
-expect "aucune substitution de processus <( ) dans remote/ (code)" "! code_only $R/*.sh | grep -q '<('"
+# Meme regle que le pilote PS : seules les lignes de commentaire completes sont ignorees.
+code_only() { for f in "$@"; do grep -v '^[[:space:]]*#' "$f"; done; }
+expect "aucune substitution de processus <( ) ou >( ) dans remote/ (code)" "! code_only $R/*.sh | grep -qE '[<>]\\('"
 expect "aucun appel a comm dans remote/ (code)" "! code_only $R/*.sh | grep -qw 'comm'"
 expect "aucun rm dans backup/activate/rollback (code)" "! code_only $R/backup-prod.sh $R/activate.sh $R/rollback.sh | grep -qE '(^|[;&|(]|[[:space:]])rm[[:space:]]'"
 expect "aucun rsync dans remote/ (code)" "! code_only $R/*.sh | grep -q 'rsync'"

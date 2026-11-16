@@ -1,5 +1,5 @@
 == Analyse statique
-  OK   aucune substitution de processus <( ) dans remote/ (code)
+  OK   aucune substitution de processus <( ) ou >( ) dans remote/ (code)
   OK   aucun appel a comm dans remote/ (code)
   OK   aucun rm dans backup/activate/rollback (code)
   OK   aucun rsync dans remote/ (code)
