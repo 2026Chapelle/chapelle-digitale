@@ -3,7 +3,7 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { IS_DEMO_MODE } from '@/lib/supabase'
-import { fetchOwnedBroadcasts, fetchVideoDetails, youtubeErrorCode, __resetYouTubeLiveCache } from '@/lib/home/youtube-live'
+import { fetchOwnedBroadcasts, fetchPlaylistVideoIds, fetchVideoDetails, youtubeErrorCode, __resetYouTubeLiveCache } from '@/lib/home/youtube-live'
 import { loadYouTubeConfig } from '@/lib/intelligence/connectors/youtube/config'
 import { youtubeVideoIdFrom } from '@/lib/home/contextual'
 import {
@@ -16,6 +16,7 @@ import {
   type SyncSkip,
   type SyncStateCounts,
 } from './youtube-sync'
+import { attachProgramIds, LOT1_SYNC_SCOPE, missingScopePrograms, parseConfirmedVideoIds, scopeSyncInput, usablePrograms, type LiveProgramRow, type ScopeDecision, type SyncScope } from './youtube-sync-scope'
 
 /**
  * CITADELLE — LIVE & REPLAY AUTOMATIQUE V1 · Exécuteur serveur (SERVER-ONLY).
@@ -51,6 +52,13 @@ export type YouTubeSyncSummary = {
   skipped: SyncSkip[]
   writeErrors: number
   states: SyncStateCounts | null
+  /**
+   * Périmètre (Lot 1) : programmes importés automatiquement, diffusions admises, réservées à un autre
+   * programme (futur catalogue, jamais supprimées) et en revue (ambiguës, jamais importées).
+   */
+  scope: { programs: string[]; admitted: string[]; reserved: Array<{ videoId: string; program: string | null }>; review: Array<{ videoId: string; reason: string }>; outOfScope: number } | null
+  /** Avertissements non bloquants et non sensibles (ex. playlist illisible : repli sur l'horaire). */
+  warnings: string[]
 }
 
 export type YouTubeSyncStatus = {
@@ -67,6 +75,8 @@ type SyncOptions = {
   clock?: () => number
   /** Délai maximal d'un appel Supabase ; injectable pour les tests. */
   callTimeoutMs?: number
+  /** Périmètre d'import (défaut : Lot 1, Culte de Célébration Royale uniquement). */
+  scope?: SyncScope
 }
 
 /**
@@ -94,6 +104,13 @@ function withTimeout<T>(call: PromiseLike<T>, code: string): Promise<T> {
   return Promise.race([Promise.resolve(call), deadline]).finally(() => { if (timer) clearTimeout(timer) })
 }
 
+const PROGRAM_COLUMNS = 'id,slug,title,weekdays,start_time,timezone,youtube_playlist_id,status,is_active'
+async function loadPrograms(): Promise<LiveProgramRow[]> {
+  const { data, error } = await withTimeout(supabaseAdmin.from('live_programs').select(PROGRAM_COLUMNS), 'live_programs_read_timeout')
+  if (error) throw new Error('live_programs_read_failed')
+  return (data as LiveProgramRow[]) || []
+}
+
 async function loadRows(now: Date): Promise<CmsLiveSyncRow[]> {
   const since = new Date(now.getTime() - ROWS_WINDOW_MS).toISOString()
   const { data, error } = await withTimeout(supabaseAdmin
@@ -111,8 +128,8 @@ async function loadRows(now: Date): Promise<CmsLiveSyncRow[]> {
  * réactions, commentaires ou historiques). Avec le verrou atomique, aucune course ne doit en créer ;
  * un doublon détecté est remonté dans `summary.duplicates` pour arbitrage administrateur.
  */
-async function insertDetected(op: Extract<SyncOperation, { kind: 'insert' }>, duplicates: string[]): Promise<void> {
-  const { error } = await withTimeout(supabaseAdmin.from('cms_lives').insert({ ...op.row, sort_order: 0 }), 'cms_lives_insert_timeout')
+async function insertDetected(op: Extract<SyncOperation, { kind: 'insert' }> & { programId?: string }, duplicates: string[]): Promise<void> {
+  const { error } = await withTimeout(supabaseAdmin.from('cms_lives').insert({ ...op.row, sort_order: 0, ...(op.programId ? { program_id: op.programId } : {}) }), 'cms_lives_insert_timeout')
   if (error) throw new Error('cms_lives_insert_failed')
   try {
     const { data: twins } = await withTimeout(supabaseAdmin.from('cms_lives').select('id,youtube_url,created_at').ilike('youtube_url', `%${op.videoId}%`).order('created_at', { ascending: true }).limit(10), 'cms_lives_read_timeout')
@@ -121,7 +138,7 @@ async function insertDetected(op: Extract<SyncOperation, { kind: 'insert' }>, du
   } catch { /* détection best-effort */ }
 }
 
-async function applyOperation(op: SyncOperation, nowIso: string, duplicates: string[]): Promise<'inserted' | 'updated'> {
+async function applyOperation(op: SyncOperation & { programId?: string }, nowIso: string, duplicates: string[]): Promise<'inserted' | 'updated'> {
   if (op.kind === 'insert') { await insertDetected(op, duplicates); return 'inserted' }
   const { error } = await withTimeout(supabaseAdmin.from('cms_lives').update({ ...op.patch, updated_at: nowIso }).eq('id', op.id), 'cms_lives_update_timeout')
   if (error) throw new Error('cms_lives_update_failed')
@@ -163,7 +180,7 @@ async function journal(runId: string | null, summary: YouTubeSyncSummary, trigge
     await withTimeout(supabaseAdmin.from('cron_runs').update({
       finished_at: new Date().toISOString(),
       ok: summary.ok,
-      summary: { trigger, error: summary.error, inserted: summary.inserted, updated: summary.updated, duplicates: summary.duplicates, lifecycle: summary.lifecycle, pending: summary.pendingVideoIds.length, skipped: summary.skipped.length, writeErrors: summary.writeErrors },
+      summary: { trigger, error: summary.error, inserted: summary.inserted, updated: summary.updated, duplicates: summary.duplicates, lifecycle: summary.lifecycle, pending: summary.pendingVideoIds.length, skipped: summary.skipped.length, writeErrors: summary.writeErrors, scope: summary.scope ? { programs: summary.scope.programs, admitted: summary.scope.admitted.length, reserved: summary.scope.reserved.length, review: summary.scope.review.length, outOfScope: summary.scope.outOfScope } : null, warnings: summary.warnings },
     }).eq('id', runId), 'cron_runs_timeout')
   } catch { /* journal best-effort : jamais bloquant */ }
 }
@@ -178,15 +195,26 @@ export async function syncYouTubeLives(options: SyncOptions = {}): Promise<YouTu
 async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
   const now = options.now || new Date()
   const startedAt = now.toISOString()
-  const summary: YouTubeSyncSummary = { ok: false, error: null, checkedAt: startedAt, inserted: 0, updated: 0, duplicates: [], lifecycle: { scheduled: 0, live: 0, replay_pending: 0, replay_available: 0, cancelled: 0 }, pendingVideoIds: [], skipped: [], writeErrors: 0, states: null }
+  const summary: YouTubeSyncSummary = { ok: false, error: null, checkedAt: startedAt, inserted: 0, updated: 0, duplicates: [], lifecycle: { scheduled: 0, live: 0, replay_pending: 0, replay_available: 0, cancelled: 0 }, pendingVideoIds: [], skipped: [], writeErrors: 0, states: null, scope: null, warnings: [] }
 
   if (IS_DEMO_MODE) return { ...summary, ok: true, error: 'demo_mode' }
   if (!loadYouTubeConfig()) return { ...summary, error: 'youtube_oauth_not_configured' }
 
+  // Périmètre vérifié AVANT tout verrou, journal ou écriture : sans programme cible publié et actif,
+  // aucune diffusion ne peut être classée, la synchronisation refuse donc de s'exécuter.
+  // Confirmations éditoriales explicites (cultes exceptionnels hors calendrier) : YOUTUBE_SYNC_CONFIRMED_VIDEO_IDS.
+  const scope: SyncScope = options.scope || { ...LOT1_SYNC_SCOPE, confirmedVideoIds: parseConfirmedVideoIds(process.env.YOUTUBE_SYNC_CONFIRMED_VIDEO_IDS) }
+  callTimeoutMs = options.callTimeoutMs || SUPABASE_CALL_TIMEOUT_MS
+  let programs: LiveProgramRow[]
+  try { programs = await loadPrograms() } catch (err) { return { ...summary, error: err instanceof Error && /^live_programs_/.test(err.message) ? err.message : 'live_programs_read_failed' } }
+  if (missingScopePrograms(programs, scope).length) {
+    console.warn('[youtube-sync] refused: scope program missing, unpublished or inactive')
+    return { ...summary, error: 'sync_program_missing' }
+  }
+
   const clock = options.clock || Date.now
   const t0 = clock()
   const overBudget = () => clock() - t0 > SYNC_WORK_BUDGET_MS
-  callTimeoutMs = options.callTimeoutMs || SUPABASE_CALL_TIMEOUT_MS
 
   const owner = `${process.pid}:${randomUUID()}`
   const lock = await acquireLock(owner)
@@ -202,8 +230,23 @@ async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
       (['active', 'upcoming', 'completed'] as const).map(status => fetchOwnedBroadcasts(status, options)),
     )
     const rows = await loadRows(now)
+    // Signal éditorial : playlists des programmes du périmètre (échec non bloquant → repli sur l'horaire).
+    const playlistVideoIds: Record<string, string[]> = {}
+    for (const p of usablePrograms(programs).filter(p => scope.programs.includes(p.slug) && p.youtube_playlist_id)) {
+      try { playlistVideoIds[p.slug] = await fetchPlaylistVideoIds(String(p.youtube_playlist_id), options) } catch { summary.warnings.push(`playlist_unavailable:${p.slug}`) }
+    }
+    // Périmètre : seules les NOUVELLES diffusions admises atteignent le planificateur ; les fiches existantes y vont toujours.
+    const scoped = scopeSyncInput({ active, upcoming, completed, rows, programs, playlistVideoIds, scope })
+    const decided = (v: ScopeDecision['verdict']) => scoped.decisions.filter(d => d.verdict === v)
+    summary.scope = {
+      programs: scope.programs,
+      admitted: decided('admitted').map(d => d.videoId),
+      reserved: decided('reserved').map(d => ({ videoId: d.videoId, program: d.program })),
+      review: decided('review').map(d => ({ videoId: d.videoId, reason: d.reason })),
+      outOfScope: decided('out_of_scope').length,
+    }
     let stopReason: 'sync_deadline_exceeded' | 'sync_lock_lost' | null = null
-    const ids = videoIdsToVerify({ active, upcoming, completed, rows, now })
+    const ids = videoIdsToVerify({ active: scoped.active, upcoming: scoped.upcoming, completed: scoped.completed, rows, now })
     const videos: Awaited<ReturnType<typeof fetchVideoDetails>> = []
     const verifiedIds: string[] = []
     for (let i = 0; i < ids.length; i += 50) {
@@ -213,10 +256,11 @@ async function runSync(options: SyncOptions): Promise<YouTubeSyncSummary> {
       verifiedIds.push(...batch)
     }
     // Seuls les identifiants réellement interrogés peuvent être déclarés supprimés.
-    const plan = planYouTubeSync({ active, upcoming, completed, videos, verifiedIds, rows, now })
+    const plan = planYouTubeSync({ active: scoped.active, upcoming: scoped.upcoming, completed: scoped.completed, videos, verifiedIds, rows, now })
+    const operations = attachProgramIds(plan.operations, scoped.decisions)
 
     let lastRenewal = clock()
-    for (const op of stopReason ? [] : plan.operations) {
+    for (const op of stopReason ? [] : operations) {
       if (overBudget()) { stopReason = 'sync_deadline_exceeded'; break }
       if (clock() - lastRenewal >= SYNC_LOCK_RENEW_EVERY_MS) {
         // Renouvellement par le MÊME owner : true seulement si le bail nous appartient encore (ou a expiré sans repreneur).

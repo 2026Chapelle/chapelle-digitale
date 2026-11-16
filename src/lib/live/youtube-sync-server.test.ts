@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), fetchOwnedBroadcasts: vi.fn(), fetchVideoDetails: vi.fn(), reset: vi.fn(), config: vi.fn() }))
+const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), fetchOwnedBroadcasts: vi.fn(), fetchVideoDetails: vi.fn(), fetchPlaylistVideoIds: vi.fn(), reset: vi.fn(), config: vi.fn() }))
 
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase', () => ({ IS_DEMO_MODE: false }))
@@ -9,6 +9,7 @@ vi.mock('@/lib/intelligence/connectors/youtube/config', () => ({ loadYouTubeConf
 vi.mock('@/lib/home/youtube-live', () => ({
   fetchOwnedBroadcasts: mocks.fetchOwnedBroadcasts,
   fetchVideoDetails: mocks.fetchVideoDetails,
+  fetchPlaylistVideoIds: mocks.fetchPlaylistVideoIds,
   __resetYouTubeLiveCache: mocks.reset,
   youtubeErrorCode: (err: unknown) => (err instanceof Error && /^youtube_[a-z0-9_]+$/.test(err.message) ? err.message : 'youtube_live_error'),
 }))
@@ -16,10 +17,17 @@ vi.mock('@/lib/home/youtube-live', () => ({
 import { __resetYouTubeSyncLock, getYouTubeSyncStatus, syncYouTubeLives, SYNC_JOB, SYNC_LOCK_TTL_SECONDS, SYNC_WORST_CASE_MS, SYNC_WORK_BUDGET_MS, SYNC_LOCK_RENEW_EVERY_MS, SUPABASE_CALL_TIMEOUT_MS } from './youtube-sync-server'
 
 const ID = 'culte123456'
-const upcoming = { id: ID, snippet: { title: 'Culte', scheduledStartTime: '2026-11-16T09:00:00Z', channelId: 'UCtest' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' } }
+const upcoming = { id: ID, snippet: { title: 'Culte', scheduledStartTime: '2026-11-22T10:30:00Z', channelId: 'UCtest' }, status: { lifeCycleStatus: 'ready', privacyStatus: 'public' } }
+/** Programmes de référence (migration 20260819180000_live_programs_seed) : périmètre Lot 1 = culte. */
+const PROGRAMS = [
+  { id: 'prog-matinale', slug: 'matinale', title: 'Matinale', weekdays: [1, 3, 5], start_time: '05:30:00', timezone: 'Africa/Abidjan', youtube_playlist_id: null, status: 'published', is_active: true },
+  { id: 'prog-ecole', slug: 'ecole-du-royaume', title: 'École du Royaume', weekdays: [3], start_time: '19:30:00', timezone: 'Africa/Abidjan', youtube_playlist_id: null, status: 'published', is_active: true },
+  { id: 'prog-vdp', slug: 'vendredi-de-puissance', title: 'Vendredi de puissance', weekdays: [5], start_time: '19:30:00', timezone: 'Africa/Abidjan', youtube_playlist_id: null, status: 'published', is_active: true },
+  { id: 'prog-culte', slug: 'culte-de-celebration-royale', title: 'Culte de Célébration Royale', weekdays: [0], start_time: '10:30:00', timezone: 'Africa/Abidjan', youtube_playlist_id: 'PLxNRRXEmUleFrBmQBbULlXkMRLCRUUOCZ', status: 'published', is_active: true },
+]
 
 type Calls = { inserts: Array<Record<string, unknown>>; updates: Array<{ patch: Record<string, unknown>; id: string }>; deletes: string[]; cronInserts: number; cronUpdates: Array<Record<string, unknown>>; lock: { acquire: string[]; release: string[] } }
-type DbOptions = { failWrites?: boolean; lastRun?: Record<string, unknown> | null; twins?: Array<Record<string, unknown>>; lockMissing?: boolean }
+type DbOptions = { failWrites?: boolean; lastRun?: Record<string, unknown> | null; twins?: Array<Record<string, unknown>>; lockMissing?: boolean; programs?: Array<Record<string, unknown>>; programsError?: boolean }
 
 /**
  * Faux magasin de verrou reproduisant la sémantique ATOMIQUE de `acquire_sync_lock` : un seul détenteur
@@ -63,6 +71,9 @@ function database(rows: Array<Record<string, unknown>>, opts: DbOptions = {}, lo
         delete: () => { throw new Error('cms_lives rows must never be deleted') },
       }
     }
+    if (table === 'live_programs') {
+      return { select: () => chain(async () => (opts.programsError ? { data: null, error: { message: 'boom' } } : { data: opts.programs ?? PROGRAMS, error: null })) }
+    }
     if (table === 'cron_runs') {
       return {
         insert: () => chain(async () => { calls.cronInserts++; return { data: { id: 'run-1' }, error: null } }),
@@ -76,7 +87,7 @@ function database(rows: Array<Record<string, unknown>>, opts: DbOptions = {}, lo
 }
 
 describe('syncYouTubeLives', () => {
-  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }); mocks.fetchVideoDetails.mockResolvedValue([]) })
+  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }); mocks.fetchVideoDetails.mockResolvedValue([]); mocks.fetchPlaylistVideoIds.mockResolvedValue([]) })
 
   it('creates the scheduled row, journals the run and resets the detector cache', async () => {
     const calls = database([])
@@ -93,7 +104,7 @@ describe('syncYouTubeLives', () => {
   })
 
   it('is a no-op on a second pass (idempotent) and does not reset the cache', async () => {
-    const calls = database([{ id: 'row-1', title: 'Culte', youtube_url: `https://youtu.be/${ID}`, status: 'scheduled', is_live: false, scheduled_at: '2026-11-16T09:00:00Z', platform: 'YouTube', cover_url: 'x', description: 'y' }])
+    const calls = database([{ id: 'row-1', title: 'Culte', youtube_url: `https://youtu.be/${ID}`, status: 'scheduled', is_live: false, scheduled_at: '2026-11-22T10:30:00Z', platform: 'YouTube', cover_url: 'x', description: 'y' }])
     mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'upcoming' ? [upcoming] : []))
     const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z') })
     expect(summary).toMatchObject({ ok: true, inserted: 0, updated: 0 })
@@ -223,7 +234,7 @@ describe('syncYouTubeLives', () => {
 })
 
 describe('deleted YouTube schedules (p900Q_e1Y2U, j-RGU6Q84CE)', () => {
-  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }) })
+  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }); mocks.fetchPlaylistVideoIds.mockResolvedValue([]) })
 
   it('verifies scheduled rows missing from YouTube lists and cancels them when videos.list confirms deletion (no delete)', async () => {
     const calls = database([
@@ -254,7 +265,7 @@ describe('deleted YouTube schedules (p900Q_e1Y2U, j-RGU6Q84CE)', () => {
 
 describe('lease duration protection (240 s)', () => {
   const second = { ...upcoming, id: 'culte654321', snippet: { ...upcoming.snippet, title: 'Culte 2' } }
-  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }); mocks.fetchVideoDetails.mockResolvedValue([]) })
+  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }); mocks.fetchVideoDetails.mockResolvedValue([]); mocks.fetchPlaylistVideoIds.mockResolvedValue([]) })
 
   /** Fait avancer l'horloge simulée à chaque insertion cms_lives. */
   function advanceOnInsert(stepMs: number, clockRef: { t: number }, onInsert?: (n: number) => void) {
@@ -335,5 +346,114 @@ describe('lease duration protection (240 s)', () => {
     const summary = await syncYouTubeLives({ now: new Date('2026-11-15T10:00:00Z'), callTimeoutMs: 30 })
     expect(summary).toMatchObject({ ok: false, error: 'sync_lock_unavailable' })
     expect(mocks.fetchOwnedBroadcasts).not.toHaveBeenCalled()
+  })
+})
+
+describe('périmètre Lot 1 (Culte de Célébration Royale uniquement)', () => {
+  beforeEach(() => { vi.clearAllMocks(); __resetYouTubeSyncLock(); mocks.config.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r', channelId: null }); mocks.fetchVideoDetails.mockResolvedValue([]); mocks.fetchPlaylistVideoIds.mockResolvedValue([]) })
+  const NOW = new Date('2026-11-22T23:00:00Z')
+  const done = (id: string, start: string, title: string) => ({ id, snippet: { title, actualStartTime: start, actualEndTime: start, scheduledStartTime: start, channelId: 'UCtest' }, status: { lifeCycleStatus: 'complete', privacyStatus: 'public' } })
+  const ok = (id: string, start: string) => ({ id, snippet: { title: 'YT ' + id, liveBroadcastContent: 'none' }, status: { uploadStatus: 'processed', privacyStatus: 'public', embeddable: true }, contentDetails: { duration: 'PT2H' }, liveStreamingDetails: { actualStartTime: start, actualEndTime: start, scheduledStartTime: start } })
+  const COMPLETED = [done('CULTE22NOVx', '2026-11-22T10:44:00Z', 'Message du dimanche'), done('MATIN000001', '2026-11-20T05:31:00Z', 'Matinale'), done('MATIN000002', '2026-11-18T05:31:00Z', 'Matinale'), done('VDP00000001', '2026-11-20T19:40:00Z', 'Vendredi de puissance'), done('CULTEsam001', '2026-11-21T18:00:00Z', 'Culte spécial')]
+
+  it('insère uniquement le culte dominical, avec program_id ; réserve matinales et Vendredi de puissance ; met le culte hors dimanche en revue', async () => {
+    const calls = database([])
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'completed' ? COMPLETED : []))
+    mocks.fetchVideoDetails.mockImplementation(async (ids: string[]) => ids.map(id => ok(id, String(COMPLETED.find(c => c.id === id)?.snippet.actualStartTime))))
+    const summary = await syncYouTubeLives({ now: NOW })
+    expect(summary).toMatchObject({ ok: true, error: null, inserted: 1, updated: 0, writeErrors: 0 })
+    expect(calls.inserts).toHaveLength(1)
+    expect(calls.inserts[0]).toMatchObject({ youtube_url: 'https://www.youtube.com/watch?v=CULTE22NOVx', status: 'ended', program_id: 'prog-culte', sort_order: 0 })
+    expect(mocks.fetchVideoDetails.mock.calls.map(c => c[0])).toEqual([['CULTE22NOVx']]) // quota : seules les vidéos admises sont vérifiées
+    expect(summary.scope).toEqual({
+      programs: ['culte-de-celebration-royale'], admitted: ['CULTE22NOVx'],
+      reserved: [{ videoId: 'MATIN000001', program: 'matinale' }, { videoId: 'MATIN000002', program: 'matinale' }, { videoId: 'VDP00000001', program: 'vendredi-de-puissance' }],
+      review: [{ videoId: 'CULTEsam001', reason: 'title_suggests_target_off_schedule' }], outOfScope: 0,
+    })
+    expect(calls.cronUpdates[0].summary).toMatchObject({ scope: { programs: ['culte-de-celebration-royale'], admitted: 1, reserved: 3, review: 1, outOfScope: 0 }, warnings: [] })
+    expect(mocks.fetchPlaylistVideoIds).toHaveBeenCalledWith('PLxNRRXEmUleFrBmQBbULlXkMRLCRUUOCZ', expect.anything())
+  })
+
+  it('culte exceptionnel : la playlist seule ne suffit pas ; importé avec program_id seulement sur confirmation éditoriale (YOUTUBE_SYNC_CONFIRMED_VIDEO_IDS)', async () => {
+    mocks.fetchPlaylistVideoIds.mockResolvedValue(['CULTEsam001'])
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'completed' ? [COMPLETED[4]] : []))
+    mocks.fetchVideoDetails.mockImplementation(async (ids: string[]) => ids.map(id => ok(id, '2026-11-21T18:00:00Z')))
+    const before = database([])
+    const refused = await syncYouTubeLives({ now: NOW })
+    expect(refused).toMatchObject({ ok: true, inserted: 0 })
+    expect(refused.scope?.review).toEqual([{ videoId: 'CULTEsam001', reason: 'playlist_off_schedule' }])
+    expect(before.inserts).toEqual([])
+    const previous = process.env.YOUTUBE_SYNC_CONFIRMED_VIDEO_IDS
+    process.env.YOUTUBE_SYNC_CONFIRMED_VIDEO_IDS = 'CULTEsam001'
+    try {
+      const calls = database([])
+      const summary = await syncYouTubeLives({ now: NOW })
+      expect(summary).toMatchObject({ ok: true, inserted: 1 })
+      expect(calls.inserts[0]).toMatchObject({ program_id: 'prog-culte' })
+    } finally {
+      if (previous === undefined) delete process.env.YOUTUBE_SYNC_CONFIRMED_VIDEO_IDS; else process.env.YOUTUBE_SYNC_CONFIRMED_VIDEO_IDS = previous
+    }
+  })
+
+  it('NON-RÉGRESSION T-wX2cISBDU : prière du lundi 05:31 présente dans la playlist du culte → revue, aucune insertion', async () => {
+    const twx = done('T-wX2cISBDU', '2026-11-16T05:31:00Z', "🔥 QUE RIEN NE T'ARRÊTE CETTE SEMAINE ! | Prière puissante du lundi")
+    const calls = database([])
+    mocks.fetchPlaylistVideoIds.mockResolvedValue(['UJ_ZLAYy5ms', 'T-wX2cISBDU', 'WkRuVC7d3Mw'])
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'completed' ? [twx] : []))
+    mocks.fetchVideoDetails.mockImplementation(async (ids: string[]) => ids.map(id => ok(id, '2026-11-16T05:31:00Z')))
+    const summary = await syncYouTubeLives({ now: NOW })
+    expect(summary).toMatchObject({ ok: true, inserted: 0, updated: 0 })
+    expect(summary.scope).toMatchObject({ admitted: [], review: [{ videoId: 'T-wX2cISBDU', reason: 'playlist_contradicts_schedule' }] })
+    expect(calls.inserts).toEqual([])
+    expect(mocks.fetchVideoDetails).not.toHaveBeenCalled()
+  })
+
+  it('playlist illisible : avertissement non bloquant, repli sur l horaire', async () => {
+    database([])
+    mocks.fetchPlaylistVideoIds.mockRejectedValue(new Error('youtube_playlist_404'))
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'completed' ? [COMPLETED[0]] : []))
+    mocks.fetchVideoDetails.mockImplementation(async (ids: string[]) => ids.map(id => ok(id, '2026-11-22T10:44:00Z')))
+    const summary = await syncYouTubeLives({ now: NOW })
+    expect(summary).toMatchObject({ ok: true, inserted: 1, warnings: ['playlist_unavailable:culte-de-celebration-royale'] })
+  })
+
+  it('12. programme cible absent : refus AVANT verrou, YouTube, journal et toute écriture', async () => {
+    const calls = database([], { programs: [] })
+    const summary = await syncYouTubeLives({ now: NOW })
+    expect(summary).toMatchObject({ ok: false, error: 'sync_program_missing', inserted: 0 })
+    expect(calls.lock.acquire).toEqual([])
+    expect(calls.cronInserts).toBe(0)
+    expect(calls.inserts).toEqual([])
+    expect(mocks.fetchOwnedBroadcasts).not.toHaveBeenCalled()
+  })
+
+  it('12b. programme cible inactif ou table illisible : même refus', async () => {
+    database([], { programs: [{ id: 'prog-culte', slug: 'culte-de-celebration-royale', weekdays: [0], start_time: '10:30', status: 'published', is_active: false }] })
+    expect(await syncYouTubeLives({ now: NOW })).toMatchObject({ ok: false, error: 'sync_program_missing' })
+    const calls = database([], { programsError: true })
+    expect(await syncYouTubeLives({ now: NOW })).toMatchObject({ ok: false, error: 'live_programs_read_failed' })
+    expect(calls.lock.acquire).toEqual([])
+  })
+
+  it('11. erreur OAuth/YouTube : aucun écriture cms_lives, code non sensible, verrou libéré', async () => {
+    const calls = database([])
+    mocks.fetchOwnedBroadcasts.mockRejectedValue(new Error('youtube_oauth_invalid_grant'))
+    const summary = await syncYouTubeLives({ now: NOW })
+    expect(summary).toMatchObject({ ok: false, error: 'youtube_oauth_invalid_grant', inserted: 0 })
+    expect(calls.inserts).toEqual([])
+    expect(calls.lock.release).toHaveLength(1)
+  })
+
+  it('10. passage répété sur l état obtenu : aucune nouvelle écriture (idempotence)', async () => {
+    mocks.fetchOwnedBroadcasts.mockImplementation(async (status: string) => (status === 'completed' ? COMPLETED : []))
+    mocks.fetchVideoDetails.mockImplementation(async (ids: string[]) => ids.map(id => ok(id, String(COMPLETED.find(c => c.id === id)?.snippet.actualStartTime))))
+    const first = database([])
+    await syncYouTubeLives({ now: NOW })
+    const created = { id: 'row-new', ...first.inserts[0], created_at: NOW.toISOString() }
+    const second = database([created])
+    const summary = await syncYouTubeLives({ now: new Date('2026-11-22T23:05:00Z') })
+    expect(summary).toMatchObject({ ok: true, inserted: 0, updated: 0 })
+    expect(second.inserts).toEqual([])
+    expect(second.updates).toEqual([])
   })
 })
