@@ -55,6 +55,7 @@ let lastCheckedAt: number | null = null
 /** Cache court des vérifications `videos.list` (par identifiant vidéo). */
 const verified = new Map<string, { verdict: VideoLiveVerdict; expiresAt: number }>()
 const VIDEOS_URL = 'https://www.googleapis.com/youtube/v3/videos'
+const PLAYLIST_ITEMS_URL = 'https://www.googleapis.com/youtube/v3/playlistItems'
 export const VERIFY_TTL_SECONDS = 60
 export type VideoLiveVerdict = 'LIVE' | 'UPCOMING' | 'ENDED' | 'NOT_LIVE' | 'UNKNOWN'
 export type YouTubeLiveDiagnostics = {
@@ -264,6 +265,21 @@ export async function fetchVideoDetails(ids: string[], options: DetectorOptions 
     out.push(...(((await response.json()) as { items?: YouTubeVideoDetails[] }).items || []))
   }
   return out
+}
+
+/**
+ * Identifiants vidéo d'une playlist (`playlistItems.list`, lecture seule, 1 unité de quota, 50 éléments).
+ * Sert de signal éditorial au périmètre de synchronisation (youtube-sync-scope). Lève des codes `youtube_*`.
+ */
+export async function fetchPlaylistVideoIds(playlistId: string, options: DetectorOptions = {}): Promise<string[]> {
+  if (!/^[\w-]{10,64}$/.test(playlistId)) return []
+  const now = options.now || new Date(), fetchImpl = options.fetchImpl || fetch
+  const token = await bearerToken(now.getTime(), fetchImpl), url = new URL(PLAYLIST_ITEMS_URL)
+  url.search = new URLSearchParams({ part: 'contentDetails', playlistId, maxResults: '50' }).toString()
+  const response = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', signal: AbortSignal.timeout(YOUTUBE_REQUEST_TIMEOUT_MS) })
+  if (!response.ok) throw new Error(`youtube_playlist_${response.status}`)
+  const items = ((await response.json()) as { items?: Array<{ contentDetails?: { videoId?: string } }> }).items || []
+  return items.map(i => i.contentDetails?.videoId || '').filter(id => /^[\w-]{11}$/.test(id))
 }
 
 /** Code d'erreur non sensible (`youtube_*`) ou `youtube_live_error`. */
