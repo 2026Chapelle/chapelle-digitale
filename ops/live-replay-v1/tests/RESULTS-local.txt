@@ -25,6 +25,41 @@
   OK   mauvais sha => C06 FAIL
   OK   sidecar incoherent => C06 FAIL
   OK   commit absent => C08 FAIL
+== C08 attestation (commit + BUILD_ID + sha recalcule)
+  OK   C08 attestation conforme => PASS
+  OK   C08 attestation absente => FAIL
+  OK   C08 commit different => FAIL
+  OK   C08 BUILD_ID different => FAIL
+  OK   C08 sha atteste != sha recalcule => FAIL
+  OK   C08 cle dupliquee => FAIL
+  OK   C08 GITHUB_RUN_ID absent => FAIL
+  OK   C08 FORMAT absent => FAIL
+  OK   C08 ancien format (commit seul) => FAIL
+  OK   C08 attestation CRLF (Windows) => PASS
+  OK   C08 MANIFEST_PATH explicite => PASS
+  OK   C08 commit seul dans le dossier run => FAIL (plus de recherche large)
+  OK   C08 non evaluable si C06 FAIL
+  OK   attestation reelle run 43744413008 : seul le sha differe du paquet de test
+== C13 cron cible youtube-live-sync
+  OK   C13 tache existante seule => PASS
+  OK   C13 tache existante listee (route seulement)
+  OK   C13 jeton jamais affiche
+  OK   C13 youtube-live-sync actif => FAIL
+  OK   C13 secret en-tete jamais affiche
+  OK   C13 youtube-live-sync commente => PASS
+  OK   C13 tache YouTube non identifiable => FAIL
+  OK   C13 live-sync non identifiable => FAIL
+  OK   C13 variables masquees, PASS
+  OK   C13 @daily + CRLF youtube-live-sync => FAIL
+  OK   C13 profil reel (sans route + notifications) => PASS
+  OK   C13 /api/cron/notifications autorise et liste
+  OK   C13 commande sans route classee a part
+  OK   C13 configuration classee a part
+  OK   C13 profil reel : ni jeton, ni URL complete, ni chemin de commande
+  OK   C13 notifications + youtube-live-sync actif => FAIL (cible detectee malgre la tache autorisee)
+  OK   C13 aucune crontab => PASS
+  OK   C13 erreur de lecture => FAIL
+  OK   C13 commande crontab absente => FAIL
   OK   BUILD_ID prod different => C03 FAIL
   OK   fuite localhost => C11 FAIL
   OK   prod lien symbolique => C02 FAIL
@@ -68,4 +103,4 @@
   OK   rollback mode B : PASS
   OK   prod restauree depuis l'archive
 
-TESTS_PASS=61 TESTS_FAIL=0
+TESTS_PASS=94 TESTS_FAIL=0

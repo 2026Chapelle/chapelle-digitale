@@ -1,0 +1,22 @@
+# Attestation Citadelle Live & Replay V1
+# Source : API GitHub Actions (lecture seule), run 43744413008, job 132904436484.
+# BUILD_ID et PACKAGE_SHA256 recopies des lignes "BUILD_ID=" et "PACKAGE_SHA256=" du journal
+# de l'etape "Assemble Linux standalone" (2026-11-15T18:05:16Z).
+# GITHUB_ARTIFACT_ZIP_SHA256 = empreinte du zip de l'artefact (et non du .tar.gz).
+FORMAT=citadelle-attestation-v1
+COMMIT=d1492c290552cf256be41ce2731023b86f774343
+BUILD_ID=w-q27AfjfpNh_tCWsSKH9
+PACKAGE_SHA256=926f8321338f7fcd1a7ea93be93635ebcbc972714f8bb281b17e0316a3e40fd1
+PACKAGE_FILE=citadelle-linux-production.tar.gz
+GITHUB_REPOSITORY=2026Chapelle/chapelle-digitale
+GITHUB_WORKFLOW=.github/workflows/citadelle-linux-production.yml
+GITHUB_RUN_ID=43744413008
+GITHUB_RUN_NUMBER=10
+GITHUB_RUN_ATTEMPT=1
+GITHUB_JOB_ID=132904436484
+GITHUB_HEAD_BRANCH=claude/live-replay-v1
+GITHUB_EVENT=workflow_dispatch
+GITHUB_RUN_CONCLUSION=success
+GITHUB_ARTIFACT_ID=14173995545
+GITHUB_ARTIFACT_ZIP_SHA256=d5e424f328b16196bcd8905ae9f41306215d8e282aaebd2681182752164fb92f
+GITHUB_RUN_URL=https://github.com/2026Chapelle/chapelle-digitale/actions/runs/43744413008

@@ -47,12 +47,12 @@ Contrôles C01 à C14 :
 | C05 | BUILD_ID du staging = `w-q27AfjfpNh_tCWsSKH9` |
 | C06 | SHA-256 du paquet = valeur attendue, et le fichier `.sha256` voisin est cohérent |
 | C07 | BUILD_ID **lu dans le paquet** = build préparé |
-| C08 | commit `d1492c2…` attesté par un manifeste (sinon FAIL ; un autre commit dans le même manifeste donne aussi FAIL) |
+| C08 | attestation `<paquet>.manifest.txt` (ou `-ManifestPath`), format `citadelle-attestation-v1` : `COMMIT` = SHA complet attendu, `BUILD_ID` = build préparé, `PACKAGE_SHA256` = SHA **recalculé** en C06, `GITHUB_RUN_ID` numérique ; chaque clé une seule fois. Toute absence, duplication ou divergence donne FAIL |
 | C09 | liste des fichiers du paquet = liste du staging. Écarts autorisés : `.env*`, `.htaccess`, `tmp/`, `logs/` |
 | C10 | contenu identique au paquet (`tar --compare`, sans extraction). Un écart de date ou de droits est seulement compté |
 | C11 | `LOCALHOST_LEAK=0`, `PLACEHOLDER_SUPABASE=0`, référence `nvyuyffywnuollaxguen` présente |
 | C12 | bascule possible : prod et staging sur le même système de fichiers, dossiers parents inscriptibles |
-| C13 | aucune ligne cron active liée à Citadelle ou à la synchronisation |
+| C13 | contrôle ciblé : FAIL si une ligne active contient `youtube-live-sync`, si une ligne liée à YouTube n'est pas identifiable (`youtube`, `yt-live`, `live-sync`) ou si la crontab est illisible (commande absente ou erreur autre que « no crontab »). Les tâches existantes (dont `/api/cron/notifications`) sont conservées et listées en INFO : `CRON_ROUTE` (planification + route), `CRON_NO_ROUTE` (planification seule), `CRON_CONFIG` (nom de variable seul). Ni URL, ni jeton, ni valeur |
 | C14 | `app.js` et `.env` présents en prod. Seules la présence et l'égalité sont vérifiées, jamais les valeurs |
 
 Inspection Passenger, informative et en lecture seule :
@@ -169,6 +169,15 @@ Après le GO retour arrière :
 
 Secours sans PowerShell, depuis une session SSH déjà ouverte : `CONFIRM=<phrase> bash rollback.sh` avec `STATE=<fichier>`.
 Autre secours : *Setup Node.js App*, puis **Restart**.
+
+## 4 bis. Attestation C08 (préparée, **non déposée**)
+
+Le fichier `attestation/citadelle-linux-production.tar.gz.manifest.txt` est rédigé à partir du run GitHub Actions `43744413008` (n° 10, job `132904436484`) :
+- `COMMIT` = `head_sha` du run ;
+- `BUILD_ID` et `PACKAGE_SHA256` = lignes `BUILD_ID=` et `PACKAGE_SHA256=` du journal de l'étape « Assemble Linux standalone » ;
+- `GITHUB_ARTIFACT_ZIP_SHA256` = empreinte du **zip** de l'artefact. Ce n'est pas celle du `.tar.gz`, et C08 ne l'utilise pas.
+
+Après un GO distinct, le dépôt est une simple copie dans `~/releases/uploads/`, en dehors de la production. Le nom doit être `<nom exact du paquet>.manifest.txt`. Sinon, passer `-ManifestPath` au préflight.
 
 ## 5. Ce qui reste à confirmer sur le serveur (preuves non encore produites)
 

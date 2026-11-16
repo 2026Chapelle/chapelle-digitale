@@ -94,7 +94,7 @@ if [ -f "$STAGING/.next/BUILD_ID" ]; then
 else check C05_STAGING_BUILD_ID FAIL "BUILD_ID staging absent"; fi
 
 # ---- C06 checksum du paquet ----------------------------------------------
-PKG_OK=0
+PKG_OK=0; PKG_SHA=""
 if [ -z "$PACKAGE_PATH" ] || [ -z "$EXPECTED_PACKAGE_SHA256" ]; then
   check C06_PACKAGE_SHA256 FAIL "PACKAGE_PATH et EXPECTED_PACKAGE_SHA256 obligatoires"
 elif [ ! -f "$PACKAGE_PATH" ]; then
@@ -111,7 +111,7 @@ else
   if [ $rc -ne 0 ] || [ -z "$got" ]; then check C06_PACKAGE_SHA256 FAIL "sha256sum en erreur"
   elif [ "$got" != "$exp" ]; then check C06_PACKAGE_SHA256 FAIL "attendu ${exp}, calcule ${got}"
   elif [ $side_bad -eq 1 ]; then check C06_PACKAGE_SHA256 FAIL "calcule OK mais ${sidemsg}"
-  else check C06_PACKAGE_SHA256 PASS "${got} (${sidemsg})"; PKG_OK=1; fi
+  else check C06_PACKAGE_SHA256 PASS "${got} (${sidemsg})"; PKG_OK=1; PKG_SHA="$got"; fi
   info PACKAGE_BYTES "$(stat -c %s "$PACKAGE_PATH" 2>/dev/null || echo '?')"
 fi
 
@@ -128,34 +128,47 @@ else
   else check C07_PACKAGE_BUILD_ID FAIL "attendu ${EXPECTED_PREPARED_BUILD_ID}, paquet ${pkb}"; fi
 fi
 
-# ---- C08 preuve du commit ------------------------------------------------
-# Recherche le commit complet dans : MANIFEST_PATH, <paquet>.manifest.txt,
-# fichiers de premier niveau du dossier de run et de la racine staging.
-found=""
-cands=""
-[ -n "$MANIFEST_PATH" ] && cands="$MANIFEST_PATH"
-[ -n "$PACKAGE_PATH" ] && cands="$cands
-$PACKAGE_PATH.manifest.txt"
-RUN_DIR="$(dirname "$STAGING")"
-if [ -n "$WORK" ]; then
-  { printf '%s\n' "$cands"
-    find "$RUN_DIR" -maxdepth 1 -type f -size -2M 2>/dev/null
-    find "$STAGING" -maxdepth 1 -type f -size -2M ! -name '.env*' 2>/dev/null
-  } | awk 'NF' > "$WORK/commit-cands.txt"
-  while IFS= read -r f; do
-    [ -f "$f" ] || continue
-    if grep -q -- "$EXPECTED_COMMIT" "$f" 2>/dev/null; then found="$f"; break; fi
-  done < "$WORK/commit-cands.txt"
-  # Commit concurrent ? (un autre sha complet dans le meme fichier = incoherence)
-  if [ -n "$found" ]; then
-    other="$(grep -iE 'commit' "$found" | grep -oE '[0-9a-f]{40}' | grep -v -- "$EXPECTED_COMMIT" | head -1)"
-    if [ -n "$other" ]; then
-      check C08_COMMIT FAIL "${found} contient aussi un autre commit (${other})"
-    else check C08_COMMIT PASS "commit ${EXPECTED_COMMIT} atteste par ${found}"; fi
+# ---- C08 attestation commit <-> build <-> paquet ---------------------------
+# Fichier d'attestation unique : MANIFEST_PATH, sinon <paquet>.manifest.txt.
+# Format "CLE=valeur" ; chaque cle obligatoire presente UNE seule fois :
+#   FORMAT=citadelle-attestation-v1
+#   COMMIT=<sha complet attendu>
+#   BUILD_ID=<BUILD_ID prepare attendu>
+#   PACKAGE_SHA256=<doit egaler le SHA-256 RECALCULE en C06>
+#   GITHUB_RUN_ID=<identifiant numerique du run>
+# Toute absence, duplication ou divergence => FAIL.
+ATTEST="${MANIFEST_PATH:-}"
+[ -z "$ATTEST" ] && [ -n "$PACKAGE_PATH" ] && ATTEST="$PACKAGE_PATH.manifest.txt"
+if [ $PKG_OK -ne 1 ] || [ -z "$PKG_SHA" ]; then
+  check C08_COMMIT FAIL "paquet non verifie (C06) : attestation non evaluable"
+elif [ -z "$WORK" ]; then
+  check C08_COMMIT FAIL "pas d'espace temporaire"
+elif [ -z "$ATTEST" ] || [ ! -f "$ATTEST" ]; then
+  check C08_COMMIT FAIL "attestation introuvable: ${ATTEST:-<non fournie>}"
+else
+  info ATTESTATION "$ATTEST"
+  tr -d '\r' < "$ATTEST" > "$WORK/attest.txt" 2>/dev/null || : > "$WORK/attest.txt"
+  acount() { grep -c "^$1=" "$WORK/attest.txt"; }      # nombre d'occurrences de la cle
+  aval() { awk -v k="$1" 'index($0, k "=") == 1 { print substr($0, length(k) + 2); exit }' "$WORK/attest.txt" | tr -d ' \t'; }
+  errs=""
+  for k in FORMAT COMMIT BUILD_ID PACKAGE_SHA256 GITHUB_RUN_ID; do
+    v="$(aval "$k")"; ACOUNT="$(acount "$k")"
+    if [ "$ACOUNT" -eq 0 ]; then errs="$errs $k:absent"; continue; fi
+    if [ "$ACOUNT" -gt 1 ]; then errs="$errs $k:duplique"; continue; fi
+    case "$k" in
+      FORMAT)         [ "$v" = "citadelle-attestation-v1" ] || errs="$errs FORMAT:inconnu" ;;
+      COMMIT)         [ "$v" = "$EXPECTED_COMMIT" ] || errs="$errs COMMIT:${v:-vide}" ;;
+      BUILD_ID)       [ "$v" = "$EXPECTED_PREPARED_BUILD_ID" ] || errs="$errs BUILD_ID:${v:-vide}" ;;
+      PACKAGE_SHA256) [ "$(printf '%s' "$v" | tr 'A-F' 'a-f')" = "$PKG_SHA" ] || errs="$errs PACKAGE_SHA256:different_du_recalcul" ;;
+      GITHUB_RUN_ID)  printf '%s' "$v" | grep -qE '^[0-9]+$' || errs="$errs GITHUB_RUN_ID:invalide" ;;
+    esac
+  done
+  if [ -n "$errs" ]; then
+    check C08_COMMIT FAIL "attestation non conforme:${errs}"
   else
-    check C08_COMMIT FAIL "aucune preuve du commit ${EXPECTED_COMMIT} (manifeste introuvable ou different)"
+    check C08_COMMIT PASS "commit ${EXPECTED_COMMIT} + BUILD_ID ${EXPECTED_PREPARED_BUILD_ID} + sha ${PKG_SHA} (run $(aval GITHUB_RUN_ID))"
   fi
-else check C08_COMMIT FAIL "pas d'espace temporaire"; fi
+fi
 
 # ---- C09 / C10 contenu du paquet vs staging ------------------------------
 # Liste normalisee : chemins relatifs sans "./" ni "/" final, "." exclu.
@@ -242,18 +255,62 @@ if [ -d "$APP" ] && [ -d "$STAGING" ]; then
   fi
 else check C12_SWAP_FEASIBLE FAIL "prod ou staging absent"; fi
 
-# ---- C13 cron inactif ----------------------------------------------------
-if command -v crontab >/dev/null 2>&1; then
-  ct="$(crontab -l 2>&1)"; crc=$?
-  if [ $crc -ne 0 ] && printf '%s' "$ct" | grep -qi 'no crontab'; then
-    check C13_CRON_INACTIVE PASS "aucune crontab"
-  elif [ $crc -ne 0 ]; then check C13_CRON_INACTIVE FAIL "crontab -l en erreur"
+# ---- C13 cron youtube-live-sync inactif ------------------------------------
+# Controle CIBLE : seule la nouvelle tache youtube-live-sync doit etre inactive.
+# Les taches existantes (/api/cron/notifications, scorecard, ...) sont conservees
+# et listees en INFO (planification + nom de route uniquement, jamais la ligne,
+# l'URL complete, un jeton ou la valeur d'une variable).
+# Bloquant (FAIL) :
+#   - ligne active contenant "youtube-live-sync" ;
+#   - ligne active liee a YouTube non identifiable (youtube, yt-live, live-sync...) ;
+#   - lecture de la crontab impossible (commande absente ou erreur autre que "no crontab").
+if ! command -v crontab >/dev/null 2>&1; then
+  check C13_CRON_INACTIVE FAIL "commande crontab indisponible : lecture impossible"
+elif [ -z "$WORK" ]; then
+  check C13_CRON_INACTIVE FAIL "pas d'espace temporaire"
+else
+  crontab -l > "$WORK/cron.txt" 2> "$WORK/cron.err"; crc=$?
+  if [ $crc -ne 0 ]; then
+    if grep -qi 'no crontab' "$WORK/cron.err" "$WORK/cron.txt" 2>/dev/null; then
+      check C13_CRON_INACTIVE PASS "aucune crontab utilisateur"
+    else
+      check C13_CRON_INACTIVE FAIL "crontab -l en erreur (code ${crc}) : lecture impossible"
+    fi
   else
-    act="$(printf '%s\n' "$ct" | grep -Ev '^[[:space:]]*(#|$)' | grep -Ei 'citadelle|sync|youtube|live|cron' )"
-    if [ -z "$act" ]; then check C13_CRON_INACTIVE PASS "aucune ligne active liee a Citadelle/sync"
-    else check C13_CRON_INACTIVE FAIL "$(printf '%s\n' "$act" | wc -l | tr -d ' ') ligne(s) cron active(s) liee(s) a Citadelle"; fi
+    tr -d '\r' < "$WORK/cron.txt" | grep -Ev '^[[:space:]]*(#|$)' > "$WORK/cron.active"
+    target=0; unknown=0; n=0; nconf=0; nroute=0; nnoroute=0
+    while IFS= read -r line; do
+      n=$((n+1))
+      if printf '%s' "$line" | grep -Eq '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*='; then
+        # Ligne de configuration (MAILTO, CRON_TZ, SHELL, secrets...) : nom seulement, valeur masquee.
+        nconf=$((nconf+1))
+        info CRON_CONFIG "ligne ${n} $(printf '%s' "$line" | sed -E 's/^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*).*/\1/')=<masque>"
+        continue
+      fi
+      case "$line" in
+        @*) sched="$(printf '%s' "$line" | awk '{print $1}')" ;;
+        *)  sched="$(printf '%s' "$line" | awk '{print $1" "$2" "$3" "$4" "$5}')" ;;
+      esac
+      route="$(printf '%s' "$line" | grep -oE '/api/cron/[A-Za-z0-9_-]+' | head -1)"
+      if printf '%s' "$line" | grep -qi 'youtube-live-sync'; then
+        target=$((target+1)); info CRON_TARGET_ACTIVE "ligne ${n} [${sched}] ${route:-youtube-live-sync}"
+      elif printf '%s' "$line" | grep -Eqi 'youtube|yt[-_]?live|live[-_]?sync'; then
+        unknown=$((unknown+1)); info CRON_YOUTUBE_UNIDENTIFIED "ligne ${n} [${sched}] ${route:-(route non identifiable)}"
+      elif [ -n "$route" ]; then
+        nroute=$((nroute+1)); info CRON_ROUTE "ligne ${n} [${sched}] ${route}"
+      else
+        nnoroute=$((nnoroute+1)); info CRON_NO_ROUTE "ligne ${n} [${sched}] commande sans route /api/cron reconnue (non YouTube, conservee)"
+      fi
+    done < "$WORK/cron.active"
+    if [ "$target" -gt 0 ]; then
+      check C13_CRON_INACTIVE FAIL "${target} tache(s) youtube-live-sync ACTIVE(S)"
+    elif [ "$unknown" -gt 0 ]; then
+      check C13_CRON_INACTIVE FAIL "${unknown} tache(s) liee(s) a YouTube non identifiable(s)"
+    else
+      check C13_CRON_INACTIVE PASS "youtube-live-sync inactif ; conservees : routes=${nroute} sans_route=${nnoroute} config=${nconf}"
+    fi
   fi
-else check C13_CRON_INACTIVE PASS "commande crontab indisponible (aucun cron utilisateur)"; fi
+fi
 
 # ---- C14 fichiers proteges (presence/egalite uniquement) -----------------
 miss=""
