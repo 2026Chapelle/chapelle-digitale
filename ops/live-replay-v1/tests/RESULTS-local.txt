@@ -1,0 +1,71 @@
+== Analyse statique
+  OK   aucune substitution de processus <( ) dans remote/ (code)
+  OK   aucun appel a comm dans remote/ (code)
+  OK   aucun rm dans backup/activate/rollback (code)
+  OK   aucun rsync dans remote/ (code)
+  OK   bash -n activate.sh
+  OK   bash -n backup-prod.sh
+  OK   bash -n preflight-runner.sh
+  OK   bash -n rollback.sh
+  OK   pilote PS ASCII pur
+== Preflight nominal
+  OK   code retour 0
+  OK   14 checks PASS
+  OK   RUNNER_END|14|0|0
+  OK   aucune valeur .env affichee
+== Preflight : erreur de comparaison => FAIL (jamais PASS)
+  OK   C09 FAIL si tar -t echoue
+  OK   code retour != 0
+  OK   fonctionne sans stdin (ssh -n)
+== Preflight : divergences
+  OK   contenu modifie => C10 FAIL
+  OK   fichier en trop => C09 FAIL
+  OK   .env + tmp/ dans le staging autorises => PASS
+  OK   fichier manquant => C09 FAIL
+  OK   mauvais sha => C06 FAIL
+  OK   sidecar incoherent => C06 FAIL
+  OK   commit absent => C08 FAIL
+  OK   BUILD_ID prod different => C03 FAIL
+  OK   fuite localhost => C11 FAIL
+  OK   prod lien symbolique => C02 FAIL
+  OK   paquet non fourni => C06..C10 FAIL
+== Sauvegarde
+  OK   sans GO : DRY_RUN
+  OK   sans GO : rien ecrit
+  OK   GO : BACKUP_END|PASS
+  OK   archive + .sha256 presents
+  OK   sha256sum -c OK
+  OK   archive en 600
+  OK   ancienne sauvegarde conservee
+  OK   production inchangee (arbre, modes, liens)
+  OK   restauration identique (diff -r)
+  OK   restauration : modes identiques
+  OK   restauration : lien symbolique conserve
+  OK   aucun secret affiche
+  OK   meme nom : refus d'ecraser
+  OK   BUILD_ID prod inattendu => FAIL
+  OK   mauvaise phrase GO => pas d'execution
+== Activation
+  OK   sans GO : DRY_RUN et prod inchangee
+  OK   sha sauvegarde faux => FAIL avant bascule
+  OK   GO : ACTIVATION_END|PASS
+  OK   prod = build prepare
+  OK   prod reste un dossier reel
+  OK   .env/.htaccess/app.js preserves
+  OK   logs preserves
+  OK   restart.txt touche
+  OK   prod precedente conservee
+  OK   verrou libere
+  OK   rollback sans GO : DRY_RUN
+  OK   rollback mode A : PASS
+  OK   prod = build actif
+  OK   release retiree conservee
+== Activation en echec => retour arriere automatique
+  OK   ACTIVATION_END|ROLLED_BACK
+  OK   prod restauree = build actif
+  OK   release echouee conservee
+== Retour arriere mode B (depuis la sauvegarde)
+  OK   rollback mode B : PASS
+  OK   prod restauree depuis l'archive
+
+TESTS_PASS=61 TESTS_FAIL=0
