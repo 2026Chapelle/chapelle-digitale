@@ -15,7 +15,7 @@ export function selectTodayPrimary(candidates: TodayPrimaryCandidate[]) {
 export type LiveState = { status: 'LIVE'; title: string; youtubeVideoId?: string; watchUrl: string; thumbnail?: string; startedAt?: string } | { status: 'UPCOMING'; title: string; youtubeVideoId?: string; watchUrl?: string; thumbnail?: string; scheduledAt?: string } | { status: 'OFFLINE' }
 export type CmsLiveLike = { title?: unknown; status?: unknown; is_live?: unknown; youtube_url?: unknown; video_url?: unknown; cover_url?: unknown; scheduled_at?: unknown; started_at?: unknown; created_at?: unknown; updated_at?: unknown }
 export type HomeIntent = 'closer_to_god' | 'grow_in_faith' | 'need_prayer' | 'resume_walk'
-export type FirstStep = { type: 'prayer' | 'formation' | 'parcours' | 'live'; title: string; reason: string; href: string; cta: string }
+export type FirstStep = { type: 'prayer' | 'podcast' | 'formation' | 'parcours' | 'live'; title: string; reason: string; href: string; cta: string }
 const str = (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : undefined
 const yt = (v: unknown) => typeof v === 'string' ? (v.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|live\/|shorts\/))([\w-]{11})/)?.[1] || (/^[\w-]{11}$/.test(v) ? v : undefined)) : undefined
 /**
@@ -50,9 +50,18 @@ export function resolveFirstStep(input: { intent: HomeIntent; authenticated: boo
   const { intent, authenticated, memberNextAction, liveState } = input
   if (authenticated && memberNextAction && intent !== 'need_prayer') return { type: memberNextAction.kind === 'formation' ? 'formation' : 'parcours', title: memberNextAction.label, reason: memberNextAction.reason, href: memberNextAction.href, cta: memberNextAction.ctaLabel }
   if (intent === 'need_prayer') return { type: 'prayer', title: 'Déposer une demande de prière', reason: 'Tu peux déposer ce que tu portes et être rejoint dans la prière.', href: '/priere', cta: 'Demander une prière' }
-  if (intent === 'closer_to_god') return { type: 'prayer', title: 'Prendre un temps avec Dieu', reason: 'Commence par un temps simple de prière et de présence.', href: '/priere', cta: 'Commencer dans la prière' }
+  if (intent === 'closer_to_god') return { type: 'podcast', title: 'Prendre un temps avec Dieu', reason: 'Écoute une parole pour respirer, méditer et te rapprocher de Dieu.', href: '/podcast', cta: 'Écouter un podcast' }
   if (intent === 'resume_walk') return { type: 'parcours', title: 'Reprendre mon parcours', reason: 'Le parcours d’intégration t’aide à reprendre un pas clair, sans pression.', href: '/parcours', cta: 'Reprendre mon parcours' }
   if (liveState?.status === 'LIVE') return { type: 'live', title: liveState.title, reason: 'Le direct est en cours maintenant.', href: '/live', cta: 'Regarder le direct' }
   return { type: 'formation', title: 'Grandir dans ma foi', reason: 'Découvre un enseignement pour avancer à ton rythme.', href: '/formations', cta: 'Découvrir les formations' }
+}
+/**
+ * Destination d'une carte « De quoi as-tu besoin aujourd'hui ? ».
+ * Même source de vérité que l'encadré « premier pas » (resolveFirstStep) :
+ * visiteur → /podcast, /formations (ou /live si direct), /priere, /parcours ;
+ * membre → sa prochaine action, sauf la prière toujours vers /priere.
+ */
+export function resolveIntentHref(intent: HomeIntent, ctx: { authenticated: boolean; memberNextAction?: MemberNextAction | null; liveState?: LiveState }): string {
+  return resolveFirstStep({ intent, ...ctx }).href
 }
 export const INTENTS = [{ id: 'closer_to_god', title: 'Me rapprocher de Dieu', description: 'Un moment pour respirer et prier.' }, { id: 'grow_in_faith', title: 'Grandir dans ma foi', description: 'Un enseignement, un pas à la fois.' }, { id: 'need_prayer', title: 'J’ai besoin de prière', description: 'Déposer ce que tu portes.' }, { id: 'resume_walk', title: 'Reprendre ma marche avec Dieu', description: 'Retrouver un chemin simple.' }] as const
