@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 import { isAdminRequest } from '@/lib/admin-auth'
 import { cached } from '@/lib/cache'
+import { buildAnalyticsFunnel } from '@/lib/analytics-kpi'
 
 /**
  * Tableau de bord analytics interne — agrégats temps réel + historique.
@@ -78,7 +79,7 @@ async function computeAnalytics(days: number, pays: string | null) {
     // ── Événements sur la période (échantillon borné) ──
     const evtQ = await paysEq(
       supabaseAdmin.from('analytics_events')
-        .select('type, category, path, label, value, user_id, session_key, created_at')
+        .select('type, category, path, label, value, user_id, session_key, meta, created_at')
         .gte('created_at', sinceRange).order('created_at', { ascending: false }).limit(20000),
     )
     const events: Row[] = evtQ.data || []
@@ -103,18 +104,17 @@ async function computeAnalytics(days: number, pays: string | null) {
     const parPays = topN(sessions, 'pays', 12)
     const activePages = topN((activePagesQ.data || []) as Row[], 'path', 8)
 
-    // Entonnoir de conversion : visite → inscription → don → formation (sessions distinctes)
-    const setOf = (pred: (e: Row) => boolean) => new Set(events.filter(pred).map((e) => e.session_key))
-    const sVisite = new Set(sessions.map((s) => s.session_key))
-    const sInscription = setOf((e) => e.category === 'inscription' || (e.type === 'conversion' && e.category === 'inscription'))
-    const sDon = setOf((e) => e.category === 'don')
-    const sFormation = setOf((e) => e.category === 'formation')
-    const funnel = [
-      { etape: 'Visite', n: sVisite.size },
-      { etape: 'Inscription', n: sInscription.size },
-      { etape: 'Don', n: sDon.size },
-      { etape: 'Formation', n: sFormation.size },
-    ]
+    // Entonnoir : visite → inscription → don → formation.
+    // Inscription = profils réellement créés sur la période (pas les clics CTA,
+    // exposés à part en « intentions_inscription »). Voir lib/analytics-kpi.ts.
+    let profileSignups: number | null = null
+    try {
+      const pq = await paysEq(
+        supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', sinceRange),
+      )
+      profileSignups = typeof pq.count === 'number' && !pq.error ? pq.count : null
+    } catch { profileSignups = null }
+    const { funnel, intentions_inscription, inscriptions_source } = buildAnalyticsFunnel({ sessions, events, profileSignups })
 
     // Membres les plus engagés (sessions authentifiées)
     const byUser = new Map<string, { duration: number; events: number; views: number }>()
@@ -162,7 +162,9 @@ async function computeAnalytics(days: number, pays: string | null) {
         duree_moyenne_sec: dureeMoyenne,
         temps_total_sec: tempsTotal,
         progression_moyenne: progressionMoyenne,
+        intentions_inscription,
       },
+      sources: { inscriptions: inscriptions_source },
       top_pages: topPages,
       top_actions: topActions,
       repartition: { device: parDevice, navigateur: parNavigateur, source: parSource, pays: parPays },

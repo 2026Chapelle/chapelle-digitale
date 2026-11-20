@@ -10,6 +10,7 @@ import {
 } from '@/lib/pastoral-intelligence'
 import { churnRisk, needsFollowUp, ACTION_LABEL, RISK_META, type RiskLevel } from '@/lib/pastoral-prediction'
 import { cached } from '@/lib/cache'
+import { topConvertingPages } from '@/lib/analytics-kpi'
 
 /**
  * GOUVERNEMENT PASTORAL — cockpit unique de pilotage de l'église mondiale.
@@ -274,14 +275,8 @@ async function computeGouvernement(paysFilter: string | null) {
     const pays_en_croissance = nations.filter((n) => n.croissance_pct > 0).sort((a, b) => b.croissance_pct - a.croissance_pct).slice(0, 5)
     let pages_convertissantes: { label: string; count: number }[] = []
     try {
-      const mp = new Map<string, number>()
-      const { data } = await supabaseAdmin.from('analytics_events').select('path').eq('type', 'conversion').gte('created_at', since30).limit(5000)
-      for (const e of (data || []) as any[]) if (e.path) mp.set(e.path, (mp.get(e.path) || 0) + 1)
-      if (mp.size === 0) {
-        const { data: d2 } = await supabaseAdmin.from('analytics_events').select('path').in('category', ['don', 'inscription', 'formation']).gte('created_at', since30).limit(8000)
-        for (const e of (d2 || []) as any[]) if (e.path) mp.set(e.path, (mp.get(e.path) || 0) + 1)
-      }
-      pages_convertissantes = Array.from(mp.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([label, count]) => ({ label, count }))
+      // Conversions serveur uniquement (srv: + meta.origin='server') — voir lib/analytics-kpi.ts.
+      pages_convertissantes = await topConvertingPages(supabaseAdmin, since30)
     } catch { /* */ }
 
     // 2) SANTÉ SPIRITUELLE (libellés métier sur les 6 niveaux)

@@ -5,6 +5,7 @@ import { IS_DEMO_MODE } from '@/lib/supabase'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { parseDevice, parseBrowser, parseOS, detectSource, geoFromHeaders } from '@/lib/analytics-server'
 import { normalizeUtmBundle } from '@/lib/intelligence/attribution/utm'
+import { isReservedSessionKey, sanitizeClientMeta } from '@/lib/analytics-server-events'
 
 /**
  * Ingestion analytics interne Citadelle (écriture seule, publique).
@@ -22,6 +23,8 @@ import { normalizeUtmBundle } from '@/lib/intelligence/attribution/utm'
  *   pour les types non-heartbeat, journalise un événement.
  * - Confidentialité : aucune IP stockée ; visiteurs anonymes sans PII.
  * - Réponse 204 immédiate (compatible navigator.sendBeacon), jamais bloquante.
+ * - Intégrité : les sessions `srv:` et les marqueurs meta.origin / meta.idem_key
+ *   sont réservés aux événements métier serveur (non falsifiables ici).
  */
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,7 +50,7 @@ export async function POST(req: NextRequest) {
   if (IS_DEMO_MODE) return ok()
 
   const sessionKey = str(body.session) || str(body.session_id)
-  if (!sessionKey) return ok()
+  if (!sessionKey || isReservedSessionKey(sessionKey)) return ok()
 
   const rawType = (str(body.type) || 'pageview').toLowerCase()
   const type = ALLOWED.has(rawType) ? rawType : 'click'
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('analytics_events').insert({
         session_key: sessionKey, user_id: userId, type,
         category: str(body.category, 64), path, label: str(body.label, 256),
-        value, pays, meta: (body.meta && typeof body.meta === 'object') ? body.meta : null,
+        value, pays, meta: sanitizeClientMeta(body.meta),
       })
     }
   } catch {

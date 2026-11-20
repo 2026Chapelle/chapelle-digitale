@@ -6,6 +6,7 @@ import { IS_DEMO_MODE } from '@/lib/supabase'
 import { sendEmail } from '@/lib/email'
 import { welcomeEmail } from '@/lib/email-templates'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
+import { recordServerEvent } from '@/lib/analytics-server-events'
 
 /**
  * Relais serveur : reçoit un lead du tunnel et :
@@ -51,8 +52,8 @@ function journeyFlagsForStage(stage: TunnelStageKey) {
  * Persiste le lead dans `chapelle` (best-effort, jamais bloquant).
  * Upsert membre par email → form_submission → integration_journey (cier).
  */
-async function persistLead(body: IncomingLead, prenom: string, email: string, stage: TunnelStageKey): Promise<{ isNew: boolean }> {
-  if (IS_DEMO_MODE) return { isNew: false }
+async function persistLead(body: IncomingLead, prenom: string, email: string, stage: TunnelStageKey): Promise<{ isNew: boolean; memberId: string | null }> {
+  if (IS_DEMO_MODE) return { isNew: false, memberId: null }
   const db = supabaseAdmin.schema('chapelle')
 
   // Plateforme cible : CIER (hub) par défaut.
@@ -108,7 +109,7 @@ async function persistLead(body: IncomingLead, prenom: string, email: string, st
       .upsert({ member_id: memberId, platform_id: platformId, ...flags }, { onConflict: 'member_id,platform_id' })
   }
 
-  return { isNew }
+  return { isNew, memberId }
 }
 
 export async function POST(req: NextRequest) {
@@ -144,11 +145,20 @@ export async function POST(req: NextRequest) {
 
   // Persistance Supabase (best-effort) — alimente le dashboard. Ne bloque jamais.
   let isNewContact = false
+  let newMemberId: string | null = null
   try {
     const r = await persistLead(body, prenom, email, stage)
     isNewContact = r.isNew
+    newMemberId = r.isNew ? r.memberId : null
   } catch (err) {
     console.error('[tunnel/lead] persistance Supabase échouée', err)
+  }
+
+  // Événement métier « lead » (idempotent, flag INTEL_SERVER_EVENTS, sans PII, jamais bloquant).
+  if (newMemberId) {
+    try {
+      await recordServerEvent({ kind: 'lead_created', entityId: newMemberId, path: '/api/tunnel/lead' })
+    } catch { /* télémétrie : jamais bloquant */ }
   }
 
   // Étape 1 du tunnel — email de bienvenue (fallback Resend, indépendant de

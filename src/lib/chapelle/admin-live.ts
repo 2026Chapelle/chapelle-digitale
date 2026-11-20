@@ -16,6 +16,7 @@ import { emptyDashboardStats, type DashboardStats, type DateRange } from '@/lib/
 import { type FormSubmission, type FormStatus } from '@/lib/admin-data'
 import { type MembreMock } from '@/lib/mock/membres'
 import { TUNNEL_STAGES } from '@/lib/tunnel'
+import { canonicalDashboardEnabled, fetchCanonicalTraffic } from '@/lib/chapelle/canonical-traffic'
 
 const db = () => supabaseAdmin.schema('chapelle')
 
@@ -102,6 +103,26 @@ export async function liveDashboard(range: DateRange): Promise<DashboardStats | 
     // ── Tendance (surcharge si non vide) ───────────────────────────────
     const tendance = (r.tendance as any[]) ?? []
     if (tendance.length) base.tendance = tendance.map((p) => ({ label: p.label, visiteurs: num(p.visiteurs), inscriptions: num(p.inscriptions) }))
+
+    // ── Trafic canonique public.analytics_* (P0 L1, INTEL_CANONICAL_DASHBOARD=1) ──
+    // Remplace uniquement les agrégats « visiteurs » (structurellement à 0 côté
+    // chapelle.analytics_events). Inscriptions, membres, dons, tunnel : inchangés.
+    if (canonicalDashboardEnabled()) {
+      try {
+        const t = await fetchCanonicalTraffic(supabaseAdmin, range)
+        base.visiteursAujourdhui = { value: t.visiteursToday, delta: null, unit: 'number' }
+        base.visiteursSemaine = { value: t.visiteursSemaine, delta: null, unit: 'number' }
+        base.visiteursPeriode = { value: t.visiteursPeriode, delta: null, unit: 'number' }
+        base.tauxConversion = {
+          value: t.visiteursPeriode > 0 ? Math.round((num(r.nouveaux_membres) / t.visiteursPeriode) * 1000) / 10 : 0,
+          delta: null, unit: 'percent',
+        }
+        if (t.topPages.length) base.topPages = t.topPages
+        if (t.pays.length) base.paysVisiteurs = t.pays.map((p) => ({ pays: p.pays, flag: flagFor(p.pays), visiteurs: p.visiteurs }))
+        const inscr = new Map(base.tendance.map((p) => [p.label, p.inscriptions]))
+        if (t.tendance.length) base.tendance = t.tendance.map((p) => ({ label: p.label, visiteurs: p.visiteurs, inscriptions: inscr.get(p.label) ?? 0 }))
+      } catch { /* garde les valeurs du RPC */ }
+    }
   } catch { /* garde le mock en cas d'erreur réseau/SQL */ }
 
   // Messages récents : dernières soumissions de formulaire (table dédiée)

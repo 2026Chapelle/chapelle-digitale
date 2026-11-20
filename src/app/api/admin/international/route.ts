@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
     const { data } = await supabaseAdmin.schema('chapelle').rpc('admin_dashboard', { p_range: '30d' })
     const blob: any = data
     if (blob?.pays && Array.isArray(blob.pays)) {
-      visiteurs = blob.pays.map((p: any) => ({ pays: p.pays || p.label || 'Non renseigné', n: Number(p.n ?? p.count ?? p.value) || 0 }))
+      visiteurs = blob.pays.map((p: any) => ({ pays: p.pays || p.label || 'Non renseigné', n: Number(p.n ?? p.visiteurs ?? p.count ?? p.value) || 0 }))
     }
   } catch { /* */ }
 

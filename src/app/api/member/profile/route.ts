@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto'
 import { createRouteClient, getVerifiedUser } from '@/lib/supabase-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { IS_DEMO_MODE } from '@/lib/supabase'
+import { recordServerEvent } from '@/lib/analytics-server-events'
 
 /**
  * Profil du membre connecté (espace privé).
@@ -25,6 +26,23 @@ const EDITABLE = [
   'plateforme_principale', 'langue',
   'notifications_email', 'notifications_push', 'newsletter', 'whatsapp_alerts',
 ] as const
+
+/**
+ * Fenêtre au-delà de laquelle une mise à jour de profil n'est plus une
+ * inscription (un ancien membre qui édite son profil ne compte pas). Les comptes
+ * plus anciens relèvent de la réconciliation contrôlée (L3).
+ */
+const SIGNUP_EVENT_WINDOW_MS = 30 * 86400_000
+
+/** Événement métier « inscription » (idempotent, flag INTEL_SERVER_EVENTS, jamais bloquant). */
+async function recordSignupIfRecent(uid: string, createdAt: unknown): Promise<void> {
+  try {
+    if (typeof createdAt !== 'string') return
+    const t = Date.parse(createdAt)
+    if (!Number.isFinite(t) || Date.now() - t > SIGNUP_EVENT_WINDOW_MS) return
+    await recordServerEvent({ kind: 'signup_complete', entityId: uid, userId: uid, path: '/bienvenue', occurredAt: createdAt })
+  } catch { /* télémétrie : jamais bloquant */ }
+}
 
 async function currentUserId(): Promise<string | null> {
   if (IS_DEMO_MODE) return null
@@ -60,6 +78,7 @@ export async function PATCH(req: NextRequest) {
     }
     const { data, error } = await supabaseAdmin.from('profiles').update(patch).eq('id', uid).select().single()
     if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 400 })
+    await recordSignupIfRecent(uid, (data as { created_at?: unknown } | null)?.created_at)
     return NextResponse.json({ ok: true, data })
   } catch (e: any) {
     return NextResponse.json({ ok: false, message: e?.message || 'Erreur' }, { status: 500 })
