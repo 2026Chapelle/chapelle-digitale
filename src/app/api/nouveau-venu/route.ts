@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
+import { recordServerEvent } from '@/lib/analytics-server-events'
 import {
   getNewcomerIntakesRepository,
   getNewcomerOrgLookupClient,
@@ -84,6 +85,13 @@ export async function POST(req: NextRequest) {
       organization_id: body?.organization_id,
       organizationId: body?.organizationId,
     })
+
+    // Événement métier « nouveau venu » (idempotent, flag INTEL_SERVER_EVENTS, sans PII, jamais bloquant).
+    try {
+      if (data?.id) {
+        await recordServerEvent({ kind: 'newcomer_created', entityId: String(data.id), path: '/nouveau-venu', meta: { organization_id: organizationId } })
+      }
+    } catch { /* télémétrie : jamais bloquant */ }
 
     return NextResponse.json({ ok: true, intakeId: data.id })
   } catch (e: unknown) {
