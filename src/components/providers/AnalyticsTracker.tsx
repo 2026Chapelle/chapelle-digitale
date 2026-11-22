@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { IS_DEMO_MODE } from '@/lib/supabase'
 import { getBrowserClient } from '@/lib/supabase-browser'
+import { isTrackedPath } from '@/lib/analytics-path'
 
 /**
  * Tracker analytics interne Citadelle (présence temps réel + parcours).
@@ -35,7 +36,7 @@ let CURRENT_USER_ID: string | null = null
 
 /** Envoi bas niveau (sendBeacon prioritaire). */
 function send(payload: Record<string, unknown>) {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined' || !isTrackedPath(window.location.pathname)) return
   try {
     const body = JSON.stringify({ session: sessionId(), userId: CURRENT_USER_ID || undefined, ...payload })
     if (navigator.sendBeacon) {
@@ -91,8 +92,7 @@ export function AnalyticsTracker() {
 
   // Pageview à chaque route (hors back-office).
   useEffect(() => {
-    if (IS_DEMO_MODE || !pathname) return
-    if (pathname.startsWith('/admin') || pathname.startsWith('/preview')) return
+    if (IS_DEMO_MODE || !isTrackedPath(pathname)) return
     const utm: Record<string, string> = {}
     ;['source', 'medium', 'campaign', 'content', 'term'].forEach((k) => { const v = search?.get(`utm_${k}`); if (v) utm[k] = v })
     send({ type: 'pageview', path: pathname, referrer: typeof document !== 'undefined' ? (document.referrer || undefined) : undefined, utm: Object.keys(utm).length ? utm : undefined })
@@ -100,8 +100,7 @@ export function AnalyticsTracker() {
 
   // Heartbeat présence + durée active (onglet visible uniquement).
   useEffect(() => {
-    if (IS_DEMO_MODE) return
-    if (pathname?.startsWith('/admin') || pathname?.startsWith('/preview')) return
+    if (IS_DEMO_MODE || !isTrackedPath(pathname)) return
     lastBeat.current = Date.now()
     const beat = () => {
       if (document.visibilityState !== 'visible') { lastBeat.current = Date.now(); return }
@@ -116,9 +115,9 @@ export function AnalyticsTracker() {
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', beat) }
   }, [pathname])
 
-  // Capture déléguée des clics importants.
+  // Capture déléguée des clics importants (jamais sur /admin ou /preview).
   useEffect(() => {
-    if (IS_DEMO_MODE) return
+    if (IS_DEMO_MODE || !isTrackedPath(pathname)) return
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null
       if (!target) return

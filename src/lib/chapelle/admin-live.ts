@@ -119,6 +119,12 @@ export async function liveDashboard(range: DateRange): Promise<DashboardStats | 
         }
         if (t.topPages.length) base.topPages = t.topPages
         if (t.pays.length) base.paysVisiteurs = t.pays.map((p) => ({ pays: p.pays, flag: flagFor(p.pays), visiteurs: p.visiteurs }))
+        // Le même flux canonique pilote les clics CTA. Si la lecture des clics
+        // échoue seule, préserver les chiffres visiteurs et le repli RPC.
+        // Une lecture réussie mais vide efface les anciens clics non attribuables.
+        if (t.clicksAvailable) base.clicsBoutons = t.clicsBoutons.map((c, i) => ({
+          label: c.label, clicks: c.clicks, color: CTA_PALETTE[i % CTA_PALETTE.length],
+        }))
         const inscr = new Map(base.tendance.map((p) => [p.label, p.inscriptions]))
         if (t.tendance.length) base.tendance = t.tendance.map((p) => ({ label: p.label, visiteurs: p.visiteurs, inscriptions: inscr.get(p.label) ?? 0 }))
       } catch { /* garde les valeurs du RPC */ }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canonicalDashboardEnabled, computeCanonicalTraffic, rangeStart } from './canonical-traffic'
+import { canonicalDashboardEnabled, computeCanonicalTraffic, fetchCanonicalTraffic, rangeStart } from './canonical-traffic'
 
 const NOW = new Date('2026-11-20T15:30:00Z')
 const iso = (s: string) => new Date(s).toISOString()
@@ -59,5 +59,85 @@ describe('computeCanonicalTraffic — public.analytics_*', () => {
     const t = computeCanonicalTraffic({ range: 'today', now: NOW, sessions, events })
     expect(t.tendance).toHaveLength(16)
     expect(t.tendance[10]).toEqual({ label: '10h', visiteurs: 1 })
+  })
+})
+
+describe('clics CTA canoniques — anti-doublons de catégorie et sécurité', () => {
+  it('compte les vraies actions et ignore les faux clics, les événements serveur et les anciennes périodes', () => {
+    const events = [
+      { type: 'pageview', session_key: 's1', path: '/', created_at: iso('2026-11-20T11:00:00Z') },
+      { type: 'click', session_key: 's1', category: 'inscription', label: 'Rejoindre', created_at: iso('2026-11-20T11:01:00Z') },
+      { type: 'click', session_key: 's1', category: 'inscription', label: 'Rejoindre', created_at: iso('2026-11-20T11:02:00Z') },
+      { type: 'click', session_key: 's2', category: 'don', label: 'Offrir', created_at: iso('2026-11-20T11:03:00Z') },
+      { type: 'click', session_key: 's2', category: 'don', label: '', created_at: iso('2026-11-20T11:04:00Z') },
+      { type: 'click', session_key: 'srv:fake', category: 'don', label: 'Piratage', created_at: iso('2026-11-20T11:05:00Z') },
+      { type: 'conversion', session_key: 'srv:signup:1', category: 'inscription', label: 'Rejoindre', created_at: iso('2026-11-20T11:05:00Z') },
+      { type: 'click', session_key: 's3', category: 'don', label: 'Ancien', created_at: iso('2026-10-01T11:05:00Z') },
+    ]
+    const t = computeCanonicalTraffic({ range: 'today', now: NOW, sessions: [], events })
+    expect(t.clicsBoutons).toEqual([
+      { label: 'Rejoindre', clicks: 2 },
+      { label: 'Offrir', clicks: 1 },
+    ])
+    expect(t.visiteursToday).toBe(1)
+  })
+
+  it('désambiguïse les boutons ayant le même libellé dans des catégories différentes', () => {
+    const events = [
+      { type: 'click', session_key: 's1', category: 'inscription', label: 'Continuer', created_at: iso('2026-11-20T11:01:00Z') },
+      { type: 'click', session_key: 's1', category: 'don', label: 'Continuer', created_at: iso('2026-11-20T11:02:00Z') },
+    ]
+    const t = computeCanonicalTraffic({ range: 'today', now: NOW, sessions: [], events })
+    expect(t.clicsBoutons.map((c) => c.label).sort()).toEqual(['Continuer (don)', 'Continuer (inscription)'])
+  })
+
+  it('n’échoue pas sur les visiteurs lorsque la requête des clics est indisponible', async () => {
+    const client = {
+      from: (table: string) => {
+        let type = ''
+        const q: any = {
+          select: () => q,
+          eq: (_col: string, value: string) => { type = value; return q },
+          gte: () => q,
+          order: () => q,
+          limit: async () => {
+            if (table === 'analytics_sessions') return { data: [], error: null }
+            if (type === 'click') return { data: null, error: { message: 'read blocked' } }
+            return {
+              data: [{ type: 'pageview', session_key: 's1', path: '/', created_at: iso('2026-11-20T10:00:00Z') }],
+              error: null,
+            }
+          },
+        }
+        return q
+      },
+    }
+    const t = await fetchCanonicalTraffic(client, 'today', NOW)
+    expect(t.visiteursToday).toBe(1)
+    expect(t.clicksAvailable).toBe(false)
+    expect(t.clicsBoutons).toEqual([])
+  })
+
+  it('préserve aussi les visiteurs si la requête clics rejette une exception réseau', async () => {
+    const client = {
+      from: (table: string) => {
+        let eventType = ''
+        const q: any = {
+          select: () => q,
+          eq: (_col: string, value: string) => { eventType = value; return q },
+          gte: () => q,
+          order: () => q,
+          limit: async () => {
+            if (table === 'analytics_sessions') return { data: [], error: null }
+            if (eventType === 'click') throw new Error('réseau indisponible')
+            return { data: [{ type: 'pageview', session_key: 's1', path: '/', created_at: iso('2026-11-20T10:00:00Z') }], error: null }
+          },
+        }
+        return q
+      },
+    }
+    const t = await fetchCanonicalTraffic(client, 'today', NOW)
+    expect(t.visiteursToday).toBe(1)
+    expect(t.clicksAvailable).toBe(false)
   })
 })
