@@ -108,4 +108,27 @@ describe('clics CTA canoniques — anti-doublons de catégorie et sécurité', (
     expect(t.clicksAvailable).toBe(false)
     expect(t.clicsBoutons).toEqual([])
   })
+
+  it('préserve aussi les visiteurs si la requête clics rejette une exception réseau', async () => {
+    const client = {
+      from: (table: string) => {
+        let eventType = ''
+        const q: any = {
+          select: () => q,
+          eq: (_col: string, value: string) => { eventType = value; return q },
+          gte: () => q,
+          order: () => q,
+          limit: async () => {
+            if (table === 'analytics_sessions') return { data: [], error: null }
+            if (eventType === 'click') throw new Error('réseau indisponible')
+            return { data: [{ type: 'pageview', session_key: 's1', path: '/', created_at: iso('2026-11-20T10:00:00Z') }], error: null }
+          },
+        }
+        return q
+      },
+    }
+    const t = await fetchCanonicalTraffic(client, 'today', NOW)
+    expect(t.visiteursToday).toBe(1)
+    expect(t.clicksAvailable).toBe(false)
+  })
 })
