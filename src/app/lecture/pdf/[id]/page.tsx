@@ -53,7 +53,8 @@ function ReaderNotice({
   )
 }
 
-export default async function LecturePdfByIdPage({ params }: { params: { id: string } }) {
+export default async function LecturePdfByIdPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const profile = await getServerProfile()
   const authenticated = Boolean(profile)
   const role = typeof (profile as { role?: unknown } | null)?.role === 'string' ? (profile as { role: string }).role : ''

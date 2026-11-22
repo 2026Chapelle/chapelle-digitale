@@ -278,7 +278,7 @@ describe('Lot 5 — actor and route perimeter', () => {
     ;(assertUnitAccess as any).mockRejectedValue(new UnitAccessError('Unité introuvable.', 404))
     const res = await unitIdRoute.GET(
       mockReq('GET', `http://localhost/api/admin/organization-units/${SISTER}`),
-      { params: { id: SISTER } },
+      { params: Promise.resolve({ id: SISTER }) },
     )
     expect(res.status).toBe(404)
   })
@@ -308,7 +308,7 @@ describe('Lot 5 — actor and route perimeter', () => {
       mockReq('PATCH', `http://localhost/api/admin/organization-units/${CI}`, {
         created_by: 'evil',
       }),
-      { params: { id: CI } },
+      { params: Promise.resolve({ id: CI }) },
     )
     expect(res.status).toBe(400)
   })
@@ -328,7 +328,7 @@ describe('Lot 5 — actor and route perimeter', () => {
     ]) {
       const res = await unitIdRoute.PATCH(
         mockReq('PATCH', `http://localhost/api/admin/organization-units/${CI}`, body),
-        { params: { id: CI } },
+        { params: Promise.resolve({ id: CI }) },
       )
       expect(res.status).toBe(400)
     }

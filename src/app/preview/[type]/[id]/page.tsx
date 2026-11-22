@@ -36,10 +36,12 @@ function youtubeId(url?: string): string | null {
 
 const fmt = (s?: string) => { if (!s) return ''; try { return new Date(s).toLocaleString('fr-FR') } catch { return s } }
 
-export default async function PreviewPage({ params, searchParams }: { params: { type: string; id: string }; searchParams?: { vue?: string } }) {
+export default async function PreviewPage({ params: paramsPromise, searchParams: searchParamsPromise }: { params: Promise<{ type: string; id: string }>; searchParams?: Promise<{ vue?: string }> }) {
+  const params = await paramsPromise
+  const searchParams = await searchParamsPromise
   const mobile = searchParams?.vue === 'mobile'
   // Garde : admin uniquement.
-  if (!isValidAdminToken(cookies().get('cier_admin')?.value)) {
+  if (!isValidAdminToken((await cookies()).get('cier_admin')?.value)) {
     return <Centered title="Accès réservé" text="Cet aperçu est réservé à l'administration connectée." />
   }
   const table = TABLE_MAP[params.type]

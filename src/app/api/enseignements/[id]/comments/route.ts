@@ -159,13 +159,14 @@ async function teachingIsAccessible(
 export async function GET(
   _request: NextRequest,
   {
-    params,
+    params: paramsPromise,
   }: {
-    params: {
+    params: Promise<{
       id: string
-    }
+    }>
   },
 ) {
+  const params = await paramsPromise;
   if (
     !UUID_RE.test(params.id)
   ) {
@@ -242,13 +243,14 @@ export async function GET(
 export async function POST(
   request: NextRequest,
   {
-    params,
+    params: paramsPromise,
   }: {
-    params: {
+    params: Promise<{
       id: string
-    }
+    }>
   },
 ) {
+  const params = await paramsPromise;
   if (
     !UUID_RE.test(params.id)
   ) {

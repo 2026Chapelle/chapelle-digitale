@@ -20,18 +20,17 @@ const CTA_LABEL =
   'JE PARTICIPE AUX 10 JOURS'
 
 type Props = {
-  params: {
-    slug: string
-  }
+  params: Promise<{ slug: string }>
 }
 
 export default async function MahanaimRetreatPage({
   params,
 }: Props) {
+  const { slug } = await params;
   if (
-    params.slug !==
+    slug !==
       FIRST_RETREAT_SLUG &&
-    params.slug !==
+    slug !==
       CHAMBRE_HAUTE_SLUG
   ) {
     notFound()
@@ -39,7 +38,7 @@ export default async function MahanaimRetreatPage({
 
   const result =
     await getMemberRetreatBySlug(
-      params.slug,
+      slug,
     )
 
   if (
@@ -47,7 +46,7 @@ export default async function MahanaimRetreatPage({
     'identity_required'
   ) {
     const next =
-      `/member/plateformes/mahanaim/retraites/${params.slug}`
+      `/member/plateformes/mahanaim/retraites/${slug}`
 
     redirect(
       `/login?next=${encodeURIComponent(next)}`,

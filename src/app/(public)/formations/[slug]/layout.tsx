@@ -7,7 +7,8 @@ import type { Metadata } from 'next'
  */
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params: paramsPromise }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await paramsPromise;
   const nom = params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   return {
     title: `${nom} — Formation`,

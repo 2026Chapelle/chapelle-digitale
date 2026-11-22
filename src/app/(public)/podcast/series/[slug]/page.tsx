@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+﻿import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Layers, Headphones, Radio } from 'lucide-react'
 import { PodcastHero } from '@/components/podcast/PodcastHero'
@@ -15,9 +15,10 @@ export const dynamic = 'force-dynamic'
 
 const plural = (n: number, s: string) => `${n} ${s}${n > 1 ? 's' : ''}`
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const series = await getSeriesBySlug(params.slug)
-  if (!series) return { title: 'Série introuvable | La Voix du Royaume' }
+export async function generateMetadata({ params: paramsPromise }: { params: Promise<{ slug: string }> }) {
+  const params = await paramsPromise;
+  const series = await getSeriesBySlug((await params).slug)
+  if (!series) return { title: 'SÃ©rie introuvable | La Voix du Royaume' }
   const show = series.show_id ? await getShowById(series.show_id) : null
   const parent = show?.title || 'La Voix du Royaume'
   const title = `${series.title} | ${parent}`
@@ -28,18 +29,19 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     alternates: { canonical: siteUrl(`/podcast/series/${series.slug}`) },
     openGraph: {
       title, description, type: 'website',
-      images: [ogImage({ eyebrow: 'Série', title: series.title, subtitle: parent })],
+      images: [ogImage({ eyebrow: 'SÃ©rie', title: series.title, subtitle: parent })],
     },
   }
 }
 
 export default async function SeriesPage({
-  params, searchParams,
+  params: paramsPromise, searchParams,
 }: {
-  params: { slug: string }
-  searchParams: { saison?: string }
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ saison?: string }>
 }) {
-  const series = await getSeriesBySlug(params.slug)
+  const params = await paramsPromise;
+  const series = await getSeriesBySlug((await params).slug)
   if (!series) notFound()
 
   const [show, seasons, episodes] = await Promise.all([
@@ -60,23 +62,23 @@ export default async function SeriesPage({
   const episodesBySeason: Record<number, SpineEpisode[]> = {}
   for (const s of seasons) episodesBySeason[s.season_number] = grouped.get(s.id) ?? []
 
-  const requested = Number(searchParams?.saison)
+  const requested = Number((await searchParams)?.saison)
   const initialSaison = seasons.some((s) => s.season_number === requested)
     ? requested
     : (seasons[0]?.season_number ?? 1)
 
-  // Hero SANS CTA lien : l'action primaire « Commencer la série » (lecture) est
-  // rendue par SeriesStartCta ci-dessous ; la navigation vers l'émission reste
-  // secondaire (fil d'Ariane + méta « Radio »).
+  // Hero SANS CTA lien : l'action primaire Â« Commencer la sÃ©rie Â» (lecture) est
+  // rendue par SeriesStartCta ci-dessous ; la navigation vers l'Ã©mission reste
+  // secondaire (fil d'Ariane + mÃ©ta Â« Radio Â»).
   const heroConfig = {
-    eyebrow: 'Série',
+    eyebrow: 'SÃ©rie',
     title: series.title,
     description: series.short_description || series.description || null,
     image: resolveCover(null, series, show),
     ctaLabel: null,
     ctaHref: null,
   }
-  // Premier chapitre (saison la plus basse) pour cibler « Commencer la série ».
+  // Premier chapitre (saison la plus basse) pour cibler Â« Commencer la sÃ©rie Â».
   const firstSeasonEpisodes = seasons.length ? (episodesBySeason[seasons[0].season_number] ?? []) : []
 
   return (
@@ -96,14 +98,14 @@ export default async function SeriesPage({
 
         <PodcastHero hero={heroConfig} imageFit="contain" />
 
-        {/* Action primaire : Commencer la série (lecture via gate serveur). */}
+        {/* Action primaire : Commencer la sÃ©rie (lecture via gate serveur). */}
         {firstSeasonEpisodes.length > 0 && (
           <div className="px-4 md:px-0 -mt-4 mb-6">
             <SeriesStartCta episodes={firstSeasonEpisodes} />
           </div>
         )}
 
-        {/* Émission parente + compteurs réels (navigation secondaire) */}
+        {/* Ã‰mission parente + compteurs rÃ©els (navigation secondaire) */}
         <div className="px-4 md:px-0 mb-8 flex flex-wrap items-center gap-4 font-inter text-[13px]" style={{ color: 'rgba(245,230,216,0.5)' }}>
           {show && (
             <Link href={`/podcast/emissions/${show.slug}`} className="inline-flex items-center gap-1.5 hover:text-gold transition-colors">
@@ -111,24 +113,24 @@ export default async function SeriesPage({
             </Link>
           )}
           <span className="inline-flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-gold/70" aria-hidden /> {plural(seasons.length, 'saison')}</span>
-          <span className="inline-flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5 text-gold/70" aria-hidden /> {plural(episodes.length, 'épisode')}</span>
+          <span className="inline-flex items-center gap-1.5"><Headphones className="w-3.5 h-3.5 text-gold/70" aria-hidden /> {plural(episodes.length, 'Ã©pisode')}</span>
         </div>
 
-        {/* À propos */}
+        {/* Ã€ propos */}
         {series.description && series.description !== series.short_description && (
-          <section className="px-4 md:px-0 mb-9" aria-label="À propos de la série">
-            <p className="section-label-dark mb-3">À propos</p>
+          <section className="px-4 md:px-0 mb-9" aria-label="Ã€ propos de la sÃ©rie">
+            <p className="section-label-dark mb-3">Ã€ propos</p>
             <p className="font-inter text-sm md:text-base leading-relaxed max-w-3xl" style={{ color: 'rgba(245,230,216,0.6)' }}>
               {series.description}
             </p>
           </section>
         )}
 
-        {/* Saisons + épisodes (île cliente) */}
+        {/* Saisons + Ã©pisodes (Ã®le cliente) */}
         {seasons.length > 0 ? (
           <SeasonExplorer seasons={seasonViews} episodesBySeason={episodesBySeason} initialSaison={initialSaison} />
         ) : (
-          <p className="px-4 md:px-0 font-inter text-sm py-8" style={{ color: 'rgba(245,230,216,0.4)' }}>Les saisons de cette série arrivent bientôt.</p>
+          <p className="px-4 md:px-0 font-inter text-sm py-8" style={{ color: 'rgba(245,230,216,0.4)' }}>Les saisons de cette sÃ©rie arrivent bientÃ´t.</p>
         )}
       </div>
     </div>

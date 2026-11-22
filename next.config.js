@@ -101,11 +101,14 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   webpack: (config) => {
-    // CITADELLE PDF-1 — pdf.js (pdfjs-dist) référence le module natif `canvas`
-    // (Node) qui n'est JAMAIS utilisé côté navigateur (rendu client only). On
-    // l'exclut du bundle pour éviter une résolution échouée au build standalone.
+    // CITADELLE PDF-4 — Le rendu Living Books utilise le canvas du navigateur.
+    // Exclure les modules canvas natifs du bundle de ce lecteur client-only.
     config.resolve = config.resolve || {}
-    config.resolve.alias = { ...(config.resolve.alias || {}), canvas: false }
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      canvas: false,
+      '@napi-rs/canvas': false,
+    }
     return config
   },
 }

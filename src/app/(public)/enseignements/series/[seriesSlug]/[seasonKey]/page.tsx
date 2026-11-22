@@ -9,13 +9,14 @@ import { listPublishedTeachingLibrary } from '@/lib/teachings/teaching-library-s
 export const dynamic = 'force-dynamic'
 
 export default async function TeachingSeasonPage({
-  params,
+  params: paramsPromise,
 }: {
-  params: {
+  params: Promise<{
     seriesSlug: string
     seasonKey: string
-  }
+  }>
 }) {
+  const params = await paramsPromise;
   const match = params.seasonKey.match(/^saison-(\d+)$/)
   if (!match) notFound()
 

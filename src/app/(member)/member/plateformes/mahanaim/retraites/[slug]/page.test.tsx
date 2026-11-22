@@ -29,7 +29,7 @@ beforeAll(async () => {
   MahanaimRetreatPage = (await import('./page')).default
 })
 
-const props = { params: { slug: 'chambre-haute-2026' } }
+const props = { params: Promise.resolve({ slug: 'chambre-haute-2026' }) }
 
 beforeEach(() => {
   vi.clearAllMocks()

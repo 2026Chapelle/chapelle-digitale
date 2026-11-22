@@ -31,7 +31,8 @@ function guard(req: NextRequest): NextResponse | null {
   return null
 }
 
-export async function GET(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function GET(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const denied = guard(req); if (denied) return denied
   const { resource } = params
   if (!ALLOWED.includes(resource as any)) return NextResponse.json({ ok: false, message: 'Ressource inconnue.' }, { status: 404 })
@@ -56,7 +57,8 @@ export async function GET(req: NextRequest, { params }: { params: { resource: st
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function POST(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const denied = guard(req); if (denied) return denied
   if (params.resource !== 'products') return NextResponse.json({ ok: false, message: 'Création non supportée.' }, { status: 400 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
@@ -72,7 +74,8 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const denied = guard(req); if (denied) return denied
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   try {
@@ -97,7 +100,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function DELETE(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const denied = guard(req); if (denied) return denied
   if (params.resource !== 'products') return NextResponse.json({ ok: false, message: 'Suppression non supportée.' }, { status: 400 })
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })

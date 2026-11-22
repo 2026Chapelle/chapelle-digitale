@@ -10,7 +10,8 @@ export async function generateStaticParams() {
   return Object.keys(PLATEFORMES).map((id) => ({ id }))
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params: paramsPromise }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const params = await paramsPromise;
   const plateforme = PLATEFORMES[params.id as keyof typeof PLATEFORMES]
   if (!plateforme) return {}
   const title = `${plateforme.nom} — ${plateforme.slogan}`
@@ -34,7 +35,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default function Page({ params }: { params: { id: string } }) {
+export default async function Page({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const plateforme = PLATEFORMES[params.id as keyof typeof PLATEFORMES]
   if (!plateforme) notFound()
 

@@ -25,9 +25,9 @@ import { useAuth } from '@/components/providers/AuthProvider'
 const RECOMMENDED_ACTIONS: { label: string; href: string }[] = [
   { label: 'Avancer dans mes formations', href: '/member/dashboard/formations' },
   { label: 'Rejoindre un groupe / une cellule', href: '/member/dashboard/groupes' },
-  { label: 'Participer au mur de prire', href: '/member/dashboard/prieres' },
-  { label: "S'inscrire  un vnement", href: '/member/dashboard/evenements' },
-  { label: 'Complter mon profil', href: '/member/dashboard/profil' },
+  { label: 'Participer au mur de prière', href: '/member/dashboard/prieres' },
+  { label: "S'inscrire à un événement", href: '/member/dashboard/evenements' },
+  { label: 'Compléter mon profil', href: '/member/dashboard/profil' },
 ]
 
 /**
@@ -113,7 +113,7 @@ export default function ParcoursPage() {
   // Stats RELLES  chacune sur SA nature (aucune  tape  mixte).
   const STATS = [
     { icon: Zap, label: 'Score engagement', value: String(score), color: '#D4AF37' },
-    { icon: TrendingUp, label: 'Progression intgration', value: `${integ?.overall_pct ?? 0}%`, color: '#22C55E' },
+    { icon: TrendingUp, label: 'Progression intégration', value: `${integ?.overall_pct ?? 0}%`, color: '#22C55E' },
     { icon: Target, label: 'Parcours de formation', value: `${integEtape + 1}/${integ?.parcours?.length ?? PROGRAMME_INTEGRATION.length}`, color: '#8B5CF6' },
   ]
 
@@ -178,7 +178,7 @@ export default function ParcoursPage() {
 
       <div className="p-5 md:p-6 rounded-3xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <h2 className="font-cinzel text-base font-bold text-pearl mb-1">Commencer ici</h2>
-        <p className="font-inter text-sm text-pearl/55 mb-5">Deux parcours dentre, distincts du programme dintgration.</p>
+        <p className="font-inter text-sm text-pearl/55 mb-5">Deux parcours d’entrée, distincts du programme d’intégration.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {PARCOURS_ENTREE.map((p) => <Link key={p.slug} href={p.href} className="rounded-2xl p-5" style={{ background: p.couleur + '12', border: '1px solid ' + p.couleur + '45' }}>
             <div className="font-inter text-[11px] font-semibold mb-1" style={{ color: p.couleur }}>PARCOURS DENTRE</div>

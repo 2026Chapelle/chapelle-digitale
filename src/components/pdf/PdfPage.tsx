@@ -9,7 +9,7 @@
  *     changement (page/échelle) et au démontage (aucune fuite pdf.js) ;
  *   - devicePixelRatio pour un canvas net sans surdimensionner la taille CSS.
  *
- * Couche texte : API officielle pdfjs 3.11 `renderTextLayer` ; positionnement via
+ * Couche texte : API TextLayer de pdf.js 4 ; positionnement via
  * la variable CSS `--scale-factor` (= échelle du viewport). Texte transparent
  * au-dessus du canvas → sélection/copie réelles, sans masquer le rendu.
  */
@@ -56,6 +56,7 @@ export function PdfPage({
     let cancelled = false
     let renderTask: PdfRenderTask | null = null
     let textTask: PdfTextLayerTask | null = null
+    let textContainer: HTMLDivElement | null = null
     let page: Awaited<ReturnType<PdfDocumentProxy['getPage']>> | null = null
 
     setRendering(true)
@@ -94,10 +95,27 @@ export function PdfPage({
           textLayer.style.width = `${cssW}px`
           textLayer.style.height = `${cssH}px`
           textLayer.style.setProperty('--scale-factor', String(cssScale))
+
+          textContainer = document.createElement('div')
+          textContainer.className = 'pdf-text-layer-content'
+          textLayer.appendChild(textContainer)
+
           try {
             const textContent = await page.getTextContent()
             if (cancelled) return
-            textTask = await renderPdfTextLayer({ textContentSource: textContent, container: textLayer, viewport })
+            const task = await renderPdfTextLayer({
+              textContentSource: textContent,
+              container: textContainer,
+              viewport,
+            })
+
+            if (cancelled) {
+              try { task.cancel() } catch { /* ignore */ }
+              await task.promise.catch(() => undefined)
+              return
+            }
+
+            textTask = task
             await textTask.promise
             if (!cancelled) setTextReady(true)
           } catch {
@@ -116,7 +134,7 @@ export function PdfPage({
       cancelled = true
       try { renderTask?.cancel() } catch { /* ignore */ }
       try { textTask?.cancel() } catch { /* ignore */ }
-      try { textLayerRef.current?.replaceChildren() } catch { /* ignore */ }
+      try { textContainer?.remove() } catch { /* ignore */ }
       try { page?.cleanup() } catch { /* ignore */ }
     }
   }, [pdf, pageNumber, fitWidth, zoom])
@@ -180,7 +198,9 @@ export function PdfPage({
       <style>{`
         @keyframes pdf-spin { to { transform: rotate(360deg); } }
         .pdf-text-layer{ position:absolute; inset:0; overflow:hidden; line-height:1; text-align:initial; transform-origin:0 0; z-index:2; }
+        .pdf-text-layer-content{ position:absolute; inset:0; overflow:hidden; line-height:1; text-align:initial; transform-origin:0 0; text-size-adjust:none; -webkit-text-size-adjust:none; }
         .pdf-text-layer span{ color:transparent; position:absolute; white-space:pre; cursor:text; transform-origin:0% 0%; }
+        .pdf-text-layer span.markedContent{ top:0; height:0; }
         .pdf-text-layer br{ user-select:none; }
         .pdf-text-layer span.lb1-hl{ background:rgba(212,175,55,0.45); border-radius:2px; }
         .pdf-text-layer span::selection{ background:rgba(212,175,55,0.40); }

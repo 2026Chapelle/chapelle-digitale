@@ -89,7 +89,8 @@ function check(req: NextRequest, resource: string) {
   return { err: null as NextResponse | null }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function GET(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const { err } = check(req, params.resource); if (err) return err
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true, data: [] })
   const query =
@@ -108,7 +109,8 @@ export async function GET(req: NextRequest, { params }: { params: { resource: st
   return NextResponse.json({ ok: true, data: data ?? [] })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const { err } = check(req, params.resource); if (err) return err
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
@@ -127,7 +129,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function DELETE(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const { err } = check(req, params.resource); if (err) return err
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))

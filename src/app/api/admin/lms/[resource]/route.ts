@@ -23,7 +23,8 @@ function guard(req: NextRequest, resource: string): NextResponse | null {
 }
 const orderCol = (r: string) => (r === 'certificats' ? 'delivre_le' : 'ordre')
 
-export async function GET(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function GET(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const d = guard(req, params.resource); if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: true, demo: true })
   const { data, error } = await supabaseAdmin.from(params.resource).select('*').order(orderCol(params.resource), { ascending: true })
@@ -31,7 +32,8 @@ export async function GET(req: NextRequest, { params }: { params: { resource: st
   return NextResponse.json({ ok: true, data: data ?? [] })
 }
 
-export async function POST(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function POST(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const d = guard(req, params.resource); if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
@@ -44,7 +46,8 @@ export async function POST(req: NextRequest, { params }: { params: { resource: s
   return NextResponse.json({ ok: true, data })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const d = guard(req, params.resource); if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))
@@ -63,7 +66,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { resource: 
   return NextResponse.json({ ok: true, data })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { resource: string } }) {
+export async function DELETE(req: NextRequest, { params: paramsPromise }: { params: Promise<{ resource: string }> }) {
+  const params = await paramsPromise;
   const d = guard(req, params.resource); if (d) return d
   if (IS_DEMO_MODE) return NextResponse.json({ ok: false, message: 'Supabase requis.' }, { status: 400 })
   const body = await req.json().catch(() => ({}))

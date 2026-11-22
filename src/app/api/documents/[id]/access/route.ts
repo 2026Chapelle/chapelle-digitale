@@ -24,7 +24,8 @@ import { getDocumentDelivery } from '@/lib/documents/document-delivery-server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = await paramsPromise;
   const id = (params?.id || '').trim()
   if (!id || IS_DEMO_MODE) {
     return NextResponse.json({ allowed: false, reason: 'not_found' }, { status: 404 })

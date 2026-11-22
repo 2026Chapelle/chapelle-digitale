@@ -257,7 +257,7 @@ describe('PATCH /api/admin/intelligence/editorial/:id', () => {
   it('accepts a valid lifecycle transition and appends the audit event', async () => {
     const res = await PATCH_EDITORIAL(
       req('PATCH', 'http://localhost/api/admin/intelligence/editorial/rec_01', { status: 'ACCEPTED' }),
-      { params: { recommendationId: 'rec_01' } },
+      { params: Promise.resolve({ recommendationId: 'rec_01' }) },
     )
 
     expect(res.status).toBe(200)
@@ -320,7 +320,7 @@ describe('PATCH /api/admin/intelligence/editorial/:id', () => {
 
     const res = await PATCH_EDITORIAL(
       req('PATCH', 'http://localhost/api/admin/intelligence/editorial/rec_01', { status: 'PROPOSED' }),
-      { params: { recommendationId: 'rec_01' } },
+      { params: Promise.resolve({ recommendationId: 'rec_01' }) },
     )
 
     expect(res.status).toBe(400)

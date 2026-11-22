@@ -231,14 +231,14 @@ describe('Lot 2-B — Route security (membres admin)', () => {
   it('GET /api/admin/membres/[id] hors tenant → 404 et getMemberDossier jamais appelé', async () => {
     ;(assertProfileBelongsToActiveMembership as any).mockRejectedValue(new Error('Membre introuvable.'))
     const req = createMockRequest('GET', 'http://localhost/api/admin/membres/' + USER_OUT)
-    const res = await idRoute.GET(req, { params: { id: USER_OUT } })
+    const res = await idRoute.GET(req, { params: Promise.resolve({ id: USER_OUT }) })
     expect(res.status).toBe(404)
     expect(getMemberDossier).not.toHaveBeenCalled()
   })
 
   it('GET /api/admin/membres/[id] membre actif → getMemberDossier appelé après garde', async () => {
     const req = createMockRequest('GET', 'http://localhost/api/admin/membres/' + USER_IN)
-    await idRoute.GET(req, { params: { id: USER_IN } })
+    await idRoute.GET(req, { params: Promise.resolve({ id: USER_IN }) })
     expect(assertProfileBelongsToActiveMembership).toHaveBeenCalled()
     expect(getMemberDossier).toHaveBeenCalledWith(USER_IN)
   })
@@ -247,14 +247,14 @@ describe('Lot 2-B — Route security (membres admin)', () => {
   it('POST /api/admin/membres/[id]/action hors tenant → 404', async () => {
     ;(assertProfileBelongsToActiveMembership as any).mockRejectedValue(new Error('Membre introuvable.'))
     const req = createMockRequest('POST', 'http://localhost/api/admin/membres/' + USER_OUT + '/action', { action: 'set_statut' })
-    const res = await actionRoute.POST(req, { params: { id: USER_OUT } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: USER_OUT }) })
     expect(res.status).toBe(404)
   })
 
   it('POST /api/admin/membres/[id]/action garde protège lectures/mutations/journal avant', async () => {
     // The guard is first in try, before fetching prof or any action
     const req = createMockRequest('POST', 'http://localhost/api/admin/membres/' + USER_IN + '/action', { action: 'set_statut', membre_statut: 'membre' })
-    await actionRoute.POST(req, { params: { id: USER_IN } })
+    await actionRoute.POST(req, { params: Promise.resolve({ id: USER_IN }) })
     expect(assertProfileBelongsToActiveMembership).toHaveBeenCalled()
   })
 })
@@ -426,7 +426,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
         action: 'set_role',
         role: 'admin',
       })
-      const res = await actionRoute.POST(req, { params: { id: TARGET } })
+      const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
       expect(res.status).toBe(403)
       expect(resolveActorUnitContext).not.toHaveBeenCalled()
     },
@@ -442,7 +442,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
       action: 'set_role',
       role: 'membre',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(403)
     const body = await res.json()
     expect(body.code).toBe('no_admin_membership')
@@ -456,7 +456,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
     const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
       action: 'suspend',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(403)
     const body = await res.json()
     expect(body.code).toBe('actor_required')
@@ -469,7 +469,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
       action: 'set_role',
       role: 'super_admin',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(403)
   })
 
@@ -480,7 +480,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
       action: 'set_role',
       role: 'admin',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(403)
   })
 
@@ -495,7 +495,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
       action: 'set_role',
       role: 'admin',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(200)
   })
 
@@ -536,7 +536,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
     const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
       action: 'suspend',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(409)
   })
 
@@ -551,7 +551,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
       action: 'set_responsable',
       berger_id: 'berger-out-id',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(404)
   })
 
@@ -569,7 +569,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
       action: 'set_responsable',
       berger_id: 'berger-other-unit',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(404)
   })
 
@@ -579,7 +579,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
     const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
       action: 'reset_password',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(403)
   })
 
@@ -590,7 +590,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
     const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
       action: 'hard_delete',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(403)
   })
 
@@ -600,7 +600,7 @@ describe('Lot 6 — Actions membre security hardening', () => {
     const req = createMockRequest('POST', `http://localhost/api/admin/membres/${TARGET}/action`, {
       action: 'hard_delete',
     })
-    const res = await actionRoute.POST(req, { params: { id: TARGET } })
+    const res = await actionRoute.POST(req, { params: Promise.resolve({ id: TARGET }) })
     expect(res.status).toBe(404)
   })
 })

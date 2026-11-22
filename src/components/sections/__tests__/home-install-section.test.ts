@@ -20,7 +20,7 @@ describe('Accueil — section « Emporte Citadelle avec toi » (installation)', 
     const walk = (d: string) => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) walk(p); else if (/\.(tsx?|jsx?)$/.test(f) && !/\.test\./.test(f)) files.push(p) } }
     walk(resolve(root, 'src'))
     const capture = files.filter((f) => readFileSync(f, 'utf8').includes("addEventListener('beforeinstallprompt'"))
-    expect(capture.map((f) => f.slice(root.length + 1))).toEqual(['src/components/home/pwa-install.ts'])
+    expect(capture.map((f) => f.slice(root.length + 1).replace(/\\/g, '/'))).toEqual(['src/components/home/pwa-install.ts'])
     const registers = files.filter((f) => /serviceWorker\s*\.\s*register/.test(readFileSync(f, 'utf8')))
     expect(registers).toEqual([])
   })

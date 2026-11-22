@@ -44,7 +44,7 @@ export interface PdfPageProxy {
   cleanup: () => void
 }
 
-/** Tâche de rendu de la couche texte (renderTextLayer, pdfjs v3.11). */
+/** Tâche de rendu de la couche texte (TextLayer, pdf.js 4). */
 export interface PdfTextLayerTask {
   promise: Promise<void>
   cancel: () => void
@@ -52,8 +52,7 @@ export interface PdfTextLayerTask {
 
 /**
  * Rend la couche texte SÉLECTIONNABLE d'une page dans `container`, alignée sur le
- * `viewport` (même échelle que le canvas). API officielle pdfjs-dist 3.11 :
- * `renderTextLayer({ textContentSource, container, viewport })`.
+ * `viewport` (même échelle que le canvas). API TextLayer de pdf.js 4.
  */
 export async function renderPdfTextLayer(params: {
   textContentSource: PdfTextContent
@@ -61,11 +60,16 @@ export async function renderPdfTextLayer(params: {
   viewport: PdfPageViewport
 }): Promise<PdfTextLayerTask> {
   const pdfjs = await getPdfEngine()
-  return pdfjs.renderTextLayer({
+  const layer = new pdfjs.TextLayer({
     textContentSource: params.textContentSource,
     container: params.container,
     viewport: params.viewport,
-  }) as PdfTextLayerTask
+  })
+
+  return {
+    promise: layer.render(),
+    cancel: () => layer.cancel(),
+  }
 }
 export interface PdfDocumentProxy {
   numPages: number
@@ -92,11 +96,14 @@ export function getPdfEngine(): Promise<any> {
     enginePromise = import('pdfjs-dist').then((pdfjs) => {
       // Worker LOCAL bundlé (hash webpack), servi en same-origin. Pas de CDN.
       const workerUrl = new URL(
-        'pdfjs-dist/build/pdf.worker.min.js',
+        'pdfjs-dist/build/pdf.worker.min.mjs',
         import.meta.url,
       ).toString()
       pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
       return pdfjs
+    }).catch((error) => {
+      enginePromise = null
+      throw error
     })
   }
   return enginePromise
@@ -110,5 +117,9 @@ export async function openPdfDocument(src: string): Promise<PdfLoadingTask> {
   const pdfjs = await getPdfEngine()
   // withCredentials=false : les PDF actuels sont publics (bucket `media`).
   // Un accès signé/privé sera traité dans un lot ultérieur (PDF-2/3).
-  return pdfjs.getDocument({ url: src, withCredentials: false }) as PdfLoadingTask
+  return pdfjs.getDocument({
+    url: src,
+    withCredentials: false,
+    isEvalSupported: false,
+  }) as PdfLoadingTask
 }

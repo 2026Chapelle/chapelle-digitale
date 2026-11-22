@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { IS_DEMO_MODE } from '@/lib/supabase'
@@ -20,7 +20,7 @@ const ALLOWED_PATCH = ['name', 'status', 'continent_code', 'country_code', 'city
 
 export async function GET(
   req: NextRequest,
-  ctx: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
   const guarded = await requireGuardedAdminUnit(req)
   if (guarded instanceof NextResponse) return guarded
@@ -29,7 +29,7 @@ export async function GET(
   }
 
   try {
-    const unit = await assertUnitAccess(guarded.actor, ctx.params.id)
+    const unit = await assertUnitAccess(guarded.actor, (await ctx.params).id)
     const { data, error } = await supabaseAdmin
       .from('organization_units')
       .select(UNIT_COLS)
@@ -41,7 +41,7 @@ export async function GET(
       return NextResponse.json({ ok: false, message: error.message }, { status: 500 })
     }
     if (!data) {
-      return NextResponse.json({ ok: false, message: 'Unité introuvable.' }, { status: 404 })
+      return NextResponse.json({ ok: false, message: 'UnitÃ© introuvable.' }, { status: 404 })
     }
     return NextResponse.json({ ok: true, data: { unit: data } })
   } catch (e: unknown) {
@@ -51,7 +51,7 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  ctx: { params: { id: string } },
+  ctx: { params: Promise<{ id: string }> },
 ) {
   const guarded = await requireGuardedAdminUnit(req)
   if (guarded instanceof NextResponse) return guarded
@@ -60,7 +60,7 @@ export async function PATCH(
   }
 
   try {
-    await assertUnitAccess(guarded.actor, ctx.params.id, { write: true })
+    await assertUnitAccess(guarded.actor, (await ctx.params).id, { write: true })
     const body = await req.json().catch(() => ({}))
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return NextResponse.json({ ok: false, message: 'Payload invalide.' }, { status: 400 })
@@ -129,7 +129,7 @@ export async function PATCH(
     const { data, error } = await supabaseAdmin
       .from('organization_units')
       .update(patch)
-      .eq('id', ctx.params.id)
+      .eq('id', (await ctx.params).id)
       .eq('organization_id', guarded.organizationId)
       .select(UNIT_COLS)
       .maybeSingle()
@@ -138,7 +138,7 @@ export async function PATCH(
       return NextResponse.json({ ok: false, message: error.message }, { status: 500 })
     }
     if (!data) {
-      return NextResponse.json({ ok: false, message: 'Unité introuvable.' }, { status: 404 })
+      return NextResponse.json({ ok: false, message: 'UnitÃ© introuvable.' }, { status: 404 })
     }
     return NextResponse.json({ ok: true, data: { unit: data } })
   } catch (e: unknown) {

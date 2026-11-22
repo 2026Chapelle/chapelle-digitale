@@ -57,12 +57,15 @@ function Ladder({
 }) {
   const idx = currentKey ? items.findIndex((i) => i.key === currentKey) : -1
   return (
-    <div className="p-4 rounded-2xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <div className="flex items-center gap-2 mb-3">
-        <span style={{ color }}>{icon}</span>
-        <span className="font-inter text-[11px] uppercase tracking-widest text-pearl/45">{title}</span>
+    // `min-w-0` est indispensable : une piste de grille vaut `minmax(auto,...)`
+    // par défaut, donc son contenu l'empêche de rétrécir et le texte long
+    // débordait sur la carte voisine.
+    <div className="p-4 rounded-2xl min-w-0" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center gap-2 mb-3 min-w-0">
+        <span className="shrink-0" style={{ color }}>{icon}</span>
+        <span className="font-inter text-[11px] uppercase tracking-widest text-pearl/45 min-w-0 break-words">{title}</span>
       </div>
-      <div className="font-cinzel text-lg font-bold mb-3" style={{ color: defini ? color : 'rgba(255,255,255,0.4)' }}>
+      <div className="font-cinzel text-lg font-bold mb-3 break-words hyphens-auto" style={{ color: defini ? color : 'rgba(255,255,255,0.4)' }}>
         {defini ? currentLabel : RECOGNITION_PENDING_LABEL}
       </div>
       {/* Frise de l'axe — chips distinctes, l'étape reconnue est mise en avant. */}
@@ -137,7 +140,17 @@ export function KingdomRecognition({ className = '' }: { className?: string }) {
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-3">
+      {/* Scission pilotée par la largeur du CONTENEUR, non par celle du viewport.
+          `sm:grid-cols-2` décidait la scission sur le viewport alors que ce bloc
+          est rendu dans un conteneur dont la largeur n'en dépend pas (barre
+          latérale fixe + colonne de tableau de bord) : aux largeurs
+          intermédiaires, deux colonnes étaient imposées sans la place pour deux,
+          et `grid-cols-2` compilant en `repeat(2,minmax(0,1fr))`, le texte
+          débordait sur la piste voisine. `auto-fit` + `minmax` ne scinde que si
+          la place existe réellement. Propriété arbitraire Tailwind : aucun
+          plugin requis (le dépôt désactive le plugin aspectRatio de base via
+          @tailwindcss/aspect-ratio, on évite donc toute dépendance de plugin). */}
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(14rem,1fr))]">
         <Ladder
           title="Niveau de croissance"
           icon={<Sprout className="w-3.5 h-3.5" />}
@@ -167,7 +180,7 @@ export function KingdomRecognition({ className = '' }: { className?: string }) {
         <span className="font-inter text-[11px] uppercase tracking-widest text-pearl/45">Fonction / ministère :</span>
         {ministries.length > 0 ? (
           ministries.map((m) => (
-            <span key={m.key} className="text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(139,92,246,0.14)', color: '#A78BFA' }}>
+            <span key={m.key} className="text-[11px] font-semibold px-2.5 py-1 rounded-full max-w-full break-words" style={{ background: 'rgba(139,92,246,0.14)', color: '#A78BFA' }}>
               {m.label}
             </span>
           ))

@@ -16,10 +16,10 @@ import { getServerProfile } from '@/lib/supabase-server'
 import { buildAdminContext, profileToAdminInput, type AdminContext } from './admin-context'
 
 /** Garde legacy : via NextRequest (route handler) ou via le cookie courant (server component). */
-function readLegacyAuth(req?: NextRequest): boolean {
+async function readLegacyAuth(req?: NextRequest): Promise<boolean> {
   if (req) return isAdminRequest(req)
   try {
-    return isValidAdminToken(cookies().get('cier_admin')?.value)
+    return isValidAdminToken((await cookies()).get('cier_admin')?.value)
   } catch {
     return false
   }
@@ -30,7 +30,7 @@ function readLegacyAuth(req?: NextRequest): boolean {
  * omis dans un Server Component (on lit alors le cookie via next/headers).
  */
 export async function resolveAdminContext(req?: NextRequest): Promise<AdminContext> {
-  const legacyAuthenticated = readLegacyAuth(req)
+  const legacyAuthenticated = await readLegacyAuth(req)
 
   let profile = null
   try {
