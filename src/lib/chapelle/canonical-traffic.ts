@@ -56,7 +56,7 @@ export function computeCanonicalTraffic(input: { range: TrafficRange; now: Date;
   // Le dashboard général ne doit pas dépendre du vieux pipeline chapelle.analytics_events
   // pour ses clics. Conserver uniquement les vrais clics d'action (label + catégorie),
   // jamais les pages vues, événements serveur ou conversions.
-  const clicksByAction = new Map<string, { label: string; clicks: number }>()
+  const clicksByAction = new Map<string, { label: string; category: string; clicks: number }>()
   for (const e of input.events) {
     if (e.type !== 'click' || !e.session_key || isReservedSessionKey(e.session_key)) continue
     const t = Date.parse(String(e.created_at ?? ''))
@@ -67,11 +67,23 @@ export function computeCanonicalTraffic(input: { range: TrafficRange; now: Date;
     const key = `${category}:\0${label.toLowerCase()}`
     const current = clicksByAction.get(key)
     if (current) current.clicks += 1
-    else clicksByAction.set(key, { label, clicks: 1 })
+    else clicksByAction.set(key, { label, category, clicks: 1 })
   }
-  const clicsBoutons = Array.from(clicksByAction.values())
+  const topClicks = Array.from(clicksByAction.values())
     .sort((a, b) => b.clicks - a.clicks || a.label.localeCompare(b.label))
     .slice(0, 8)
+  // Des catégories différentes peuvent avoir le même libellé de bouton.
+  // Désambiguïser pour garder des clés React distinctes et un classement lisible.
+  const labelCounts = new Map<string, number>()
+  for (const c of topClicks) {
+    const k = c.label.toLowerCase()
+    labelCounts.set(k, (labelCounts.get(k) || 0) + 1)
+  }
+  const clicsBoutons = topClicks.map((c) => ({
+    label: (labelCounts.get(c.label.toLowerCase()) || 0) > 1
+      ? `${c.label} (${c.category})` : c.label,
+    clicks: c.clicks,
+  }))
 
   const paysBySession = new Map<string, string>()
   for (const s of input.sessions) if (s.session_key) paysBySession.set(String(s.session_key), (s.pays && String(s.pays).trim()) || 'Inconnu')
