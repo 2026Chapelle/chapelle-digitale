@@ -104,13 +104,22 @@ type MinimalClient = { from: (table: string) => any }
 /** Lecture bornée (service role) puis calcul pur. Lève en cas d'erreur : l'appelant garde ses valeurs. */
 export async function fetchCanonicalTraffic(client: MinimalClient, range: TrafficRange, now = new Date()) {
   const since = readSince(range, now).toISOString()
+  // Une requête "clics" peut retourner { error } OU rejeter (timeout/réseau).
+  // Dans les deux cas, préserver la télémétrie principale sans masquer l'échec.
+  const readClicks = async () => {
+    try {
+      return await client.from('analytics_events').select('session_key, type, category, label, created_at')
+        .eq('type', 'click').gte('created_at', since).order('created_at', { ascending: false }).limit(5000)
+    } catch {
+      return { data: null, error: { code: 'CLICK_READ_FAILED' } }
+    }
+  }
   const [ev, se, clicks] = await Promise.all([
     client.from('analytics_events').select('session_key, path, type, created_at')
       .eq('type', 'pageview').gte('created_at', since).order('created_at', { ascending: false }).limit(20000),
     client.from('analytics_sessions').select('session_key, pays, last_seen')
       .gte('last_seen', since).order('last_seen', { ascending: false }).limit(5000),
-    client.from('analytics_events').select('session_key, type, category, label, created_at')
-      .eq('type', 'click').gte('created_at', since).order('created_at', { ascending: false }).limit(5000),
+    readClicks(),
   ])
   if (ev.error || se.error) throw new Error('canonical traffic read failed')
   // Les clics sont un enrichissement : une erreur de lecture n'annule jamais les
