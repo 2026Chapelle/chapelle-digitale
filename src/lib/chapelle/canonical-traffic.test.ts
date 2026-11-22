@@ -82,6 +82,15 @@ describe('clics CTA canoniques — anti-doublons de catégorie et sécurité', (
     expect(t.visiteursToday).toBe(1)
   })
 
+  it('désambiguïse les boutons ayant le même libellé dans des catégories différentes', () => {
+    const events = [
+      { type: 'click', session_key: 's1', category: 'inscription', label: 'Continuer', created_at: iso('2026-11-20T11:01:00Z') },
+      { type: 'click', session_key: 's1', category: 'don', label: 'Continuer', created_at: iso('2026-11-20T11:02:00Z') },
+    ]
+    const t = computeCanonicalTraffic({ range: 'today', now: NOW, sessions: [], events })
+    expect(t.clicsBoutons.map((c) => c.label).sort()).toEqual(['Continuer (don)', 'Continuer (inscription)'])
+  })
+
   it('n’échoue pas sur les visiteurs lorsque la requête des clics est indisponible', async () => {
     const client = {
       from: (table: string) => {
