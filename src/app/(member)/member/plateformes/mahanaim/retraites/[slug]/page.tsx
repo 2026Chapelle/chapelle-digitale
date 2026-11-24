@@ -4,6 +4,7 @@ import {
 } from 'next/navigation'
 
 import EnrollRetreatButton from '@/components/mahanaim/EnrollRetreatButton'
+import RetreatDayMemberResources from '@/components/mahanaim/RetreatDayMemberResources'
 
 import {
   CHAMBRE_HAUTE_SLUG,
@@ -190,6 +191,10 @@ export default async function MahanaimRetreatPage({
                       {day.scriptureReference}
                     </p>
                   ) : null}
+
+                  {day.isUnlocked && (
+                    <RetreatDayMemberResources dayId={day.id} />
+                  )}
 
                   {!day.isUnlocked ? (
                     <p className="mt-3 text-sm text-slate-400">
